@@ -20,7 +20,12 @@ import type {
 // eslint-disable-next-line local-rules/no-suite-imports-in-suite-common
 import { ExtendedMessageDescriptor } from '@suite/intl';
 import { CountryCode } from '@suite-common/geolocation';
-import { Network, NetworkSymbol } from '@suite-common/wallet-config';
+import {
+    Network,
+    NetworkConfig,
+    NetworkDisplaySymbol,
+    NetworkSymbol,
+} from '@suite-common/wallet-config';
 import {
     Account,
     AccountKey,
@@ -47,17 +52,33 @@ export type TradingTradeBuySellType = Exclude<TradingType, TradingExchangeType>;
 export type TradingTradeBuyExchangeType = Exclude<TradingType, TradingSellType>;
 export type TradingTradeSellExchangeType = Exclude<TradingType, TradingBuyType>;
 
-export type TradingAssetOption = {
-    isNativeToken: boolean;
+type TradingAssetOptionBase = {
     id: CryptoId;
-    name: string;
-    coingeckoId: string;
-    symbol: string | NetworkSymbol;
-    displaySymbol: string;
-    contractAddress: string | null;
-    networkName: string;
+    coingeckoId: NonNullable<NetworkConfig['coingeckoId']>;
+    networkName: NetworkConfig['name'];
     networkSymbol: NetworkSymbol;
 };
+
+export type TradingAssetOptionNativeToken = TradingAssetOptionBase & {
+    isNativeToken: true;
+    name: NetworkConfig['name'];
+    symbol: NetworkSymbol;
+    displaySymbol: NetworkDisplaySymbol;
+    contractAddress: null | typeof constants.CONTRACT_ADDRESS_FOR_NATIVE_TOKEN;
+};
+
+export type TradingAssetOptionWithContractAddress = TradingAssetOptionBase & {
+    isNativeToken: false;
+    name: string;
+    symbol: string;
+    displaySymbol: string;
+    contractAddress: string;
+};
+
+export type TradingAssetOption =
+    | TradingAssetOptionNativeToken
+    | TradingAssetOptionWithContractAddress;
+
 // information about created trade
 export type TradingTradeType = BuyTrade | SellFiatTrade | ExchangeTrade;
 export type TradingTradeMapProps = {
@@ -93,6 +114,8 @@ export type TradingPaymentMethodProps = BuyCryptoPaymentMethod | '';
 export type TradingPaymentMethodListProps = {
     value: TradingPaymentMethodProps;
     label: string;
+    receiveAmount?: string;
+    symbol?: string;
 };
 
 type TradingCommonTransaction = {
@@ -146,12 +169,19 @@ export type TradingCountryOption = {
     name: string;
 };
 
+export type TradingCountrySubdivisionOption = {
+    value: string;
+    label: string;
+    name: string;
+};
+
 export type TradingBuyFormProps = {
     [constants.TRADING_FORM_FIAT_INPUT]?: string;
     [constants.TRADING_FORM_CRYPTO_INPUT]?: string;
     [constants.TRADING_FORM_FIAT_CURRENCY_SELECT]: TradingFiatCurrencyOption;
     [constants.TRADING_FORM_CRYPTO_CURRENCY_SELECT]: TradingAssetOption;
     [constants.TRADING_FORM_COUNTRY_SELECT]: TradingCountryOption;
+    [constants.TRADING_FORM_COUNTRY_SUBDIVISION_SELECT]?: TradingCountrySubdivisionOption;
     [constants.TRADING_FORM_PAYMENT_METHOD_SELECT]?: TradingPaymentMethodListProps;
     [constants.TRADING_FORM_PROVIDER_SELECT]?: string;
     [constants.TRADING_FORM_AMOUNT_IN_CRYPTO]: boolean;
@@ -260,6 +290,7 @@ export interface TradingSellFormProps extends FormState {
     [constants.TRADING_FORM_SEND_CRYPTO_CURRENCY_SELECT]: TradingAssetSellOption | undefined;
     [constants.TRADING_FORM_PAYMENT_METHOD_SELECT]?: TradingPaymentMethodListProps;
     [constants.TRADING_FORM_COUNTRY_SELECT]: TradingCountryOption;
+    [constants.TRADING_FORM_COUNTRY_SUBDIVISION_SELECT]?: TradingCountrySubdivisionOption;
     [constants.TRADING_FORM_AMOUNT_IN_CRYPTO]: boolean;
     [constants.TRADING_FORM_PROVIDER_SELECT]?: string;
 }
@@ -268,6 +299,7 @@ export type MinimalSellFormProps = {
     outputs: { amount?: string; fiat?: string; currency: Pick<BaseCurrencyOption, 'value'> }[];
     sendCryptoSelect: Pick<TradingAssetSellOption, 'id'> | undefined;
     countrySelect: TradingCountryOption;
+    countrySubdivisionSelect?: TradingCountrySubdivisionOption;
     amountInCrypto: boolean;
     setMaxOutputId?: number;
 };

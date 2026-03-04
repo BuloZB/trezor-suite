@@ -1,3 +1,4 @@
+import { experimentalFeedbackReducer } from '@suite/experimental-feedback';
 import { metadataReducer } from '@suite/metadata';
 import { prepareAnalyticsReducer } from '@suite-common/analytics-redux';
 import { prepareConnectPopupReducer } from '@suite-common/connect-popup';
@@ -38,6 +39,7 @@ export default {
     messageSystem,
     guide,
     protocol,
+    experimentalFeedback: experimentalFeedbackReducer,
     connectPopup: connectPopupReducer,
     walletConnect: walletConnectReducer,
 };

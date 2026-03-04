@@ -1,8 +1,8 @@
+import type { ExperimentalFeature } from '@suite/experimental';
 import { DeviceRootState, selectSelectedDevice } from '@suite-common/device';
 import { TransportInfo } from '@trezor/connect';
 
 import { SUITE } from 'src/actions/suite/constants';
-import { ExperimentalFeature } from 'src/constants/suite/experimental';
 import { RouterRootState, selectRouter } from 'src/reducers/suite/routerReducer';
 import { SuiteRootState } from 'src/reducers/suite/suiteReducer';
 import { AppState, PrerequisiteType, TorStatus, TrezorDevice } from 'src/types/suite';
@@ -100,6 +100,8 @@ export const selectIsFirmwareHashCheckEnabled = (state: SuiteRootState) =>
     state.suite.settings.enabledSecurityChecks.firmwareHash;
 export const selectIsFirmwareRevisionCheckEnabled = (state: SuiteRootState) =>
     state.suite.settings.enabledSecurityChecks.firmwareRevision;
+export const selectAreDeviceMetaChecksEnabled = (state: SuiteRootState) =>
+    state.suite.settings.enabledSecurityChecks.deviceMeta;
 
 // TODO use selectDeviceByDeviceRef from wallet-core; currently WIP in https://github.com/trezor/trezor-suite/pull/20955
 export const selectRecentlyConnectedDevice = (state: AppState): TrezorDevice | undefined =>

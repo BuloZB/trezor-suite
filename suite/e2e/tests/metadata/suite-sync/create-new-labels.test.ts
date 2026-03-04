@@ -46,12 +46,11 @@ const expectedOutput = {
     txId: 'aa545d95cf07892e1ae70b40e856b9b476f703e2e20647d0985830fd7b734393',
 };
 
-test.describe('Suite Sync - Labelling', { tag: ['@webOnly', '@T3W1', '@T3T1'] }, () => {
+test.describe('Suite Sync - Labelling', { tag: ['@T3W1', '@T3T1'] }, () => {
     test.use({ wipeEvoluRelay: true });
 
     test.beforeEach(async ({ onboardingPage, metadataPage }) => {
         await onboardingPage.completeOnboarding({ keepDebugModeEnabled: true });
-        await metadataPage.setupQuotaManager();
         await metadataPage.enableSuiteSync();
     });
 
@@ -107,7 +106,7 @@ test.describe('Suite Sync - Labelling', { tag: ['@webOnly', '@T3W1', '@T3T1'] },
         });
 
         await test.step('Verify data are sync to Relay', async () => {
-            await evoluClient.init({ ownerSecret });
+            evoluClient.init({ ownerSecret });
             await evoluClient.expectInTable('account', [expectedAccount], { softExpect: true });
             await evoluClient.expectInTable('address', [expectedAddress], { softExpect: true });
             await evoluClient.expectInTable('wallet', [expectedWallet], { softExpect: true });

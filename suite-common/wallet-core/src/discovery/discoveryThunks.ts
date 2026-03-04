@@ -5,6 +5,7 @@ import {
     deviceActions,
     selectDeviceByStaticSessionId,
     selectDevices,
+    selectEntropyCheckResultByDeviceId,
     selectSelectedDevice,
 } from '@suite-common/device';
 import {
@@ -508,10 +509,7 @@ export const runDiscoveryThunk = createThunk(
                 dispatch(discoveryActions.updateDiscovery(discoveryPayload, device.path));
             };
 
-            TrezorConnect.on<DiscoverAccountsProgress>(
-                UI_REQUEST.BUNDLE_PROGRESS,
-                onBundleProgress,
-            );
+            TrezorConnect.on(UI_REQUEST.BUNDLE_PROGRESS, onBundleProgress);
 
             // NOTE: sync set discovery status to progress to make sure that there aren't some hanging states
             // before asnyc onBundleProgress is called which sets progress
@@ -522,6 +520,8 @@ export const runDiscoveryThunk = createThunk(
                 ),
             );
 
+            // have Connect check the discovered account with persisted xpub hashes, but those are valid only for standard wallet
+            const entropyCheckResult = selectEntropyCheckResultByDeviceId(getState(), device.id);
             const result = await TrezorConnect.discoverAccounts({
                 device: {
                     instance,
@@ -529,6 +529,7 @@ export const runDiscoveryThunk = createThunk(
                     useEmptyPassphrase: !isAddingHiddenWallet,
                 },
                 coins: accountsParam,
+                entropyCheckResult,
             });
 
             TrezorConnect.off(UI_REQUEST.BUNDLE_PROGRESS, onBundleProgress);
@@ -768,11 +769,14 @@ export const runAdditionalDiscoveryThunk = createThunk(
             dispatch(discoveryActions.updateDiscovery(discoveryPayload, device.path));
         };
 
-        TrezorConnect.on<DiscoverAccountsProgress>(UI_REQUEST.BUNDLE_PROGRESS, onBundleProgress);
+        TrezorConnect.on(UI_REQUEST.BUNDLE_PROGRESS, onBundleProgress);
 
+        // have Connect check the discovered account with persisted xpub hashes, but those are valid only for standard wallet
+        const entropyCheckResult = selectEntropyCheckResultByDeviceId(getState(), device.id);
         const result = await TrezorConnect.discoverAccounts({
             device: updatedDevice,
             coins: accountsParam,
+            entropyCheckResult,
         });
 
         TrezorConnect.off(UI_REQUEST.BUNDLE_PROGRESS, onBundleProgress);

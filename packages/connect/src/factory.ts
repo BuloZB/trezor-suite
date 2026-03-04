@@ -1,110 +1,58 @@
-import type { EventEmitter } from 'events';
+import { Type } from '@trezor/schema-utils';
 
 import { UI_REQUEST } from './events';
 import type { CallMethod, CallMethodKeys } from './events/call';
-import type { TrezorConnect } from './types';
-import type { InitType } from './types/api/init';
+import {
+    type Manifest,
+    type TrezorConnect,
+    TrezorConnectAccount,
+    TrezorConnectBitcoin,
+    TrezorConnectBlockchain,
+    TrezorConnectCardano,
+    TrezorConnectDevice,
+    TrezorConnectEthereum,
+    TrezorConnectEvolu,
+    TrezorConnectMonero,
+    TrezorConnectRipple,
+    TrezorConnectSolana,
+    TrezorConnectStellar,
+    TrezorConnectTezos,
+    TrezorConnectTron,
+} from './types';
+import type { ConnectEmitter } from './types/emitter';
+
+export type InitType<SettingsType extends Record<string, any>> = (
+    settings: { manifest: Manifest } & SettingsType,
+) => Promise<void>;
 
 export interface ConnectFactoryDependencies<SettingsType extends Record<string, any>> {
     init: InitType<SettingsType>;
     call: CallMethod;
-    eventEmitter: EventEmitter;
+    eventEmitter: ConnectEmitter;
     updateConnectSettings: TrezorConnect['updateConnectSettings'];
     uiResponse: TrezorConnect['uiResponse'];
     cancel: TrezorConnect['cancel'];
     dispose: TrezorConnect['dispose'];
 }
 
-export const connectCallableMethods = [
-    'applyFlags',
-    'applySettings',
-    'authenticateDevice',
-    'authorizeCoinjoin',
-    'backupDevice',
-    'bleUnpair',
-    'blockchainDisconnect',
-    'blockchainEstimateFee',
-    'blockchainEvmRpcCall',
-    'blockchainGetAccountBalanceHistory',
-    'blockchainGetCurrentFiatRates',
-    'blockchainGetFiatRatesForTimestamps',
-    'blockchainGetInfo',
-    'blockchainGetTransactions',
-    'blockchainSetCustomBackend',
-    'blockchainSubscribe',
-    'blockchainSubscribeFiatRates',
-    'blockchainUnsubscribe',
-    'blockchainUnsubscribeFiatRates',
-    'blockchainValidateEvmRpcUrl',
-    'cancelCoinjoinAuthorization',
-    'cardanoComposeTransaction',
-    'cardanoGetAddress',
-    'cardanoGetNativeScriptHash',
-    'cardanoGetPublicKey',
-    'cardanoSignMessage',
-    'cardanoSignTransaction',
-    'changeLanguage',
-    'changePin',
-    'changeWipeCode',
-    'cipherKeyValue',
-    'composeTransaction',
-    'discoverAccounts',
-    'ethereumGetAddress',
-    'ethereumGetPublicKey',
-    'ethereumSignMessage',
-    'ethereumSignTransaction',
-    'ethereumSignTypedData',
-    'ethereumVerifyMessage',
-    'evoluGetDelegatedIdentityKey',
-    'evoluGetNode',
-    'evoluSignRegistrationRequest',
-    'firmwareUpdate',
-    'getAccountDescriptor',
-    'getAccountInfo',
-    'getAddress',
-    'getCoinInfo',
-    'getDeviceState',
-    'getFeatures',
-    'getFirmwareHash',
-    'getNonce',
-    'getOwnershipId',
-    'getOwnershipProof',
-    'getPublicKey',
-    'getSettings',
-    'loadDevice',
-    'moneroGetAddress',
-    'moneroGetWatchKey',
-    'moneroKeyImageSync',
-    'moneroSignTransaction',
-    'pushTransaction',
-    'recoveryDevice',
-    'requestLogin',
-    'resetDevice',
-    'rippleGetAddress',
-    'rippleSignTransaction',
-    'setBrightness',
-    'setBusy',
-    'showDeviceTutorial',
-    'signMessage',
-    'signTransaction',
-    'solanaComposeTransaction',
-    'solanaGetAddress',
-    'solanaGetPublicKey',
-    'solanaSignTransaction',
-    'stellarGetAddress',
-    'stellarSignTransaction',
-    'telemetryGet',
-    'tezosGetAddress',
-    'tezosGetPublicKey',
-    'tezosSignTransaction',
-    'thpGetCredentials',
-    'thpRemoveCredentials',
-    'tronGetAddress',
-    'tronSignTransaction',
-    'unlockPath',
-    'verifyMessage',
-    'wipeDevice',
-] as const satisfies readonly CallMethodKeys[];
+const connectCallables = Type.Composite([
+    // Not including `TrezorConnectManagement` as callable methods.
+    TrezorConnectDevice,
+    TrezorConnectBlockchain,
+    TrezorConnectAccount,
+    TrezorConnectBitcoin,
+    TrezorConnectEthereum,
+    TrezorConnectCardano,
+    TrezorConnectMonero,
+    TrezorConnectRipple,
+    TrezorConnectSolana,
+    TrezorConnectStellar,
+    TrezorConnectTezos,
+    TrezorConnectTron,
+    TrezorConnectEvolu,
+]);
+
+export const connectCallableMethods = Object.keys(connectCallables.properties) as CallMethodKeys[];
 
 export const factory = <
     SettingsType extends Record<string, any>,
@@ -120,7 +68,7 @@ export const factory = <
         dispose,
     }: ConnectFactoryDependencies<SettingsType>,
     extraMethods: ExtraMethodsType = {} as ExtraMethodsType,
-): Omit<TrezorConnect, 'init'> & {
+): TrezorConnect & {
     init: InitType<SettingsType>;
     call: CallMethod;
 } & ExtraMethodsType => {
@@ -142,21 +90,11 @@ export const factory = <
         init,
         updateConnectSettings,
 
-        on: <T extends string, P extends (...args: any[]) => any>(type: T, fn: P) => {
-            eventEmitter.on(type, fn);
-        },
+        on: eventEmitter.on.bind(eventEmitter),
 
-        off: (type, fn) => {
-            eventEmitter.removeListener(type, fn);
-        },
+        off: eventEmitter.removeListener.bind(eventEmitter),
 
-        removeAllListeners: type => {
-            if (typeof type === 'string') {
-                eventEmitter.removeAllListeners(type);
-            } else {
-                eventEmitter.removeAllListeners();
-            }
-        },
+        removeAllListeners: eventEmitter.removeAllListeners.bind(eventEmitter),
 
         uiResponse,
 

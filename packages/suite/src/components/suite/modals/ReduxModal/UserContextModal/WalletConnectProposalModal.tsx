@@ -120,6 +120,7 @@ export const WalletConnectProposalModal = ({ eventId }: WalletConnectProposalMod
                                 !ignoreWarning)
                         }
                         isLoading={dappScanQuery.isLoading}
+                        data-testid="@walletconnect-proposal/confirm-button"
                     >
                         <Translation id="TR_CONFIRM" />
                     </Modal.Button>
@@ -240,6 +241,7 @@ export const WalletConnectProposalModal = ({ eventId }: WalletConnectProposalMod
                                     </Row>
                                 )}
                                 onChange={(option: Option) => setSelectedDefaultAccount(option)}
+                                closeMenuOnScroll={false}
                             />
                         </ElevationUp>
                     </Card>

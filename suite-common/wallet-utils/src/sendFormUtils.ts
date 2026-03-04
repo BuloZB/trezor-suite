@@ -753,3 +753,28 @@ export const getCryptoMaxAmountWithReserve = ({
 
     return amount;
 };
+
+interface IsAmountWithinNetworkReserveProps {
+    reserve?: string;
+    balance?: string;
+    fee?: string;
+    amount: string;
+}
+
+/**
+ * Returns true if the amount does not violate the network reserve constraint,
+ * i.e. balance - amount - fee >= reserve.
+ */
+export const isAmountWithinNetworkReserve = ({
+    reserve,
+    balance,
+    fee = '0',
+    amount,
+}: IsAmountWithinNetworkReserveProps): boolean => {
+    if (!reserve || !balance) return true;
+
+    const sendAmount = new BigNumber(amount);
+    const accountBalance = new BigNumber(balance);
+
+    return sendAmount.lte(accountBalance.minus(reserve).minus(fee));
+};

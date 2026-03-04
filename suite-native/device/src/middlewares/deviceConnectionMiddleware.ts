@@ -18,6 +18,7 @@ import { selectIsFirmwareInstallationRunning } from '@suite-native/firmware';
 import {
     AuthorizeDeviceStackRoutes,
     DeviceOnboardingStackRoutes,
+    DeviceSettingsStackRoutes,
     HomeStackRoutes,
     RootStackRoutes,
     checkIsActiveRouteAnyOf,
@@ -231,7 +232,18 @@ deviceConnectionMiddleware.startListening({
     effect: (_, { getState }) => {
         if (!navigationContainerRef.isReady()) return;
 
-        if (selectIsFirmwareInstallationRunning(getState())) return;
+        if (
+            selectIsFirmwareInstallationRunning(getState()) ||
+            checkIsActiveRouteAnyOf([
+                DeviceSettingsStackRoutes.DeviceNameStack,
+                DeviceSettingsStackRoutes.FirmwareUpdateStack,
+                DeviceSettingsStackRoutes.DevicePinProtectionStack,
+                DeviceSettingsStackRoutes.DeviceCheckBackupStack,
+                DeviceSettingsStackRoutes.DeviceAuthenticityStack,
+            ])
+        ) {
+            return;
+        }
 
         // Nothing can be accomplished before a THP connection is established.
         navigationContainerRef.navigate(RootStackRoutes.AuthorizeDeviceStack, {

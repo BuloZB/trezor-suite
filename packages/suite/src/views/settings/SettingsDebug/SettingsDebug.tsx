@@ -11,6 +11,7 @@ import { selectSuiteFlags } from 'src/selectors/suite/suiteSelectors';
 import { AnalyticsLogging } from './AnalyticsLogging';
 import { Backends } from './Backends';
 import { CheckFirmwareAuthenticity } from './CheckFirmwareAuthenticity';
+import { ClearDevicePersistentData } from './ClearDevicePersistentData';
 import { CoinjoinApi } from './CoinjoinApi';
 import { ConnectPopup } from './ConnectPopup';
 import { DeviceAuthenticity } from './DeviceAuthenticity';
@@ -18,7 +19,6 @@ import { Devkit } from './Devkit';
 import { FirmwareUpdateEnvironmentSelect } from './FirmwareUpdateEnvironmentSelect';
 import { ForgetAllDevicesButton } from './ForgetBluetoothDevices';
 import { GithubIssue } from './GithubIssue';
-import { InvityApi } from './InvityApi';
 import { MessageSystemConfigSourceSelect } from './MessageSystem/MessageSystemConfigSourceSelect';
 import { MessageSystemDebug } from './MessageSystem/MessageSystemDebug';
 import { Metadata } from './Metadata';
@@ -31,6 +31,7 @@ import { ShowBluetoothDebugInfo } from './ShowBluetoothDebugInfo';
 import { SuiteSyncSettings } from './SuiteSyncSettings';
 import { ThrowTestingError } from './ThrowTestingError';
 import { Tor } from './Tor';
+import { TradeApi } from './TradeApi';
 import { Transport } from './Transport';
 import { TransportBackends } from './TransportBackends';
 import { TrezorConnectLogs } from './TrezorConnectLogs';
@@ -54,8 +55,8 @@ export const SettingsDebug = () => {
             <SettingsSection title="Analytics">
                 <AnalyticsLogging />
             </SettingsSection>
-            <SettingsSection title="Invity">
-                <InvityApi />
+            <SettingsSection title="Trade">
+                <TradeApi />
             </SettingsSection>
             <SettingsSection title="OAuth">
                 <OAuthApi />
@@ -67,6 +68,7 @@ export const SettingsDebug = () => {
                 <DeviceAuthenticity />
                 <Devkit />
                 <CheckFirmwareAuthenticity />
+                <ClearDevicePersistentData />
             </SettingsSection>
             <SettingsSection title="Testing">
                 <ThrowTestingError />

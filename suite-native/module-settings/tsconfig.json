@@ -47,6 +47,7 @@
         { "path": "../helpers" },
         { "path": "../icons" },
         { "path": "../intl" },
+        { "path": "../labeling" },
         { "path": "../link" },
         { "path": "../module-connect-popup" },
         { "path": "../navigation" },
@@ -64,7 +65,6 @@
         { "path": "../../packages/env-utils" },
         { "path": "../../packages/styles" },
         { "path": "../../packages/theme" },
-        { "path": "../../packages/type-utils" },
         { "path": "../../packages/urls" },
         { "path": "../../packages/utils" },
         { "path": "../test-utils" }

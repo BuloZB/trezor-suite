@@ -13,6 +13,7 @@ import {
     DecodedTrezorPushNotification,
     Device,
     DeviceState,
+    type EntropyCheckResult,
     StaticSessionId,
 } from '@trezor/connect';
 import { SerializedError } from '@trezor/connect-common/src/constants/errors';
@@ -94,6 +95,8 @@ const forgetDevicePersistentData = createAction(
     (payload: { deviceId: AcquiredDevice['id'] }) => ({ payload }),
 );
 
+const clearDevicePersistentData = createAction(`${DEVICE_MODULE_PREFIX}/clearDevicePersistentData`);
+
 const addButtonRequest = createAction(
     `${DEVICE_MODULE_PREFIX}/addButtonRequest`,
     (payload: { device?: TrezorDevice; buttonRequest: ButtonRequest }) => ({ payload }),
@@ -126,9 +129,10 @@ const dismissFirmwareAuthenticityCheck = createAction(
     (payload: string) => ({ payload }),
 );
 
+type SetEntropyCheckResultParams = { deviceId: AcquiredDevice['id'] } & EntropyCheckResult;
 const setEntropyCheckResult = createAction(
     `${DEVICE_MODULE_PREFIX}/setEntropyCheckResult`,
-    (payload: { deviceId: AcquiredDevice['id']; success: boolean }) => ({ payload }),
+    (payload: SetEntropyCheckResultParams) => ({ payload }),
 );
 
 const setThpCredentials = createAction(
@@ -183,6 +187,7 @@ export const deviceActions = {
     setTemporaryRememberedDevice,
     forgetDevice,
     forgetDevicePersistentData,
+    clearDevicePersistentData,
     addButtonRequest,
     requestDeviceReconnect,
     selectDevice,

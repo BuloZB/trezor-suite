@@ -1,6 +1,7 @@
 import { isAnyOf } from '@reduxjs/toolkit';
 import { MiddlewareAPI } from 'redux';
 
+import { featureUsed, feedbackDismissed, feedbackRequested } from '@suite/experimental-feedback';
 import { METADATA, metadataActions } from '@suite/metadata';
 import { analyticsActions } from '@suite-common/analytics-redux';
 import { bluetoothActions } from '@suite-common/bluetooth';
@@ -204,7 +205,8 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                 isAnyOf(
                     suiteSyncQuotaManagerActions.quotaManagerDeviceFetched,
                     suiteSyncQuotaManagerActions.updateQuotaManagerBaseUrl,
-                )
+                    suiteSyncQuotaManagerActions.enforceQuotaManagerUpdated,
+                )(action)
             ) {
                 api.dispatch(storageActions.saveSuiteSyncQuotaManager());
             }
@@ -282,6 +284,10 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                 api.dispatch(storageActions.saveFirmwareSettings());
             }
 
+            if (isAnyOf(featureUsed, feedbackRequested, feedbackDismissed)(action)) {
+                api.dispatch(storageActions.saveExperimentalFeedback());
+            }
+
             if (
                 deviceActions.setThpCredentials.match(action) ||
                 thpActions.removeCredentials.match(action) ||
@@ -297,6 +303,7 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                     deviceActions.connectDevice,
                     deviceActions.deviceChanged,
                     deviceActions.setEntropyCheckResult,
+                    deviceActions.clearDevicePersistentData,
                 )(action)
             ) {
                 api.dispatch(storageActions.savePersistentDeviceData());
@@ -324,6 +331,7 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                 case SUITE.TOGGLE_DEVICE_AUTHENTICITY_CHECK:
                 case SUITE.TOGGLE_FIRMWARE_REVISION_CHECK:
                 case SUITE.TOGGLE_FIRMWARE_HASH_CHECK:
+                case SUITE.TOGGLE_DEVICE_META_CHECKS:
                 case SUITE.EVM_CONFIRM_EXPLANATION_MODAL:
                 case SUITE.EVM_CLOSE_EXPLANATION_BANNER:
                 case SUITE.SET_IS_COINS_FILTER_VISIBLE:

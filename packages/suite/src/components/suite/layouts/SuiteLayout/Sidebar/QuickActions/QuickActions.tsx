@@ -1,4 +1,5 @@
-import { Column, Divider, Flex } from '@trezor/components';
+import { FeedbackFormManager } from '@suite/experimental-feedback';
+import { Box, Column, Divider, ElevationContext, Flex } from '@trezor/components';
 
 import { CustomBackend } from './CustomBackend';
 import { DebugAndExperimental } from './DebugAndExperimental';
@@ -13,7 +14,14 @@ type QuickActionsProps = {
 
 export const QuickActions = ({ isSidebarCollapsed, hideUpdateQuickAction }: QuickActionsProps) => (
     <Column>
+        <ElevationContext baseElevation={0}>
+            <Box padding={16}>
+                <FeedbackFormManager />
+            </Box>
+        </ElevationContext>
+
         <Divider margin={{ bottom: 4 }} />
+
         <Flex
             gap={16}
             padding={16}

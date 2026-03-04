@@ -1,4 +1,4 @@
-import { PreloadedState, renderWithStoreProviderAsync } from '@suite-native/test-utils';
+import { type PreloadedState, renderWithStoreProvider } from '@suite-native/test-utils';
 import { exchangeQuotes, getWalletState } from '@suite-native/trading-fixtures';
 
 import {
@@ -17,20 +17,19 @@ describe('ExchangeToAccountTradePreviewCard', () => {
         preloadedState.wallet!.trading!.composedTransactionInfo = { composed: { fee: '1000' } };
         preloadedState.wallet!.trading!.exchange!.receiveAccountKey = receiveAccountKey;
 
-        return renderWithStoreProviderAsync(
-            <ExchangeToAccountTradePreviewCard toStringValue="100" {...props} />,
-            { preloadedState },
-        );
+        return renderWithStoreProvider(<ExchangeToAccountTradePreviewCard {...props} />, {
+            preloadedState,
+        });
     };
 
-    it('should render nothing when there is no quote', async () => {
-        const { toJSON } = await renderExchangeToAccountTradePreviewCard({});
+    it('should render nothing when there is no quote', () => {
+        const { toJSON } = renderExchangeToAccountTradePreviewCard({});
 
         expect(toJSON()).toBeNull();
     });
 
-    it('should render nothing when account is not found', async () => {
-        const { toJSON } = await renderExchangeToAccountTradePreviewCard(
+    it('should render nothing when account is not found', () => {
+        const { toJSON } = renderExchangeToAccountTradePreviewCard(
             { quote: exchangeQuotes[0] },
             'unknown-account-key',
         );
@@ -38,14 +37,22 @@ describe('ExchangeToAccountTradePreviewCard', () => {
         expect(toJSON()).toBeNull();
     });
 
-    // Todo: https://github.com/trezor/trezor-suite/issues/24906
-    it.skip('should render TradeSideCard otherwise', async () => {
-        const { getByText } = await renderExchangeToAccountTradePreviewCard({
+    it('should render TradeSideCard otherwise', () => {
+        const { getByText } = renderExchangeToAccountTradePreviewCard({
             quote: exchangeQuotes[0],
         });
 
         expect(getByText('Account')).toBeOnTheScreen();
+        expect(getByText('+0.00083554 BTC')).toBeOnTheScreen();
+        expect(getByText(`0.00083554-${exchangeQuotes[0].receive}`)).toBeOnTheScreen();
+    });
+
+    // Todo: https://github.com/trezor/trezor-suite/issues/24906
+    it.skip('should render correct account name', () => {
+        const { getByText } = renderExchangeToAccountTradePreviewCard({
+            quote: exchangeQuotes[0],
+        });
+
         expect(getByText('BTC Account #1')).toBeOnTheScreen();
-        expect(getByText('+100')).toBeOnTheScreen();
     });
 });

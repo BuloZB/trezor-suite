@@ -5,16 +5,21 @@ import { arrayPartition, getSynchronize, versionUtils } from '@trezor/utils';
 
 import { initBlockchain, isBackendSupported } from '../backend/BlockchainLink';
 import {
+    CARDANO_TXS_PER_PAGE,
+    DEFAULT_TXS_PER_PAGE,
+    SOLANA_TXS_PER_PAGE,
+} from '../constants/paging';
+import {
     AbstractMethod,
     DEFAULT_FIRMWARE_RANGE,
     MethodPermission,
     Payload,
 } from '../core/AbstractMethod';
 import { getCoinInfo } from '../data/coinInfo';
-import { UI_REQUEST, createUiMessage } from '../events';
-import type { CoinInfo, FirmwareRange } from '../types';
-import { getFirmwareRange, validateParams } from './common/paramsValidator';
 import type { AccountDescriptor } from '../device/DeviceCommands';
+import { UI_REQUEST, createUiMessage } from '../events';
+import { checkXPubWithHashes } from './firmware';
+import type { CoinInfo, EntropyCheckResult, FirmwareRange } from '../types';
 import {
     ACCOUNT_TYPES,
     AccountTypeItem,
@@ -25,9 +30,9 @@ import {
 } from '../types/api/discoverAccounts';
 import { isUtxoBased } from '../utils/accountUtils';
 import { validatePath } from '../utils/pathUtils';
+import { getFirmwareRange, validateParams } from './common/paramsValidator';
 
 const ACCOUNT_LIMIT = 10;
-const TXS_PER_PAGE = 25;
 const DETAILS = 'txs';
 
 type CardanoDerivation = (typeof CARDANO_DERIVATIONS)[keyof typeof CARDANO_DERIVATIONS];
@@ -40,6 +45,8 @@ type Request = AdditionalParams & {
     offset: number;
     skip: number;
 };
+// Internal representation of parameters after transformation, see types/api file for the external type interface.
+type DiscoverAccountsLocalParams = { coins: Request[]; entropyCheckResult?: EntropyCheckResult };
 
 type CardanoTypeItem = Extract<AccountTypeItem, { symbol: 'ada' }>;
 
@@ -59,7 +66,21 @@ const getAccountTypeKey = ({ symbol, type }: AccountTypeKey) => `${symbol}-${typ
 // TODO use substituteBip43Path from wallet-utils somehow
 const substituteBip43Path = (path: string, index: number) => path.replace('i', String(index));
 
-export default class DiscoverAccounts extends AbstractMethod<'discoverAccounts', Request[]> {
+export const getTxsPerPage = (account: AccountTypeItem) => {
+    switch (account.symbol) {
+        case 'ada':
+            return CARDANO_TXS_PER_PAGE;
+        case 'sol':
+            return SOLANA_TXS_PER_PAGE;
+        default:
+            return DEFAULT_TXS_PER_PAGE;
+    }
+};
+
+export default class DiscoverAccounts extends AbstractMethod<
+    'discoverAccounts',
+    DiscoverAccountsLocalParams
+> {
     disposed = false;
 
     constructor(message: { id?: number; payload: Payload<'discoverAccounts'> }) {
@@ -74,13 +95,15 @@ export default class DiscoverAccounts extends AbstractMethod<'discoverAccounts',
 
     init() {
         const { payload } = this;
+        const { entropyCheckResult } = payload;
 
         // validate bundle type
         validateParams(payload, [
             { name: 'coins', type: 'array', required: true, allowEmpty: true },
+            { name: 'entropyCheckResult', type: 'object' },
         ]);
 
-        this.params = payload.coins.flatMap(coin => {
+        const coins: Request[] = payload.coins.flatMap(coin => {
             // validate incoming parameters
             validateParams(coin, [
                 { name: 'symbol', type: 'string', required: true },
@@ -122,7 +145,7 @@ export default class DiscoverAccounts extends AbstractMethod<'discoverAccounts',
                 .map(account => [account, knownAccs?.find(t => t.type === account.type)] as const) // Pair all coin accounts with possibly known account types
                 .filter(([_, known]) => (known ? typeof known.skip === 'number' : !knownOnly)) // Include passed known accounts with skip param (the other ones are known completely) and unpassed accounts if knownOnly wasn't requested
                 .map(([account, known]) => ({
-                    pageSize: isCardano(account) ? 8 : TXS_PER_PAGE,
+                    pageSize: getTxsPerPage(account),
                     details: DETAILS,
                     coinInfo,
                     firmwareRange,
@@ -133,6 +156,8 @@ export default class DiscoverAccounts extends AbstractMethod<'discoverAccounts',
                     derivation: isCardano(account) ? CARDANO_DERIVATIONS[account.type] : undefined,
                 }));
         });
+
+        this.params = { coins, entropyCheckResult };
     }
 
     private progress: Partial<{ [key in ReturnType<typeof getAccountTypeKey>]: number }> = {};
@@ -158,7 +183,7 @@ export default class DiscoverAccounts extends AbstractMethod<'discoverAccounts',
     }
 
     async run() {
-        const [unsupported, supported] = this.filterUnsupportedAccounts(this.params);
+        const [unsupported, supported] = this.filterUnsupportedAccounts(this.params.coins);
 
         unsupported.forEach(
             ({ account: { path: bip43, ...rest }, error, coinInfo, skip, offset }) => {
@@ -263,9 +288,25 @@ export default class DiscoverAccounts extends AbstractMethod<'discoverAccounts',
                 // on derivation path (plus type in case of Cardano). When there's a case where
                 // we expect two different descriptors from the same path, this must be reworked.
                 const address_n = validatePath(path, 3);
-                this.descriptorCache[key] = await this.device
+                const descriptor = await this.device
                     .getCommands()
                     .getAccountDescriptor(coinInfo, address_n, derivationType);
+                this.descriptorCache[key] = descriptor;
+
+                // Perform continuous entropy check for standard wallet, if data are available
+                const knownXPubHashes = this.params.entropyCheckResult?.xpubHashes;
+                const { legacyXpub: xpub } = descriptor; // only Bitcoin-like accounts have it, and only those are checked for now
+                const isPassphraseEnabled = this.device.features?.passphrase_protection;
+                const alwaysPassphrase = this.device.features?.passphrase_always_on_device; // if this feature is on, then useEmptyPassphrase is not reliable
+                const isStandardWallet =
+                    !isPassphraseEnabled || (this.useEmptyPassphrase && !alwaysPassphrase);
+                if (xpub && knownXPubHashes && isStandardWallet) {
+                    const isValid = checkXPubWithHashes({ xpub, path, knownXPubHashes });
+                    if (!isValid) {
+                        // TODO monitor this, and if the check is reliable, throw error to fail the account discovery, have Suite handle it
+                        console.error(`Entropy check failed at getAccountDescriptor on ${path}`);
+                    }
+                }
             }
 
             return this.descriptorCache[key];

@@ -1,6 +1,7 @@
 import { createAction } from '@reduxjs/toolkit';
 
 import { asTypedDesktopAnalytics, events } from '@suite/analytics';
+import type { ExperimentalFeature } from '@suite/experimental';
 import type { TranslationKey } from '@suite/intl';
 import { deviceActions } from '@suite-common/device';
 import { ExtraDependencies } from '@suite-common/redux-utils';
@@ -10,7 +11,6 @@ import { getCustomBackends } from '@suite-common/wallet-utils';
 import { HandshakeElectron, desktopApi } from '@trezor/suite-desktop-api';
 
 import * as modalActions from 'src/actions/suite/modalActions';
-import { ExperimentalFeature } from 'src/constants/suite/experimental';
 import { selectRouterUrl } from 'src/reducers/suite/routerReducer';
 import { AutodetectSettings, DebugModeOptions, EvmSettings } from 'src/reducers/suite/suiteReducer';
 import { selectTorState } from 'src/selectors/suite/suiteSelectors';
@@ -46,6 +46,7 @@ export type SuiteAction =
     | { type: typeof SUITE.TOGGLE_FIRMWARE_REVISION_CHECK; payload: boolean }
     | { type: typeof SUITE.TOGGLE_FIRMWARE_HASH_CHECK; payload: boolean }
     | { type: typeof SUITE.TOGGLE_ENTROPY_CHECK; payload: boolean }
+    | { type: typeof SUITE.TOGGLE_DEVICE_META_CHECKS; payload: boolean }
     | { type: typeof SUITE.COINJOIN_RECEIVE_WARNING; payload: boolean }
     | { type: typeof SUITE.LOCK_UI; payload: boolean }
     | ReturnType<typeof lockDevice>
@@ -321,6 +322,7 @@ export const toggleFirmwareAuthenticityChecks = (enable: boolean) => (dispatch: 
     const firmwareAuthenticityChecks = [
         SUITE.TOGGLE_FIRMWARE_REVISION_CHECK,
         SUITE.TOGGLE_FIRMWARE_HASH_CHECK,
+        SUITE.TOGGLE_DEVICE_META_CHECKS,
     ] as const;
 
     firmwareAuthenticityChecks.forEach(type => {

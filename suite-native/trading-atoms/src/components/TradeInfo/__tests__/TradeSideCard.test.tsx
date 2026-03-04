@@ -4,7 +4,7 @@ import type { CryptoId } from 'invity-api';
 
 import { renderWithBasicProvider } from '@suite-native/test-utils';
 
-import { TradeSideCard, TradeSideCardProps } from '../TradeSideCard';
+import { TradeSideCard, type TradeSideCardProps } from '../TradeSideCard';
 
 describe('TradeSideCard', () => {
     const renderTradeSideCard = (props: Partial<TradeSideCardProps>) =>
@@ -29,5 +29,14 @@ describe('TradeSideCard', () => {
         expect(getByText('TITLE')).toBeOnTheScreen();
         expect(getByText('AMOUNT')).toBeOnTheScreen();
         expect(getByText('ACCOUNT LABEL')).toBeOnTheScreen();
+    });
+
+    it('should render children when provided', () => {
+        const { getByText } = renderTradeSideCard({
+            cryptoId: 'bitcoin' as CryptoId,
+            children: <Text>CHILDREN</Text>,
+        });
+
+        expect(getByText('CHILDREN')).toBeOnTheScreen();
     });
 });

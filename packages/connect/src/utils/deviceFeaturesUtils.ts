@@ -10,7 +10,6 @@ const DEFAULT_CAPABILITIES_T1: PROTO.Capability[] = [
     'Capability_Bitcoin_like',
     'Capability_Crypto',
     'Capability_Ethereum',
-    'Capability_NEM',
     'Capability_Stellar',
     'Capability_U2F',
 ];
@@ -21,10 +20,8 @@ const DEFAULT_CAPABILITIES_TT: PROTO.Capability[] = [
     'Capability_Binance',
     'Capability_Cardano',
     'Capability_Crypto',
-    'Capability_EOS',
     'Capability_Ethereum',
     'Capability_Monero',
-    'Capability_NEM',
     'Capability_Ripple',
     'Capability_Solana',
     'Capability_Stellar',

@@ -636,6 +636,9 @@ export const prepareDeviceReducer = createReducerWithExtraDeps(
                     d => d.device_id !== payload.deviceId,
                 );
             })
+            .addCase(deviceActions.clearDevicePersistentData, state => {
+                state.persistentDeviceData = [];
+            })
             .addCase(deviceActions.addButtonRequest, (state, { payload }) => {
                 addButtonRequest(state, payload.device, payload.buttonRequest);
             })
@@ -672,14 +675,14 @@ export const prepareDeviceReducer = createReducerWithExtraDeps(
             .addCase(extra.actionTypes.storageLoad, extra.reducers.storageLoadDevices)
             .addCase(
                 deviceActions.setEntropyCheckResult,
-                (state, { payload: { deviceId, success } }) => {
+                (state, { payload: { deviceId, ...entropyCheckResult } }) => {
                     const data = state.persistentDeviceData.find(
                         persistentDeviceData => persistentDeviceData.device_id === deviceId,
                     );
 
                     // expected to exist; device must have been connected or changed for this action to happen
                     if (data === undefined) return;
-                    data.lastEntropyCheckResult = { success };
+                    data.lastEntropyCheckResult = entropyCheckResult;
                 },
             )
             .addCase(deviceActions.createDeviceInstance, (state, { payload }) => {

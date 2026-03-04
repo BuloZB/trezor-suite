@@ -516,6 +516,7 @@ export const saveSuiteSyncQuotaManager = () => (_dispatch: Dispatch, getState: G
         'suiteSyncQuotaManager',
         {
             baseUrl: suiteSyncQuotaManager.baseUrl,
+            enforceQuotaManager: suiteSyncQuotaManager.enforceQuotaManager,
             registeredDevices: suiteSyncQuotaManager.registeredDevices,
             ownersAllowance: suiteSyncQuotaManager.ownersAllowance,
         },
@@ -596,6 +597,13 @@ export const saveFirmwareSettings = () => (_dispatch: Dispatch, getState: GetSta
         'firmware',
         true,
     );
+};
+
+export const saveExperimentalFeedback = () => (_dispatch: Dispatch, getState: GetState) => {
+    if (!db.isAccessible()) return;
+    const { experimentalFeedback } = getState();
+
+    return db.addItem('experimentalFeedback', experimentalFeedback, 'experimentalFeedback', true);
 };
 
 export const removeDatabase = () => async (dispatch: Dispatch, getState: GetState) => {

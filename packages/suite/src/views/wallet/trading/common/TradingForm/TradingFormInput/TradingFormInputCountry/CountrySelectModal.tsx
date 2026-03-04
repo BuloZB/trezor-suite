@@ -3,10 +3,11 @@ import { UseFormSetValue } from 'react-hook-form';
 import { Translation, TranslationKey, useTranslation } from '@suite/intl';
 import {
     TRADING_FORM_COUNTRY_SELECT,
+    TRADING_FORM_COUNTRY_SUBDIVISION_SELECT,
     TradingCountryOption,
     useCountryFilteredData,
 } from '@suite-common/trading';
-import { Column, Flag, Input, Modal, Row, Text } from '@trezor/components';
+import { Column, Flag, Input, Modal, Paragraph, Row } from '@trezor/components';
 import { CardList } from '@trezor/product-components';
 
 import { useTradingFormContext } from 'src/hooks/wallet/trading/form/useTradingCommonForm';
@@ -20,13 +21,14 @@ interface CountrySelectModalProps {
 
 export const CountrySelectModal = ({ heading, onClose }: CountrySelectModalProps) => {
     const { translationString } = useTranslation();
-    const { setValue, setAmountLimits } = useTradingFormContext<TradingTradeBuySellType>();
+    const { setValue, clearQuotesAndParams } = useTradingFormContext<TradingTradeBuySellType>();
     const { filteredData, setFilterValue, filterValue } = useCountryFilteredData();
 
     const selectCountry = (country: TradingCountryOption) => {
         const setValueTyped = setValue as UseFormSetValue<TradingBuySellFormProps>;
-        setValueTyped(TRADING_FORM_COUNTRY_SELECT, country);
-        setAmountLimits(undefined);
+        setValueTyped(TRADING_FORM_COUNTRY_SELECT, country, { shouldDirty: true });
+        setValueTyped(TRADING_FORM_COUNTRY_SUBDIVISION_SELECT, undefined, { shouldDirty: true });
+        clearQuotesAndParams();
         onClose();
     };
 
@@ -38,10 +40,11 @@ export const CountrySelectModal = ({ heading, onClose }: CountrySelectModalProps
     return (
         <Modal
             width={400}
+            height="85vh"
             onCancel={onClose}
             heading={heading ? <Translation id={heading} /> : undefined}
         >
-            <Column gap={16}>
+            <Column gap={16} height="100%">
                 <Input
                     onChange={ev => setFilterValue(ev.target.value)}
                     placeholder={translationString('TR_SEARCH_COUNTRY_PLACEHOLDER')}
@@ -66,10 +69,13 @@ export const CountrySelectModal = ({ heading, onClose }: CountrySelectModalProps
                     </CardList>
                 )}
                 {!filteredData.length && (
-                    <Column justifyContent="center">
-                        <Text align="center">
+                    <Column justifyContent="center" flex="0.75">
+                        <Paragraph align="center">
                             <Translation id="TR_TRADING_COUNTRY_NOT_FOUND" />
-                        </Text>
+                        </Paragraph>
+                        <Paragraph align="center" typographyStyle="body-sm" color="textSubdued">
+                            <Translation id="TR_TRADING_COUNTRY_NOT_FOUND_DESCRIPTION" />
+                        </Paragraph>
                     </Column>
                 )}
             </Column>

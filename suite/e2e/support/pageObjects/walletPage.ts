@@ -1,6 +1,7 @@
 import { Locator, Page, expect } from '@playwright/test';
 
 import { NetworkSymbol } from '@suite-common/wallet-config';
+import { isTestnet } from '@suite-common/wallet-utils';
 
 import { step } from '../common';
 
@@ -35,6 +36,7 @@ export class WalletPage {
     readonly copyPublicKeyButton: Locator;
     readonly openSendFormButton: Locator;
     readonly sendForm: Locator;
+    readonly sendFormHeader: Locator;
     readonly totalSent: Locator;
     readonly receiveButton: Locator;
     readonly revealAddressButton: Locator;
@@ -85,6 +87,7 @@ export class WalletPage {
         this.copyPublicKeyButton = this.page.getByTestId('@metadata/copy-xpub-button');
         this.openSendFormButton = this.page.getByTestId('@wallet/menu/wallet-send');
         this.sendForm = this.page.getByTestId('@wallet/send/outputs-and-options');
+        this.sendFormHeader = this.page.getByTestId('@wallet/send-header');
         this.totalSent = this.page.getByTestId('@wallet/send/total-sent');
         this.receiveButton = this.page.getByTestId('@wallet/menu/wallet-receive');
         this.revealAddressButton = this.page.getByTestId('@wallet/receive/reveal-address-button');
@@ -138,7 +141,10 @@ export class WalletPage {
     @step()
     async openAccount(params: WalletParams = {}) {
         await this.accountButton(params).click();
-        await expect(this.fiatAmount).toBeVisible();
+
+        if (!params.symbol || !isTestnet(params.symbol)) {
+            await expect(this.fiatAmount).toBeVisible();
+        }
     }
 
     @step()

@@ -1,3 +1,4 @@
+import type { ExperimentalFeature } from '@suite/experimental';
 import { ExtendedMessageDescriptor } from '@suite/intl';
 import { Route } from '@suite-common/suite-types';
 import { networksCollection } from '@suite-common/wallet-config';
@@ -11,15 +12,6 @@ const experimentalNetworks = networksCollection.filter(
     network => network.isExperimentalOnlyNetwork,
 );
 const experimentalNetworkNames = experimentalNetworks.map(network => network.name);
-
-export type ExperimentalFeature =
-    | 'password-manager'
-    | 'tor-external'
-    | 'testnet-networks'
-    | 'nft-section'
-    | 'slip24'
-    | 'experimental-networks'
-    | 'suite-sync';
 
 export type ExperimentalFeatureConfig = {
     title: ExtendedMessageDescriptor;
@@ -91,5 +83,9 @@ export const EXPERIMENTAL_FEATURES: Record<ExperimentalFeature, ExperimentalFeat
                 services.suiteSync.turnOffSuiteSync();
             }
         },
+    },
+    'tron-view-only': {
+        title: { id: 'TR_EXPERIMENTAL_TRON_VIEW_ONLY' },
+        description: { id: 'TR_EXPERIMENTAL_TRON_VIEW_ONLY_DESCRIPTION' },
     },
 };

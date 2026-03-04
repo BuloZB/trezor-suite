@@ -20,8 +20,6 @@ const DELEGATED_KEY = asDelegatedIdentityKey('delegated-key-abcd');
 
 const deviceStaticSessionId: StaticSessionId = '1@device-id:3';
 
-const DEFAULT_RELAY_URL = 'wss://default-relay.example.com';
-
 const DEFAULT_PARAMS = {
     deviceStaticSessionId,
     delegatedKey: DELEGATED_KEY,
@@ -43,8 +41,8 @@ describe(createEnsureQuota.name, () => {
         const deps = createMockDeps<EnsureQuotaDeps>({
             dispatch: null,
             hasAllowance: null,
-            defaultRelayUrl: DEFAULT_RELAY_URL,
-            getRelayUrl: () => DEFAULT_RELAY_URL,
+            getIsDefaultRelayUrlSet: () => true,
+            getEnforceQuotaManager: () => false,
             getDeviceForStaticSessionId: () => getDevice(),
         });
 
@@ -58,21 +56,19 @@ describe(createEnsureQuota.name, () => {
         {
             description: 'device has allowance',
             hasAllowance: () => true,
-            relayUrl: DEFAULT_RELAY_URL,
         },
         {
             description: 'quota manager is disabled (custom relay URL)',
             hasAllowance: () => false,
-            relayUrl: 'wss://custom-relay.example.com',
         },
-    ])('returns ok without dispatching when $description', async ({ hasAllowance, relayUrl }) => {
+    ])('returns ok without dispatching when $description', async ({ hasAllowance }) => {
         const device = mockSuiteDevice();
 
         const deps = createMockDeps<EnsureQuotaDeps>({
             dispatch: null,
             hasAllowance,
-            defaultRelayUrl: DEFAULT_RELAY_URL,
-            getRelayUrl: () => relayUrl,
+            getIsDefaultRelayUrlSet: () => false,
+            getEnforceQuotaManager: () => false,
             getDeviceForStaticSessionId: () => device,
         });
 
@@ -80,6 +76,23 @@ describe(createEnsureQuota.name, () => {
 
         expect(result).toEqual(ok(undefined));
         expect(deps.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('dispatches when enforceQuotaManager is set with custom relay URL', async () => {
+        const device = mockSuiteDevice();
+
+        const deps = createMockDeps<EnsureQuotaDeps>({
+            dispatch: () => Promise.resolve({ success: true }),
+            hasAllowance: () => false,
+            getIsDefaultRelayUrlSet: () => false,
+            getEnforceQuotaManager: () => true,
+            getDeviceForStaticSessionId: () => device,
+        });
+
+        const result = await createEnsureQuota(deps)(DEFAULT_PARAMS);
+
+        expect(result).toEqual(ok(undefined));
+        expect(deps.dispatch).toHaveBeenCalled();
     });
 
     it('returns WriteModeRequiredForAllocation error when allocation fails with that error', async () => {
@@ -92,8 +105,8 @@ describe(createEnsureQuota.name, () => {
                     error: { type: 'WriteModeRequiredForAllocation' },
                 }),
             hasAllowance: () => false,
-            defaultRelayUrl: DEFAULT_RELAY_URL,
-            getRelayUrl: () => DEFAULT_RELAY_URL,
+            getIsDefaultRelayUrlSet: () => true,
+            getEnforceQuotaManager: () => false,
             getDeviceForStaticSessionId: () => device,
         });
 
@@ -113,13 +126,33 @@ describe(createEnsureQuota.name, () => {
                     error: { type: 'HttpError' },
                 }),
             hasAllowance: () => false,
-            defaultRelayUrl: DEFAULT_RELAY_URL,
-            getRelayUrl: () => DEFAULT_RELAY_URL,
+            getIsDefaultRelayUrlSet: () => true,
+            getEnforceQuotaManager: () => false,
             getDeviceForStaticSessionId: () => device,
         });
 
         const result = await createEnsureQuota(deps)(DEFAULT_PARAMS);
 
         expect(result).toEqual(ok(undefined));
+    });
+
+    it('checks the current relay URL state when deciding whether quota manager is enabled', async () => {
+        const device = mockSuiteDevice();
+        let isDefaultRelayUrlSet = true;
+
+        const deps = createMockDeps<EnsureQuotaDeps>({
+            dispatch: null,
+            hasAllowance: () => false,
+            getIsDefaultRelayUrlSet: () => isDefaultRelayUrlSet,
+            getEnforceQuotaManager: () => false,
+            getDeviceForStaticSessionId: () => device,
+        });
+
+        isDefaultRelayUrlSet = false;
+
+        const result = await createEnsureQuota(deps)(DEFAULT_PARAMS);
+
+        expect(result).toEqual(ok(undefined));
+        expect(deps.dispatch).not.toHaveBeenCalled();
     });
 });

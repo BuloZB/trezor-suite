@@ -17,9 +17,12 @@
         "translations:list-unused": "yarn g:tsx ./scripts/listUnused.ts",
         "translations:remove-unused": "yarn g:tsx ./scripts/listUnused.ts --cleanup",
         "translations:upload": "crowdin upload",
-        "translations:download": "crowdin download --all -l en -l cs -l de -l pt-BR -l ja"
+        "translations:download": "crowdin download --all -l en -l cs -l de -l fr -l pt-BR -l ja -l zh-CN"
     },
     "dependencies": {
+        "@formatjs/intl-getcanonicallocales": "^3.2.1",
+        "@formatjs/intl-listformat": "^8.2.1",
+        "@formatjs/intl-locale": "^5.2.1",
         "@reduxjs/toolkit": "2.11.2",
         "@suite-common/suite-types": "workspace:*",
         "@suite-common/suite-utils": "workspace:*",

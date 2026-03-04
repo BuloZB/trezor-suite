@@ -8,16 +8,18 @@ import { AccountLabel } from '@suite-native/labeling';
 import { TradeSideCard } from '@suite-native/trading-atoms';
 import { selectExchangeSelectedReceiveAccount } from '@suite-native/trading-state';
 
+import { useChangeStringsExtractor } from '../../../hooks/history/useChangeStringsExtractor';
+import { CryptoToFiatValueBadge } from '../../general/CryptoToFiatValueBadge';
+
 export type ExchangeToAccountTradePreviewCardProps = {
     quote?: ExchangeTrade;
-    toStringValue: string | undefined;
 };
 
 export const ExchangeToAccountTradePreviewCard = ({
     quote,
-    toStringValue,
 }: ExchangeToAccountTradePreviewCardProps) => {
     const toAccount = useSelector(selectExchangeSelectedReceiveAccount);
+    const { toStringValue, toValue } = useChangeStringsExtractor(quote);
 
     if (!quote?.receive || !toAccount?.account) {
         return null;
@@ -35,6 +37,15 @@ export const ExchangeToAccountTradePreviewCard = ({
                 )
             }
             title={<Translation id="moduleTrading.tradingExchangePreviewScreen.toAccount" />}
-        />
+        >
+            {!!toValue && (
+                <CryptoToFiatValueBadge
+                    amount={toValue}
+                    cryptoId={quote.receive}
+                    color="textSubdued"
+                    textAlign="right"
+                />
+            )}
+        </TradeSideCard>
     );
 };

@@ -707,7 +707,7 @@ export const messages = defineMessages({
         id: 'TR_SELL_DETAIL_ERROR_TITLE',
     },
     TR_SELL_DETAIL_ERROR_TEXT: {
-        defaultMessage: 'Unfortunately, your transaction was rejected or has failed.',
+        defaultMessage: 'Your transaction was rejected or failed.',
         id: 'TR_SELL_DETAIL_ERROR_TEXT',
     },
     TR_SELL_DETAIL_ERROR_BUTTON: {
@@ -755,7 +755,7 @@ export const messages = defineMessages({
     TR_TRADING_TERMS_NO_PROVIDER: {
         id: 'TR_TRADING_TERMS_NO_PROVIDER',
         defaultMessage:
-            'This service is provided by provider and governed by their Terms & Conditions. Trezor isn’t involved.',
+            'This service is provided by the provider and governed by their Terms & Conditions. Trezor isn’t involved.',
     },
     TR_BUY_MODAL_SECURITY_HEADER: {
         defaultMessage: 'Security first with your Trezor',
@@ -976,6 +976,30 @@ export const messages = defineMessages({
         defaultMessage: 'Country not found',
         id: 'TR_TRADING_COUNTRY_NOT_FOUND',
     },
+    TR_TRADING_COUNTRY_NOT_FOUND_DESCRIPTION: {
+        defaultMessage: 'Check the spelling or browse the list to select an option.',
+        id: 'TR_TRADING_COUNTRY_NOT_FOUND_DESCRIPTION',
+    },
+    TR_TRADING_COUNTRY_SUBDIVISION: {
+        defaultMessage: 'State of residence',
+        id: 'TR_TRADING_COUNTRY_SUBDIVISION',
+    },
+    TR_SEARCH_COUNTRY_SUBDIVISION_PLACEHOLDER: {
+        defaultMessage: 'Search state',
+        id: 'TR_SEARCH_COUNTRY_SUBDIVISION_PLACEHOLDER',
+    },
+    TR_TRADING_COUNTRY_SUBDIVISION_NOT_FOUND: {
+        defaultMessage: 'State not found',
+        id: 'TR_TRADING_COUNTRY_SUBDIVISION_NOT_FOUND',
+    },
+    TR_TRADING_COUNTRY_SUBDIVISION_NOT_SELECTED: {
+        defaultMessage: 'Not selected',
+        id: 'TR_TRADING_COUNTRY_SUBDIVISION_NOT_SELECTED',
+    },
+    TR_TRADING_SUBDIVISION_REQUIRED_FOR_OFFERS: {
+        defaultMessage: 'To see available offers, choose your state of residence.',
+        id: 'TR_TRADING_SUBDIVISION_REQUIRED_FOR_OFFERS',
+    },
     TR_TRADING_OFFER_LOOKING: {
         defaultMessage: 'Searching for your best offer',
         id: 'TR_TRADING_OFFER_LOOKING',
@@ -1006,11 +1030,11 @@ export const messages = defineMessages({
         id: 'TR_HOW_TRADING_WORKS',
     },
     TR_HOW_TRADING_COMPARES_PROVIDERS: {
-        defaultMessage: 'Trezor compares trusted exchange providers to find the best offer',
+        defaultMessage: 'Trezor compares trusted providers to find the best offer',
         id: 'TR_HOW_TRADING_COMPARES_PROVIDERS',
     },
     TR_HOW_TRADING_LOCATION_OFFERS: {
-        defaultMessage: 'Providers use your location only to show relevant offers',
+        defaultMessage: 'Providers only use your location to show relevant offers',
         id: 'TR_HOW_TRADING_LOCATION_OFFERS',
     },
     TR_HOW_TRADING_PRIVACY_KYC: {
@@ -1018,7 +1042,7 @@ export const messages = defineMessages({
         id: 'TR_HOW_TRADING_PRIVACY_KYC',
     },
     TR_HOW_TRADING_PRIVACY_KYC_SUBTEXT: {
-        defaultMessage: 'You share it only with the exchange if you complete the trade.',
+        defaultMessage: 'You share it only with the provider if you complete the trade.',
         id: 'TR_HOW_TRADING_PRIVACY_KYC_SUBTEXT',
     },
     TR_HOW_TRADING_TERMS_OF_USE: {
@@ -2227,12 +2251,11 @@ export const messages = defineMessages({
         defaultMessage: '7d change',
     },
     TR_FAILED_BACKUP: {
-        defaultMessage: 'Wallet backup has failed. Wipe your Trezor and start the setup again.',
+        defaultMessage: 'Wallet backup failed. Wipe your Trezor and start the setup again.',
         id: 'TR_FAILED_BACKUP',
     },
     TR_RECEIVE_ADDRESS_FAILED_BACKUP: {
-        defaultMessage:
-            "Wallet backup has failed. Sending funds to this wallet isn't safe or secure.",
+        defaultMessage: "Wallet backup failed. Sending funds to this wallet isn't safe or secure.",
         id: 'TR_RECEIVE_ADDRESS_FAILED_BACKUP',
     },
     TR_FIAT_RATES_NOT_AVAILABLE: {
@@ -2719,7 +2742,7 @@ export const messages = defineMessages({
         id: 'TR_ACCOUNT_WITH_TOKENS_IS_EMPTY_DESCRIPTION',
     },
     TR_GENERIC_ERROR_TITLE: {
-        defaultMessage: 'Oops! Something went wrong!',
+        defaultMessage: 'Something went wrong',
         description: 'Generic error message title',
         id: 'TR_GENERIC_ERROR_TITLE',
     },
@@ -3142,6 +3165,10 @@ export const messages = defineMessages({
         defaultMessage: 'Allow',
         id: 'TR_SUITE_SYNC_GET_KEYS',
     },
+    TR_SUITE_SYNC_CONNECT_AND_GET_KEYS: {
+        defaultMessage: 'Connect & allow',
+        id: 'TR_SUITE_SYNC_CONNECT_AND_GET_KEYS',
+    },
     TR_SUITE_SYNC_FIRMWARE_UPDATE: {
         defaultMessage: 'Update',
         id: 'TR_SUITE_SYNC_FIRMWARE_UPDATE',
@@ -3151,14 +3178,15 @@ export const messages = defineMessages({
             'Firmware update required. Update firmware on your Trezor to use Suite Sync.',
         id: 'TR_SUITE_SYNC_FIRMWARE_UPDATE_NEEDED_BANNER',
     },
-    TR_SUITE_SYNC_CONNECT_DEVICE_TOOLTIP: {
-        defaultMessage: 'Connect your Trezor to continue.',
-        id: 'TR_SUITE_SYNC_CONNECT_DEVICE_TOOLTIP',
-    },
     TR_SUITE_SYNC_KEYS_NEEDED_BANNER: {
         defaultMessage:
             'Allow Suite Sync to view and edit your labels, wallet names, and account names.',
         id: 'TR_SUITE_SYNC_KEYS_NEEDED_BANNER',
+    },
+    TR_SUITE_SYNC_KEYS_NEEDED_CONNECT_DEVICE_BANNER: {
+        defaultMessage:
+            'Connect your Trezor and allow Suite Sync to view and edit your labels, wallet names, and account names.',
+        id: 'TR_SUITE_SYNC_KEYS_NEEDED_CONNECT_DEVICE_BANNER',
     },
     TR_SUITE_SYNC_OUT_OF_QUOTA_BANNER_DESCRIPTION: {
         defaultMessage:
@@ -4346,7 +4374,7 @@ export const messages = defineMessages({
     },
     TR_TO_ADD_NEW_ACCOUNT_PLEASE_CONNECT: {
         id: 'TR_TO_ADD_NEW_ACCOUNT_PLEASE_CONNECT',
-        defaultMessage: 'Connect your device to add new accounts.',
+        defaultMessage: 'Connect your Trezor to add new accounts.',
     },
     TR_FORGET_DEVICE_HEADING: {
         id: 'TR_FORGET_DEVICE_HEADING',
@@ -5089,6 +5117,15 @@ export const messages = defineMessages({
         id: 'TR_EXPERIMENTAL_SUITE_SYNC_TITLE',
         defaultMessage: 'Suite Sync',
     },
+    TR_EXPERIMENTAL_TRON_VIEW_ONLY: {
+        id: 'TR_EXPERIMENTAL_TRON_VIEW_ONLY',
+        defaultMessage: 'Tron View-Only (Beta)',
+    },
+    TR_EXPERIMENTAL_TRON_VIEW_ONLY_DESCRIPTION: {
+        id: 'TR_EXPERIMENTAL_TRON_VIEW_ONLY_DESCRIPTION',
+        defaultMessage:
+            'Enable the Tron network. The latest firmware is required. You can receive funds, check your balance, view tokens, charts, and transaction history (may contain bugs). Full support coming soon (or available via third-party wallets).',
+    },
     TR_EXPERIMENTAL_SUITE_SYNC_DESCRIPTION: {
         id: 'TR_EXPERIMENTAL_SUITE_SYNC_DESCRIPTION',
         defaultMessage:
@@ -5261,7 +5298,7 @@ export const messages = defineMessages({
     },
     DISCONNECT_DEVICE_DESCRIPTION: {
         id: 'DISCONNECT_DEVICE_DESCRIPTION',
-        defaultMessage: 'Your device was wiped and no longer holds any private keys.',
+        defaultMessage: 'Your Trezor was wiped and no longer holds any private keys.',
     },
     TR_CHANGE_HOMESCREEN: {
         id: 'TR_CHANGE_HOMESCREEN',
@@ -6058,7 +6095,7 @@ export const messages = defineMessages({
     },
     TR_UNSUPPORTED_DEVICE_SUITE_SYNC_HEADING: {
         id: 'TR_UNSUPPORTED_DEVICE_SUITE_SYNC_HEADING',
-        defaultMessage: "This device isn't compatible with Suite Sync",
+        defaultMessage: "This Trezor isn't compatible with Suite Sync",
     },
     FIRMWARE_UNSUPPORTED_DEVICE_SUITE_SYNC: {
         id: 'FIRMWARE_UNSUPPORTED_DEVICE_SUITE_SYNC',
@@ -6271,7 +6308,7 @@ export const messages = defineMessages({
     TR_BACKUP_RECOVERY_SEED_FAILED_DESC: {
         id: 'TR_BACKUP_RECOVERY_SEED_FAILED_DESC',
         defaultMessage:
-            "Your wallet backup has failed. It's highly recommended to back up your wallet. Follow the link to learn how to create a wallet backup.",
+            "Your wallet backup failed. It's highly recommended to back up your wallet. Follow the link to learn how to create a wallet backup.",
     },
     TR_FEEDBACK_ANALYTICS_ITEM_OS: {
         id: 'TR_FEEDBACK_ANALYTICS_ITEM_OS',
@@ -6320,6 +6357,10 @@ export const messages = defineMessages({
     TR_FEEDBACK_CATEGORY_OTHER: {
         id: 'TR_FEEDBACK_CATEGORY_OTHER',
         defaultMessage: 'Other',
+    },
+    TR_FEEDBACK_CATEGORY_EXPERIMENTAL: {
+        id: 'TR_FEEDBACK_CATEGORY_EXPERIMENTAL',
+        defaultMessage: 'Experimental',
     },
     FIRMWARE_USER_HAS_SEED_CHECKBOX_DESC: {
         id: 'FIRMWARE_USER_HAS_SEED_CHECKBOX_DESC',
@@ -7003,6 +7044,23 @@ export const messages = defineMessages({
         id: 'TR_GUIDE_SUPPORT',
         defaultMessage: 'Trezor Support',
     },
+    TR_GUIDE_SUPPORT_CONSENT_TITLE: {
+        id: 'TR_GUIDE_SUPPORT_CONSENT_TITLE',
+        defaultMessage: 'Get faster support',
+    },
+    TR_GUIDE_SUPPORT_CONSENT_TOGGLE: {
+        id: 'TR_GUIDE_SUPPORT_CONSENT_TOGGLE',
+        defaultMessage: 'Share one-time system details',
+    },
+    TR_GUIDE_SUPPORT_CONSENT_DESCRIPTION: {
+        id: 'TR_GUIDE_SUPPORT_CONSENT_DESCRIPTION',
+        defaultMessage:
+            'Securely share your firmware version, Trezor Suite version, and hardware wallet model with Trezor Support so we can resolve your issue faster.',
+    },
+    TR_GUIDE_SUPPORT_CONSENT_BUTTON: {
+        id: 'TR_GUIDE_SUPPORT_CONSENT_BUTTON',
+        defaultMessage: 'Contact Trezor Support',
+    },
     TR_GUIDE_FORUM: {
         id: 'TR_GUIDE_FORUM',
         defaultMessage: 'Trezor Forum',
@@ -7033,7 +7091,7 @@ export const messages = defineMessages({
     },
     TR_GUIDE_VIEW_HEADLINE_NEED_HELP: {
         id: 'TR_GUIDE_VIEW_HEADLINE_NEED_HELP',
-        defaultMessage: 'Need help?',
+        defaultMessage: 'Need more help?',
     },
     TR_GUIDE_VIEW_HEADLINE_REPORT_BUG: {
         id: 'TR_GUIDE_VIEW_HEADLINE_REPORT_BUG',
@@ -7220,23 +7278,23 @@ export const messages = defineMessages({
     },
     TR_DEVICE_COMPROMISED_ENTROPY_CHECK_TEXT: {
         id: 'TR_DEVICE_COMPROMISED_ENTROPY_CHECK_TEXT',
-        defaultMessage: 'Security check (entropy verification) has failed.',
+        defaultMessage: 'The security check (entropy verification) failed.',
     },
     TR_DEVICE_COMPROMISED_INVALID_ID_TEXT: {
         id: 'TR_DEVICE_COMPROMISED_INVALID_ID_TEXT',
-        defaultMessage: 'Security check (ID validity check) has failed.',
+        defaultMessage: 'The security check (ID validity check) failed.',
     },
     TR_DEVICE_COMPROMISED_INVARIABILITY_CHECK_FAILED_TEXT: {
         id: 'TR_DEVICE_COMPROMISED_INVARIABILITY_CHECK_FAILED_TEXT',
-        defaultMessage: 'Your device manipulates its model or color.',
+        defaultMessage: 'Your Trezor’s model or color appears to have been manipulated.',
     },
     TR_DEVICE_COMPROMISED_FW_HASH_CHECK_TEXT: {
         id: 'TR_DEVICE_COMPROMISED_FW_HASH_CHECK_TEXT',
-        defaultMessage: 'Your device firmware hash check has failed.',
+        defaultMessage: 'Your device firmware hash check failed.',
     },
     TR_DEVICE_COMPROMISED_FW_HASH_CHECK_TAKES_TOO_LONG_TEXT: {
         id: 'TR_DEVICE_COMPROMISED_FW_HASH_CHECK_TAKES_TOO_LONG_TEXT',
-        defaultMessage: 'Your device firmware hash check has timed out.',
+        defaultMessage: 'Your device firmware hash check timed out.',
     },
     TR_DEVICE_COMPROMISED_FW_REVISION_CHECK_TEXT: {
         id: 'TR_DEVICE_COMPROMISED_FW_REVISION_CHECK_TEXT',
@@ -7452,8 +7510,7 @@ export const messages = defineMessages({
     },
     TR_DEVICE_FIRMWARE_HASH_CHECK_HASH_MISMATCH: {
         id: 'TR_DEVICE_FIRMWARE_HASH_CHECK_HASH_MISMATCH',
-        defaultMessage:
-            'Your device firmware hash check has failed. Your Trezor might be counterfeit.',
+        defaultMessage: 'Your device firmware hash check failed. Your Trezor might be counterfeit.',
     },
     TR_DEVICE_FIRMWARE_HASH_TAKES_TOO_LONG: {
         id: 'TR_DEVICE_FIRMWARE_HASH_TAKES_TOO_LONG',
@@ -7468,7 +7525,7 @@ export const messages = defineMessages({
     TR_DEVICE_FIRMWARE_HASH_CHECK_OTHER_ERROR_AGAIN: {
         id: 'TR_DEVICE_FIRMWARE_HASH_CHECK_OTHER_ERROR_AGAIN',
         defaultMessage:
-            'Verification has failed multiple times. Your Trezor device might not be genuine.',
+            'Verification failed multiple times. Your Trezor device might not be genuine.',
     },
     TR_FIRMWARE_INSTALLATION_PROGRESS_CHECK_HEADING: {
         id: 'TR_FIRMWARE_INSTALLATION_PROGRESS_CHECK_HEADING',
@@ -8915,7 +8972,7 @@ export const messages = defineMessages({
     TR_STAKING_MODAL_OUTDATED: {
         id: 'TR_STAKING_MODAL_OUTDATED',
         defaultMessage:
-            'Your current provider is reducing its ADA rewards. Update to Everstake for {apy}% APY and keep maximizing earnings. Your funds and past rewards stay safe.',
+            "You're now earning significantly less ADA rewards. Switch to Everstake for up to {apy}% APY. Your funds and past rewards are safe.",
     },
     TR_STAKING_REWARDS_REDUCED: {
         id: 'TR_STAKING_REWARDS_REDUCED',
@@ -10394,6 +10451,22 @@ export const messages = defineMessages({
         id: 'TR_TURN_ON_SECURE_SYNC_FW_UPDATE_MODAL_NOT_NOW',
         defaultMessage: 'Not now',
     },
+    TR_SUITE_SYNC_ERROR_DEVICE_CANCELLED: {
+        id: 'TR_SUITE_SYNC_ERROR_DEVICE_CANCELLED',
+        defaultMessage: 'Activation was cancelled on the device.',
+    },
+    TR_SUITE_SYNC_ERROR_DEVICE_ERROR: {
+        id: 'TR_SUITE_SYNC_ERROR_DEVICE_ERROR',
+        defaultMessage: 'Device communication failed.',
+    },
+    TR_SUITE_SYNC_ERROR_UPDATE_FAILED: {
+        id: 'TR_SUITE_SYNC_ERROR_UPDATE_FAILED',
+        defaultMessage: 'Failed to update data.',
+    },
+    TR_SUITE_SYNC_ERROR_UNAVAILABLE: {
+        id: 'TR_SUITE_SYNC_ERROR_UNAVAILABLE',
+        defaultMessage: 'Suite Sync unavailable on this device.',
+    },
     TR_SWITCH_TO_LEGACY_LABELING_MODAL_HEADING: {
         id: 'TR_SWITCH_TO_LEGACY_LABELING_MODAL_HEADING',
         defaultMessage: 'Switch to legacy labeling?',
@@ -10729,5 +10802,37 @@ export const messages = defineMessages({
     TR_NON_TRADABLE_TOKENS: {
         id: 'TR_NON_TRADABLE_TOKENS',
         defaultMessage: 'Non-tradable tokens',
+    },
+    TR_EXPERIMENTAL_FEEDBACK_MODAL_HEADING: {
+        id: 'TR_EXPERIMENTAL_FEEDBACK_MODAL_HEADING',
+        defaultMessage: 'Rate your {feature} experience',
+    },
+    TR_EXPERIMENTAL_FEEDBACK_CARD_HEADING: {
+        id: 'TR_EXPERIMENTAL_FEEDBACK_CARD_HEADING',
+        defaultMessage: 'Rate your {feature} experience',
+    },
+    TR_EXPERIMENTAL_FEEDBACK_CARD_DESCRIPTION: {
+        id: 'TR_EXPERIMENTAL_FEEDBACK_CARD_DESCRIPTION',
+        defaultMessage: 'Tell us what’s working and what’s not—we read every reply.',
+    },
+    TR_EXPERIMENTAL_FEEDBACK_MODAL_DESCRIPTION: {
+        id: 'TR_EXPERIMENTAL_FEEDBACK_MODAL_DESCRIPTION',
+        defaultMessage: 'Tell us what’s working and what’s not—we read every reply.',
+    },
+    TR_EXPERIMENTAL_FEEDBACK_MODAL_SUBMIT: {
+        id: 'TR_EXPERIMENTAL_FEEDBACK_MODAL_SUBMIT',
+        defaultMessage: 'Submit',
+    },
+    TR_EXPERIMENTAL_FEEDBACK_CARD_RATE_BUTTON: {
+        id: 'TR_EXPERIMENTAL_FEEDBACK_CARD_RATE_BUTTON',
+        defaultMessage: 'Sure thing',
+    },
+    TR_OUTSIDE_STAKING_CARD_TITLE: {
+        id: 'TR_OUTSIDE_STAKING_CARD_TITLE',
+        defaultMessage: "You're staking outside of Trezor Suite",
+    },
+    TR_OUTSIDE_STAKING_CARD_TEXT: {
+        id: 'TR_OUTSIDE_STAKING_CARD_TEXT',
+        defaultMessage: '{amount} {displaySymbol} (= {fiat}) is currently staked elsewhere.',
     },
 } as const);

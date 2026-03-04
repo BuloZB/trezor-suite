@@ -1,5 +1,3 @@
-import EventEmitter from 'events';
-
 import {
     CORE_CALL,
     CallMethodAnyResponse,
@@ -19,7 +17,6 @@ import { PopupManager } from '../popup';
  * This implementation is directly used here in connect-web, but it is also extended in connect-webextension.
  */
 export class CoreInSuiteWeb implements ConnectImpl {
-    public eventEmitter = new EventEmitter();
     private _popupManager?: PopupManager;
 
     protected logger: Log;
@@ -103,8 +100,8 @@ export class CoreInSuiteWeb implements ConnectImpl {
             if (!response?.payload) {
                 throw ERRORS.TypedError('Method_NoResponse');
             }
-            if (response.error.message && response.error.code) {
-                throw response.error;
+            if (response.payload.error && response.payload.error.code) {
+                throw response.payload.error;
             }
 
             return {
