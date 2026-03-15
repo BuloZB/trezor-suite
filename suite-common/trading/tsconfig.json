@@ -4,6 +4,7 @@
     "references": [
         { "path": "../device" },
         { "path": "../geolocation" },
+        { "path": "../react-query" },
         { "path": "../redux-utils" },
         { "path": "../suite-types" },
         { "path": "../suite-utils" },
@@ -13,7 +14,6 @@
         { "path": "../wallet-core" },
         { "path": "../wallet-types" },
         { "path": "../wallet-utils" },
-        { "path": "../../suite/intl" },
         {
             "path": "../../packages/address-validator"
         },

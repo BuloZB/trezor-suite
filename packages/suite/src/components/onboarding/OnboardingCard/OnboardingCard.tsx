@@ -11,7 +11,6 @@ import {
     IconCircle,
     IconName,
     Modal,
-    Padding,
     Paragraph,
     Row,
 } from '@trezor/components';
@@ -21,13 +20,27 @@ import { getDeviceColorVariant } from '@trezor/device-utils';
 import { ConfirmOnDevicePill } from '@trezor/product-components';
 import { zIndices } from '@trezor/theme';
 
-import { useLayoutSize } from 'src/hooks/suite';
-
 import { OnboardingCardButton } from './OnboardingCardButton';
 import { OnboardingCardSecondaryButton } from './OnboardingCardSecondaryButton';
 
 export const onboardingCardVariants = ['primary', 'warning', 'destructive', 'info'] as const;
 export type OnboardingCardVariant = Extract<UIVariant, (typeof onboardingCardVariants)[number]>;
+
+const mapVariantToIconCircleIntent = (variant: OnboardingCardVariant) => {
+    if (variant === 'destructive') {
+        return 'critical' as const;
+    }
+
+    if (variant === 'warning') {
+        return 'warning' as const;
+    }
+
+    if (variant === 'info') {
+        return 'info' as const;
+    }
+
+    return 'brand' as const;
+};
 
 export type OnboardingCardProps = {
     heading?: ReactNode;
@@ -40,7 +53,6 @@ export type OnboardingCardProps = {
     devicePrompt?: ReactNode;
     isActionAbortable?: boolean;
     children?: ReactNode;
-    padding?: Padding;
     variant?: OnboardingCardVariant;
     'data-testid'?: string;
 };
@@ -56,16 +68,12 @@ export const OnboardingCard = ({
     isConfirmedOnDevice = false,
     devicePrompt,
     children,
-    padding,
     variant = 'primary',
     'data-testid': dataTestId,
 }: OnboardingCardProps) => {
     const intl = useIntl();
     const deviceModelInternal = device?.features?.internal_model;
     const isBackDropVisible = !!deviceModelInternal && isConfirmedOnDevice;
-    const { isBelowTablet } = useLayoutSize();
-
-    const defaultPadding = isBelowTablet ? 40 : 80;
 
     return (
         <>
@@ -102,11 +110,7 @@ export const OnboardingCard = ({
                     paddingType="none"
                     data-testid={dataTestId}
                 >
-                    <Column
-                        gap={48}
-                        padding={padding ?? defaultPadding}
-                        margin={iconName ? { top: 40 } : undefined}
-                    >
+                    <Column gap={48} padding={60} margin={iconName ? { top: 40 } : undefined}>
                         {(heading || description) && (
                             <Column gap={16} alignItems="center" width="100%">
                                 {heading && <H2 align="center">{heading}</H2>}
@@ -132,7 +136,11 @@ export const OnboardingCard = ({
                         position={{ type: 'absolute', top: 0 }}
                         zIndex={isBackDropVisible ? zIndices.modal : undefined}
                     >
-                        <IconCircle name={iconName} size={96} variant={variant} />
+                        <IconCircle
+                            name={iconName}
+                            size={96}
+                            intent={mapVariantToIconCircleIntent(variant)}
+                        />
                     </Box>
                 )}
                 {outerActions && <Box zIndex={zIndices.onboardingForeground}>{outerActions}</Box>}

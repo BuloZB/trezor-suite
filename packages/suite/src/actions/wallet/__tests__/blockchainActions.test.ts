@@ -1,5 +1,9 @@
+import { TranslationKey } from '@suite/intl';
 import { testMocks } from '@suite-common/test-utils';
-import { notificationsActions, notificationsReducer } from '@suite-common/toast-notifications';
+import {
+    createNotificationsReducer,
+    notificationsActions,
+} from '@suite-common/toast-notifications';
 import {
     AccountsState,
     BlockchainState,
@@ -24,6 +28,8 @@ import * as fixtures from '../__fixtures__/blockchainActions';
 
 const TrezorConnect = testMocks.getTrezorConnectMock();
 
+const { reducer: notificationsReducer } = createNotificationsReducer<TranslationKey>();
+
 interface Args {
     accounts?: AccountsState;
     blockchain?: Partial<BlockchainState>;
@@ -40,6 +46,7 @@ const getInitialState = (
         transactions: transactionsReducer(
             {
                 transactions: transactions || {},
+                phishing: {},
                 fetchStatusDetail: {},
             },
             action,

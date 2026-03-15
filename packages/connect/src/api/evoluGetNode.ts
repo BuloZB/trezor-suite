@@ -1,7 +1,8 @@
 import { MessagesSchema as PROTO } from '@trezor/protobuf';
 import { Assert } from '@trezor/schema-utils';
 
-import { AbstractMethod, MethodPermission, Payload } from '../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../core/AbstractMethod';
+import { AbstractMethod } from '../core/AbstractMethod';
 import { getFirmwareRange } from './common/paramsValidator';
 
 export default class EvoluGetNode extends AbstractMethod<'evoluGetNode', PROTO.EvoluGetNode> {
@@ -30,7 +31,7 @@ export default class EvoluGetNode extends AbstractMethod<'evoluGetNode', PROTO.E
     }
 
     async run() {
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         const response = await cmd.typedCall('EvoluGetNode', 'EvoluNode', this.params);
 
         return response.message;

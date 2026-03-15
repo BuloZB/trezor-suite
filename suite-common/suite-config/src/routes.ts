@@ -7,6 +7,13 @@
 export const walletParams = ['symbol', 'accountIndex', 'accountType'] as const;
 export const modalAppParams = ['cancelable', 'variant'] as const;
 export const dashboardParams = ['modal', 'networkSymbol'] as const;
+export const earnParams = [
+    'symbol',
+    'accountIndex',
+    'accountType',
+    'yieldId',
+    'contractAddress',
+] as const;
 
 export const routes = [
     {
@@ -27,6 +34,18 @@ export const routes = [
         name: 'suite-earn',
         pattern: '/earn',
         app: 'earn',
+    },
+    {
+        name: 'earn-supply',
+        pattern: '/earn/supply',
+        app: 'earn',
+        params: earnParams,
+    },
+    {
+        name: 'earn-withdraw',
+        pattern: '/earn/withdraw',
+        app: 'earn',
+        params: earnParams,
     },
     {
         name: 'suite-version',
@@ -190,7 +209,6 @@ export const routes = [
         name: 'wallet-trading-buy',
         pattern: '/accounts/coinmarket/buy',
         app: 'wallet',
-        params: walletParams,
     },
     {
         name: 'wallet-trading-exchange',
@@ -201,19 +219,22 @@ export const routes = [
         name: 'wallet-trading-sell',
         pattern: '/accounts/coinmarket/sell',
         app: 'wallet',
+    },
+    {
+        name: 'wallet-trading-concierge',
+        pattern: '/accounts/coinmarket/concierge',
+        app: 'wallet',
         params: walletParams,
     },
     {
         name: 'wallet-trading-buy-offers',
         pattern: '/accounts/coinmarket/buy/offers',
         app: 'wallet',
-        params: walletParams,
     },
     {
         name: 'wallet-trading-sell-offers',
         pattern: '/accounts/coinmarket/sell/offers',
         app: 'wallet',
-        params: walletParams,
     },
     {
         name: 'wallet-trading-exchange-offers',
@@ -224,13 +245,11 @@ export const routes = [
         name: 'wallet-trading-buy-detail',
         pattern: '/accounts/coinmarket/buy/detail',
         app: 'wallet',
-        params: walletParams,
     },
     {
         name: 'wallet-trading-sell-detail',
         pattern: '/accounts/coinmarket/sell/detail',
         app: 'wallet',
-        params: walletParams,
     },
     {
         name: 'wallet-trading-exchange-detail',
@@ -241,13 +260,11 @@ export const routes = [
         name: 'wallet-trading-buy-confirm',
         pattern: '/accounts/coinmarket/buy/confirm',
         app: 'wallet',
-        params: walletParams,
     },
     {
         name: 'wallet-trading-sell-confirm',
         pattern: '/accounts/coinmarket/sell/confirm',
         app: 'wallet',
-        params: walletParams,
     },
     {
         name: 'wallet-trading-exchange-confirm',

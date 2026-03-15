@@ -14,7 +14,7 @@ import {
 import { suiteSyncDataReducer, suiteSyncReducer } from '@suite-common/suite-sync';
 import { suiteSyncQuotaManagerReducer } from '@suite-common/suite-sync-quota-manager';
 import { prepareThpReducer } from '@suite-common/thp';
-import { notificationsReducer } from '@suite-common/toast-notifications';
+import { createNotificationsReducer } from '@suite-common/toast-notifications';
 import { prepareTokenDefinitionsReducer } from '@suite-common/token-definitions';
 import {
     feesReducer,
@@ -37,10 +37,12 @@ import { bannerFlagsPersistWhitelist, bannerFlagsReducer } from '@suite-native/b
 import { bluetoothSlice } from '@suite-native/bluetooth';
 import { deviceAuthorizationReducer } from '@suite-native/device-authorization';
 import { deviceOnboardingReducer } from '@suite-native/device-onboarding';
+import { pendingCoinVisibilitySlice } from '@suite-native/discovery';
+import { experimentalFeedbackReducer } from '@suite-native/experimental-features';
 import { featureFlagsPersistedKeys, featureFlagsReducer } from '@suite-native/feature-flags';
 import { nativeFirmwareReducer } from '@suite-native/firmware';
 import { graphPersistTransform, graphReducer } from '@suite-native/graph';
-import { localePersistWhitelist, localeReducer } from '@suite-native/intl';
+import { TxKeyPath, localePersistWhitelist, localeReducer } from '@suite-native/intl';
 import { appSettingsPersistWhitelist, appSettingsReducer } from '@suite-native/settings';
 import {
     MMKVStorageDep,
@@ -263,6 +265,14 @@ export const prepareRootReducers = (deps: PrepareRootReducersDeps) => {
         storage: deps.mmkvStorage,
     });
 
+    const experimentalFeedbackPersistedReducer = preparePersistReducer({
+        reducer: experimentalFeedbackReducer,
+        persistedKeys: ['usageCounts', 'pendingFeedbackFeatures'],
+        key: 'experimentalFeedback',
+        version: 1,
+        storage: deps.mmkvStorage,
+    });
+
     const messageSystemPersistedReducer = preparePersistReducer({
         reducer: messageSystemReducer,
         persistedKeys: messageSystemPersistedWhitelist,
@@ -338,6 +348,7 @@ export const prepareRootReducers = (deps: PrepareRootReducersDeps) => {
             appSettings: appSettingsPersistedReducer,
             bannerFlags: bannerFlagsPersistedReducer,
             bluetooth: bluetoothPersistedReducer,
+            experimentalFeedback: experimentalFeedbackPersistedReducer,
             connectPopup: connectPopupPersistedReducer,
             device: devicePersistedReducer,
             deviceAuthorization: deviceAuthorizationReducer,
@@ -350,7 +361,8 @@ export const prepareRootReducers = (deps: PrepareRootReducersDeps) => {
             logs: logsSlice.reducer,
             messageSystem: messageSystemPersistedReducer,
             nativeFirmware: nativeFirmwareReducer,
-            notifications: notificationsReducer,
+            notifications: createNotificationsReducer<TxKeyPath>().reducer,
+            pendingCoinVisibility: pendingCoinVisibilitySlice.reducer,
             suiteSync: suiteSyncPersistedReducer,
             suiteSyncData: suiteSyncDataReducer,
             thp: thpPersistedReducer,
@@ -384,6 +396,7 @@ export const prepareRootReducers = (deps: PrepareRootReducersDeps) => {
                         accounts: migratedAccounts,
                         transactions: {
                             transactions: migratedTransactions,
+                            phishing: oldStateWallet.transactions?.phishing ?? {},
                             fetchStatusDetail: oldStateWallet.transactions?.fetchStatusDetail,
                         },
                     },
@@ -406,6 +419,7 @@ export const prepareRootReducers = (deps: PrepareRootReducersDeps) => {
                         accounts: migratedAccounts,
                         transactions: {
                             transactions: migratedTransactions,
+                            phishing: oldStateWallet.transactions?.phishing ?? {},
                             fetchStatusDetail: oldStateWallet.transactions?.fetchStatusDetail,
                         },
                     },

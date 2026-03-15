@@ -5,6 +5,8 @@ import { PageName } from '@suite-common/suite-types';
 import { ConnectPopup } from 'src/views/connect-popup';
 import { Dashboard } from 'src/views/dashboard';
 import { Earn } from 'src/views/earn';
+import { EarnSupply } from 'src/views/earn/supply';
+import { EarnWithdraw } from 'src/views/earn/withdraw';
 import PasswordManagerView from 'src/views/password-manager';
 import { SettingsCoins } from 'src/views/settings/SettingsCoins/SettingsCoins';
 import { SettingsConnectedApps } from 'src/views/settings/SettingsConnectedApps/SettingsConnectedApps';
@@ -24,6 +26,7 @@ import { TradingBuyConfirm } from 'src/views/wallet/trading/buy/TradingBuyConfir
 import { TradingBuyDetail } from 'src/views/wallet/trading/buy/TradingBuyDetail';
 import { TradingBuyForm } from 'src/views/wallet/trading/buy/TradingBuyForm';
 import { TradingBuyOffers } from 'src/views/wallet/trading/buy/TradingBuyOffers';
+import { TradingConciergeDetail } from 'src/views/wallet/trading/concierge/TradingConciergeDetail';
 import { TradingExchangeConfirm } from 'src/views/wallet/trading/exchange/TradingExchangeConfirm';
 import { TradingExchangeDetail } from 'src/views/wallet/trading/exchange/TradingExchangeDetail';
 import { TradingExchangeForm } from 'src/views/wallet/trading/exchange/TradingExchangeForm';
@@ -39,6 +42,8 @@ import { Transactions } from 'src/views/wallet/transactions/Transactions';
 export const desktopComponents: Record<PageName, ComponentType> = {
     'suite-index': Dashboard,
     'suite-earn': Earn,
+    'earn-supply': EarnSupply,
+    'earn-withdraw': EarnWithdraw,
     'suite-connect-popup': ConnectPopup,
     'notifications-index': Notification,
 
@@ -63,6 +68,7 @@ export const desktopComponents: Record<PageName, ComponentType> = {
     'wallet-trading-exchange-detail': TradingExchangeDetail,
     'wallet-trading-exchange-offers': TradingExchangeOffers,
     'wallet-trading-exchange-confirm': TradingExchangeConfirm,
+    'wallet-trading-concierge': TradingConciergeDetail,
     'wallet-trading-redirect': TradingRedirect,
     'wallet-trading-transactions': TradingTransactions,
 

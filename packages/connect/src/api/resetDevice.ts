@@ -6,7 +6,8 @@ import { getRandomInt } from '@trezor/utils';
 
 import { generateEntropy, verifyEntropy } from '../api/firmware/verifyEntropy';
 import { PROTO } from '../constants';
-import { AbstractMethod, MethodPermission, Payload } from '../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../core/AbstractMethod';
+import { AbstractMethod } from '../core/AbstractMethod';
 import { UI_REQUEST } from '../events';
 import { getFirmwareRange } from './common/paramsValidator';
 import { validatePath } from '../utils/pathUtils';
@@ -59,7 +60,7 @@ export default class ResetDevice extends AbstractMethod<'resetDevice', PROTO.Res
 
     // https://github.com/trezor/trezor-firmware/blob/57868ad48f4c462bb1f4fa57572067e89a039a60/docs/common/message-workflows.md#simple-resetdevice-workflow
     private async resetDeviceWorkflow() {
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         const entropy = generateEntropy(32).toString('hex');
 
         // ResetDevice > EntropyRequest > EntropyAck > Success (old fw)
@@ -69,7 +70,7 @@ export default class ResetDevice extends AbstractMethod<'resetDevice', PROTO.Res
 
     // https://github.com/trezor/trezor-firmware/blob/57868ad48f4c462bb1f4fa57572067e89a039a60/docs/common/message-workflows.md#entropy-check-workflow
     private async entropyCheckWorkflow(): Promise<XPubsPerBip43Path> {
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         const paths = ["m/84'/0'/0'", "m/44'/60'/0'"] as const;
         const parsedPaths = paths.map(path => ({ path, address_n: validatePath(path) }));
 
@@ -122,7 +123,7 @@ export default class ResetDevice extends AbstractMethod<'resetDevice', PROTO.Res
             });
 
             if (res.error) {
-                await this.device.getCurrentSession().cancelCall();
+                await this.getDevice().getCurrentSession().cancelCall();
                 throw ERRORS.TypedError('Failure_EntropyCheck', res.error);
             }
 
@@ -142,7 +143,7 @@ export default class ResetDevice extends AbstractMethod<'resetDevice', PROTO.Res
     }
 
     async run() {
-        if (this.params.entropy_check && this.device.unavailableCapabilities['entropyCheck']) {
+        if (this.params.entropy_check && this.getDevice().unavailableCapabilities['entropyCheck']) {
             // entropy check requested but not supported by the firmware
             this.params.entropy_check = false;
         }

@@ -37,6 +37,7 @@ import TrezorConnect, {
     Response as ConnectResponse,
     DEVICE,
     Device,
+    asBluetoothDeviceId,
 } from '@trezor/connect';
 import { getEnvironment } from '@trezor/env-utils';
 import { exhaustive } from '@trezor/type-utils';
@@ -418,7 +419,10 @@ export const forgetSingleDevicePersistentDataThunk = createThunk(
 
         dispatch(deviceActions.forgetDevicePersistentData({ deviceId }));
 
-        const bluetoothId = matchingDevice?.bluetoothProps?.id;
+        const bluetoothId =
+            matchingDevice?.descriptor?.apiType === 'bluetooth' && matchingDevice.descriptor.id
+                ? asBluetoothDeviceId(matchingDevice.descriptor.id)
+                : undefined;
         if (bluetoothId !== undefined) {
             dispatch(bluetoothActions.removeKnownDeviceAction({ id: bluetoothId }));
             // try to remove OS-level Bluetooth bonds, if supported by the platform
@@ -510,7 +514,8 @@ export const wipeDeviceThunk = createThunk(
         if (
             result.success ||
             // This is an expected success for Bluetooth-connected devices
-            (device.bluetoothProps !== undefined && result.error.code === 'Device_Disconnected')
+            (device.descriptor.apiType === 'bluetooth' &&
+                result.error.code === 'Device_Disconnected')
         ) {
             // The wipe was successful, now run the shared cleanup logic.
             // We pass the original `device` object to the cleanup thunk.

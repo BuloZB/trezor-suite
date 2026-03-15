@@ -3,12 +3,11 @@
 import { ERRORS } from '@trezor/connect-common/src/constants';
 import { Assert } from '@trezor/schema-utils';
 
-import { AbstractMethod, MethodPermission, Payload } from '../../../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../../../core/AbstractMethod';
+import { AbstractMethod } from '../../../core/AbstractMethod';
 import { getMiscNetwork } from '../../../data/coinInfo';
-import {
-    StellarSignTransaction as StellarSignTransactionSchema,
-    StellarTransaction,
-} from '../../../types/api/stellar';
+import type { StellarTransaction } from '../../../types/api/stellar';
+import { StellarSignTransaction as StellarSignTransactionSchema } from '../../../types/api/stellar';
 import { validatePath } from '../../../utils/pathUtils';
 import { getFirmwareRange } from '../../common/paramsValidator';
 import * as helper from '../stellarSignTx';
@@ -62,7 +61,7 @@ export default class StellarSignTransaction extends AbstractMethod<
     }
 
     _isFeatureSupported(feature: keyof typeof StellarSignTransactionFeatures) {
-        return this.device.atLeast(StellarSignTransactionFeatures[feature]);
+        return this.getDevice().atLeast(StellarSignTransactionFeatures[feature]);
     }
 
     _ensureFeatureIsSupported(feature: keyof typeof StellarSignTransactionFeatures) {
@@ -95,7 +94,7 @@ export default class StellarSignTransaction extends AbstractMethod<
         this._ensureFirmwareSupportsParams();
 
         const response = await helper.stellarSignTx(
-            this.device.getCommands().typedCall,
+            this.getDevice().getCommands().typedCall,
             this.params.path,
             this.params.networkPassphrase,
             this.params.transaction,

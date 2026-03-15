@@ -4,7 +4,8 @@ import { hexToBytes } from '@noble/hashes/utils.js';
 import { ERRORS } from '@trezor/connect-common/src/constants';
 
 import { PROTO } from '../../../constants';
-import { AbstractMethod, MethodPermission, Payload } from '../../../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../../../core/AbstractMethod';
+import { AbstractMethod } from '../../../core/AbstractMethod';
 import { getMiscNetwork } from '../../../data/coinInfo';
 import type { MoneroExportedKeyImage, MoneroKeyImageSyncResult } from '../../../types/api/monero';
 import { HD_HARDENED, validatePath } from '../../../utils/pathUtils';
@@ -127,7 +128,7 @@ export default class MoneroKeyImageSyncMethod extends AbstractMethod<'moneroKeyI
     }
 
     async run(): Promise<MoneroKeyImageSyncResult> {
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
 
         // Compute hash of all tdis for verification
         const tdHashes: Uint8Array[] = [];

@@ -3,7 +3,7 @@ import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import { fromWei } from 'web3-utils';
 
 import { trezorLogo } from '@suite-common/suite-constants';
-import { TokenDefinitions, getIsPhishingTransaction } from '@suite-common/token-definitions';
+import { TokenDefinitions, isPhishingTransaction } from '@suite-common/token-definitions';
 import { NetworkSymbol, getNetworkDisplaySymbol } from '@suite-common/wallet-config';
 import {
     ExportFileType,
@@ -20,6 +20,7 @@ import {
     isNftTokenTransfer,
     localizeNumber,
     roundTimestampToNearestPastHour,
+    subtypeToStakeTypeMap,
 } from '@suite-common/wallet-utils';
 import type { BaseCurrencyCode } from '@trezor/blockchain-link-types';
 import { TransactionTarget } from '@trezor/connect';
@@ -125,10 +126,10 @@ const formatAmounts =
 const loadPdfMake = async () => {
     const pdfMake = (await import(/* webpackChunkName: "pdfMake" */ 'pdfmake/build/pdfmake'))
         .default;
-    const fonts = (await import(/* webpackChunkName: "pdfFonts" */ 'pdfmake/build/vfs_fonts'))
+    const vfs = (await import(/* webpackChunkName: "pdfFonts" */ 'pdfmake/build/vfs_fonts'))
         .default;
-    if (fonts?.vfs) {
-        pdfMake.vfs = fonts.vfs;
+    if (vfs) {
+        pdfMake.addVirtualFileSystem(vfs);
     }
 
     return pdfMake;
@@ -137,27 +138,28 @@ const loadPdfMake = async () => {
 const makePdf = (
     definitions: TDocumentDefinitions,
     pdfMake: typeof import('pdfmake/build/pdfmake'),
-): Promise<Blob> =>
-    new Promise(resolve => {
-        pdfMake.createPdf(definitions).getBlob(blob => {
-            resolve(blob);
-        });
-    });
+): Promise<Blob> => pdfMake.createPdf(definitions).getBlob();
 
 const prepareContent = (
     data: Data,
     tokenDefinitions: TokenDefinitions,
+    txsMarkedAsNotScam: string[],
     historicFiatRates?: RatesByTimestamps,
 ): Fields[] => {
     const { transactions, symbol, baseCurrencyCode } = data;
 
     return transactions
+        .filter(
+            t =>
+                !isPhishingTransaction({
+                    transaction: t,
+                    tokenDefinitions,
+                    historicRates: historicFiatRates,
+                    txsMarkedAsNotScam,
+                }),
+        )
         .map(formatAmounts(symbol))
         .flatMap(t => {
-            if (getIsPhishingTransaction(t, tokenDefinitions)) {
-                return null;
-            }
-
             const sharedData = {
                 date: new Intl.DateTimeFormat('default', dateFormat).format(
                     (t.blockTime || 0) * 1000,
@@ -169,6 +171,7 @@ const prepareContent = (
                 type: t.type.toUpperCase(),
                 txid: t.txid,
             };
+            const symbol = getNetworkDisplaySymbol(data.symbol);
             const fiatRateKey = getFiatRateKey(t.symbol, baseCurrencyCode);
             const roundedTimestamp = roundTimestampToNearestPastHour(t.blockTime as Timestamp);
             const historicRate = historicFiatRates?.[fiatRateKey]?.[roundedTimestamp];
@@ -177,6 +180,17 @@ const prepareContent = (
             let tokens: Array<Fields | null> = [];
             let internalTransfers: Array<Fields | null> = [];
             let targets: Array<Fields | null> = [];
+            let cardanoStaking: Array<Fields | null> = [];
+
+            const getFiatAmount = (amount?: string, historicRate?: number) =>
+                amount && historicRate
+                    ? localizeNumber(
+                          new BigNumber(amount).multipliedBy(historicRate).toNumber(),
+                          undefined,
+                          2,
+                          2,
+                      ).toString()
+                    : '';
 
             if (t.targets.length > 0) {
                 targets = t.targets.map(target => {
@@ -186,24 +200,12 @@ const prepareContent = (
                     const targetData = {
                         ...sharedData,
                         fee: !hasFeeBeenAlreadyUsed ? t.fee : '', // fee only once per tx
-                        feeSymbol: !hasFeeBeenAlreadyUsed
-                            ? getNetworkDisplaySymbol(data.symbol)
-                            : '',
+                        feeSymbol: !hasFeeBeenAlreadyUsed ? symbol : '',
                         address: target.isAddress ? target.addresses[0] : '', // SENT - it is destination address, RECV - it is MY address
                         label: target.isAddress && target.metadataLabel ? target.metadataLabel : '',
                         amount: target.isAddress ? target.amount : '',
-                        symbol: target.isAddress ? getNetworkDisplaySymbol(data.symbol) : '',
-                        fiat:
-                            target.isAddress && target.amount && historicRate
-                                ? localizeNumber(
-                                      new BigNumber(target.amount)
-                                          .multipliedBy(historicRate)
-                                          .toNumber(),
-                                      undefined,
-                                      2,
-                                      2,
-                                  ).toString()
-                                : '',
+                        symbol: target.isAddress ? symbol : '',
+                        fiat: target.isAddress ? getFiatAmount(target.amount, historicRate) : '',
                         other: !target.isAddress ? target.addresses[0] : '', // e.g. OP_RETURN
                     };
                     hasFeeBeenAlreadyUsed = true;
@@ -229,24 +231,12 @@ const prepareContent = (
                     const tokenData = {
                         ...sharedData,
                         fee: !hasFeeBeenAlreadyUsed ? t.fee : '', // fee only once per tx
-                        feeSymbol: !hasFeeBeenAlreadyUsed
-                            ? getNetworkDisplaySymbol(data.symbol)
-                            : '',
+                        feeSymbol: !hasFeeBeenAlreadyUsed ? symbol : '',
                         address: token.to || '', // SENT - it is destination address, RECV - it is MY address
                         label: '', // token transactions do not have labels
                         amount: token.amount, // TODO: what to show if token.decimals missing so amount is not formatted correctly?
                         symbol: token.symbol || token.contract, // if symbol not available, use contract address
-                        fiat:
-                            historicTokenRate && token.amount
-                                ? localizeNumber(
-                                      new BigNumber(token.amount)
-                                          .multipliedBy(historicTokenRate)
-                                          .toNumber(),
-                                      undefined,
-                                      2,
-                                      2,
-                                  ).toString()
-                                : '',
+                        fiat: getFiatAmount(token.amount, historicTokenRate),
                         other: '',
                     };
                     hasFeeBeenAlreadyUsed = true;
@@ -260,24 +250,12 @@ const prepareContent = (
                     const internalTransferData = {
                         ...sharedData,
                         fee: !hasFeeBeenAlreadyUsed ? t.fee : '', // fee only once per tx
-                        feeSymbol: !hasFeeBeenAlreadyUsed
-                            ? getNetworkDisplaySymbol(data.symbol)
-                            : '',
+                        feeSymbol: !hasFeeBeenAlreadyUsed ? symbol : '',
                         address: internal.to || '', // SENT - it is destination address, RECV - it is MY address
                         label: '', // internal transactions do not have labels
                         amount: internal.amount,
-                        symbol: getNetworkDisplaySymbol(data.symbol), // if symbol not available, use contract address
-                        fiat:
-                            internal.amount && historicRate
-                                ? localizeNumber(
-                                      new BigNumber(internal.amount)
-                                          .multipliedBy(historicRate)
-                                          .toNumber(),
-                                      undefined,
-                                      2,
-                                      2,
-                                  ).toString()
-                                : '',
+                        symbol, // if symbol not available, use contract address
+                        fiat: getFiatAmount(internal.amount, historicRate),
                         other: '',
                     };
                     hasFeeBeenAlreadyUsed = true;
@@ -286,7 +264,55 @@ const prepareContent = (
                 });
             }
 
-            return [...targets, ...tokens, ...internalTransfers];
+            if (t.cardanoSpecific && t.cardanoSpecific.subtype) {
+                const { subtype, withdrawal = '0', deposit = '0' } = t.cardanoSpecific;
+
+                const amount = (() => {
+                    switch (subtype) {
+                        case 'withdrawal':
+                            return withdrawal;
+                        case 'stake_registration':
+                        case 'stake_deregistration':
+                        case 'stake_delegation':
+                            return deposit;
+                        default:
+                            return '0';
+                    }
+                })();
+
+                const stakeTypeLabel = (() => {
+                    switch (subtypeToStakeTypeMap[subtype]) {
+                        case 'stake':
+                            return 'Stake';
+                        case 'unstake':
+                            return 'Unstake';
+                        case 'claim':
+                            return 'Claim rewards';
+                        case 'change-delegate':
+                            return 'Change delegate';
+                        default:
+                            return '';
+                    }
+                })();
+
+                cardanoStaking = [
+                    {
+                        ...sharedData,
+                        symbol,
+                        amount,
+                        fee: !hasFeeBeenAlreadyUsed ? t.fee : '',
+                        feeSymbol: !hasFeeBeenAlreadyUsed ? symbol : '',
+                        address: stakeTypeLabel,
+                        label: '',
+                        fiat: getFiatAmount(amount, historicRate),
+                        other: '',
+                    },
+                ];
+
+                hasFeeBeenAlreadyUsed = true;
+            }
+
+            return [...targets, ...tokens, ...internalTransfers, ...cardanoStaking];
         })
         .filter(record => record !== null) as Fields[];
 };
@@ -302,6 +328,7 @@ export const sanitizeCsvValue = (value: string) => {
 const prepareCsv = (
     data: Data,
     tokenDefinitions: TokenDefinitions,
+    txsMarkedAsNotScam: string[],
     historicFiatRates?: RatesByTimestamps,
 ) => {
     const csvFields: Fields = {
@@ -320,7 +347,7 @@ const prepareCsv = (
         other: 'Other',
     };
 
-    const content = prepareContent(data, tokenDefinitions, historicFiatRates);
+    const content = prepareContent(data, tokenDefinitions, txsMarkedAsNotScam, historicFiatRates);
 
     const lines: string[] = [];
 
@@ -352,6 +379,7 @@ const prepareCsv = (
 const preparePdf = (
     data: Data,
     tokenDefinitions: TokenDefinitions,
+    txsMarkedAsNotScam: string[],
     historicFiatRates?: RatesByTimestamps,
 ): TDocumentDefinitions => {
     const pdfFields = {
@@ -366,7 +394,7 @@ const preparePdf = (
     const fieldKeys = Object.keys(pdfFields);
     const fieldValues = Object.values(pdfFields);
 
-    const content = prepareContent(data, tokenDefinitions, historicFiatRates);
+    const content = prepareContent(data, tokenDefinitions, txsMarkedAsNotScam, historicFiatRates);
 
     const lines: any[] = [];
     content.forEach(item => {
@@ -447,18 +475,24 @@ const preparePdf = (
 export const formatData = async (
     data: Data,
     tokenDefinitions: TokenDefinitions,
+    txsMarkedAsNotScam: string[],
     historicFiatRates?: RatesByTimestamps,
 ) => {
     const { symbol, type, transactions } = data;
 
     switch (type) {
         case 'csv': {
-            const csv = prepareCsv(data, tokenDefinitions, historicFiatRates);
+            const csv = prepareCsv(data, tokenDefinitions, txsMarkedAsNotScam, historicFiatRates);
 
             return new Blob([csv], { type: 'text/csv;charset=utf-8' });
         }
         case 'pdf': {
-            const pdfLayout = preparePdf(data, tokenDefinitions, historicFiatRates);
+            const pdfLayout = preparePdf(
+                data,
+                tokenDefinitions,
+                txsMarkedAsNotScam,
+                historicFiatRates,
+            );
             const pdfMake = await loadPdfMake();
             const pdf = await makePdf(pdfLayout, pdfMake);
 

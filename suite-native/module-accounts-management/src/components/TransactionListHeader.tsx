@@ -14,7 +14,7 @@ import {
 import { AccountKey, TokenAddress } from '@suite-common/wallet-types';
 import { events } from '@suite-native/analytics';
 import { Box, Button, HStack, Text, VStack } from '@suite-native/atoms';
-import { selectHasFirmwareAuthenticityCheckHardFailed } from '@suite-native/device';
+import { selectHasFirmwareAuthenticityCheckHardFailedForSelectedDevice } from '@suite-native/device';
 import { FeatureFlagsRootState } from '@suite-native/feature-flags';
 import { Translation } from '@suite-native/intl';
 import {
@@ -34,6 +34,7 @@ import { StellarLimitedHistoryBanner } from './AccountBanners/StellarLimitedHist
 import { AccountDetailCryptoValue } from './AccountDetailCryptoValue';
 import { AccountDetailGraph } from './AccountDetailGraph';
 import { CoinPriceCard } from './CoinPriceCard';
+import { StablecoinYieldTokenOverview } from './StablecoinYieldTokenOverview';
 import { StellarTokenActions } from './StellarTokenActions';
 
 type TransactionListHeaderProps = {
@@ -105,7 +106,7 @@ export const TransactionListHeader = memo(
         );
         const isPortfolioTrackerDevice = useSelector(selectIsPortfolioTrackerDevice);
         const hasFirmwareAuthenticityCheckHardFailed = useSelector(
-            selectHasFirmwareAuthenticityCheckHardFailed,
+            selectHasFirmwareAuthenticityCheckHardFailedForSelectedDevice,
         );
         const token = useSelector((state: TokensRootState) =>
             selectAccountTokenInfo(state, accountKey, tokenContract),
@@ -167,6 +168,12 @@ export const TransactionListHeader = memo(
                         accountKey={accountKey}
                         tokenContract={tokenContract}
                     />
+                    {tokenContract && (
+                        <StablecoinYieldTokenOverview
+                            accountKey={accountKey}
+                            tokenContract={tokenContract}
+                        />
+                    )}
                     {hasAccountTransactions && (
                         <HStack paddingTop="sp8" paddingHorizontal="sp16" flex={1} spacing="sp12">
                             {isReceiveButtonDisplayed && (
@@ -204,7 +211,7 @@ export const TransactionListHeader = memo(
                     {account.networkType === 'solana' && <SolanaLimitedHistoryBanner />}
                 </VStack>
                 {hasAccountTransactions && (
-                    <Box marginTop="sp52" marginHorizontal="sp32">
+                    <Box marginTop="sp52" marginHorizontal="sp16">
                         <Text variant="headline-sm">
                             <Translation id="transactions.title" />
                         </Text>

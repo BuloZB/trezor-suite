@@ -3,7 +3,8 @@
 import { MessagesSchema as PROTO } from '@trezor/protobuf';
 import { Assert } from '@trezor/schema-utils';
 
-import { AbstractMethod, MethodPermission, Payload } from '../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../core/AbstractMethod';
+import { AbstractMethod } from '../core/AbstractMethod';
 
 export default class ChangePin extends AbstractMethod<'changePin', PROTO.ChangePin> {
     constructor(message: { id?: number; payload: Payload<'changePin'> }) {
@@ -25,7 +26,7 @@ export default class ChangePin extends AbstractMethod<'changePin', PROTO.ChangeP
     }
 
     async run() {
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         const response = await cmd.typedCall('ChangePin', 'Success', this.params);
 
         return response.message;

@@ -1,10 +1,10 @@
 import { Translation } from '@suite/intl';
+import { onReceiveConfirmation } from '@suite/modal';
+import { SettingsAnchor } from '@suite/router';
 import { H2, Modal, Paragraph } from '@trezor/components';
 import { spacings } from '@trezor/theme';
 
-import { onReceiveConfirmation } from 'src/actions/suite/modalActions';
 import { goto } from 'src/actions/suite/routerActions';
-import { SettingsAnchor } from 'src/constants/suite/anchors';
 import { useDispatch } from 'src/hooks/suite/useDispatch';
 
 export const NoBackupModal = () => {
@@ -21,7 +21,7 @@ export const NoBackupModal = () => {
         <Modal
             onCancel={close}
             iconName="warning"
-            variant="warning"
+            intent="warning"
             width={600}
             bottomContent={
                 <>

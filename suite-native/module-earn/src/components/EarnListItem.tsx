@@ -1,53 +1,42 @@
 import { events } from '@suite-native/analytics';
-import { PressableOpacity, VStack, useBottomSheetModal } from '@suite-native/atoms';
+import { PressableOpacity, useBottomSheetModal } from '@suite-native/atoms';
 import { useAnalytics } from '@suite-native/services';
-import { selectStakedBalanceByAccountKey, useSelector } from '@suite-native/staking';
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles';
 
-import { EarnItem } from '../types';
-import { EarnItemCardanoInfo } from './EarnItemCardanoInfo';
+import { type EarnPromoItem } from '../types';
 import { EarnItemInfoModal } from './EarnItemInfoModal';
 import { EarnItemOverviewSection } from './EarnItemOverviewSection';
-import { EarnItemRewardSection } from './EarnItemRewardSection';
 
-const earnItemStyle = prepareNativeStyle(utils => ({
-    backgroundColor: utils.colors.backgroundSurfaceElevation1,
+const promoItemStyle = prepareNativeStyle(utils => ({
     paddingVertical: utils.spacings.sp12,
-    borderRadius: utils.spacings.sp16,
-    marginBottom: utils.spacings.sp16,
-    ...utils.boxShadows.small,
+    minHeight: 70,
 }));
 
-export type EarnListItemProps = EarnItem;
+export type EarnListItemProps = EarnPromoItem;
 
-export const EarnListItem = (earnItem: EarnListItemProps) => {
-    const { accountKey } = earnItem;
+export const EarnListItem = (item: EarnListItemProps) => {
     const { applyStyle } = useNativeStyles();
     const { bottomSheetRef, openModal } = useBottomSheetModal();
     const analytics = useAnalytics();
 
-    const stakedBalance = useSelector(state => selectStakedBalanceByAccountKey(state, accountKey));
-
     const handlePress = () => {
         openModal();
-        analytics.report({ type: events.earnStakeTilePressedEvent.name });
+
+        analytics.report({
+            type:
+                item.type === 'staking'
+                    ? events.earnStakeTilePressedEvent.name
+                    : events.earnStablecoinYieldTilePressedEvent.name,
+        });
     };
 
     return (
         <>
-            <PressableOpacity style={applyStyle(earnItemStyle)} onPress={handlePress}>
-                <VStack flex={1}>
-                    <EarnItemOverviewSection stakedBalance={stakedBalance} {...earnItem} />
-                    {accountKey && (
-                        <>
-                            <EarnItemRewardSection {...earnItem} />
-                            <EarnItemCardanoInfo {...earnItem} />
-                        </>
-                    )}
-                </VStack>
+            <PressableOpacity style={applyStyle(promoItemStyle)} onPress={handlePress}>
+                <EarnItemOverviewSection {...item} />
             </PressableOpacity>
 
-            <EarnItemInfoModal ref={bottomSheetRef} />
+            <EarnItemInfoModal ref={bottomSheetRef} type={item.type} />
         </>
     );
 };

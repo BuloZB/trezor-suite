@@ -1,15 +1,14 @@
 // origin: https://github.com/trezor/connect/blob/develop/src/js/core/methods/EthereumSignMessage.js
 
-import { MessagesSchema, MessagesSchema as PROTO } from '@trezor/protobuf';
+import type { MessagesSchema, MessagesSchema as PROTO } from '@trezor/protobuf';
 import { Assert } from '@trezor/schema-utils';
 
-import { AbstractMethod, MethodPermission, Payload } from '../../../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../../../core/AbstractMethod';
+import { AbstractMethod } from '../../../core/AbstractMethod';
 import { getEthereumNetwork } from '../../../data/coinInfo';
 import { validateModelOneMessageSize } from '../../../device/validateMessageSize';
-import {
-    EthereumNetworkInfo,
-    EthereumSignMessage as EthereumSignMessageSchema,
-} from '../../../types';
+import type { EthereumNetworkInfo } from '../../../types';
+import { EthereumSignMessage as EthereumSignMessageSchema } from '../../../types';
 import { getNetworkLabel } from '../../../utils/ethereumUtils';
 import { hexToText, messageToHex } from '../../../utils/formatUtils';
 import { getSerializedPath, getSlip44ByPath, validatePath } from '../../../utils/pathUtils';
@@ -76,9 +75,9 @@ export default class EthereumSignMessage extends AbstractMethod<'ethereumSignMes
     }
 
     async run() {
-        validateModelOneMessageSize(this.device, this.params.message);
+        validateModelOneMessageSize(this.getDevice(), this.params.message);
 
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         const { address_n, message } = this.params;
 
         const response = await cmd.typedCall('EthereumSignMessage', 'EthereumMessageSignature', {

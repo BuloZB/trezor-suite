@@ -20,7 +20,7 @@ import { TradingDetailBuyPaymentFailed } from 'src/views/wallet/trading/common/T
 import { TradingDetailBuyPaymentProcessingStep } from 'src/views/wallet/trading/common/TradingDetail/TradingDetailBuy/TradingDetailBuyPaymentProcessingStep';
 import { TradingDetailBuyPaymentPaymentSuccessful } from 'src/views/wallet/trading/common/TradingDetail/TradingDetailBuy/TradingDetailBuyPaymentSuccessful';
 import { TradingDetailBuyPaymentWaitingForUserStep } from 'src/views/wallet/trading/common/TradingDetail/TradingDetailBuy/TradingDetailBuyPaymentWaitingForUserStep';
-import { TradingSelectedOfferInfo } from 'src/views/wallet/trading/common/TradingSelectedOffer/TradingSelectedOfferInfo';
+import { TradingDetailBuySidebar } from 'src/views/wallet/trading/common/TradingDetail/TradingDetailBuySidebar';
 import { TradingWrapper } from 'src/views/wallet/trading/common/TradingWrapper';
 
 import { TradingDetailStepList } from '../TradingDetailStepList';
@@ -94,15 +94,7 @@ export const TradingDetailBuy = () => {
     // if trade not found, it is because user refreshed the page and stored transactionId got removed
     // go to the default trading page, the trade is shown there in the previous trades
     if (!trade) {
-        dispatch(
-            goto('wallet-trading-buy', {
-                params: {
-                    symbol: account.symbol,
-                    accountIndex: account.index,
-                    accountType: account.accountType,
-                },
-            }),
-        );
+        dispatch(goto('wallet-trading-buy'));
 
         return null;
     }
@@ -112,19 +104,12 @@ export const TradingDetailBuy = () => {
             case 'success':
                 return (
                     <TradingDetailBuyPaymentPaymentSuccessful
-                        account={account}
                         trade={trade.data}
                         provider={provider}
                     />
                 );
             case 'error':
-                return (
-                    <TradingDetailBuyPaymentFailed
-                        account={account}
-                        trade={trade.data}
-                        provider={provider}
-                    />
-                );
+                return <TradingDetailBuyPaymentFailed trade={trade.data} provider={provider} />;
             default:
                 return (
                     <>
@@ -174,18 +159,12 @@ export const TradingDetailBuy = () => {
                     country={country}
                 />
             </Column>
-            <Card>
-                <TradingSelectedOfferInfo
-                    account={account}
-                    selectedAccount={receiveAccount}
-                    selectedQuote={trade.data}
-                    providers={info?.providerInfos}
-                    quoteAmounts={quoteAmounts}
-                    type="buy"
-                    paymentMethod={trade.data.paymentMethod}
-                    paymentMethodName={trade.data.paymentMethodName}
-                />
-            </Card>
+            <TradingDetailBuySidebar
+                receiveAccount={receiveAccount}
+                quoteAmounts={quoteAmounts}
+                paymentMethod={trade.data.paymentMethod}
+                paymentMethodName={trade.data.paymentMethodName}
+            />
         </Wrapper>
     );
 };

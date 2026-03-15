@@ -1,6 +1,7 @@
-import { MessagesSchema as PROTO } from '@trezor/protobuf';
+import type { MessagesSchema as PROTO } from '@trezor/protobuf';
 
-import { AbstractMethod, MethodPermission, Payload } from '../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../core/AbstractMethod';
+import { AbstractMethod } from '../core/AbstractMethod';
 import { getFirmwareRange } from './common/paramsValidator';
 
 export default class EvoluGetDelegatedIdentityKey extends AbstractMethod<
@@ -26,7 +27,7 @@ export default class EvoluGetDelegatedIdentityKey extends AbstractMethod<
     }
 
     async run() {
-        const thpState = this.device.getThpState();
+        const thpState = this.getDevice().getThpState();
         if (thpState) {
             this.params = {
                 thp_credential: thpState.pairingCredentials[0].credential,
@@ -35,7 +36,7 @@ export default class EvoluGetDelegatedIdentityKey extends AbstractMethod<
             };
         }
 
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         const response = await cmd.typedCall(
             'EvoluGetDelegatedIdentityKey',
             'EvoluDelegatedIdentityKey',

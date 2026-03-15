@@ -3,13 +3,9 @@
 import { ERRORS } from '@trezor/connect-common/src/constants';
 import { Assert } from '@trezor/schema-utils';
 
-import { PROTO } from '../../../constants';
-import {
-    AbstractMethod,
-    MethodPermission,
-    MethodReturnType,
-    Payload,
-} from '../../../core/AbstractMethod';
+import type { PROTO } from '../../../constants';
+import type { MethodPermission, MethodReturnType, Payload } from '../../../core/AbstractMethod';
+import { AbstractMethod } from '../../../core/AbstractMethod';
 import { getEthereumNetwork, getUniqueNetworks } from '../../../data/coinInfo';
 import { UI_REQUEST, createUiMessage } from '../../../events';
 import type { EthereumNetworkInfoDefinitionValues } from '../../../types';
@@ -124,7 +120,7 @@ export default class EthereumGetAddress extends AbstractMethod<'ethereumGetAddre
     }
 
     private async _call(params: Params) {
-        const response = await this.device.getCommands().ethereumGetAddress(params);
+        const response = await this.getDevice().getCommands().ethereumGetAddress(params);
 
         return {
             path: params.address_n,

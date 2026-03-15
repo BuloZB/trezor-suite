@@ -26,7 +26,12 @@ export const initPreloadedState = ({
 }: {
     rootReducer: Reducer<any, any, any>;
     partialState: any;
-}) => mergeDeepObject(partialState, rootReducer(undefined, { type: 'test-init' }));
+}) =>
+    mergeDeepObject.withOptions(
+        { mergeArrays: false },
+        rootReducer(undefined, { type: 'test-init' }),
+        partialState,
+    );
 
 /**
  * A mock store for testing Redux async action creators and middleware.

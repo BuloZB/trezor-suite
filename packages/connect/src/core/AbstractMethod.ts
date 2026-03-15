@@ -1,17 +1,17 @@
 import { ERRORS } from '@trezor/connect-common/src/constants';
-import { Capability } from '@trezor/protobuf/src/messages';
+import type { Capability } from '@trezor/protobuf/src/messages';
 import { versionUtils } from '@trezor/utils';
 
 import type { Device } from '../device/Device';
-import {
+import type {
     CallMethodPayload,
     CallMethodResponse,
     CoreEventMessage,
-    UI_REQUEST,
     UiPromiseCreator,
     UiRequestButtonData,
     UiRequestConfirmation,
 } from '../events';
+import { UI_REQUEST } from '../events';
 import type { PrecomposeResultFinal } from '../types/api/composeTransaction';
 import type { DeviceState, StaticSessionId } from '../types/device';
 import type { FirmwareRange } from '../types/firmware';
@@ -101,8 +101,8 @@ function validateDeviceState(device: CallMethodPayload['device']): DeviceState |
 export abstract class AbstractMethod<Name extends CallMethodPayload['method'], Params = undefined> {
     public responseID: number;
 
-    // @ts-expect-error: strictPropertyInitialization
-    public device: Device;
+    public device: Device | undefined;
+
     // @ts-expect-error: strictPropertyInitialization
     protected params: Params;
 
@@ -204,8 +204,16 @@ export abstract class AbstractMethod<Name extends CallMethodPayload['method'], P
         this.device = device;
     }
 
+    public getDevice() {
+        if (!this.device) {
+            throw ERRORS.TypedError('Device_NotFound');
+        }
+
+        return this.device;
+    }
+
     public checkFirmwareRange() {
-        const { device } = this;
+        const device = this.getDevice();
 
         // do not do fw range check for devices in BL mode as fw version of T1B1 in BL mode is not defined
         if (!device.features || device.isBootloader()) return;
@@ -265,10 +273,10 @@ export abstract class AbstractMethod<Name extends CallMethodPayload['method'], P
 
     public checkDeviceCapability() {
         const deviceHasAllRequiredCapabilities = (this.requiredDeviceCapabilities || []).every(
-            capability => this.device.features.capabilities.includes(capability),
+            capability => this.getDevice().features.capabilities.includes(capability),
         );
         if (!deviceHasAllRequiredCapabilities) {
-            if (this.device.firmwareType === 'bitcoin-only') {
+            if (this.getDevice().firmwareType === 'bitcoin-only') {
                 throw ERRORS.TypedError(
                     'Device_MissingCapabilityBtcOnly',
                     `Trezor has Bitcoin-only firmware installed, which does not support this operation. Please install Universal firmware through Trezor Suite.`,

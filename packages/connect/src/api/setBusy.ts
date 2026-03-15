@@ -1,6 +1,7 @@
-import { MessagesSchema as PROTO } from '@trezor/protobuf';
+import type { MessagesSchema as PROTO } from '@trezor/protobuf';
 
-import { AbstractMethod, MethodPermission, Payload } from '../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../core/AbstractMethod';
+import { AbstractMethod } from '../core/AbstractMethod';
 import { DEVICE, createDeviceMessage } from '../events';
 import { getFirmwareRange } from './common/paramsValidator';
 
@@ -25,14 +26,16 @@ export default class SetBusy extends AbstractMethod<'setBusy', PROTO.SetBusy> {
     }
 
     async run() {
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         const { message } = await cmd.typedCall('SetBusy', 'Success', this.params);
         if (this.keepSession && !!this.params.expiry_ms) {
             // NOTE: DEVICE.CHANGED will not be emitted because session is not released
             // change device features and trigger event manually
             // followup: https://github.com/trezor/trezor-suite/issues/6446
-            this.device.features.busy = true;
-            this.postMessage(createDeviceMessage(DEVICE.CHANGED, this.device.toMessageObject()));
+            this.getDevice().features.busy = true;
+            this.postMessage(
+                createDeviceMessage(DEVICE.CHANGED, this.getDevice().toMessageObject()),
+            );
         }
 
         return message;

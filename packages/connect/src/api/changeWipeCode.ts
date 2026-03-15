@@ -1,6 +1,7 @@
-import { MessagesSchema as PROTO } from '@trezor/protobuf';
+import type { MessagesSchema as PROTO } from '@trezor/protobuf';
 
-import { AbstractMethod, MethodPermission, Payload } from '../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../core/AbstractMethod';
+import { AbstractMethod } from '../core/AbstractMethod';
 import { validateParams } from './common/paramsValidator';
 
 export default class ChangeWipeCode extends AbstractMethod<'changeWipeCode', PROTO.ChangeWipeCode> {
@@ -23,7 +24,7 @@ export default class ChangeWipeCode extends AbstractMethod<'changeWipeCode', PRO
     }
 
     async run() {
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         const response = await cmd.typedCall('ChangeWipeCode', 'Success', this.params);
 
         return response.message;

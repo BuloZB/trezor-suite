@@ -3,7 +3,8 @@ import { Assert } from '@trezor/schema-utils';
 import { TRANSPORT_ERROR } from '@trezor/transport';
 
 import { PROTO } from '../constants';
-import { AbstractMethod, MethodPermission, Payload } from '../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../core/AbstractMethod';
+import { AbstractMethod } from '../core/AbstractMethod';
 import { UI_REQUEST } from '../events';
 
 export default class BleUnpair extends AbstractMethod<'bleUnpair', PROTO.BleUnpair> {
@@ -26,7 +27,7 @@ export default class BleUnpair extends AbstractMethod<'bleUnpair', PROTO.BleUnpa
     }
 
     async run() {
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         // unpair current bluetooth connection session or all known sessions
         try {
             const response = await cmd.typedCall('BleUnpair', 'Success', this.params);
@@ -38,7 +39,7 @@ export default class BleUnpair extends AbstractMethod<'bleUnpair', PROTO.BleUnpa
             // or fails here with transport read/write error
             // in both cases Device_Disconnected error should be handled as "expected success"
             if (
-                this.device.descriptor.apiType === 'bluetooth' &&
+                this.getDevice().descriptor.apiType === 'bluetooth' &&
                 error.message === TRANSPORT_ERROR.INTERFACE_DATA_TRANSFER
             ) {
                 // typed error is considered as "method failed successfully"

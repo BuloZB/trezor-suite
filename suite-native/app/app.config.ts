@@ -181,12 +181,6 @@ const getPlugins = (): ExpoPlugins => {
                 useSQLCipher: true,
             },
         ],
-        [
-            'expo-web-browser',
-            {
-                experimentalLauncherActivity: true,
-            },
-        ],
     ];
 
     return [
@@ -241,7 +235,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
                                   {
                                       scheme: 'https',
                                       host: 'connect.trezor.io',
-                                      pathPattern: '/9/deeplink/.*',
+                                      // Universal pattern to match any Connect version (e.g. /9/deeplink/..., /10/deeplink/...).
+                                      // Android pathPattern only supports '.' (any char) and '*' (repeat), not character classes.
+                                      pathPattern: '/.*/deeplink/.*',
                                   },
                                   {
                                       scheme: 'https',
@@ -315,6 +311,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
         plugins: getPlugins(),
         extra: {
+            // FIXME: Fingerprint is always changed between commits because of this. We need to find a better solution.
             commitHash:
                 process.env.EAS_BUILD_GIT_COMMIT_HASH ||
                 process.env.COMMIT_HASH ||

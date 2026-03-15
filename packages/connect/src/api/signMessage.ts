@@ -1,9 +1,10 @@
 // origin: https://github.com/trezor/connect/blob/develop/src/js/core/methods/SignMessage.js
 
-import { MessagesSchema as PROTO } from '@trezor/protobuf';
+import type { MessagesSchema as PROTO } from '@trezor/protobuf';
 import { Assert } from '@trezor/schema-utils';
 
-import { AbstractMethod, MethodPermission } from '../core/AbstractMethod';
+import type { MethodPermission } from '../core/AbstractMethod';
+import { AbstractMethod } from '../core/AbstractMethod';
 import type { BitcoinNetworkInfo } from '../types';
 import { SignMessage as SignMessageSchema } from '../types';
 import { getFirmwareRange, validateCoinPath } from './common/paramsValidator';
@@ -72,9 +73,9 @@ export default class SignMessage extends AbstractMethod<'signMessage', PROTO.Sig
     }
 
     async run() {
-        validateModelOneMessageSize(this.device, this.params.message);
+        validateModelOneMessageSize(this.getDevice(), this.params.message);
 
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         const { message } = await cmd.typedCall('SignMessage', 'MessageSignature', this.params);
         // convert signature to base64
         const signatureBuffer = Buffer.from(message.signature, 'hex');

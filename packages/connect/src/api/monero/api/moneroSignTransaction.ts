@@ -1,12 +1,8 @@
 import { ERRORS } from '@trezor/connect-common/src/constants';
 
-import { PROTO } from '../../../constants';
-import {
-    AbstractMethod,
-    MethodPermission,
-    MethodReturnType,
-    Payload,
-} from '../../../core/AbstractMethod';
+import type { PROTO } from '../../../constants';
+import type { MethodPermission, MethodReturnType, Payload } from '../../../core/AbstractMethod';
+import { AbstractMethod } from '../../../core/AbstractMethod';
 import { getMiscNetwork } from '../../../data/coinInfo';
 import { HD_HARDENED, validatePath } from '../../../utils/pathUtils';
 import { getFirmwareRange } from '../../common/paramsValidator';
@@ -197,7 +193,7 @@ export default class MoneroSignTransactionMethod extends AbstractMethod<
 
     async run(): Promise<MethodReturnType<typeof this.name>> {
         // Step 1: Init - Send transaction data
-        const initResponse = await this.device
+        const initResponse = await this.getDevice()
             .getCommands()
             .typedCall('MoneroTransactionInitRequest', 'MoneroTransactionInitAck', {
                 version: 0,
@@ -210,7 +206,7 @@ export default class MoneroSignTransactionMethod extends AbstractMethod<
 
         // Step 2: SetInput - Process each UTXO
         for (let i = 0; i < this.params.inputs.length; i++) {
-            const setInputResponse = await this.device
+            const setInputResponse = await this.getDevice()
                 .getCommands()
                 .typedCall('MoneroTransactionSetInputRequest', 'MoneroTransactionSetInputAck', {
                     src_entr: this.params.inputs[i],
@@ -232,7 +228,7 @@ export default class MoneroSignTransactionMethod extends AbstractMethod<
         // Step 3: InputVini - Submit all inputs in order
         for (let i = 0; i < this.state.vinis.length; i++) {
             const viniData = this.state.vinis[i];
-            await this.device
+            await this.getDevice()
                 .getCommands()
                 .typedCall('MoneroTransactionInputViniRequest', 'MoneroTransactionInputViniAck', {
                     src_entr: viniData.src_entr,
@@ -245,7 +241,7 @@ export default class MoneroSignTransactionMethod extends AbstractMethod<
         }
 
         // Step 4: AllInputsSet
-        await this.device
+        await this.getDevice()
             .getCommands()
             .typedCall(
                 'MoneroTransactionAllInputsSetRequest',
@@ -256,7 +252,7 @@ export default class MoneroSignTransactionMethod extends AbstractMethod<
         // Step 5: SetOutput - Process each output and capture response data
         const outputs = this.params.tsx_data.outputs || [];
         for (let i = 0; i < outputs.length; i++) {
-            const setOutputResponse = await this.device
+            const setOutputResponse = await this.getDevice()
                 .getCommands()
                 .typedCall('MoneroTransactionSetOutputRequest', 'MoneroTransactionSetOutputAck', {
                     dst_entr: outputs[i],
@@ -278,7 +274,7 @@ export default class MoneroSignTransactionMethod extends AbstractMethod<
         }
 
         // Step 6: AllOutSet - Get RCT signature fields and extra
-        const allOutSetResponse = await this.device
+        const allOutSetResponse = await this.getDevice()
             .getCommands()
             .typedCall('MoneroTransactionAllOutSetRequest', 'MoneroTransactionAllOutSetAck', {});
 
@@ -289,7 +285,7 @@ export default class MoneroSignTransactionMethod extends AbstractMethod<
         // Step 7: SignInput - Generate CLSAG signatures for each input
         for (let i = 0; i < this.state.vinis.length; i++) {
             const viniData = this.state.vinis[i];
-            const signResponse = await this.device
+            const signResponse = await this.getDevice()
                 .getCommands()
                 .typedCall('MoneroTransactionSignInputRequest', 'MoneroTransactionSignInputAck', {
                     src_entr: viniData.src_entr,
@@ -310,7 +306,7 @@ export default class MoneroSignTransactionMethod extends AbstractMethod<
         }
 
         // Step 8: Final - Get encryption keys
-        const finalResponse = await this.device
+        const finalResponse = await this.getDevice()
             .getCommands()
             .typedCall('MoneroTransactionFinalRequest', 'MoneroTransactionFinalAck', {});
 

@@ -23,20 +23,11 @@ export const TradingDetailSellPaymentFailed = ({
 }: TradingDetailSellPaymentFailedProps) => {
     const dispatch = useDispatch();
 
-    const handleClick = () =>
-        dispatch(
-            goto('wallet-trading-sell', {
-                params: {
-                    symbol: account.symbol,
-                    accountIndex: account.index,
-                    accountType: account.accountType,
-                },
-            }),
-        );
+    const handleClick = () => dispatch(goto('wallet-trading-sell'));
 
     return (
         <Column gap={24} padding={{ top: 12, bottom: 4 }}>
-            <IconCircle name="x" variant="destructive" size={100} />
+            <IconCircle name="x" intent="critical" size={96} />
             <Column>
                 <H3 data-testid="@trading/transaction/detail/status">
                     <Translation id="TR_SELL_DETAIL_ERROR_TITLE" />

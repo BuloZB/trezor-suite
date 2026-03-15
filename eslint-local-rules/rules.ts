@@ -115,7 +115,7 @@ const isSuiteCommonFile = (filename: string) => filename.includes('/suite-common
 const isSuiteOrSuiteNativeImport = (sourcePath: string) =>
     sourcePath.startsWith('@suite/') || sourcePath.startsWith('@suite-native/');
 
-export default {
+export const rules = {
     'no-override-ds-component': {
         meta: {
             type: 'problem',
@@ -342,7 +342,6 @@ export default {
                 'transaction',
                 'wallet-connect',
             ]);
-
             const KEBAB_CASE_SEGMENT = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
             function validateEventName(
@@ -351,15 +350,12 @@ export default {
                 if (!value.includes('/')) {
                     return { messageId: 'invalidFormat' };
                 }
-
                 const parts = value.split('/');
                 const domain = parts[0];
                 const eventSegments = parts.slice(1);
-
                 if (!ALLOWED_DOMAINS.has(domain)) {
                     return { messageId: 'invalidDomain', data: { domain } };
                 }
-
                 for (const segment of eventSegments) {
                     if (!KEBAB_CASE_SEGMENT.test(segment)) {
                         return { messageId: 'notKebabCase', data: { eventPart: value } };
@@ -382,7 +378,7 @@ export default {
                     }
 
                     for (const member of enumNode.members ?? []) {
-                        const initializer = member.initializer;
+                        const { initializer } = member;
                         if (
                             initializer?.type !== 'Literal' ||
                             typeof initializer.value !== 'string'
@@ -403,4 +399,4 @@ export default {
             };
         },
     },
-} satisfies Record<string, Rule.RuleModule>;
+} as const satisfies Record<string, Rule.RuleModule>;

@@ -1,4 +1,5 @@
-import { AbstractMethod, MethodPermission, Payload } from '../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../core/AbstractMethod';
+import { AbstractMethod } from '../core/AbstractMethod';
 import { DataManager } from '../data/DataManager';
 import { UI_REQUEST } from '../events';
 
@@ -17,8 +18,8 @@ export default class ThpRemoveCredentials extends AbstractMethod<'thpRemoveCrede
 
     run() {
         const requestedCredentials = this.payload.credentials || [];
-        if (this.device) {
-            const thpState = this.device.getThpState();
+        if (this.useDevice) {
+            const thpState = this.getDevice().getThpState();
             if (thpState) {
                 requestedCredentials.push(...thpState.pairingCredentials);
 

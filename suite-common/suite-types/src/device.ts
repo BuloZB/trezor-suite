@@ -1,11 +1,11 @@
 import { DeviceMetadata } from '@suite-common/metadata-types';
 import { EncryptedHex } from '@suite-common/platform-encryption';
-import {
+import type {
     AuthenticateDeviceResult,
     DeviceButtonRequest,
     DeviceEvent,
     DeviceState,
-    type EntropyCheckResult,
+    EntropyCheckResult,
     Features,
     KnownDevice,
     PROTO,
@@ -82,7 +82,7 @@ export type AuthorizedDevice = AcquiredDevice & {
  */
 export type DeviceWithEmptyPath = Omit<AcquiredDevice, 'path'> & { path: '' };
 
-type PersistedDeviceKey = UnionSubset<keyof AcquiredDevice, 'thp' | 'bluetoothProps'>;
+type PersistedDeviceKey = UnionSubset<keyof AcquiredDevice, 'thp'>;
 
 type PersistedFeatureKey = UnionSubset<
     keyof Features,
@@ -101,6 +101,7 @@ export type PersistentDeviceData = Pick<AcquiredDevice, PersistedDeviceKey> &
         lastConnectedVia: 'bluetooth' | 'usb' | null;
         lastEntropyCheckResult?: EntropyCheckResult;
         delegatedIdentityKey: EncryptedHex<DelegatedIdentityKey> | null;
+        descriptor?: AcquiredDevice['descriptor'];
         // TODO move deviceAuthenticity to this object and newly introduce persistence
     };
 

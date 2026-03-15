@@ -2,9 +2,10 @@
 import { ERRORS } from '@trezor/connect-common/src/constants';
 
 import { PROTO } from '../../../constants';
-import { AbstractMethod, MethodPermission, Payload } from '../../../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../../../core/AbstractMethod';
+import { AbstractMethod } from '../../../core/AbstractMethod';
 import { getMiscNetwork } from '../../../data/coinInfo';
-import { Address } from '../../../types/params';
+import type { Address } from '../../../types/params';
 import { HD_HARDENED, getSerializedPath, validatePath } from '../../../utils/pathUtils';
 import { getFirmwareRange } from '../../common/paramsValidator';
 
@@ -101,7 +102,7 @@ export default class MoneroGetAddress extends AbstractMethod<'moneroGetAddress',
         payment_id,
         chunkify,
     }: Params) {
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         const response = await cmd.typedCall('MoneroGetAddress', 'MoneroAddress', {
             address_n,
             show_display,

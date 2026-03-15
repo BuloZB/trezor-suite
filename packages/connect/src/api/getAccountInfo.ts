@@ -4,13 +4,8 @@ import { ERRORS } from '@trezor/connect-common/src/constants';
 import { resolveAfter } from '@trezor/utils/src/resolveAfter';
 
 import { initBlockchain, isBackendSupported } from '../backend/BlockchainLink';
-import {
-    AbstractMethod,
-    DEFAULT_FIRMWARE_RANGE,
-    MethodPermission,
-    MethodReturnType,
-    Payload,
-} from '../core/AbstractMethod';
+import type { MethodPermission, MethodReturnType, Payload } from '../core/AbstractMethod';
+import { AbstractMethod, DEFAULT_FIRMWARE_RANGE } from '../core/AbstractMethod';
 import { getCoinInfo } from '../data/coinInfo';
 import { UI_REQUEST, UI_RESPONSE, createUiMessage } from '../events';
 import type { AccountInfo, AccountUtxo, CoinInfo, DerivationPath } from '../types';
@@ -203,7 +198,7 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
         const responses: MethodReturnType<typeof this.name> = [];
 
         const sendProgress = (progress: number, response: AccountInfo | null, error?: string) => {
-            if (!this.hasBundle || this.device?.getCurrentSession().isDisposed()) return;
+            if (!this.hasBundle || this.getDevice()?.getCurrentSession().isDisposed()) return;
             // send progress to UI
             this.postMessage(
                 createUiMessage(UI_REQUEST.BUNDLE_PROGRESS, {
@@ -227,7 +222,7 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
             // get descriptor from device
             if (address_n && typeof descriptor !== 'string') {
                 try {
-                    const accountDescriptor = await this.device
+                    const accountDescriptor = await this.getDevice()
                         .getCommands()
                         .getAccountDescriptor(request.coinInfo, address_n, request.derivationType);
                     if (accountDescriptor) {
@@ -323,12 +318,12 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
     async discover(request: Request) {
         const { coinInfo, identity, defaultAccountType, derivationType } = request;
         const blockchain = await initBlockchain(coinInfo, this.postMessage, identity);
-        const dfd = this.createUiPromise(UI_RESPONSE.RECEIVE_ACCOUNT, this.device);
+        const dfd = this.createUiPromise(UI_RESPONSE.RECEIVE_ACCOUNT, this.getDevice());
 
         const discovery = new Discovery({
             blockchain,
             getDescriptor: path =>
-                this.device.getCommands().getAccountDescriptor(coinInfo, path, derivationType),
+                this.getDevice().getCommands().getAccountDescriptor(coinInfo, path, derivationType),
         });
 
         discovery.on('progress', accounts => {

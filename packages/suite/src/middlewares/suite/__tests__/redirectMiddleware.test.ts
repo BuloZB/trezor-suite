@@ -1,3 +1,6 @@
+import { locksInitialState, locksReducer } from '@suite/locks';
+import { modalReducer } from '@suite/modal';
+import { routerReducer } from '@suite/router';
 import { deviceActions, prepareDeviceReducer } from '@suite-common/device';
 import { mockConnectDevice, mockSuiteDevice } from '@suite-common/suite-types/mocks';
 import { extraDependenciesCommonMock } from '@suite-common/test-utils';
@@ -6,8 +9,6 @@ import { DEVICE } from '@trezor/connect';
 import * as routerActions from 'src/actions/suite/routerActions';
 import redirectMiddleware from 'src/middlewares/suite/redirectMiddleware';
 import { prepareSuiteMiddleware } from 'src/middlewares/suite/suiteMiddleware';
-import modalReducer from 'src/reducers/suite/modalReducer';
-import routerReducer from 'src/reducers/suite/routerReducer';
 import suiteReducer from 'src/reducers/suite/suiteReducer';
 import { extraDependencies } from 'src/support/extraDependencies';
 import { configureStore } from 'src/support/tests/configureStore';
@@ -32,6 +33,7 @@ const getInitialState = (
         ...suiteReducer(undefined, { type: 'foo' } as any),
         ...suite,
     },
+    locks: locksInitialState,
     device: {
         ...deviceReducer(undefined, { type: 'foo' } as any),
         ...device,
@@ -55,10 +57,11 @@ const initStore = (state: State) => {
     const store = mockStore(state);
     store.subscribe(() => {
         const action = store.getActions().pop();
-        const { suite, router, device } = store.getState();
+        const { suite, router, device, locks } = store.getState();
         store.getState().suite = suiteReducer(suite, action);
         store.getState().router = routerReducer(router as RouterState, action);
         store.getState().device = deviceReducer(device, action);
+        store.getState().locks = locksReducer(locks, action);
 
         // add action back to stack
         store.getActions().push(action);

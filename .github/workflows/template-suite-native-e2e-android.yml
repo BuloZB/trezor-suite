@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: "true"
 
@@ -80,7 +80,7 @@ jobs:
 
       - name: Generate GitHub App token
         id: trezor-bot-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ secrets.TREZOR_BOT_APP_ID }}
           private-key: ${{ secrets.TREZOR_BOT_PRIVATE_KEY }}
@@ -103,7 +103,7 @@ jobs:
           docker compose up --detach trezor-user-env-unix trezor-user-env-regtest
 
       - name: Download Android build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: android-test-build-${{ github.run_id }}
           path: suite-native/app/android/app/build/
@@ -138,7 +138,7 @@ jobs:
           avd-name: ${{ steps.device.outputs.AVD_NAME }}
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -grpc 8554
           script: |
-            yarn test:e2e --config=e2e/trezorDetoxRunner/config/runner-android-release.config.js --shard=${{ matrix.TEST_GROUP }} --totalShards=4 --headless
+            yarn test:e2e --config=e2e/trezorDetoxRunner/config/runner-android-release.config.js --shard=${{ matrix.TEST_GROUP }} --totalShards=4 --headless --quarantine
 
       - name: Post Currents link
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
@@ -161,7 +161,7 @@ jobs:
 
       - name: "Store test artifacts"
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-tests-${{ matrix.TEST_GROUP }}
           path: suite-native/app/artifacts

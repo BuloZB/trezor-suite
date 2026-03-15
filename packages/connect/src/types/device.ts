@@ -1,8 +1,8 @@
-import { FeaturesNarrowing, FirmwareType } from '@trezor/device-utils';
-import { MessagesSchema as PROTO } from '@trezor/protobuf';
+import type { FeaturesNarrowing, FirmwareType } from '@trezor/device-utils';
+import type { MessagesSchema as PROTO } from '@trezor/protobuf';
 import type { ThpStateSerialized } from '@trezor/protocol';
-import { Descriptor } from '@trezor/transport';
-import { Branded } from '@trezor/type-utils';
+import type { Descriptor } from '@trezor/transport';
+import type { Branded } from '@trezor/type-utils';
 
 import type { FirmwareReleaseConfigInfo } from './firmware';
 
@@ -139,10 +139,6 @@ type BaseDevice = {
 export type BluetoothDeviceId = string & Branded<'BluetoothDeviceId'>;
 export const asBluetoothDeviceId = (id: string) => id as BluetoothDeviceId;
 
-export type BluetoothDeviceProps = {
-    id: BluetoothDeviceId;
-};
-
 export type KnownDevice = BaseDevice & {
     type: 'acquired';
 
@@ -177,8 +173,6 @@ export type KnownDevice = BaseDevice & {
     };
     transportSessionOwner?: undefined;
     hid?: undefined;
-    /** @deprecated  use descriptor.id in combination with descriptor.apiType */
-    bluetoothProps?: BluetoothDeviceProps;
     usb_connected?: boolean; // true if the device is powered/charged from USB, regardless of transport selection.
     wireless_connected?: boolean;
 };
@@ -202,8 +196,6 @@ export type UnknownDevice = BaseDevice & {
     availableTranslations?: typeof undefined;
     transportSessionOwner?: string;
     hid?: undefined;
-    /** @deprecated  use descriptor.id in combination with descriptor.apiType */
-    bluetoothProps?: BluetoothDeviceProps;
 };
 
 export type UnreadableDevice = BaseDevice & {
@@ -225,11 +217,10 @@ export type UnreadableDevice = BaseDevice & {
     availableTranslations?: typeof undefined;
     transportSessionOwner?: undefined;
     hid: boolean;
-    /** @deprecated  use descriptor.id in combination with descriptor.apiType */
-    bluetoothProps?: typeof undefined;
 };
 
 export type Device = KnownDevice | UnknownDevice | UnreadableDevice;
+
 export type Features = PROTO.Features;
 
 export type DisplayRotation = PROTO.DisplayRotation;

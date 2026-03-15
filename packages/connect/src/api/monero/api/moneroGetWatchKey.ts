@@ -2,7 +2,8 @@
 import { ERRORS } from '@trezor/connect-common/src/constants';
 
 import { PROTO } from '../../../constants';
-import { AbstractMethod, MethodPermission, Payload } from '../../../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../../../core/AbstractMethod';
+import { AbstractMethod } from '../../../core/AbstractMethod';
 import { getMiscNetwork } from '../../../data/coinInfo';
 import type { MoneroWatchKey } from '../../../types/api/monero';
 import { HD_HARDENED, validatePath } from '../../../utils/pathUtils';
@@ -51,7 +52,7 @@ export default class MoneroGetWatchKeyMethod extends AbstractMethod<'moneroGetWa
     }
 
     async run(): Promise<MoneroWatchKey> {
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         const response = await cmd.typedCall('MoneroGetWatchKey', 'MoneroWatchKey', {
             address_n: this.params.address_n,
             network_type: this.params.network_type,

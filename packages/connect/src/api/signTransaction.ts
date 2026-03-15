@@ -4,7 +4,7 @@ import { ERRORS } from '@trezor/connect-common/src/constants';
 import { BigNumber } from '@trezor/utils/src/bigNumber';
 import { promiseAllSequence } from '@trezor/utils/src/promiseAllSequence';
 
-import { PROTO } from '../constants';
+import type { PROTO } from '../constants';
 import {
     createPendingTransaction,
     deriveOutputScript,
@@ -23,8 +23,10 @@ import {
     validateTrezorOutputs,
     verifyTx,
 } from './bitcoin';
-import { Blockchain, initBlockchain, isBackendSupported } from '../backend/BlockchainLink';
-import { AbstractMethod, MethodPermission } from '../core/AbstractMethod';
+import type { Blockchain } from '../backend/BlockchainLink';
+import { initBlockchain, isBackendSupported } from '../backend/BlockchainLink';
+import type { MethodPermission } from '../core/AbstractMethod';
+import { AbstractMethod } from '../core/AbstractMethod';
 import type { AccountAddresses, BitcoinNetworkInfo } from '../types';
 import { getFirmwareRange, validateParams } from './common/paramsValidator';
 import { getBitcoinNetwork } from '../data/coinInfo';
@@ -247,8 +249,8 @@ export default class SignTransaction extends AbstractMethod<'signTransaction', P
     }
 
     private async fetchAddresses(blockchain: Blockchain) {
+        const device = this.getDevice();
         const {
-            device,
             params: { inputs, coinInfo },
         } = this;
 
@@ -317,7 +319,8 @@ export default class SignTransaction extends AbstractMethod<'signTransaction', P
     }
 
     async run() {
-        const { device, params } = this;
+        const device = this.getDevice();
+        const { params } = this;
         const { inputs, outputs, coinInfo } = params;
         const useLegacySignProcess = !!device.unavailableCapabilities.replaceTransaction;
         const refTxs = params.refTxs ?? (await this.fetchRefTxs(useLegacySignProcess));

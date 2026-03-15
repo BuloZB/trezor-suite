@@ -9,25 +9,20 @@ import {
     DEFAULT_TXS_PER_PAGE,
     SOLANA_TXS_PER_PAGE,
 } from '../constants/paging';
-import {
-    AbstractMethod,
-    DEFAULT_FIRMWARE_RANGE,
-    MethodPermission,
-    Payload,
-} from '../core/AbstractMethod';
+import type { MethodPermission, Payload } from '../core/AbstractMethod';
+import { AbstractMethod, DEFAULT_FIRMWARE_RANGE } from '../core/AbstractMethod';
 import { getCoinInfo } from '../data/coinInfo';
 import type { AccountDescriptor } from '../device/DeviceCommands';
 import { UI_REQUEST, createUiMessage } from '../events';
 import { checkXPubWithHashes } from './firmware';
 import type { CoinInfo, EntropyCheckResult, FirmwareRange } from '../types';
-import {
-    ACCOUNT_TYPES,
+import type {
     AccountTypeItem,
     AccountTypeKey,
     AdditionalParams,
-    CARDANO_DERIVATIONS,
     DiscoverAccountsProgress,
 } from '../types/api/discoverAccounts';
+import { ACCOUNT_TYPES, CARDANO_DERIVATIONS } from '../types/api/discoverAccounts';
 import { isUtxoBased } from '../utils/accountUtils';
 import { validatePath } from '../utils/pathUtils';
 import { getFirmwareRange, validateParams } from './common/paramsValidator';
@@ -208,8 +203,8 @@ export default class DiscoverAccounts extends AbstractMethod<
     }
 
     private filterUnsupportedAccounts(accounts: Request[]) {
-        const version = this.device.getVersion();
-        const model = this.device.features?.internal_model;
+        const version = this.getDevice().getVersion();
+        const model = this.getDevice().features?.internal_model;
 
         if (!version || !model) return [[], accounts] as const;
 
@@ -288,7 +283,7 @@ export default class DiscoverAccounts extends AbstractMethod<
                 // on derivation path (plus type in case of Cardano). When there's a case where
                 // we expect two different descriptors from the same path, this must be reworked.
                 const address_n = validatePath(path, 3);
-                const descriptor = await this.device
+                const descriptor = await this.getDevice()
                     .getCommands()
                     .getAccountDescriptor(coinInfo, address_n, derivationType);
                 this.descriptorCache[key] = descriptor;
@@ -296,8 +291,8 @@ export default class DiscoverAccounts extends AbstractMethod<
                 // Perform continuous entropy check for standard wallet, if data are available
                 const knownXPubHashes = this.params.entropyCheckResult?.xpubHashes;
                 const { legacyXpub: xpub } = descriptor; // only Bitcoin-like accounts have it, and only those are checked for now
-                const isPassphraseEnabled = this.device.features?.passphrase_protection;
-                const alwaysPassphrase = this.device.features?.passphrase_always_on_device; // if this feature is on, then useEmptyPassphrase is not reliable
+                const isPassphraseEnabled = this.getDevice().features?.passphrase_protection;
+                const alwaysPassphrase = this.getDevice().features?.passphrase_always_on_device; // if this feature is on, then useEmptyPassphrase is not reliable
                 const isStandardWallet =
                     !isPassphraseEnabled || (this.useEmptyPassphrase && !alwaysPassphrase);
                 if (xpub && knownXPubHashes && isStandardWallet) {

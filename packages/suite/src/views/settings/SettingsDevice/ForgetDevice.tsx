@@ -21,7 +21,7 @@ export const ForgetDeviceModal = ({ onCancel }: ModalProps) => {
     }
 
     const isBluetoothDevice = selectedDevice.features?.capabilities.includes('Capability_BLE');
-    const isBluetoothConnectedDevice = selectedDevice?.bluetoothProps?.id !== undefined;
+    const isBluetoothConnectedDevice = selectedDevice?.descriptor.apiType === 'bluetooth';
 
     const handleConfirmClick = async () => {
         const instances = deviceUtils.getDeviceInstances(selectedDevice, devices);
@@ -40,7 +40,7 @@ export const ForgetDeviceModal = ({ onCancel }: ModalProps) => {
         <Modal
             onCancel={onCancel}
             heading={<Translation id="TR_FORGET_DEVICE_MODAL_HEADING" />}
-            variant="warning"
+            intent="warning"
             width={600}
             bottomContent={
                 <>

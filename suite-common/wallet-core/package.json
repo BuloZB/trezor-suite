@@ -28,6 +28,7 @@
         "@suite-common/thp": "workspace:*",
         "@suite-common/toast-notifications": "workspace:*",
         "@suite-common/token-definitions": "workspace:*",
+        "@suite-common/wallet-api": "workspace:*",
         "@suite-common/wallet-config": "workspace:*",
         "@suite-common/wallet-constants": "workspace:*",
         "@suite-common/wallet-types": "workspace:*",
@@ -43,8 +44,9 @@
         "@trezor/utils": "workspace:*",
         "date-fns": "^4.1.0",
         "react": "19.1.0",
-        "react-hook-form": "^7.71.1",
+        "react-hook-form": "^7.71.2",
         "react-redux": "^9.2.0",
-        "web3-utils": "^4.3.2"
+        "web3-utils": "^4.3.2",
+        "zod": "4.3.6"
     }
 }

@@ -48,7 +48,7 @@ export const CopyAddressModal = ({ address, onCancel, addressType }: CopyAddress
         <Modal
             onCancel={onCancel}
             iconName="warning"
-            variant="warning"
+            intent="warning"
             bottomContent={
                 <>
                     <Modal.Button onClick={onCopyAddress}>
@@ -67,7 +67,7 @@ export const CopyAddressModal = ({ address, onCancel, addressType }: CopyAddress
                 <Translation id={getAddressTypeText(addressType)} />
             </Paragraph>
             <Card margin={{ top: spacings.xl }}>
-                <Checkbox isChecked={checked} onClick={() => setChecked(!checked)}>
+                <Checkbox isChecked={checked} onChange={() => setChecked(!checked)}>
                     <Translation id="TR_DO_NOT_SHOW_AGAIN" />
                 </Checkbox>
             </Card>

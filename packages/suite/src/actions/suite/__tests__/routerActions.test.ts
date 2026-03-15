@@ -1,8 +1,10 @@
 import { createMemoryHistory } from 'history';
 
+import { LocksState, locksInitialState, locksReducer } from '@suite/locks';
+import { modalReducer } from '@suite/modal';
+import { routerReducer } from '@suite/router';
+
 import { AppState } from 'src/reducers/store';
-import modalReducer from 'src/reducers/suite/modalReducer';
-import routerReducer from 'src/reducers/suite/routerReducer';
 import suiteReducer from 'src/reducers/suite/suiteReducer';
 import { createSuiteRouterHistory } from 'src/support/extraDependencies';
 import { configureStore } from 'src/support/tests/configureStore';
@@ -24,14 +26,16 @@ const defaultLocation = {
 interface InitialState {
     suite?: Partial<SuiteState>;
     router?: Exclude<RouterState, 'app|url|pathname'>;
+    locks?: Partial<LocksState>;
 }
 
 // some super long recursive type will make TSC to fail with export
 const getInitialState = (
     state: InitialState | undefined,
-): Pick<AppState, 'suite' | 'router' | 'modal' | 'analytics'> => {
+): Pick<AppState, 'suite' | 'router' | 'modal' | 'analytics' | 'locks'> => {
     const suite = state ? state.suite : undefined;
     const router = state ? state.router : undefined;
+    const locks = state ? state.locks : undefined;
 
     return {
         suite: {
@@ -46,6 +50,10 @@ const getInitialState = (
         analytics: {
             confirmed: false,
         },
+        locks: {
+            ...locksInitialState,
+            ...locks,
+        },
     };
 };
 
@@ -58,9 +66,10 @@ const initStore = (state: State) => {
     })(state);
     store.subscribe(() => {
         const action = store.getActions().pop();
-        const { suite, router } = store.getState();
+        const { suite, router, locks } = store.getState();
         store.getState().suite = suiteReducer(suite, action);
         store.getState().router = routerReducer(router, action);
+        store.getState().locks = locksReducer(locks, action);
         // add action back to stack
         store.getActions().push(action);
     });
@@ -125,7 +134,7 @@ describe('Suite Actions', () => {
 
     it(`onLocationChange with lock`, () => {
         const state = getInitialState({
-            suite: { locks: { router: 1 } },
+            locks: { router: 1 },
             router: { loaded: true },
         } as InitialState);
         const { store } = initStore(state);

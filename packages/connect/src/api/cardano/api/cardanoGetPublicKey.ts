@@ -3,12 +3,8 @@
 import { Assert } from '@trezor/schema-utils';
 
 import { PROTO } from '../../../constants';
-import {
-    AbstractMethod,
-    MethodPermission,
-    MethodReturnType,
-    Payload,
-} from '../../../core/AbstractMethod';
+import type { MethodPermission, MethodReturnType, Payload } from '../../../core/AbstractMethod';
+import { AbstractMethod } from '../../../core/AbstractMethod';
 import { getMiscNetwork } from '../../../data/coinInfo';
 import { UI_REQUEST, createUiMessage } from '../../../events';
 import { Bundle } from '../../../types';
@@ -83,7 +79,7 @@ export default class CardanoGetPublicKey extends AbstractMethod<'cardanoGetPubli
 
     async run() {
         const responses: MethodReturnType<typeof this.name> = [];
-        const cmd = this.device.getCommands();
+        const cmd = this.getDevice().getCommands();
         for (let i = 0; i < this.params.length; i++) {
             const batch = this.params[i];
             const { message } = await cmd.typedCall(

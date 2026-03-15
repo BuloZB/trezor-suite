@@ -3,6 +3,8 @@ import { createAction } from '@reduxjs/toolkit';
 import { asTypedDesktopAnalytics, events } from '@suite/analytics';
 import type { ExperimentalFeature } from '@suite/experimental';
 import type { TranslationKey } from '@suite/intl';
+import { openDeferredModal } from '@suite/modal';
+import { selectRouterUrl } from '@suite/router';
 import { deviceActions } from '@suite-common/device';
 import { ExtraDependencies } from '@suite-common/redux-utils';
 import type { Locale } from '@suite-common/suite-types';
@@ -10,8 +12,6 @@ import { notificationsActions } from '@suite-common/toast-notifications';
 import { getCustomBackends } from '@suite-common/wallet-utils';
 import { HandshakeElectron, desktopApi } from '@trezor/suite-desktop-api';
 
-import * as modalActions from 'src/actions/suite/modalActions';
-import { selectRouterUrl } from 'src/reducers/suite/routerReducer';
 import { AutodetectSettings, DebugModeOptions, EvmSettings } from 'src/reducers/suite/suiteReducer';
 import { selectTorState } from 'src/selectors/suite/suiteSelectors';
 import type { AppState, Dispatch, GetState, TorBootstrap } from 'src/types/suite';
@@ -48,9 +48,6 @@ export type SuiteAction =
     | { type: typeof SUITE.TOGGLE_ENTROPY_CHECK; payload: boolean }
     | { type: typeof SUITE.TOGGLE_DEVICE_META_CHECKS; payload: boolean }
     | { type: typeof SUITE.COINJOIN_RECEIVE_WARNING; payload: boolean }
-    | { type: typeof SUITE.LOCK_UI; payload: boolean }
-    | ReturnType<typeof lockDevice>
-    | { type: typeof SUITE.LOCK_ROUTER; payload: boolean }
     | {
           type: typeof SUITE.SET_FLAG;
           key: keyof AppState['suite']['flags'];
@@ -207,7 +204,7 @@ export const toggleTor =
         );
 
         if (!shouldEnable && hasOnlyOnionBackends) {
-            const res = await dispatch(modalActions.openDeferredModal({ type: 'disable-tor' }));
+            const res = await dispatch(openDeferredModal({ type: 'disable-tor' }));
             if (!res) return;
         }
 
@@ -351,35 +348,5 @@ export const onSuiteReady = (): SuiteAction => ({
  */
 export const setDebugMode = (payload: Partial<DebugModeOptions>): SuiteAction => ({
     type: SUITE.SET_DEBUG_MODE,
-    payload,
-});
-
-/**
- * Called from multiple places before and after TrezorConnect call
- * Prevent from mad clicking
- * Set `lock` field in suite reducer
- * @returns {SuiteAction}
- */
-export const lockUI = (payload: boolean): SuiteAction => ({
-    type: SUITE.LOCK_UI,
-    payload,
-});
-
-/**
- * Prevent TrezorConnect multiple calls
- * Called before and after specific process, like onboarding
- * Set `lock` field in suite reducer
- * @returns {SuiteAction}
- */
-export const lockDevice = createAction(SUITE.LOCK_DEVICE, (payload: boolean) => ({ payload }));
-
-/**
- * Prevent route change and rendering
- * Called before and after specific process, like onboarding
- * Set `lock` field in suite reducer
- * @returns {SuiteAction}
- */
-export const lockRouter = (payload: boolean): SuiteAction => ({
-    type: SUITE.LOCK_ROUTER,
     payload,
 });

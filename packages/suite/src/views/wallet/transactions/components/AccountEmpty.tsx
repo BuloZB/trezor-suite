@@ -1,5 +1,6 @@
 import { events } from '@suite/analytics';
 import { Translation } from '@suite/intl';
+import { getTradingPrefilledFromAccountData, tradingActions } from '@suite-common/trading';
 import {
     getNetwork,
     getNetworkDisplaySymbol,
@@ -35,7 +36,12 @@ export const AccountEmpty = ({ account }: AccountEmptyProps) => {
         });
     };
     const handleNavigateToBuyPage = () => {
-        dispatch(goto('wallet-trading-buy', { preserveParams: true }));
+        dispatch(
+            tradingActions.setTradingFromPrefilledAccount(
+                getTradingPrefilledFromAccountData(account),
+            ),
+        );
+        dispatch(goto('wallet-trading-buy'));
 
         analytics.report({
             type: events.tradeNavigateEvent.name,
@@ -66,7 +72,7 @@ export const AccountEmpty = ({ account }: AccountEmptyProps) => {
                 )
             }
             iconName="arrowsLeftRight"
-            iconVariant="tertiary"
+            iconVariant="neutral"
             actions={[
                 {
                     'data-testid': '@accounts/empty-account/receive',

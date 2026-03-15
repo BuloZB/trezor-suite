@@ -212,7 +212,11 @@ const connectDevice = (
     if (affectedDevices.length > 0) {
         const changedDevices = affectedDevices.map(d => {
             // new connection is over bluetooth, existing one is usb. prioritize usb.
-            if (!d.bluetoothProps && d.connected && device.bluetoothProps) {
+            if (
+                d.descriptor.apiType !== 'bluetooth' &&
+                d.connected &&
+                device.descriptor.apiType === 'bluetooth'
+            ) {
                 return merge(d, { connected: true, available: true });
             }
 
@@ -282,7 +286,11 @@ const changeDevice = (
         // merge incoming device with State
         const changedDevices = affectedDevices.map(d => {
             // new connection is over bluetooth, existing one is usb. prioritize usb.
-            if (!d.bluetoothProps && d.connected && device.bluetoothProps) {
+            if (
+                d.descriptor.apiType !== 'bluetooth' &&
+                d.connected &&
+                device.descriptor.apiType === 'bluetooth'
+            ) {
                 return d;
             }
             if (d.state && isDeviceUnlocked) {
@@ -579,8 +587,8 @@ const updatePersistentDeviceData = (draft: DeviceReducerState, device: Device | 
         label: device.features.label,
         initialized: device.features.initialized,
         thp: device.thp,
-        bluetoothProps: device.bluetoothProps,
-        lastConnectedVia: device.bluetoothProps ? 'bluetooth' : 'usb',
+        descriptor: device.descriptor.apiType === 'bluetooth' ? device.descriptor : undefined,
+        lastConnectedVia: device.descriptor.apiType === 'bluetooth' ? 'bluetooth' : 'usb',
         firmwareVersion: getFirmwareVersionArray(device),
     } as const;
     const initialPersistentData = {

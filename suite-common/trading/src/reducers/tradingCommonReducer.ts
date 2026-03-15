@@ -121,6 +121,7 @@ const tradingCommonSlice = createSlice({
         saveComposedTransactionInfo(state, action: PayloadAction<TradingComposedTransactionInfo>) {
             state.composedTransactionInfo = action.payload;
         },
+
         saveTrade(state, action: PayloadAction<TradingTransaction>) {
             if (action.payload.key) {
                 const trades = state.trades.filter(t => t.key !== action.payload.key);

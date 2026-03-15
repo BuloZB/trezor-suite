@@ -1,6 +1,8 @@
 import { isAnyOf } from '@reduxjs/toolkit';
 import type { MiddlewareAPI } from 'redux';
 
+import { lockDevice, selectIsDeviceOrUiLocked } from '@suite/locks';
+import { selectRouteName, selectSettingsBackRoute } from '@suite/router';
 import {
     Feature,
     messageSystemActions,
@@ -36,7 +38,7 @@ import {
     selectIsAccountWithSessionInCriticalPhaseByAccountKey,
     selectIsAnySessionInCriticalPhase,
 } from 'src/reducers/wallet/coinjoinReducer';
-import { selectIsDeviceOrUiLocked, selectTorState } from 'src/selectors/suite/suiteSelectors';
+import { selectTorState } from 'src/selectors/suite/suiteSelectors';
 import { CoinjoinService } from 'src/services/coinjoin';
 import type { Action, AppState, Dispatch } from 'src/types/suite';
 import { CoinjoinConfig } from 'src/types/wallet/coinjoin';
@@ -208,11 +210,11 @@ export const coinjoinMiddleware =
 
         // Pause/restore coinjoin session depending on current route.
         // Device may be locked by another connect call, so check on LOCK_DEVICE action as well.
-        if (action.type === ROUTER.LOCATION_CHANGE || action.type === SUITE.LOCK_DEVICE) {
+        if (action.type === ROUTER.LOCATION_CHANGE || action.type === lockDevice.type) {
             const state = api.getState();
             const isDeviceOrUiLocked = selectIsDeviceOrUiLocked(state);
             if (!isDeviceOrUiLocked) {
-                const previousRoute = state.router.settingsBackRoute.name;
+                const previousRoute = selectSettingsBackRoute(state).name;
                 if (previousRoute === 'wallet-send') {
                     api.dispatch(coinjoinAccountActions.restorePausedCoinjoinSessions());
                 } else {
@@ -220,7 +222,7 @@ export const coinjoinMiddleware =
                     if (accountKey) {
                         const session = selectCoinjoinAccountByKey(state, accountKey)?.session;
                         if (
-                            state.router.route?.name === 'wallet-send' &&
+                            selectRouteName(state) === 'wallet-send' &&
                             !session?.paused &&
                             !session?.starting
                         ) {

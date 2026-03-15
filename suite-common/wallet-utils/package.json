@@ -18,6 +18,7 @@
         "@suite-common/suite-types": "workspace:*",
         "@suite-common/suite-utils": "workspace:*",
         "@suite-common/test-utils": "workspace:*",
+        "@suite-common/wallet-api": "workspace:*",
         "@suite-common/wallet-config": "workspace:*",
         "@suite-common/wallet-constants": "workspace:*",
         "@suite-common/wallet-types": "workspace:*",
@@ -32,7 +33,7 @@
         "bech32": "2.0.0",
         "date-fns": "^4.1.0",
         "react": "19.1.0",
-        "react-hook-form": "^7.71.1",
+        "react-hook-form": "^7.71.2",
         "web3-eth-abi": "^4.4.1",
         "web3-utils": "^4.3.2"
     }

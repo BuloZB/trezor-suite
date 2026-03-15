@@ -2,7 +2,7 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 import type { ExchangeTrade } from 'invity-api';
 import { RequireAllOrNone } from 'type-fest';
 
-import { BackupType } from '@suite-common/suite-types';
+import { BackupType, Locale } from '@suite-common/suite-types';
 import { TradingType } from '@suite-common/trading';
 import { AccountType, NetworkSymbol } from '@suite-common/wallet-config';
 import {
@@ -11,6 +11,7 @@ import {
     TokenAddress,
     XpubAddress,
 } from '@suite-common/wallet-types';
+import { ExperimentalFeature } from '@suite-native/settings';
 import { AccountInfo } from '@trezor/connect';
 import { DeviceModelInternal } from '@trezor/device-utils';
 
@@ -59,6 +60,11 @@ export type DeviceSuspicionCause =
     | 'untrustedReseller'
     | 'securitySeal'
     | 'packaging';
+
+export type DeviceCompromisedModalFailedCheck =
+    | 'device-authenticity'
+    | 'entropy'
+    | 'firmware-authenticity';
 
 type AccountDetailParams = {
     accountKey?: AccountKey;
@@ -243,10 +249,11 @@ export type DeviceSettingsStackParamList = {
         closeActionType: CloseActionType;
     };
     [DeviceSettingsStackRoutes.FirmwareUpdateStack]: undefined;
-    [DeviceSettingsStackRoutes.FirmwareLanguageStack]: undefined;
-    [DeviceSettingsStackRoutes.DeviceAutoConnect]: undefined;
+    [DeviceSettingsStackRoutes.FirmwareLanguageStack]: {
+        language: Locale;
+    };
+    [DeviceSettingsStackRoutes.DeviceConnection]: undefined;
     [DeviceSettingsStackRoutes.DeviceAutoConnectStack]: undefined;
-    [DeviceSettingsStackRoutes.DeviceAutoConnectGuard]: undefined;
     [DeviceSettingsStackRoutes.UnpairBluetoothDevice]: undefined;
     [DeviceSettingsStackRoutes.DevicePinProtection]: undefined;
     [DeviceSettingsStackRoutes.DevicePinProtectionStack]: {
@@ -386,12 +393,15 @@ export type RootStackParamList = {
     [RootStackRoutes.WalletConnectPair]: undefined;
     [RootStackRoutes.SettingsScreenStack]: NavigatorScreenParams<SettingsStackParamList>;
     [RootStackRoutes.BackupFailedModal]: undefined;
-    [RootStackRoutes.DeviceCompromisedModal]: undefined;
+    [RootStackRoutes.DeviceCompromisedModal]: {
+        failedCheck: DeviceCompromisedModalFailedCheck;
+    };
     [RootStackRoutes.BootloaderMode]: undefined;
     [RootStackRoutes.TradingLocationModal]: undefined;
     [RootStackRoutes.Storybook]: undefined;
     [RootStackRoutes.PassphraseStack]: NavigatorScreenParams<PassphraseStackParamList>;
     [RootStackRoutes.StellarManageTokenStack]: NavigatorScreenParams<StellarManageTokenStackParamList>;
+    [RootStackRoutes.ExperimentalFeedbackModal]: { feature: ExperimentalFeature };
 };
 
 export type TransactionDetailStackParamList = {

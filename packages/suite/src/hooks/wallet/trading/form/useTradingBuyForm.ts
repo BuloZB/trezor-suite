@@ -1,11 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
-import type { BuyTrade, BuyTradeResponse, FiatCurrencyCode } from 'invity-api';
+import type { BuyTrade, BuyTradeResponse } from 'invity-api';
 import useDebounce from 'react-use/lib/useDebounce';
 
 import { events } from '@suite/analytics';
-import { isCountrySubdivisionEmpty } from '@suite-common/geolocation';
 import {
     TRADING_DEFAULT_CRYPTO_CURRENCY,
     TRADING_FORM_CRYPTO_INPUT,
@@ -17,6 +16,8 @@ import {
     type TradingBuyType,
     buyThunks,
     getTradingQuotesByPaymentMethod,
+    isCountrySubdivisionEmpty,
+    mapFiatCurrencyCodeToBaseCurrencyCode,
     selectTradingBuy,
     selectTradingPaymentMethods,
     selectTradingVerifiedAddress,
@@ -30,7 +31,7 @@ import { Account } from '@suite-common/wallet-types';
 import { isDesktop } from '@trezor/env-utils';
 import { isChanged } from '@trezor/utils';
 
-import * as routerActions from 'src/actions/suite/routerActions';
+import { goto } from 'src/actions/suite/routerActions';
 import { submitRequestForm } from 'src/actions/wallet/trading/tradingCommonActions';
 import { useDispatch, useSelector } from 'src/hooks/suite';
 import { useTradingBuyHandleChange } from 'src/hooks/wallet/trading/form/common/useTradingBuyHandleChange';
@@ -39,10 +40,9 @@ import { useTradingPreviousRoute } from 'src/hooks/wallet/trading/form/common/us
 import { useTradingBuyFormDefaultValues } from 'src/hooks/wallet/trading/form/useTradingBuyFormDefaultValues';
 import { useTradingBuyFormRedirectValues } from 'src/hooks/wallet/trading/form/useTradingBuyFormRedirectValues';
 import { useBitcoinAmountUnit } from 'src/hooks/wallet/useBitcoinAmountUnit';
-import { useTradingNavigation } from 'src/hooks/wallet/useTradingNavigation';
 import { useAnalytics } from 'src/support/useAnalytics';
 import { Dispatch } from 'src/types/suite';
-import { UseTradingFormProps } from 'src/types/trading/trading';
+import { UseTradingFormCommonProps } from 'src/types/trading/trading';
 import {
     TradingBuyConfirmTradeProps,
     TradingBuyFormContextProps,
@@ -51,12 +51,12 @@ import { createQuoteLink, createTxLink } from 'src/utils/wallet/trading/buyUtils
 
 import { useTradingFiatValues } from './common/useTradingFiatValues';
 import { useTradingInitializer } from './common/useTradingInitializer';
+import { useTradingFormAccount } from './useTradingFormAccount';
 import { useTradingReceiveAddress } from './useTradingReceiveAddress';
 
 export const useTradingBuyForm = ({
-    selectedAccount,
     pageType = 'form',
-}: UseTradingFormProps): TradingBuyFormContextProps => {
+}: UseTradingFormCommonProps = {}): TradingBuyFormContextProps => {
     const analytics = useAnalytics();
     const type = 'buy';
     const isFormPage = pageType === 'form';
@@ -80,10 +80,9 @@ export const useTradingBuyForm = ({
         isLoading,
     });
 
-    const { account } = selectedAccount;
+    const { account, cryptoId } = useTradingFormAccount(type);
 
-    const { navigateToBuyForm, navigateToBuyOffers, navigateToBuyConfirm } =
-        useTradingNavigation(account);
+    const shouldResetOnInitialBuyInfoLoad = useRef(!buyInfo);
 
     const { shouldSendInSats } = useBitcoinAmountUnit(account.symbol);
     const isPreviousRouteFromTradeSection = useTradingPreviousRoute(type);
@@ -92,22 +91,22 @@ export const useTradingBuyForm = ({
         ? {
               cryptoId: selectedQuote.receiveCurrency,
               amount: selectedQuote.receiveAmount?.toString(),
-              fiatCurrency: selectedQuote.fiatCurrency as FiatCurrencyCode | undefined,
+              fiatCurrency: mapFiatCurrencyCodeToBaseCurrencyCode(selectedQuote.fiatCurrency),
           }
         : {
               cryptoId: quotesRequest?.receiveCurrency,
               amount: quotesRequest?.cryptoStringAmount,
-              fiatCurrency: quotesRequest?.fiatCurrency as FiatCurrencyCode | undefined,
+              fiatCurrency: mapFiatCurrencyCodeToBaseCurrencyCode(quotesRequest?.fiatCurrency),
           };
     useTradingFiatValues(fiatTradingValuesParams);
 
     const {
         defaultValues,
-        defaultCountry,
         defaultSubdivision,
+        defaultCountry,
         defaultCurrency,
         defaultPaymentMethod,
-    } = useTradingBuyFormDefaultValues(account.symbol, buyInfo);
+    } = useTradingBuyFormDefaultValues(cryptoId, buyInfo);
     const redirectValues = useTradingBuyFormRedirectValues(isFromRedirect, quotesRequest);
     const { saveDraft, draft, removeDraft } = useFormDraft<TradingBuyFormProps>(
         'trading-buy',
@@ -186,7 +185,7 @@ export const useTradingBuyForm = ({
     const goToOffers = async () => {
         await handleChange();
 
-        navigateToBuyOffers();
+        dispatch(goto('wallet-trading-buy-offers'));
 
         analytics.report({
             type: events.tradeCompareOffersEvent.name,
@@ -214,11 +213,7 @@ export const useTradingBuyForm = ({
                 if (response.trade.paymentId) {
                     dispatch(tradingBuyActions.saveTransactionId(response.trade.paymentId));
                 }
-                dispatch(
-                    routerActions.goto('wallet-trading-buy-detail', {
-                        params: selectedAccount.params,
-                    }),
-                );
+                dispatch(goto('wallet-trading-buy-detail'));
             }
         };
 
@@ -428,7 +423,8 @@ export const useTradingBuyForm = ({
 
     useEffect(() => {
         // when draft doesn't exist, we need to bind actual default values - that happens when we've got buyInfo from Invity API server
-        if (!isDraft && buyInfo) {
+        if (!isDraft && buyInfo && shouldResetOnInitialBuyInfoLoad.current) {
+            shouldResetOnInitialBuyInfoLoad.current = false;
             const currentReceiveAddress = values.receiveAddress;
             reset({
                 ...defaultValues,
@@ -452,17 +448,17 @@ export const useTradingBuyForm = ({
     useEffect(() => {
         // We need to clear quotes on offers page without redirecting to form page
         if (!quotesRequest && !isFormPage && !isOffersPage) {
-            navigateToBuyForm();
+            dispatch(goto('wallet-trading-buy'));
 
             return;
         }
-    }, [quotesRequest, isFormPage, isOffersPage, navigateToBuyForm]);
+    }, [quotesRequest, isFormPage, isOffersPage, dispatch]);
 
     useEffect(() => {
         if (isFromRedirect && quotesRequest) {
-            navigateToBuyConfirm();
+            dispatch(goto('wallet-trading-buy-confirm'));
         }
-    }, [isFromRedirect, quotesRequest, navigateToBuyConfirm]);
+    }, [isFromRedirect, quotesRequest, dispatch]);
 
     useEffect(() => {
         checkQuotesTimer(handleChange);
