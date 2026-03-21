@@ -23,9 +23,6 @@
             "path": "../../suite-common/message-system"
         },
         {
-            "path": "../../suite-common/suite-config"
-        },
-        {
             "path": "../../suite-common/suite-sync-evolu"
         },
         {
@@ -48,8 +45,10 @@
             "path": "../../suite-common/wallet-utils"
         },
         { "path": "../analytics" },
+        { "path": "../flags" },
         { "path": "../intl" },
         { "path": "../metadata" },
+        { "path": "../router-config" },
         {
             "path": "../../packages/blockchain-link-types"
         },

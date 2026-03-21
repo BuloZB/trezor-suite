@@ -1,10 +1,10 @@
 import styled from 'styled-components';
 
 import {
-    FormCellProps,
+    type FormCellProps,
     Icon,
     Input,
-    InputProps,
+    type InputProps,
     Spinner,
     pickFormCellProps,
 } from '@trezor/components';
@@ -23,9 +23,13 @@ const FakeSelectContainer = styled.button<{ $isDisabled?: boolean }>`
 `;
 
 export type FakeSelectProps = Omit<FormCellProps, 'children'> &
-    Pick<InputProps, 'value' | 'placeholder' | 'size'> & {
+    Pick<
+        InputProps,
+        'value' | 'placeholder' | 'size' | 'name' | 'leftContent' | 'bottomText' | 'width'
+    > & {
         isLoading?: boolean;
         onClick: () => void;
+        isClean?: boolean;
     };
 
 export const FakeSelect = (props: FakeSelectProps) => {
@@ -37,11 +41,13 @@ export const FakeSelect = (props: FakeSelectProps) => {
         size = 'large',
         onClick,
         'data-testid': dataTestId,
+        leftContent,
+        isClean = false,
         ...rest
     } = props;
 
     const formCellProps = pickFormCellProps(rest);
-    const leftContent = isLoading ? <Spinner size={20} /> : undefined;
+    const derivedLeftContent = leftContent ?? (isLoading ? <Spinner size={20} /> : undefined);
 
     return (
         <FakeSelectContainer type="button" onClick={onClick} disabled={isDisabled}>
@@ -50,12 +56,13 @@ export const FakeSelect = (props: FakeSelectProps) => {
                 value={value}
                 placeholder={placeholder}
                 size={size}
-                leftContent={leftContent}
+                leftContent={derivedLeftContent}
                 disabled={isDisabled}
                 rightContent={
                     <Icon name="caretDown" size={20} intent="neutral" priority="secondary" />
                 }
                 data-testid={dataTestId}
+                isClean={isClean}
                 readOnly
             />
         </FakeSelectContainer>

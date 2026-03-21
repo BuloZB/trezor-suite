@@ -1,17 +1,23 @@
 import type { FiatCurrencyCode } from 'invity-api';
 
 import type { BaseCurrencyOption } from '@suite-common/wallet-types';
-import { BaseCurrencyCode, isBaseCurrencyCode } from '@trezor/blockchain-link-types';
+import { type BaseCurrencyCode, isBaseCurrencyCode } from '@trezor/blockchain-link-types';
 
 import {
     DEFAULT_FIAT_CURRENCY_FALLBACK,
     isSupportedFiatCurrency,
     supportedFiatCurrenciesMap,
 } from '../currency';
+import { type TradingFiatCurrencyOption } from '../types';
 
-export const buildTradingFiatOption = (currency: FiatCurrencyCode) => ({
+export const getCurrencyLabel = (currencyCode: FiatCurrencyCode | string): string =>
+    isSupportedFiatCurrency(currencyCode)
+        ? supportedFiatCurrenciesMap[currencyCode]
+        : currencyCode.toUpperCase();
+
+export const buildTradingFiatOption = (currency: FiatCurrencyCode): TradingFiatCurrencyOption => ({
     value: currency,
-    label: currency.toUpperCase(),
+    label: getCurrencyLabel(currency),
 });
 
 export const mapFiatCurrencyCodeToBaseCurrencyCode = (
@@ -35,11 +41,6 @@ export const buildTradingBaseCurrencyOptionFromFiat = (
         label: baseCurrencyCode.toUpperCase(),
     };
 };
-
-export const getCurrencyLabel = (currencyCode: FiatCurrencyCode | string): string =>
-    isSupportedFiatCurrency(currencyCode)
-        ? supportedFiatCurrenciesMap[currencyCode]
-        : currencyCode.toUpperCase();
 
 export const getSupportedFiatCurrencyWithFallback = (currencyCode: string): FiatCurrencyCode => {
     if (isSupportedFiatCurrency(currencyCode)) {

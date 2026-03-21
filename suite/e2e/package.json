@@ -16,7 +16,8 @@
         "github:create:project": "tsx ./support/reporters/scriptCreateProject.ts",
         "git:bisect": "./scripts/bisect-commits.sh",
         "decode:sol:stake": "tsx ./scripts/decode-sol-staking-account.ts",
-        "docker:suite-sync": "docker compose -f ../../docker/docker-compose.suite-ci-e2e.yml up quota-db suite-sync"
+        "docker:suite-sync": "./scripts/docker-suite-sync.sh",
+        "lint:js": "yarn g:eslint '**/*.{ts,tsx,js}'"
     },
     "devDependencies": {
         "@currents/playwright": "^1.19.0",
@@ -34,7 +35,6 @@
         "@suite-common/e2e-evolu-client": "workspace:*",
         "@suite-common/feedback": "workspace:*",
         "@suite-common/message-system": "workspace:*",
-        "@suite-common/suite-config": "workspace:*",
         "@suite-common/suite-sync-evolu": "workspace:*",
         "@suite-common/suite-sync-storage": "workspace:*",
         "@suite-common/suite-types": "workspace:*",
@@ -44,8 +44,10 @@
         "@suite-common/wallet-types": "workspace:*",
         "@suite-common/wallet-utils": "workspace:*",
         "@suite/analytics": "workspace:*",
+        "@suite/flags": "workspace:*",
         "@suite/intl": "workspace:^",
         "@suite/metadata": "workspace:*",
+        "@suite/router-config": "workspace:*",
         "@trezor/blockchain-link-types": "workspace:^",
         "@trezor/connect-web": "workspace:*",
         "@trezor/e2e-utils": "workspace:*",

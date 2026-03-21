@@ -1,9 +1,9 @@
-import { modalAppParams, routes } from '@suite-common/suite-config';
-import { Route } from '@suite-common/suite-types';
-import { AccountType, NetworkSymbol } from '@suite-common/wallet-config';
-import { WalletParams as CommonWalletParams } from '@suite-common/wallet-types';
-import { ArrayElement } from '@trezor/type-utils';
+import { type modalAppParams, routes } from '@suite/router-config';
+import { type AccountType, type NetworkSymbol } from '@suite-common/wallet-config';
+import { type WalletParams as CommonWalletParams } from '@suite-common/wallet-types';
+import { type ArrayElement } from '@trezor/type-utils';
 
+import { type Route } from './route';
 import { type DashboardParams, type EarnParams } from './routerParams';
 
 export type SettingsBackRoute = {

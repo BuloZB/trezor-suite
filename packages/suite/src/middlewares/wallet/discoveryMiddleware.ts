@@ -1,4 +1,5 @@
 import { selectIsDeviceLocked } from '@suite/locks';
+import { routerAppChanged } from '@suite/router';
 import { connectPopupCallThunkInner } from '@suite-common/connect-popup';
 import { deviceActions, selectSelectedDevice } from '@suite-common/device';
 import { createMiddlewareWithExtraDeps } from '@suite-common/redux-utils';
@@ -10,8 +11,6 @@ import {
     selectShouldRediscover,
     startOrRestartDiscoveryThunk,
 } from '@suite-common/wallet-core';
-
-import { SUITE } from 'src/actions/suite/constants';
 
 // todo: this is crazy. needs some consideration
 export const prepareDiscoveryMiddleware = createMiddlewareWithExtraDeps(
@@ -63,7 +62,7 @@ export const prepareDiscoveryMiddleware = createMiddlewareWithExtraDeps(
             becomesAcquired ||
             becomesConnected ||
             isTHPAutoconnectFinished ||
-            action.type === SUITE.APP_CHANGED ||
+            action.type === routerAppChanged.type ||
             connectPopupCallThunkInner.fulfilled.match(action) ||
             deviceActions.selectDevice.match(action) ||
             changeNetworks.match(action) ||

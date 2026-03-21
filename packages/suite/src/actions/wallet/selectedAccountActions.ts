@@ -1,5 +1,10 @@
 import { metadataActions } from '@suite/metadata';
-import { selectRouteName, selectRouterApp, selectRouterParams } from '@suite/router';
+import {
+    routerLocationChange,
+    selectRouteName,
+    selectRouterApp,
+    selectRouterParams,
+} from '@suite/router';
 import { deviceActions, selectSelectedDevice } from '@suite-common/device';
 import { getNetwork } from '@suite-common/wallet-config';
 import {
@@ -11,12 +16,11 @@ import {
     selectDiscoveryForSelectedDevice,
     selectEnabledNetworks,
 } from '@suite-common/wallet-core';
-import { SelectedAccountStatus, WalletParams } from '@suite-common/wallet-types';
+import { type SelectedAccountStatus, type WalletParams } from '@suite-common/wallet-types';
 import { isChanged } from '@trezor/utils';
 
-import { ROUTER } from 'src/actions/suite/constants';
 import { accountSearchActions } from 'src/reducers/wallet/accountSearchReducer';
-import { Action, AppState, Dispatch, GetState } from 'src/types/suite';
+import { type Action, type AppState, type Dispatch, type GetState } from 'src/types/suite';
 import { getSelectedAccount } from 'src/utils/wallet/accountUtils';
 
 // move to selector!!!!
@@ -155,7 +159,7 @@ export const getAccountState = (state: AppState): SelectedAccountStatus => {
 // list of all actions which has influence on "selectedAccount" reducer
 // other actions will be ignored
 const actions = new Set<Action['type']>([
-    ROUTER.LOCATION_CHANGE,
+    routerLocationChange.type,
     deviceActions.selectDevice.type,
     deviceActions.updateSelectedDevice.type,
     metadataActions.setAccountAdd.type,

@@ -1,29 +1,29 @@
 import { selectKnownDevices } from '@suite-common/bluetooth';
 import { deviceActions, selectDevices, selectPersistentDeviceData } from '@suite-common/device';
-import { MetadataState } from '@suite-common/metadata-types';
-import { EncryptedHex } from '@suite-common/platform-encryption';
+import { type MetadataState } from '@suite-common/metadata-types';
+import { type EncryptedHex } from '@suite-common/platform-encryption';
 import { createThunk } from '@suite-common/redux-utils/';
-import { SuiteSyncOwnerSerialized } from '@suite-common/suite-sync-storage';
+import { type SuiteSyncOwnerSerialized } from '@suite-common/suite-sync-storage';
 import { isDeviceAcquired } from '@suite-common/suite-utils';
 import { selectThp } from '@suite-common/thp';
 import { notificationsActions } from '@suite-common/toast-notifications';
-import { DefinitionType, TokenManagementAction } from '@suite-common/token-definitions';
+import { type DefinitionType, type TokenManagementAction } from '@suite-common/token-definitions';
 import type { TradingTransaction } from '@suite-common/trading';
 import type { Explorer, NetworkSymbol } from '@suite-common/wallet-config';
 import { FormDraftPrefixKeyValues } from '@suite-common/wallet-constants';
 import type {
     AccountKey,
+    FormDraftKeyPrefix,
     FormState,
     RatesByTimestamps,
     SuccessfulAccount,
 } from '@suite-common/wallet-types';
-import { FormDraftKeyPrefix } from '@suite-common/wallet-types';
 import {
     getFormDraftKey,
     isAccountSuccessful,
     selectHistoricRatesByTransactions,
 } from '@suite-common/wallet-utils';
-import { StaticSessionId } from '@trezor/connect';
+import { type StaticSessionId } from '@trezor/connect';
 import { cloneObject } from '@trezor/utils';
 
 import { selectCoinjoinAccountByKey } from 'src/reducers/wallet/coinjoinReducer';
@@ -31,12 +31,12 @@ import { db } from 'src/storage';
 import type { PreloadStoreAction } from 'src/support/suite/preloadStore';
 import type { AppState, Dispatch, GetState, TrezorDevice } from 'src/types/suite';
 import type { Account } from 'src/types/wallet';
-import { GraphData } from 'src/types/wallet/graph';
+import { type GraphData } from 'src/types/wallet/graph';
 import { serializeCoinjoinAccount, serializeDevice } from 'src/utils/suite/storage';
 import { deviceGraphDataFilterFn } from 'src/utils/wallet/graph';
 
 import { STORAGE } from './constants';
-import { DesktopBluetoothDevice } from '../bluetooth/DesktopBluetoothDevice';
+import { type DesktopBluetoothDevice } from '../bluetooth/DesktopBluetoothDevice';
 
 export type StorageAction = NonNullable<PreloadStoreAction>;
 export type StorageLoadAction = Extract<StorageAction, { type: typeof STORAGE.LOAD }>;
@@ -102,7 +102,7 @@ const removeCoinjoinRelatedSetting = (state: AppState) => {
         'suiteSettings',
         {
             settings,
-            flags: state.suite.flags,
+            flags: state.flags,
             evmSettings: state.suite.evmSettings,
             seenDisconnectNotificationForDeviceIds:
                 state.suite.seenDisconnectNotificationForDeviceIds,
@@ -391,7 +391,7 @@ export const saveSuiteSettings =
     () =>
     (_dispatch: Dispatch, getState: GetState): Promise<void> => {
         if (!db.isAccessible()) return Promise.resolve();
-        const { suite } = getState();
+        const { suite, flags } = getState();
 
         const result = db.addItem(
             'suiteSettings',
@@ -403,7 +403,7 @@ export const saveSuiteSettings =
                         e => e !== 'password-manager',
                     ),
                 },
-                flags: suite.flags,
+                flags,
                 evmSettings: suite.evmSettings,
                 seenDisconnectNotificationForDeviceIds:
                     suite.seenDisconnectNotificationForDeviceIds,

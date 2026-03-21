@@ -6,14 +6,16 @@
         "package.json",
         "styled.d.ts"
     ],
-    "exclude": [
-        "src/**/__tests__/**",
-        "**/*.test.ts",
-        "**/*.test.tsx"
-    ],
+    "exclude": [],
     "compilerOptions": {
         "outDir": "libDev",
-        "types": ["vite/client"]
+        "types": ["vite/client", "jest"],
+        "baseUrl": ".",
+        "paths": {
+            "@trezor/analytics-log-server": [
+                "../analytics-log-server/src/index.ts"
+            ]
+        }
     },
     "references": [
         {

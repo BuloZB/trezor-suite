@@ -1,5 +1,6 @@
 import { experimentalFeedbackReducer } from '@suite/experimental-feedback';
-import { TranslationKey } from '@suite/intl';
+import { prepareFlagsReducer } from '@suite/flags';
+import { type TranslationKey } from '@suite/intl';
 import { locksReducer } from '@suite/locks';
 import { metadataReducer } from '@suite/metadata';
 import { modalReducer as modal } from '@suite/modal';
@@ -24,11 +25,13 @@ const analytics = prepareAnalyticsReducer(extraDependencies);
 // Type annotation as a workaround for type-check error "The inferred type of 'default' cannot be named..."
 const messageSystem = prepareMessageSystemReducer(extraDependencies);
 const device = deviceSlice.prepareReducer(extraDependencies);
+const flags = prepareFlagsReducer(extraDependencies);
 const connectPopupReducer = prepareConnectPopupReducer(extraDependencies);
 const walletConnectReducer = prepareWalletConnectReducer(extraDependencies);
 
 export default {
     suite,
+    flags,
     locks: locksReducer,
     router: routerReducer,
     modal,

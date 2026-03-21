@@ -1,18 +1,18 @@
-import { FiatCurrencyCode } from 'invity-api';
+import { type FiatCurrencyCode } from 'invity-api';
 
 import { Translation } from '@suite/intl';
+import { goto } from '@suite/router';
 import {
-    TradingTradeBuySellType,
+    type TradingTradeBuySellType,
     cryptoIdToNetworkAndContractAddress,
     getOtcProvidersByCountry,
     useFetchOtc,
 } from '@suite-common/trading';
 import { selectBaseCurrency } from '@suite-common/wallet-core';
-import { TokenAddress } from '@suite-common/wallet-types';
+import { type TokenAddress } from '@suite-common/wallet-types';
 import { localizeNumber } from '@suite-common/wallet-utils';
 import { Banner, Column, Text } from '@trezor/components';
 
-import { goto } from 'src/actions/suite/routerActions';
 import { useDispatch, useSelector } from 'src/hooks/suite';
 import { useFiatFromCryptoValue } from 'src/hooks/suite/useFiatFromCryptoValue';
 import { useTradingFormContext } from 'src/hooks/wallet/trading/form/useTradingCommonForm';
@@ -110,7 +110,7 @@ export const TradingFormOfferOTC = () => {
                     </Text>
                     <Banner.Button
                         intent="info"
-                        onClick={() => dispatch(goto('wallet-trading-concierge'))}
+                        onClick={() => dispatch(goto({ routeName: 'wallet-trading-concierge' }))}
                     >
                         <Translation
                             id={

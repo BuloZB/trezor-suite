@@ -20,10 +20,12 @@
         "dev:desktop": "yarn run desktop",
         "build:desktop": "NODE_ENV=production yarn run desktop",
         "type-check": "yarn g:tsc --build tsconfig.json",
-        "type-check:watch": "yarn type-check -- --watch"
+        "type-check:watch": "yarn type-check -- --watch",
+        "lint:js": "yarn g:eslint '**/*.{ts,tsx,js}'"
     },
     "dependencies": {
         "@suite-common/suite-config": "workspace:*",
+        "@suite/router-config": "workspace:*",
         "@trezor/bundler-security": "workspace:*",
         "@trezor/env-utils": "workspace:*",
         "babel-loader": "^10.0.0",

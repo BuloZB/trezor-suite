@@ -1,8 +1,6 @@
-import { RefObject, useEffect } from 'react';
+import { type RefObject, useEffect } from 'react';
 
-import { selectRouterAnchor } from '@suite/router';
-
-import { onAnchorChange } from 'src/actions/suite/routerActions';
+import { anchorChange, selectRouterAnchor } from '@suite/router';
 
 import { useDispatch } from './useDispatch';
 import { useSelector } from './useSelector';
@@ -16,7 +14,7 @@ export const useClearAnchorHighlightOnClick = (elementRef: RefObject<HTMLElement
         // to assure propagation of click, which removes anchor highlight, work reliably
         // click listener has to be added on react container
         const parent = elementRef.current?.parentElement;
-        const removeAnchor = () => anchor && dispatch(onAnchorChange());
+        const removeAnchor = () => anchor && dispatch(anchorChange());
 
         if (parent && anchor) {
             let frameId: number | null = null;

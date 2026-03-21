@@ -1,9 +1,8 @@
 import { events } from '@suite/analytics';
-import { Translation, TranslationKey } from '@suite/intl';
-import { Route } from '@suite-common/suite-types';
-import { IconName, SubTabs } from '@trezor/components';
+import { Translation, type TranslationKey } from '@suite/intl';
+import { type Route, goto } from '@suite/router';
+import { type IconName, SubTabs } from '@trezor/components';
 
-import { goto } from 'src/actions/suite/routerActions';
 import { useDispatch } from 'src/hooks/suite';
 import { useAnalytics } from 'src/support/useAnalytics';
 
@@ -44,7 +43,7 @@ export const TradingLayoutNavigation = ({ route }: TradingLayoutNavigationProps)
     const dispatch = useDispatch();
     const analytics = useAnalytics();
     const goToRoute = (route: Route['name']) => () => {
-        dispatch(goto(route));
+        dispatch(goto({ routeName: route }));
 
         switch (route) {
             case 'wallet-trading-buy':

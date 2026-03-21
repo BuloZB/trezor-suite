@@ -8,9 +8,19 @@
     },
     "include": ["src/**/*", "styled.d.ts"],
     "references": [
+        {
+            "path": "../../suite-common/geolocation"
+        },
         { "path": "../../suite-common/icons" },
+        {
+            "path": "../../suite-common/redux-utils"
+        },
         { "path": "../../suite-common/trading" },
+        {
+            "path": "../../suite-common/wallet-types"
+        },
         { "path": "../intl" },
+        { "path": "../router" },
         { "path": "../../packages/components" },
         {
             "path": "../../packages/product-components"

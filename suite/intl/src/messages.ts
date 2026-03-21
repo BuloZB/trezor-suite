@@ -858,6 +858,10 @@ export const messages = defineMessages({
         defaultMessage: 'Trade ID',
         id: 'TR_TRADE_ID',
     },
+    TR_TRADING_PROCESSING_STATUS: {
+        defaultMessage: '<link>Check your order status</link> on the {providerName}’s website.',
+        id: 'TR_TRADING_PROCESSING_STATUS',
+    },
     TR_TRADING_PROCESSING_SUPPORT: {
         defaultMessage: 'Need help? Reach out to <link>{providerName}’s support</link>.',
         id: 'TR_TRADING_PROCESSING_SUPPORT',
@@ -1993,8 +1997,12 @@ export const messages = defineMessages({
         id: 'TR_NEEDS_ATTENTION_UNACQUIRED_THP_REQUIRED',
     },
     TR_NEEDS_ATTENTION_UNABLE_TO_CONNECT: {
-        defaultMessage: 'Failed to communicate with your Trezor',
+        defaultMessage: 'We can’t connect to your Trezor',
         id: 'TR_NEEDS_ATTENTION_UNABLE_TO_CONNECT',
+    },
+    TR_NEEDS_ATTENTION_CONNECT_USB_OR_BLUETOOTH: {
+        id: 'TR_NEEDS_ATTENTION_CONNECT_USB_OR_BLUETOOTH',
+        defaultMessage: 'Make sure your Trezor is connected via USB or Bluetooth and unlocked.',
     },
     TR_NEEDS_ATTENTION_DEVICE_BUSY: {
         defaultMessage: 'Your Trezor is in an incorrect state. Restart it to connect.',
@@ -2868,6 +2876,22 @@ export const messages = defineMessages({
     TR_BASE_CURRENCY_VALUABLES: {
         defaultMessage: 'Commodities',
         id: 'TR_BASE_CURRENCY_VALUABLES',
+    },
+    TR_CURRENCY: {
+        defaultMessage: 'Currency',
+        id: 'TR_CURRENCY',
+    },
+    TR_SEARCH_CURRENCY_PLACEHOLDER: {
+        defaultMessage: 'Search currency or ticker',
+        id: 'TR_SEARCH_CURRENCY_PLACEHOLDER',
+    },
+    TR_CURRENCY_NOT_FOUND: {
+        defaultMessage: 'Currency not found',
+        id: 'TR_CURRENCY_NOT_FOUND',
+    },
+    TR_CURRENCY_NOT_FOUND_DESCRIPTION: {
+        defaultMessage: 'Try a different search or select a currency from the list.',
+        id: 'TR_CURRENCY_NOT_FOUND_DESCRIPTION',
     },
     TR_RANDOM_SEED_WORDS_DISCLAIMER: {
         defaultMessage:

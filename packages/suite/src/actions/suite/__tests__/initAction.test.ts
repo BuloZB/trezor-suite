@@ -1,10 +1,21 @@
 import { createMemoryHistory } from 'history';
 
+import { prepareFlagsReducer } from '@suite/flags';
 import { lockRouter, locksInitialState, locksReducer } from '@suite/locks';
 import { metadataReducer } from '@suite/metadata';
 import { modalReducer } from '@suite/modal';
 import type { PathString } from '@suite/router';
-import { routerReducer } from '@suite/router';
+import {
+    createSuiteRouterHistory,
+    goto,
+    initialRedirection,
+    onLocationChange,
+    routerAppChanged,
+    routerInit,
+    routerLocationChange,
+    routerMiddleware,
+    routerReducer,
+} from '@suite/router';
 import { prepareAnalyticsReducer } from '@suite-common/analytics-redux';
 import { connectInitThunk } from '@suite-common/connect-init';
 import { prepareDeviceReducer } from '@suite-common/device';
@@ -37,22 +48,20 @@ import { walletConnectInitThunk } from '@suite-common/walletconnect';
 import TrezorConnect from '@trezor/connect';
 import { initialBreakpointFlags } from '@trezor/theme';
 
-import { ROUTER, SUITE } from 'src/actions/suite/constants';
+import { SUITE } from 'src/actions/suite/constants';
 import { init } from 'src/actions/suite/initAction';
 import { prepareSuiteMiddleware } from 'src/middlewares/suite/suiteMiddleware';
 import suiteReducer from 'src/reducers/suite/suiteReducer';
 import windowReducer from 'src/reducers/suite/windowReducer';
 import walletReducers from 'src/reducers/wallet';
-import { createSuiteRouterHistory, extraDependencies } from 'src/support/extraDependencies';
+import { extraDependencies } from 'src/support/extraDependencies';
 import { configureStore } from 'src/support/tests/configureStore';
 import type { AppState } from 'src/types/suite';
-
-import { initialRedirection } from '../routerActions';
-import { appChanged } from '../suiteActions';
 
 const deviceReducer = prepareDeviceReducer(extraDependencies);
 const analyticsReducer = prepareAnalyticsReducer(extraDependencies);
 const messageSystemReducer = prepareMessageSystemReducer(extraDependencies);
+const flagsReducer = prepareFlagsReducer(extraDependencies);
 
 global.fetch = jest.fn().mockImplementation(() =>
     Promise.resolve({
@@ -63,22 +72,28 @@ global.fetch = jest.fn().mockImplementation(() =>
 
 const EMPTY_ACTION = { type: 'foo' } as any;
 
-const getInitialState = (initialRun?: boolean) => ({
-    suite: {
-        ...suiteReducer(undefined, EMPTY_ACTION),
-        ...(initialRun !== undefined ? ({ flags: { initialRun } } as any) : {}),
-    },
-    locks: locksInitialState,
-    router: routerReducer(undefined, EMPTY_ACTION),
-    analytics: analyticsReducer(undefined, EMPTY_ACTION),
-    modal: modalReducer(undefined, EMPTY_ACTION),
-    wallet: walletReducers(undefined, EMPTY_ACTION),
-    messageSystem: messageSystemReducer(undefined, EMPTY_ACTION),
-    device: deviceReducer(undefined, EMPTY_ACTION),
-    metadata: metadataReducer(undefined, EMPTY_ACTION),
-    firmware: { firmwareChannel: 'production' },
-    window: windowReducer({ ...initialBreakpointFlags, isVisible: true }, EMPTY_ACTION),
-});
+const getInitialState = (initialRun?: boolean) => {
+    const initialFlagsState = flagsReducer(undefined, EMPTY_ACTION);
+
+    return {
+        suite: suiteReducer(undefined, EMPTY_ACTION),
+        flags: {
+            ...(initialRun !== undefined
+                ? { ...initialFlagsState, initialRun }
+                : { ...initialFlagsState }),
+        },
+        locks: locksInitialState,
+        router: routerReducer(undefined, EMPTY_ACTION),
+        analytics: analyticsReducer(undefined, EMPTY_ACTION),
+        modal: modalReducer(undefined, EMPTY_ACTION),
+        wallet: walletReducers(undefined, EMPTY_ACTION),
+        messageSystem: messageSystemReducer(undefined, EMPTY_ACTION),
+        device: deviceReducer(undefined, EMPTY_ACTION),
+        metadata: metadataReducer(undefined, EMPTY_ACTION),
+        firmware: { firmwareChannel: 'production' },
+        window: windowReducer({ ...initialBreakpointFlags, isVisible: true }, EMPTY_ACTION),
+    };
+};
 
 type Fixture = {
     description: string;
@@ -109,10 +124,14 @@ const fixtures: Fixture[] = [
             fetchConfigThunk.fulfilled.type,
             initMessageSystemThunk.fulfilled.type,
             initialRedirection.pending.type,
-            appChanged.type,
-            ROUTER.LOCATION_CHANGE,
+            goto.pending.type,
+            onLocationChange.pending.type,
+            routerAppChanged.type,
+            routerLocationChange.type,
             lockRouter.type,
             connectInitThunk.pending.type,
+            onLocationChange.fulfilled.type,
+            goto.fulfilled.type,
             initialRedirection.fulfilled.type,
             connectInitThunk.fulfilled.type,
             initBlockchainThunk.pending.type,
@@ -134,6 +153,7 @@ const fixtures: Fixture[] = [
             periodicFetchFiatRatesThunk.fulfilled.type,
             updateMissingTxFiatRatesThunk.pending.type,
             updateMissingTxFiatRatesThunk.fulfilled.type,
+            routerInit.pending.type,
             periodicCheckStakeDataThunk.pending.type,
             initStakeDataThunk.pending.type,
             // ETH calls both PoolStats and ValidatorsQueue, SOL/ADA each call StakingInfo
@@ -185,8 +205,10 @@ const fixtures: Fixture[] = [
             periodicFetchFiatRatesThunk.fulfilled.type,
             updateMissingTxFiatRatesThunk.pending.type,
             updateMissingTxFiatRatesThunk.fulfilled.type,
-            appChanged.type,
-            ROUTER.LOCATION_CHANGE,
+            routerInit.pending.type,
+            onLocationChange.pending.type,
+            routerAppChanged.type,
+            routerLocationChange.type,
             periodicCheckStakeDataThunk.pending.type,
             initStakeDataThunk.pending.type,
             // ETH calls both PoolStats and ValidatorsQueue, SOL/ADA each call StakingInfo
@@ -237,7 +259,9 @@ const fixtures: Fixture[] = [
             periodicFetchFiatRatesThunk.fulfilled.type,
             updateMissingTxFiatRatesThunk.pending.type,
             updateMissingTxFiatRatesThunk.fulfilled.type,
-            ROUTER.LOCATION_CHANGE,
+            routerInit.pending.type,
+            onLocationChange.pending.type,
+            routerLocationChange.type,
             periodicCheckStakeDataThunk.pending.type,
             initStakeDataThunk.pending.type,
             // ETH calls both PoolStats and ValidatorsQueue, SOL/ADA each call StakingInfo
@@ -267,10 +291,14 @@ const fixtures: Fixture[] = [
             fetchConfigThunk.fulfilled.type,
             initMessageSystemThunk.fulfilled.type,
             initialRedirection.pending.type,
-            appChanged.type,
-            ROUTER.LOCATION_CHANGE,
+            goto.pending.type,
+            onLocationChange.pending.type,
+            routerAppChanged.type,
+            routerLocationChange.type,
             lockRouter.type,
             connectInitThunk.pending.type,
+            onLocationChange.fulfilled.type,
+            goto.fulfilled.type,
             initialRedirection.fulfilled.type,
             connectInitThunk.rejected.type,
             SUITE.ERROR,
@@ -284,7 +312,10 @@ const initStore = (state: State) => {
     const memoryHistory = createMemoryHistory();
     const suiteRouterHistory = createSuiteRouterHistory({ history: memoryHistory });
     const mockStore = configureStore<State, any>(
-        [prepareSuiteMiddleware(() => extraDependenciesCommonMock)],
+        [
+            prepareSuiteMiddleware(() => extraDependenciesCommonMock),
+            routerMiddleware(() => extraDependenciesCommonMock),
+        ],
         {
             services: {
                 suiteRouterHistory,

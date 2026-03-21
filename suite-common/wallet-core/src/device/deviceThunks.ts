@@ -14,7 +14,7 @@ import {
 } from '@suite-common/device';
 import { selectIsFirmwareInstallationRunning } from '@suite-common/firmware';
 import { createThunk } from '@suite-common/redux-utils';
-import { AcquiredDevice, TrezorDevice } from '@suite-common/suite-types';
+import { type AcquiredDevice, type TrezorDevice } from '@suite-common/suite-types';
 import {
     getDeviceInstances,
     getFirstDeviceInstance,
@@ -23,7 +23,7 @@ import {
 } from '@suite-common/suite-utils';
 import { removeThpCredentialsThunk } from '@suite-common/thp';
 import { notificationsActions } from '@suite-common/toast-notifications';
-import { AccountKey } from '@suite-common/wallet-types';
+import { type AccountKey } from '@suite-common/wallet-types';
 import {
     getAddressType,
     getDerivationType,
@@ -32,11 +32,11 @@ import {
     getStakingPath,
 } from '@suite-common/wallet-utils';
 import TrezorConnect, {
-    Address,
-    CardanoAddress,
-    Response as ConnectResponse,
+    type Address,
+    type CardanoAddress,
+    type Response as ConnectResponse,
     DEVICE,
-    Device,
+    type Device,
     asBluetoothDeviceId,
 } from '@trezor/connect';
 import { getEnvironment } from '@trezor/env-utils';
@@ -55,26 +55,10 @@ import { selectIsDeviceAutoEjectEnabled } from '../settings/walletSettingsReduce
  */
 export const handleDeviceDisconnect = createThunk(
     `${DEVICE_MODULE_PREFIX}/handleDeviceDisconnect`,
-    (device: Device | TrezorDevice, { dispatch, getState, extra }) => {
-        const {
-            selectors: { selectRouterApp },
-        } = extra;
-
+    (device: Device | TrezorDevice, { dispatch, getState }) => {
         const selectedDevice = selectSelectedDevice(getState());
         if (!selectedDevice) return;
         if (selectedDevice.path !== device.path) return;
-
-        const routerApp = selectRouterApp(getState());
-
-        /**
-         * Under normal circumstances, after device is disconnected we want suite to select another existing device (either remembered or physically connected)
-         * This is not the case in firmware update and onboarding; In this case we simply wan't suite.device to be empty until user reconnects a device again
-         */
-        if (['onboarding', 'firmware', 'firmware-type'].includes(routerApp)) {
-            dispatch(selectDeviceThunk({ device: undefined }));
-
-            return;
-        }
 
         const devices = selectDevices(getState());
 
@@ -432,6 +416,23 @@ export const forgetSingleDevicePersistentDataThunk = createThunk(
         if (credentials !== undefined) {
             await dispatch(removeThpCredentialsThunk({ device, credentials })).unwrap();
         }
+    },
+);
+
+export const forgetDeviceThunk = createThunk(
+    `${DEVICE_MODULE_PREFIX}/forgetDevice`,
+    async (_, { dispatch, getState }) => {
+        const device = selectSelectedDevice(getState());
+        if (!device) return;
+
+        const devices = selectDevices(getState());
+        const deviceInstances = getDeviceInstances(device, devices);
+
+        await dispatch(forgetSingleDevicePersistentDataThunk({ deviceId: device.id }));
+
+        deviceInstances.forEach(instance => {
+            dispatch(deviceActions.forgetDevice({ device: instance }));
+        });
     },
 );
 

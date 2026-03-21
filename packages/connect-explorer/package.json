@@ -8,7 +8,8 @@
         "build": "NODE_OPTIONS=\"--no-experimental-global-navigator\" next build && rm -rf build && mv out build",
         "build:webextension": "BUILD_TARGET=webextension yarn build && yarn g:rimraf build-webextension && TS_NODE_PROJECT=\"tsconfig.json\" yarn webpack --config ./webpack/webextension.webpack.config.ts && bash ./webpack/replace-next-filenames.sh",
         "lint:styles": "npx stylelint './src/**/*{.ts,.tsx}' --cache --config ../../.stylelintrc",
-        "type-check": "yarn g:tsc --build tsconfig.json"
+        "type-check": "yarn g:tsc --build tsconfig.json",
+        "lint:js": "yarn g:eslint '**/*.{ts,tsx,js}'"
     },
     "dependencies": {
         "@codemirror/state": "^6.4.1",
@@ -32,8 +33,8 @@
         "next-themes": "^0.3.0",
         "nextra": "^2.13.4",
         "nextra-theme-docs": "^2.13.4",
-        "react": "19.1.0",
-        "react-dom": "19.1.0",
+        "react": "19.2.4",
+        "react-dom": "19.2.4",
         "react-inspector": "^6.0.2",
         "react-markdown": "^10.1.0",
         "react-medium-image-zoom": "^5.4.0",

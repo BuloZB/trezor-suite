@@ -1,6 +1,6 @@
 import { selectIsDeviceLocked } from '@suite/locks';
 import { openModal } from '@suite/modal';
-import { selectRouteName } from '@suite/router';
+import { goto, selectRouteName } from '@suite/router';
 import { selectDevices, selectSelectedDevice } from '@suite-common/device';
 import { isDevEnv } from '@suite-common/suite-utils';
 import { notificationsActions } from '@suite-common/toast-notifications';
@@ -10,13 +10,13 @@ import {
     selectAccountByKey,
     transactionsActions,
 } from '@suite-common/wallet-core';
-import { Account, AccountKey } from '@suite-common/wallet-types';
+import { type Account, type AccountKey } from '@suite-common/wallet-types';
 import {
     getAccountTransactions,
     sortByBIP44AddressIndex,
     substituteBip43Path,
 } from '@suite-common/wallet-utils';
-import { BroadcastedTransactionDetails, ScanAccountProgress } from '@trezor/coinjoin';
+import { type BroadcastedTransactionDetails, type ScanAccountProgress } from '@trezor/coinjoin';
 import TrezorConnect from '@trezor/connect';
 import { promiseAllSequence } from '@trezor/utils';
 
@@ -34,12 +34,12 @@ import {
 } from 'src/reducers/wallet/coinjoinReducer';
 import { COORDINATOR_FEE_RATE_MULTIPLIER, CoinjoinService } from 'src/services/coinjoin';
 import type { CoinjoinSymbol } from 'src/services/coinjoin';
-import { Dispatch, GetState } from 'src/types/suite';
+import { type Dispatch, type GetState } from 'src/types/suite';
 import {
-    CoinjoinAccount,
-    CoinjoinConfig,
-    CoinjoinDiscoveryCheckpoint,
-    CoinjoinSessionParameters,
+    type CoinjoinAccount,
+    type CoinjoinConfig,
+    type CoinjoinDiscoveryCheckpoint,
+    type CoinjoinSessionParameters,
 } from 'src/types/wallet/coinjoin';
 import {
     getAccountProgressHandle,
@@ -48,7 +48,6 @@ import {
 } from 'src/utils/wallet/coinjoinUtils';
 
 import * as coinjoinClientActions from './coinjoinClientActions';
-import { goto } from '../suite/routerActions';
 import * as COINJOIN from './constants/coinjoinConstants';
 
 export const coinjoinAccountUpdateAnonymity = (accountKey: string, targetAnonymity: number) =>
@@ -638,7 +637,8 @@ export const createCoinjoinAccount =
 
         // switch to account
         dispatch(
-            goto('wallet-index', {
+            goto({
+                routeName: 'wallet-index',
                 params: {
                     symbol: network.symbol,
                     accountType: account.accountType,
@@ -751,7 +751,7 @@ export const startCoinjoinSession =
                 }),
             );
             // switch to account
-            dispatch(goto('wallet-index', { preserveParams: true }));
+            dispatch(goto({ routeName: 'wallet-index', preserveParams: true }));
         }
 
         dispatch(coinjoinSessionStarting(account.key, false));
