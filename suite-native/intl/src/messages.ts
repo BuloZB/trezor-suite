@@ -251,22 +251,16 @@ export const messages = {
                 secondaryButton: 'Device removed',
             },
             systemUnpairing: {
-                title: {
-                    android: 'Remove Trezor from system settings',
-                    ios: 'Remove Trezor from Bluetooth settings',
-                },
-                description: {
-                    android:
-                        'To unpair fully, make sure you remove your Trezor from your phone’s Bluetooth settings. If not, you might have trouble pairing it again in the future.',
-                    ios: 'If not, you might have trouble pairing it again in the future.',
-                },
+                title: 'Remove from Bluetooth settings',
+                description:
+                    'Remove your Trezor from your Bluetooth settings. If you don’t, you might have trouble pairing it again in the future.',
                 primaryButton: 'Open system settings',
                 secondaryButton: 'Device removed',
             },
-            pairingInstructions: {
+            unpairingInstructions: {
                 step1: 'Go to Settings > Bluetooth',
-                step2: 'Find your Trezor and tap on ⓘ',
-                step3: 'Tap “Forget device”',
+                step2: 'Find Trezor and tap on ⓘ',
+                step3: 'Tap “Forget this device”',
             },
         },
         toasts: {
@@ -846,6 +840,40 @@ export const messages = {
             successToast: 'Auto-connect turned on.',
             errorToast: 'Auto-connect failed to turn on.',
         },
+        forgetDevice: {
+            title: 'Forget device',
+            description:
+                'Permanently delete all data related to your Trezor from this phone, including Bluetooth pairing and connection settings.',
+            info: {
+                title: 'Forget this Trezor?',
+                list: {
+                    item1: 'Trezor Suite will forget any existence of this device.',
+                    item2: 'Bluetooth pairing will be removed and Trezor will be disconnected.',
+                    item3: 'Your wallet backup and funds stay intact—they won’t be erased.',
+                },
+                submitButton: 'Forget device',
+            },
+            guide: {
+                title: 'Remove from Bluetooth settings',
+                step1: {
+                    header: 'On your phone',
+                    description:
+                        'Remove your Trezor from your <link>Bluetooth settings</link>. If you don’t, you might have trouble pairing it again in the future.',
+                },
+                step2: {
+                    header: 'On your Trezor',
+                    description:
+                        'Go to Pair & Connect and remove your phone. This will prevent connection errors later.',
+                },
+                continueButton: 'I’ve removed it',
+            },
+            finish: {
+                title: 'Finish forgetting this Trezor',
+                subtitle: 'Disconnect your Trezor device from the phone.',
+            },
+            successToast: 'Device forgotten',
+            disconnect: 'Disconnect\nyour Trezor',
+        },
         pinProtection: {
             title: 'PIN protection',
             content: 'PIN protects your device against physical attack.',
@@ -945,14 +973,6 @@ export const messages = {
                 title: 'Factory reset',
                 description: 'This will erase all data on your Trezor. Proceed with caution.',
             },
-        },
-        bluetooth: {
-            title: 'Unpair Bluetooth connection',
-            content: 'Unpair your Trezor from this device',
-            unpairTrezorButton: 'Unpair',
-            description:
-                'This removes your Trezor from the list of paired devices in Trezor Suite.',
-            successMessage: 'Trezor has been unpaired.',
         },
         firmware: {
             title: 'Firmware',
@@ -2557,13 +2577,13 @@ export const messages = {
             max: 'Maximum is {max}',
             noQuotes: 'No offers available for your request. Change amount or currency.',
             insufficientBalance: 'Insufficient balance',
+            networkReserve: 'Not enough {displaySymbol} after network fees',
         },
         tradingExchangePreviewScreen: {
             title: 'Swap',
             fromAccount: 'From',
             toAccount: 'To',
             details: 'Transaction details',
-            feeLabel: 'Fee',
             providerNamePlaceholder: 'Provider',
             providerReceiveAddressLabel: "{providerName}'s receive address",
             confirmationAlertTitle: 'Failed to confirm offer.',
@@ -2614,8 +2634,10 @@ export const messages = {
         confirmApprovalError: 'Failed to confirm approval. Please try again.',
         tradingExchangeApprovalScreen: {
             title: 'Set {symbol} spending',
+            approveTitle: 'Approve {symbol} spending',
             subtitle:
                 'Set the {symbol} amount to approve so {companyName} can access it. This is required to continue with your swap.',
+            approveSubtitle: 'Approve provider to spend your {symbol} to swap.',
             revokeSuccessAlert: 'Revoke successful. Set a higher limit.',
             lowLimitInfoAlert:
                 'You’ve approved this token, but the limit is too low. Increase it to continue.',
@@ -2625,6 +2647,7 @@ export const messages = {
             unlimitedLabel: 'Unlimited',
             limitInfo:
                 'Skip future approvals and pay less fees. {companyName} will gain full access to your {symbol}.',
+            approveErrorAlert: 'Error approving token. Please try again later.',
         },
         tradingExchangeRevokeScreen: {
             title: 'Revoke {symbol} approval',
@@ -2648,12 +2671,11 @@ export const messages = {
         exchangeApprovalLimitSheet: {
             title: 'Set limit',
             unlimitedCard: {
-                description:
-                    'Approve unlimited {symbol} to skip future approval requests and reduce fees. Only use this option if you trust {companyName}, as it will have access to all your {symbol}.',
+                info: 'Approve once and avoid future network fees. This provider can spend any amount until you revoke the approval.',
+                alert: 'If the provider is compromised, all your {coinSymbol} may be taken.',
             },
             limitedCard: {
-                description:
-                    "Approve only the amount needed for this swap. This helps reduce risk, but you'll need to approve again (and pay a fee) for future swaps.",
+                info: 'Approve this amount for the provider. Valid until fully used or revoked. Then a new approval and network fee will be required.',
             },
         },
         exchangeTradePreviewCard: {

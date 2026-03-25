@@ -1,3 +1,5 @@
+import type { JSX } from 'react';
+
 import styled from 'styled-components';
 
 import {
@@ -8,6 +10,7 @@ import {
     H3,
     Icon,
     type IconProps,
+    Paragraph,
     type SuiteThemeColors,
     Text,
     Tooltip,
@@ -17,10 +20,116 @@ import {
 import type { EventDoc } from '../types';
 import type { VersionWithEvents } from '../utils/filterUtils';
 
-const isAdded = (event: EventDoc, version: string) => event.changelog?.addedInVersion === version;
+type ChangeInfo = {
+    isEventAdded: boolean;
+    isEventUpdated: boolean;
+    addedAttributes: string[];
+    updatedAttributes: string[];
+};
 
-const getEventChangeProps = (event: EventDoc, version: string) =>
-    isAdded(event, version)
+const getChangeInfo = (event: EventDoc, version: string): ChangeInfo => {
+    const info: ChangeInfo = {
+        isEventAdded: false,
+        isEventUpdated: false,
+        addedAttributes: [],
+        updatedAttributes: [],
+    };
+
+    const eventAddedVersion = event.changelog?.addedInVersion;
+    const isEventAddedInThisVersion = eventAddedVersion === version;
+
+    const eventChanges = event.changelog?.entries?.filter(e => e.version === version);
+    if (eventChanges && eventChanges.length > 0) {
+        if (isEventAddedInThisVersion) {
+            info.isEventAdded = true;
+        } else {
+            info.isEventUpdated = true;
+        }
+    }
+
+    for (const [attrName, attrDoc] of Object.entries(event.attributes)) {
+        const attrChanges = attrDoc.changelog?.entries?.filter(e => e.version === version);
+        if (attrChanges && attrChanges.length > 0) {
+            const attrAddedVersion = attrDoc.changelog?.addedInVersion;
+            const isAttrAddedInThisVersion = attrAddedVersion === version;
+
+            if (isAttrAddedInThisVersion && isEventAddedInThisVersion) {
+                continue;
+            }
+
+            if (isAttrAddedInThisVersion) {
+                info.addedAttributes.push(attrName);
+            } else {
+                info.updatedAttributes.push(attrName);
+            }
+        }
+    }
+
+    if (
+        !info.isEventAdded &&
+        !info.isEventUpdated &&
+        (info.addedAttributes.length > 0 || info.updatedAttributes.length > 0)
+    ) {
+        info.isEventUpdated = true;
+    }
+
+    return info;
+};
+
+const getTooltipContent = (changeInfo: ChangeInfo) => {
+    const elements: JSX.Element[] = [];
+
+    if (changeInfo.isEventAdded) {
+        elements.push(
+            <Paragraph key="event-added" typographyStyle="body-sm-strong">
+                Event added.
+            </Paragraph>,
+        );
+    }
+
+    if (changeInfo.isEventUpdated) {
+        elements.push(
+            <Paragraph key="event-updated" typographyStyle="body-sm-strong">
+                Event updated.
+            </Paragraph>,
+        );
+    }
+
+    if (changeInfo.addedAttributes.length > 0) {
+        elements.push(
+            <Paragraph key="attrs-added-title" typographyStyle="body-sm-strong">
+                Attribute{changeInfo.addedAttributes.length > 1 ? 's' : ''} added:
+            </Paragraph>,
+        );
+        changeInfo.addedAttributes.forEach(attr => {
+            elements.push(
+                <Paragraph key={`added-${attr}`} typographyStyle="body-xs" margin={{ left: 8 }}>
+                    - {attr}
+                </Paragraph>,
+            );
+        });
+    }
+
+    if (changeInfo.updatedAttributes.length > 0) {
+        elements.push(
+            <Paragraph key="attrs-updated-title" typographyStyle="body-sm-strong">
+                Attribute{changeInfo.updatedAttributes.length > 1 ? 's' : ''} updated:
+            </Paragraph>,
+        );
+        changeInfo.updatedAttributes.forEach(attr => {
+            elements.push(
+                <Paragraph key={`updated-${attr}`} typographyStyle="body-xs" margin={{ left: 8 }}>
+                    - <Text isMonospaced>{attr}</Text>
+                </Paragraph>,
+            );
+        });
+    }
+
+    return <Column gap={4}>{elements}</Column>;
+};
+
+const getEventChangeProps = (changeInfo: ChangeInfo) =>
+    changeInfo.isEventAdded
         ? { name: 'plus' as const, intent: 'brand' as const }
         : { name: 'arrowsClockwiseFilled' as const, intent: 'warning' as const };
 
@@ -72,26 +181,28 @@ export const VersionsSidebar = ({ versionsWithEvents, onEventClick }: VersionsSi
                             .sort((a: EventDoc, b: EventDoc) =>
                                 (a.name ?? '').localeCompare(b.name ?? ''),
                             )
-                            .map(event => (
-                                <CardList.Item
-                                    paddingType="small"
-                                    onClick={() => {
-                                        onEventClick?.(event.name);
-                                    }}
-                                    key={event.name}
-                                >
-                                    <Text typographyStyle="body-xs">{event.name}</Text>
+                            .map(event => {
+                                const changeInfo = getChangeInfo(event, version);
 
-                                    <Tooltip
-                                        content={isAdded(event, version) ? 'Added' : 'Updated'}
+                                return (
+                                    <CardList.Item
+                                        paddingType="small"
+                                        onClick={() => {
+                                            onEventClick?.(event.name);
+                                        }}
+                                        key={event.name}
                                     >
-                                        <Icon
-                                            {...(getEventChangeProps(event, version) as IconProps)}
-                                            size={12}
-                                        />
-                                    </Tooltip>
-                                </CardList.Item>
-                            ))}
+                                        <Text typographyStyle="body-xs">{event.name}</Text>
+
+                                        <Tooltip content={getTooltipContent(changeInfo)}>
+                                            <Icon
+                                                {...(getEventChangeProps(changeInfo) as IconProps)}
+                                                size={12}
+                                            />
+                                        </Tooltip>
+                                    </CardList.Item>
+                                );
+                            })}
                     </CardList>
                 </Box>
             ))}

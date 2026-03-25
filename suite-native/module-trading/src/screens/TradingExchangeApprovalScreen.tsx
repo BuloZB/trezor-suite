@@ -5,7 +5,6 @@ import {
     type TradingRootState,
     selectTradingCoinSymbolByCryptoId,
     selectTradingExchangeActiveQuote,
-    selectTradingProviderByNameAndTradeType,
     tradingExchangeActions,
 } from '@suite-common/trading';
 import { InlineAlertBox, VStack } from '@suite-native/atoms';
@@ -14,15 +13,14 @@ import {
     DynamicScreenHeader,
     type RootStackParamList,
     Screen,
+    ScreenHeader,
     type StackToStackCompositeScreenProps,
     type TradingStackParamList,
     type TradingStackRoutes,
 } from '@suite-native/navigation';
-import { selectExchangeSelectedSendAccount } from '@suite-native/trading-state';
 
 import { ApprovalButton } from '../components/exchange/Approval/ApprovalButton';
-import { ExchangeApprovalDetailsCard } from '../components/exchange/Approval/ExchangeApprovalDetailsCard';
-import { ExchangeApprovalForCard } from '../components/exchange/Approval/ExchangeApprovalForCard';
+import { ExchangeApprovalDetails } from '../components/exchange/Approval/ExchangeApprovalDetails';
 import { useApprovalFlow } from '../hooks/exchange/Approval/useApprovalFlow';
 import { useEvmApprovalFees } from '../hooks/exchange/Approval/useEvmApprovalFees';
 
@@ -41,11 +39,6 @@ export const TradingExchangeApprovalScreen = ({
     const quote = useSelector(selectTradingExchangeActiveQuote);
 
     const { isConfirming, error: confirmError, confirmApproval } = useApprovalFlow();
-    const sendAccount = useSelector(selectExchangeSelectedSendAccount);
-
-    const providerInfo = useSelector((state: TradingRootState) =>
-        selectTradingProviderByNameAndTradeType(state, quote?.exchange, 'exchange'),
-    );
 
     const coinSymbol = useSelector((state: TradingRootState) =>
         selectTradingCoinSymbolByCryptoId(state, quote?.send),
@@ -77,7 +70,16 @@ export const TradingExchangeApprovalScreen = ({
     );
 
     if (!quote) {
-        return null;
+        return (
+            <Screen header={<ScreenHeader closeActionType="back" />}>
+                <InlineAlertBox
+                    title={
+                        <Translation id="moduleTrading.tradingExchangeApprovalScreen.approveErrorAlert" />
+                    }
+                    variant="critical"
+                />
+            </Screen>
+        );
     }
 
     return (
@@ -86,27 +88,28 @@ export const TradingExchangeApprovalScreen = ({
                 <DynamicScreenHeader
                     title={
                         <Translation
-                            id="moduleTrading.tradingExchangeApprovalScreen.title"
+                            id="moduleTrading.tradingExchangeApprovalScreen.approveTitle"
                             values={{ symbol: coinSymbol }}
                         />
                     }
                     subtitle={
                         <Translation
-                            id="moduleTrading.tradingExchangeApprovalScreen.subtitle"
-                            values={{ symbol: coinSymbol, companyName: providerInfo?.companyName }}
+                            id="moduleTrading.tradingExchangeApprovalScreen.approveSubtitle"
+                            values={{ symbol: coinSymbol }}
                         />
                     }
                     closeActionType="back"
                 />
             }
+            footer={<ApprovalButton isReady={isApprovalReady} isDisabled={!!error} />}
         >
-            <VStack spacing="sp16">
+            <VStack spacing="sp12">
                 {!!shouldIncreaseLimit && (
                     <InlineAlertBox
+                        variant="info"
                         title={
                             <Translation id="moduleTrading.tradingExchangeApprovalScreen.lowLimitInfoAlert" />
                         }
-                        variant="warning"
                     />
                 )}
 
@@ -119,14 +122,12 @@ export const TradingExchangeApprovalScreen = ({
                     />
                 )}
 
-                <ExchangeApprovalForCard />
-                <ExchangeApprovalDetailsCard
+                <ExchangeApprovalDetails
                     fee={fee}
                     isLoading={isLoading}
-                    networkSymbol={sendAccount?.symbol}
+                    exchange={quote.exchange}
                 />
             </VStack>
-            <ApprovalButton isReady={isApprovalReady} isDisabled={!!error} />
         </Screen>
     );
 };

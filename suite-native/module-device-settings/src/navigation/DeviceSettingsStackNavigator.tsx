@@ -16,15 +16,15 @@ import { DevicePassphraseStackNavigator } from './DevicePassphraseStackNavigator
 import { DevicePinProtectionStackNavigator } from './DevicePinProtectionStackNavigator';
 import { FirmwareLanguageStackNavigator } from './FirmwareLanguageStackNavigator';
 import { FirmwareUpdateStackNavigator } from './FirmwareUpdateStackNavigator';
+import { ForgetDeviceStackNavigator } from './ForgetDeviceStackNavigator';
 import { WipeDeviceStackNavigator } from './WipeDeviceStackNavigator';
 import { BackupAndPassphraseScreen } from '../screens/BackupAndPassphraseScreen';
-import { ContinueOnTrezorScreen } from '../screens/ContinueOnTrezorScreen';
 import { DeviceAuthenticityScreen } from '../screens/DeviceAuthenticityScreen';
 import { DeviceConnectionScreen } from '../screens/DeviceConnectionScreen';
 import { DeviceFirmwareScreen } from '../screens/DeviceFirmwareScreen';
 import { DeviceSettingsScreen } from '../screens/DeviceSettingsScreen';
+import { ForgetDeviceScreen } from '../screens/ForgetDeviceScreen';
 import { PinProtectionScreen } from '../screens/PinProtectionScreen';
-import { UnpairBluetoothDeviceScreen } from '../screens/UnpairBluetoothDeviceScreen';
 import { WipeDeviceScreen } from '../screens/WipeDeviceScreen';
 
 const DeviceSettingsStack = createNativeStackNavigator<DeviceSettingsStackParamList>();
@@ -47,8 +47,8 @@ export const DeviceSettingsStackNavigator = () => (
             component={DeviceConnectionScreen}
         />
         <DeviceSettingsStack.Screen
-            name={DeviceSettingsStackRoutes.UnpairBluetoothDevice}
-            component={UnpairBluetoothDeviceScreen}
+            name={DeviceSettingsStackRoutes.ForgetDevice}
+            component={ForgetDeviceScreen}
         />
         <DeviceSettingsStack.Screen
             name={DeviceSettingsStackRoutes.DevicePinProtection}
@@ -80,12 +80,12 @@ export const DeviceSettingsStackNavigator = () => (
                 component={FirmwareLanguageStackNavigator}
             />
             <DeviceSettingsStack.Screen
-                name={DeviceSettingsStackRoutes.ContinueOnTrezor}
-                component={ContinueOnTrezorScreen}
-            />
-            <DeviceSettingsStack.Screen
                 name={DeviceSettingsStackRoutes.DeviceAutoConnectStack}
                 component={DeviceAutoConnectStackNavigator}
+            />
+            <DeviceSettingsStack.Screen
+                name={DeviceSettingsStackRoutes.ForgetDeviceStack}
+                component={ForgetDeviceStackNavigator}
             />
             <DeviceSettingsStack.Screen
                 name={DeviceSettingsStackRoutes.DevicePinProtectionStack}

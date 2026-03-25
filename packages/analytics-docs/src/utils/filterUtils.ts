@@ -119,12 +119,16 @@ export type VersionWithEvents = {
     events: EventDoc[];
 };
 
-/** Returns versions (desc) with events that were changed in that version (every changelog entry). */
+/**
+ * Returns versions (desc) with events that were changed in that version.
+ *
+ */
 export const getVersionsWithEvents = (events: EventDoc[]): VersionWithEvents[] => {
     const versionToEvents = new Map<string, EventDoc[]>();
 
     for (const event of events) {
         const seenVersions = new Set<string>();
+
         for (const entry of event.changelog?.entries ?? []) {
             const v = entry.version;
             if (!v || seenVersions.has(v)) continue;
@@ -132,6 +136,17 @@ export const getVersionsWithEvents = (events: EventDoc[]): VersionWithEvents[] =
             const list = versionToEvents.get(v) ?? [];
             list.push(event);
             versionToEvents.set(v, list);
+        }
+
+        for (const attribute of Object.values(event.attributes)) {
+            for (const entry of attribute.changelog?.entries ?? []) {
+                const v = entry.version;
+                if (!v || seenVersions.has(v)) continue;
+                seenVersions.add(v);
+                const list = versionToEvents.get(v) ?? [];
+                list.push(event);
+                versionToEvents.set(v, list);
+            }
         }
     }
 

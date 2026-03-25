@@ -1,24 +1,29 @@
 import { useCallback, useEffect } from 'react';
 
+import {
+    selectAutodetectLanguage,
+    selectAutodetectTheme,
+    selectLanguage,
+    selectTheme,
+    suiteSettingsActions,
+} from '@suite/settings';
 import { type Locale } from '@suite-common/suite-types';
 
-import * as languageActions from 'src/actions/settings/languageActions';
-import { setTheme as setThemeAction } from 'src/actions/suite/suiteActions';
 import { useDispatch, useSelector } from 'src/hooks/suite';
 import { getOsTheme, watchOsTheme } from 'src/utils/suite/env';
 import { getOsLocale, watchOsLocale } from 'src/utils/suite/l10n';
 
 const Autodetect = () => {
-    const autodetectTheme = useSelector(state => state.suite.settings.autodetect.theme);
-    const autodetectLanguage = useSelector(state => state.suite.settings.autodetect.language);
-    const currentTheme = useSelector(state => state.suite.settings.theme.variant);
-    const currentLanguage = useSelector(state => state.suite.settings.language);
+    const autodetectTheme = useSelector(selectAutodetectTheme);
+    const autodetectLanguage = useSelector(selectAutodetectLanguage);
+    const currentTheme = useSelector(selectTheme);
+    const currentLanguage = useSelector(selectLanguage);
 
     const dispatch = useDispatch();
 
     const setLanguage = useCallback(
         (language: Locale) => {
-            dispatch(languageActions.setLanguage(language));
+            dispatch(suiteSettingsActions.setLanguage(language));
         },
         [dispatch],
     );
@@ -27,9 +32,9 @@ const Autodetect = () => {
         if (!autodetectTheme) return;
         const osTheme = getOsTheme();
         if (osTheme !== currentTheme) {
-            dispatch(setThemeAction(osTheme));
+            dispatch(suiteSettingsActions.setTheme(osTheme));
         }
-        const unwatch = watchOsTheme(setThemeAction);
+        const unwatch = watchOsTheme(suiteSettingsActions.setTheme);
 
         return () => unwatch();
     }, [autodetectTheme, currentTheme, dispatch]);

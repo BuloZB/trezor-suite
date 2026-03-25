@@ -118,22 +118,6 @@ const reducerActions = [
             },
         ],
     },
-    {
-        description: `SUITE.SET_LANGUAGE`,
-        actions: [
-            {
-                type: SUITE.SET_LANGUAGE,
-                locale: 'cz',
-            },
-        ],
-        result: [
-            {
-                settings: {
-                    language: 'cz',
-                },
-            },
-        ],
-    },
 ];
 
 const selectDevice = [

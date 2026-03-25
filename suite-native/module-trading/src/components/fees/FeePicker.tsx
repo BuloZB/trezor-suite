@@ -1,38 +1,57 @@
-import { type NetworkSymbol } from '@suite-common/wallet-config';
-import { HStack, Text } from '@suite-native/atoms';
-import { CryptoToFiatAmountFormatter } from '@suite-native/formatters';
+import { type NetworkSymbol, getNetworkType } from '@suite-common/wallet-config';
+import { HStack, Text, VStack } from '@suite-native/atoms';
+import { CryptoAmountFormatter, CryptoToFiatAmountFormatter } from '@suite-native/formatters';
 import { Icon } from '@suite-native/icons';
-import { Translation } from '@suite-native/intl';
 import { TradeInfoRow } from '@suite-native/trading-atoms';
+import { FeeLabelTranslation } from '@suite-native/transaction-management';
 
 type FeePickerProps = {
     fee: string;
     symbol: NetworkSymbol;
     onPress: () => void;
     isLoading?: boolean;
+    noBorder?: boolean;
 };
 
 export const FEE_PICKER_TEST_ID = '@trading/fees/fee-picker';
 
-export const FeePicker = ({ fee, symbol, onPress, isLoading = false }: FeePickerProps) => (
-    <TradeInfoRow onPress={onPress} testID={FEE_PICKER_TEST_ID}>
+export const FeePicker = ({
+    fee,
+    symbol,
+    onPress,
+    isLoading = false,
+    noBorder,
+}: FeePickerProps) => (
+    <TradeInfoRow onPress={onPress} testID={FEE_PICKER_TEST_ID} noBorder={noBorder}>
         <Text variant="body-sm">
-            <Translation id="moduleTrading.tradingExchangePreviewScreen.feeLabel" />
+            <FeeLabelTranslation networkType={getNetworkType(symbol)} />
         </Text>
-        <HStack alignItems="center" spacing="sp8">
-            {!isLoading && (
-                <Text variant="body-sm" color="textSubdued">
-                    ≈
-                </Text>
-            )}
-            <CryptoToFiatAmountFormatter
-                variant="body-sm"
-                color="textDefault"
-                value={fee}
-                symbol={symbol}
-                isLoading={isLoading}
-            />
-            <Icon name="caretRight" size="medium" testID="caret-right-icon" />
+        <HStack alignItems="center">
+            <VStack alignItems="flex-end" spacing="sp2">
+                <CryptoAmountFormatter
+                    value={fee}
+                    symbol={symbol}
+                    isBalance={false}
+                    isLoading={isLoading}
+                    variant="body-sm"
+                    color="textDefault"
+                />
+                <HStack alignItems="center" spacing="sp8">
+                    {!isLoading && (
+                        <Text variant="body-sm" color="textSubdued">
+                            ≈
+                        </Text>
+                    )}
+                    <CryptoToFiatAmountFormatter
+                        variant="body-sm"
+                        color="textSubdued"
+                        value={fee}
+                        symbol={symbol}
+                        isLoading={isLoading}
+                    />
+                </HStack>
+            </VStack>
+            <Icon name="caretDown" size="medium" testID="caret-down-icon" />
         </HStack>
     </TradeInfoRow>
 );

@@ -3003,6 +3003,36 @@ export const messages = defineMessages({
         description: 'Title for the Scan QR modal dialog',
         id: 'TR_SCAN_QR_CODE',
     },
+    TR_QR_TAB_CAMERA: {
+        defaultMessage: 'Camera',
+        description: 'Tab label for camera QR scanning',
+        id: 'TR_QR_TAB_CAMERA',
+    },
+    TR_QR_TAB_IMAGE: {
+        defaultMessage: 'Image',
+        description: 'Tab label for image QR scanning',
+        id: 'TR_QR_TAB_IMAGE',
+    },
+    TR_QR_DROPZONE_LABEL: {
+        defaultMessage: 'Drag & drop an image with QR code here or click to browse',
+        description: 'Label for QR code image drop zone',
+        id: 'TR_QR_DROPZONE_LABEL',
+    },
+    TR_QR_PASTE_HINT: {
+        defaultMessage: 'You can also paste an image from clipboard',
+        description: 'Hint about pasting QR code image from clipboard',
+        id: 'TR_QR_PASTE_HINT',
+    },
+    TR_QR_DECODING: {
+        defaultMessage: 'Decoding QR code...',
+        description: 'Loading message while decoding QR from image',
+        id: 'TR_QR_DECODING',
+    },
+    TR_QR_NOT_FOUND: {
+        defaultMessage: 'No QR code found in the image',
+        description: 'Error when QR code cannot be decoded from image',
+        id: 'TR_QR_NOT_FOUND',
+    },
     TR_YOUR_WALLET_SUCCESSFULLY_CREATED: {
         defaultMessage: 'Wallet created successfully',
         id: 'TR_YOUR_WALLET_SUCCESSFULLY_CREATED',
@@ -5191,6 +5221,24 @@ export const messages = defineMessages({
     TR_EXPERIMENTAL_SUITE_SYNC_TITLE: {
         id: 'TR_EXPERIMENTAL_SUITE_SYNC_TITLE',
         defaultMessage: 'Suite Sync',
+    },
+    TR_TRON_BANDWIDTH: {
+        id: 'TR_TRON_BANDWIDTH',
+        defaultMessage: 'Bandwidth',
+    },
+    TR_TRON_ENERGY: {
+        id: 'TR_TRON_ENERGY',
+        defaultMessage: 'Energy',
+    },
+    TR_TRON_BANDWIDTH_TOOLTIP: {
+        id: 'TR_TRON_BANDWIDTH_TOOLTIP',
+        defaultMessage:
+            'Used for basic transactions like sending TRX. If you run out, TRX is burned as a network fee. Refills within 24 hours.',
+    },
+    TR_TRON_ENERGY_TOOLTIP: {
+        id: 'TR_TRON_ENERGY_TOOLTIP',
+        defaultMessage:
+            'Used for smart contract actions like sending tokens. If you run out, TRX is burned as a network fee. Refills within 24 hours.',
     },
     TR_EXPERIMENTAL_TRON_VIEW_ONLY: {
         id: 'TR_EXPERIMENTAL_TRON_VIEW_ONLY',

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { type NetworkSymbol } from '@suite-common/wallet-config';
+import { getTranslation } from '@suite-native/intl';
 import { renderWithStoreProvider, userEvent } from '@suite-native/test-utils';
 
 import { FEE_PICKER_TEST_ID, FeePicker } from '../FeePicker';
@@ -31,10 +32,20 @@ describe('FeePicker', () => {
         jest.clearAllMocks();
     });
 
-    it('should render fee label', () => {
+    it('should render fee label for bitcoin', () => {
         const { getByText } = renderFeePicker();
 
-        expect(getByText('Fee')).toBeTruthy();
+        expect(
+            getByText(getTranslation('transactionManagement.fees.description.title.general')),
+        ).toBeOnTheScreen();
+    });
+
+    it('should render fee label for ethereum', () => {
+        const { getByText } = renderFeePicker({ symbol: 'eth' as NetworkSymbol });
+
+        expect(
+            getByText(getTranslation('transactionManagement.fees.description.title.ethereum')),
+        ).toBeOnTheScreen();
     });
 
     it('should render fee value with correct symbol', () => {
@@ -45,14 +56,15 @@ describe('FeePicker', () => {
         });
 
         // Should show the formatted fee value
-        expect(getByText('$0.00')).toBeTruthy();
+        expect(getByText('$0.00')).toBeOnTheScreen();
+        expect(getByText('0.000000000000005 ETH')).toBeOnTheScreen();
     });
 
     it('should render caret right icon', () => {
         const { getByTestId } = renderFeePicker();
 
-        const icon = getByTestId('caret-right-icon');
-        expect(icon).toBeTruthy();
+        const icon = getByTestId('caret-down-icon');
+        expect(icon).toBeOnTheScreen();
     });
 
     it('should render clickable component', async () => {
@@ -68,25 +80,26 @@ describe('FeePicker', () => {
     });
 
     it('should show loading state when isLoading is true', () => {
-        const { getByTestId } = renderFeePicker({ isLoading: true });
+        const { getAllByTestId } = renderFeePicker({ isLoading: true });
 
         // When loading, should show skeleton
-        const skeleton = getByTestId('BoxSkeleton');
-        expect(skeleton).toBeTruthy();
+        const skeleton = getAllByTestId('BoxSkeleton');
+        expect(skeleton.length).toBe(2);
     });
 
     it('should not show loading state when isLoading is false', () => {
         const { getByText } = renderFeePicker({ isLoading: false });
 
         // When not loading, should show the formatted fee value
-        expect(getByText('$0.50')).toBeTruthy();
+        expect(getByText('$0.50')).toBeOnTheScreen();
+        expect(getByText('0.00001 BTC')).toBeOnTheScreen();
     });
 
     it('should not show loading state when isLoading is undefined', () => {
         const { getByText } = renderFeePicker();
 
         // When isLoading is undefined, should show the formatted fee value
-        expect(getByText('$0.50')).toBeTruthy();
+        expect(getByText('$0.50')).toBeOnTheScreen();
     });
 
     it.each(['btc', 'eth', 'ltc', 'bch', 'doge'])(
@@ -97,7 +110,7 @@ describe('FeePicker', () => {
                 isLoading: false,
             });
             // Each symbol should show a formatted value
-            expect(getByText(/\$\d+\.\d{2}/)).toBeTruthy();
+            expect(getByText(/\$\d+\.\d{2}/)).toBeOnTheScreen();
         },
     );
 
@@ -109,13 +122,13 @@ describe('FeePicker', () => {
                 isLoading: false,
             });
             // Each fee should be formatted and displayed
-            expect(getByText(/\$\d+\.\d{2}/)).toBeTruthy();
+            expect(getByText(/\$\d+\.\d{2}/)).toBeOnTheScreen();
         },
     );
 
     it('should render the approximate symbol', () => {
         const { getByText } = renderFeePicker();
 
-        expect(getByText('≈')).toBeTruthy();
+        expect(getByText('≈')).toBeOnTheScreen();
     });
 });

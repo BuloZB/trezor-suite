@@ -1,3 +1,4 @@
+import { selectSuiteSettings } from '@suite/settings';
 import { selectKnownDevices } from '@suite-common/bluetooth';
 import { deviceActions, selectDevices, selectPersistentDeviceData } from '@suite-common/device';
 import { type MetadataState } from '@suite-common/metadata-types';
@@ -94,7 +95,7 @@ export const saveCoinjoinAccount =
     };
 
 const removeCoinjoinRelatedSetting = (state: AppState) => {
-    const settings = { ...state.suite.settings };
+    const settings = { ...selectSuiteSettings(state) };
 
     settings.isCoinjoinReceiveWarningHidden = false;
 
@@ -391,17 +392,15 @@ export const saveSuiteSettings =
     () =>
     (_dispatch: Dispatch, getState: GetState): Promise<void> => {
         if (!db.isAccessible()) return Promise.resolve();
-        const { suite, flags } = getState();
+        const { suite, suiteSettings, flags } = getState();
 
         const result = db.addItem(
             'suiteSettings',
             {
                 settings: {
-                    ...suite.settings,
+                    ...suiteSettings,
                     // Temporary measure to always start Suite with password manager off
-                    experimental: suite.settings.experimental?.filter(
-                        e => e !== 'password-manager',
-                    ),
+                    experimental: suiteSettings.experimental?.filter(e => e !== 'password-manager'),
                 },
                 flags,
                 evmSettings: suite.evmSettings,

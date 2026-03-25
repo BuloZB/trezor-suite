@@ -7,13 +7,13 @@ import type {
     TokenTransfer,
     Transaction,
     Utxo,
+    VinVout,
 } from '@trezor/blockchain-link-types';
 import type {
     AccountInfo as BlockbookAccountInfo,
     AccountUtxo as BlockbookAccountUtxo,
     Transaction as BlockbookTransaction,
     ServerInfo,
-    VinVout,
 } from '@trezor/blockchain-link-types/src/blockbook';
 import { BigNumber } from '@trezor/utils/src/bigNumber';
 
@@ -379,7 +379,11 @@ export const transformAccountInfo = (payload: BlockbookAccountInfo): AccountInfo
     // However, the nonce is specific to Ethereum, so we can determine the network type based on its availability.
     const isEVM = typeof payload.nonce === 'string';
     let misc: AccountInfo['misc'];
-    if (isEVM) {
+    if (payload.chainExtraData?.payloadType === 'tron') {
+        misc = {
+            tronResources: payload.chainExtraData.payload,
+        };
+    } else if (isEVM) {
         misc = {
             nonce: payload.nonce,
             contractInfo: payload.contractInfo,

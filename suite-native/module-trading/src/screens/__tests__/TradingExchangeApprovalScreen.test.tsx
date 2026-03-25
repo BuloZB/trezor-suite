@@ -1,7 +1,7 @@
 import { type RouteProp } from '@react-navigation/native';
 
 import { selectTradingExchangeSelectedQuote, tradingExchangeActions } from '@suite-common/trading';
-import { type AccountKey } from '@suite-common/wallet-types';
+import { getTranslation } from '@suite-native/intl';
 import { type TradingStackParamList, type TradingStackRoutes } from '@suite-native/navigation';
 import {
     type TestStore,
@@ -9,7 +9,7 @@ import {
     initStore,
     renderWithStoreProvider,
 } from '@suite-native/test-utils';
-import { exchangeQuotes, getWalletState } from '@suite-native/trading-fixtures';
+import { eth1NormalAccount, exchangeQuotes, getWalletState } from '@suite-native/trading-fixtures';
 
 import { TradingExchangeApprovalScreen } from '../TradingExchangeApprovalScreen';
 
@@ -58,6 +58,8 @@ describe('TradingExchangeApprovalScreen', () => {
     let store: TestStore;
     let unmount: (() => void) | undefined;
 
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
     const renderScreen = () => {
         const result = renderWithStoreProvider(
             <TradingExchangeApprovalScreen route={{ params: {} } as any} navigation={{} as any} />,
@@ -80,11 +82,7 @@ describe('TradingExchangeApprovalScreen', () => {
 
         store = initStore(preloadedState).store;
         store.dispatch(tradingExchangeActions.savePreselectedQuote(testQuote));
-        store.dispatch(
-            tradingExchangeActions.setTradingAccountKey(
-                'eth-account-1' as AccountKey, // Todo: create properly via `createAccountKey()`
-            ),
-        );
+        store.dispatch(tradingExchangeActions.setTradingAccountKey(eth1NormalAccount.key));
     });
 
     afterEach(() => {
@@ -97,14 +95,9 @@ describe('TradingExchangeApprovalScreen', () => {
     it('should render the approval screen with quote details', () => {
         const { getByText } = renderScreen();
 
-        expect(getByText('Ethereum #1')).toBeOnTheScreen();
+        expect(getByText('ETH Account #1')).toBeOnTheScreen();
         expect(getByText('Mercuryo')).toBeOnTheScreen();
-    });
-
-    it('should show network information when network symbol is available', () => {
-        const { getByText } = renderScreen();
-
-        expect(getByText('Ethereum')).toBeOnTheScreen();
+        expect(errorSpy).not.toHaveBeenCalled();
     });
 
     it('should display provider information correctly', () => {
@@ -125,17 +118,23 @@ describe('TradingExchangeApprovalScreen', () => {
     it('should render continue button', () => {
         const { getByText } = renderScreen();
 
-        const buttons = getByText('Continue');
-        expect(buttons).toBeTruthy();
+        expect(getByText(getTranslation('generic.buttons.continue'))).toBeOnTheScreen();
     });
 
-    it('should render nothing when no quote is provided', () => {
+    it('should render alert when no quote is provided', () => {
         store.dispatch(tradingExchangeActions.savePreselectedQuote(undefined));
         store.dispatch(tradingExchangeActions.saveSelectedQuote(undefined));
 
-        const { toJSON } = renderScreen();
+        const { getByText, queryByText } = renderScreen();
 
-        expect(toJSON()).toBeNull();
+        expect(
+            getByText(
+                getTranslation('moduleTrading.tradingExchangeApprovalScreen.approveErrorAlert'),
+            ),
+        ).toBeOnTheScreen();
+        expect(queryByText(getTranslation('generic.buttons.continue'))).toBeNull();
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith('No quote to confirm approval');
     });
 
     it('should clear selected quote on unmount', () => {

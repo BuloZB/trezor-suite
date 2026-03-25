@@ -34,6 +34,7 @@ import {
     type EarnStackRoutes,
     type FirmwareLanguageStackRoutes,
     type FirmwareUpdateStackRoutes,
+    type ForgetDeviceStackRoutes,
     type HomeStackRoutes,
     type OnboardingStackRoutes,
     type PassphraseStackRoutes,
@@ -254,7 +255,8 @@ export type DeviceSettingsStackParamList = {
     };
     [DeviceSettingsStackRoutes.DeviceConnection]: undefined;
     [DeviceSettingsStackRoutes.DeviceAutoConnectStack]: undefined;
-    [DeviceSettingsStackRoutes.UnpairBluetoothDevice]: undefined;
+    [DeviceSettingsStackRoutes.ForgetDevice]: undefined;
+    [DeviceSettingsStackRoutes.ForgetDeviceStack]: NavigatorScreenParams<ForgetDeviceStackParamList>;
     [DeviceSettingsStackRoutes.DevicePinProtection]: undefined;
     [DeviceSettingsStackRoutes.DevicePinProtectionStack]: {
         type: PinActionType;
@@ -266,7 +268,6 @@ export type DeviceSettingsStackParamList = {
     [DeviceSettingsStackRoutes.DeviceAuthenticityStack]:
         | NavigatorScreenParams<DeviceAuthenticityStackParamList>
         | undefined;
-    [DeviceSettingsStackRoutes.ContinueOnTrezor]: undefined;
     [DeviceSettingsStackRoutes.WipeDevice]: undefined;
     [DeviceSettingsStackRoutes.WipeDeviceStack]:
         | NavigatorScreenParams<WipeDeviceStackParamList>
@@ -295,6 +296,12 @@ export type FirmwareLanguageStackParamList = {
 export type DeviceAutoConnectStackParamList = {
     [DeviceAutoConnectStackRoutes.DeviceConnectionGuard]: undefined;
     [DeviceAutoConnectStackRoutes.ConfirmAutoConnect]: undefined;
+};
+
+export type ForgetDeviceStackParamList = {
+    [ForgetDeviceStackRoutes.ForgetDeviceConfirmation]: undefined;
+    [ForgetDeviceStackRoutes.ForgetDeviceGuide]: undefined;
+    [ForgetDeviceStackRoutes.ForgetDeviceFinish]: undefined;
 };
 
 export type DevicePinProtectionStackParamList = {

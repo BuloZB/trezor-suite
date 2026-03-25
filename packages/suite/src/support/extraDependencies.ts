@@ -15,6 +15,13 @@ import {
     createSuiteRouterHistory,
 } from '@suite/router';
 import {
+    type SuiteSettingsState,
+    selectAddressDisplayType,
+    selectDebugSettings,
+    selectInvityServerEnvironment,
+    selectLanguage,
+} from '@suite/settings';
+import {
     type DisableLegacyMetadataIfNeededDep,
     createSuiteSyncDesktopCompositionRoot,
 } from '@suite/suite-sync';
@@ -48,7 +55,6 @@ import { isDesktop } from '@trezor/env-utils';
 import { desktopApi } from '@trezor/suite-desktop-api';
 
 import { type StorageLoadAction } from 'src/actions/suite/storageActions';
-import * as cardanoStakingActions from 'src/actions/wallet/cardanoStakingActions';
 import { selectIsWindowVisible } from 'src/reducers/suite/windowReducer';
 import { reportSecurityCheck } from 'src/utils/suite/sentry';
 import { fixLoadedCoinjoinAccount } from 'src/utils/wallet/coinjoinUtils';
@@ -137,7 +143,6 @@ export const createSuiteServicesCompositionRoot = (deps: SuiteAppDeps): SuiteSer
 
 export const extraDependencies: ExtraDependenciesStatic = {
     thunks: {
-        cardanoValidatePendingTxOnBlock: cardanoStakingActions.validatePendingTxOnBlock,
         initMetadata: metadataLabelingActions.init,
         fetchAndSaveMetadata: metadataLabelingActions.fetchAndSaveMetadata,
         addAccountMetadata: metadataLabelingActions.addAccountMetadata,
@@ -146,18 +151,17 @@ export const extraDependencies: ExtraDependenciesStatic = {
     selectors: {
         selectTokenDefinitionsEnabledNetworks: (state: AppState) =>
             state.wallet.settings.enabledNetworks,
-        selectDebugSettings: (state: AppState) => state.suite.settings.debug,
+        selectDebugSettings,
         // FW binaries on desktop are stored in "*/static/connect/data/firmware/*/*.bin" (see "connect-common" package)
         selectDesktopBinDir: (state: AppState) => state.desktop?.paths?.binDir,
         selectDevice: (state: AppState) => state.device.selectedDevice,
-        selectLanguage: (state: AppState) => state.suite.settings.language,
+        selectLanguage,
         selectMetadata: (state: AppState) => state.metadata,
-        selectAddressDisplayType: (state: AppState) => state.suite.settings.addressDisplayType,
+        selectAddressDisplayType,
         selectSelectedAccount: (state: AppState) => state.wallet.selectedAccount,
         selectSelectedAccountStatus: (state: AppState) => state.wallet.selectedAccount.status,
         selectIsWindowVisible,
-        selectTradingEnvironment: (state: AppState) =>
-            state.suite.settings.debug.invityServerEnvironment,
+        selectTradingEnvironment: selectInvityServerEnvironment,
         selectIsViewOnlyByDefaultEnabled: (_: AppState) => true,
         selectIsSuiteSyncEnabled: (state: AppState) => state.suiteSync.settings.isSuiteSyncEnabled,
         selectThpSettings: (state: AppState) => ({
@@ -310,6 +314,18 @@ export const extraDependencies: ExtraDependenciesStatic = {
         },
         storageLoadFlags: (state: FlagsState, { payload }: StorageLoadAction) =>
             payload.suiteSettings?.flags ? { ...state, ...payload.suiteSettings.flags } : state,
+        storageLoadSuiteSettings: (state: SuiteSettingsState, { payload }: StorageLoadAction) => {
+            if (!payload.suiteSettings?.settings) return state;
+
+            return {
+                ...state,
+                ...payload.suiteSettings.settings,
+                enabledSecurityChecks: {
+                    ...state.enabledSecurityChecks,
+                    ...payload.suiteSettings.settings.enabledSecurityChecks,
+                },
+            };
+        },
     },
 };
 

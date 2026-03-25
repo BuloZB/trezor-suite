@@ -1,15 +1,15 @@
 import { useSelector } from 'react-redux';
 
-import { selectIsDeviceConnectedViaBluetooth } from '@suite-common/device';
+import { selectIsThpDevice } from '@suite-common/device';
 import { VStack } from '@suite-native/atoms';
 import { Translation } from '@suite-native/intl';
 import { DynamicScreenHeader, Screen } from '@suite-native/navigation';
 
 import { AutoConnectCard } from '../components/AutoConnectCard';
-import { UnpairBluetoothDeviceCard } from '../components/UnpairBluetoothDeviceCard';
+import { ForgetDeviceCard } from '../components/ForgetDeviceCard';
 
 export const DeviceConnectionScreen = () => {
-    const isDeviceConnectedViaBluetooth = useSelector(selectIsDeviceConnectedViaBluetooth);
+    const isThpDevice = useSelector(selectIsThpDevice);
 
     return (
         <Screen
@@ -21,8 +21,8 @@ export const DeviceConnectionScreen = () => {
             }
         >
             <VStack spacing="sp16">
-                <AutoConnectCard />
-                {isDeviceConnectedViaBluetooth && <UnpairBluetoothDeviceCard />}
+                {isThpDevice && <AutoConnectCard />}
+                <ForgetDeviceCard />
             </VStack>
         </Screen>
     );
