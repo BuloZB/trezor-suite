@@ -1002,6 +1002,10 @@ export const messages = defineMessages({
         defaultMessage: 'You get',
         id: 'TR_TRADING_YOU_GET',
     },
+    TR_TRADING_FIAT_DEVIATION_WARNING: {
+        defaultMessage: 'Receiving over {percentage}% less in estimated fiat value',
+        id: 'TR_TRADING_FIAT_DEVIATION_WARNING',
+    },
     TR_TRADING_COUNTRY: {
         defaultMessage: 'Country of residence',
         id: 'TR_TRADING_COUNTRY',
@@ -3074,6 +3078,16 @@ export const messages = defineMessages({
     TR_SETTINGS_SAME_AS_SYSTEM: {
         defaultMessage: 'System',
         id: 'TR_SETTINGS_SAME_AS_SYSTEM',
+    },
+    TR_SETTINGS_TOOLTIP_DESCRIPTION_DESKTOP: {
+        defaultMessage:
+            '<strong>Power user?</strong> Set up <tor>Tor</tor> & <networks>networks</networks> in Settings first.',
+        id: 'TR_SETTINGS_TOOLTIP_DESCRIPTION_DESKTOP',
+    },
+    TR_SETTINGS_TOOLTIP_DESCRIPTION_WEB: {
+        defaultMessage:
+            '<strong>Power user?</strong> Set up <networks>networks</networks> in Settings first.',
+        id: 'TR_SETTINGS_TOOLTIP_DESCRIPTION_WEB',
     },
     TR_SETTINGS_DEVICE_BANNER_TITLE_DISCONNECTED: {
         defaultMessage: 'Connect your Trezor to access device settings',
