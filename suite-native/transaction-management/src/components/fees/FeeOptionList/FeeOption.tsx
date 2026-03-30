@@ -42,7 +42,7 @@ export type FeeOptionProps = {
     transactionBytes: number;
     isInteractive?: boolean;
     isLoading?: boolean;
-    onSelectedFeeLevel: (feeKey: NativeSupportedPredefinedFeeLevel) => void;
+    onSelectedFeeLevel?: (feeKey: NativeSupportedPredefinedFeeLevel) => void;
 };
 
 const feeLabelsMap = {
@@ -158,20 +158,19 @@ export const FeeOption = ({
     const formattedFeePerUnit = `${feePerUnit} ${feeUnits}`;
 
     const handleSelectFeeLevel = () => {
-        setValue('feeLevel', feeKey, {
-            shouldValidate: true,
-        });
+        if (feeKey === selectedLevel) return;
 
-        onSelectedFeeLevel(feeKey);
+        setValue('feeLevel', feeKey, { shouldValidate: true, shouldDirty: true });
+        onSelectedFeeLevel?.(feeKey);
 
-        // Update also custom fee form so user can see the current values there.
-        setValue('customFeePerUnit', feePerUnit, {
-            shouldValidate: true,
-        });
-
-        setValue('customFeeLimit', feeLevel.feeLimit, {
-            shouldValidate: true,
-        });
+        // Update custom fee form so user sees current values when switching to Custom tab.
+        setValue('customFeePerUnit', feePerUnit, { shouldValidate: true, shouldDirty: true });
+        if (feeLevel.feeLimit !== undefined) {
+            setValue('customFeeLimit', feeLevel.feeLimit, {
+                shouldValidate: true,
+                shouldDirty: true,
+            });
+        }
     };
 
     return (
@@ -217,6 +216,7 @@ export const FeeOption = ({
                                 value={fee}
                                 symbol={symbol}
                                 isLoading={isLoading}
+                                isDiscreetText={false}
                             />
                             <CryptoAmountFormatter
                                 variant="body-sm"
@@ -227,6 +227,7 @@ export const FeeOption = ({
                                 adjustsFontSizeToFit
                                 numberOfLines={1}
                                 isLoading={isLoading}
+                                isDiscreetText={false}
                             />
                         </VStack>
                         {isInteractive && (

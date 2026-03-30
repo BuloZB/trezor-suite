@@ -153,6 +153,17 @@ export interface InvokeChannels {
     'safe-storage/decrypt': (params: { value: string }) => Result<string, DecryptionError>;
     'safe-storage/encrypt': (params: { value: string }) => Result<string, EncryptionError>;
 
+    // MCP server
+    'mcp/get-settings': () => {
+        enabled: boolean;
+        port: number;
+        running: boolean;
+        url: string | null;
+        token: string | null;
+    };
+    'mcp/set-enabled': (enabled: boolean) => void;
+    'mcp/regenerate-token': () => { token: string };
+
     // Browser Window
     'browser-window/reload': () => void;
 }
@@ -234,6 +245,11 @@ export type DesktopApi = {
     // safeStorage
     safeStoreEncrypt: DesktopApiInvoke<'safe-storage/encrypt'>;
     safeStoreDecrypt: DesktopApiInvoke<'safe-storage/decrypt'>;
+
+    // MCP server
+    mcpGetSettings: DesktopApiInvoke<'mcp/get-settings'>;
+    mcpSetEnabled: DesktopApiInvoke<'mcp/set-enabled'>;
+    mcpRegenerateToken: DesktopApiInvoke<'mcp/regenerate-token'>;
 
     // Browser Window
     reloadBrowserWindow: DesktopApiInvoke<'browser-window/reload'>;

@@ -1,5 +1,4 @@
 import { type NavigatorScreenParams } from '@react-navigation/native';
-import type { ExchangeTrade } from 'invity-api';
 import { type RequireAllOrNone } from 'type-fest';
 
 import { type BackupType, type Locale } from '@suite-common/suite-types';
@@ -122,14 +121,11 @@ export type SendStackParamList = {
     [SendStackRoutes.SendOutputs]: {
         accountKey: AccountKey;
         tokenContract?: TokenAddress;
+        postNavigationAction?: 'deviceDisconnectedAlert';
     };
     [SendStackRoutes.SendUtxo]: {
         accountKey: AccountKey;
         amount?: string;
-    };
-    [SendStackRoutes.SendFees]: {
-        accountKey: AccountKey;
-        tokenContract?: TokenAddress;
     };
     [SendStackRoutes.SendDestinationTagReview]: {
         destinationTag: string;
@@ -387,6 +383,7 @@ export type RootStackParamList = {
     [RootStackRoutes.DevUtilsStack]: undefined;
     [RootStackRoutes.AccountDetail]: AccountDetailParams;
     [RootStackRoutes.StakingDetail]: { accountKey: AccountKey };
+    [RootStackRoutes.StakingManagement]: { accountKey: AccountKey };
     [RootStackRoutes.DeviceSettingsStack]: NavigatorScreenParams<DeviceSettingsStackParamList>;
     [RootStackRoutes.AddCoinAccountStack]: NavigatorScreenParams<AddCoinAccountStackParamList>;
     [RootStackRoutes.ReceiveStack]: NavigatorScreenParams<ReceiveStackParamList>;
@@ -440,14 +437,9 @@ export type TradingStackParamList = {
         isRevoked?: boolean;
     };
     [TradingStackRoutes.TradingExchangeRevoke]: {
-        quote: ExchangeTrade;
         shouldIncreaseLimit?: boolean;
     };
     [TradingStackRoutes.TradingSellPreview]: undefined;
-    [TradingStackRoutes.TradingFees]: {
-        accountKey: AccountKey;
-        tradingType: Exclude<TradingType, 'buy'>;
-    };
     [TradingStackRoutes.TradingSellOutputsReview]: {
         accountKey: AccountKey;
         tokenContract?: TokenAddress;
@@ -470,6 +462,7 @@ export type StellarManageTokenStackParamList = {
     [StellarManageTokenStackRoutes.ActivationFee]: {
         accountKey: AccountKey;
         tokenContract: TokenAddress;
+        isTrading?: boolean;
     };
     [StellarManageTokenStackRoutes.DeactivationFee]: {
         accountKey: AccountKey;

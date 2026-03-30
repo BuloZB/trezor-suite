@@ -1003,7 +1003,7 @@ export const messages = defineMessages({
         id: 'TR_TRADING_YOU_GET',
     },
     TR_TRADING_FIAT_DEVIATION_WARNING: {
-        defaultMessage: 'Receiving over {percentage}% less in estimated fiat value',
+        defaultMessage: 'Receiving over {percentage} less in estimated fiat value.',
         id: 'TR_TRADING_FIAT_DEVIATION_WARNING',
     },
     TR_TRADING_COUNTRY: {
@@ -3017,11 +3017,6 @@ export const messages = defineMessages({
         description: 'Tab label for image QR scanning',
         id: 'TR_QR_TAB_IMAGE',
     },
-    TR_QR_DROPZONE_LABEL: {
-        defaultMessage: 'Drag & drop an image with QR code here or click to browse',
-        description: 'Label for QR code image drop zone',
-        id: 'TR_QR_DROPZONE_LABEL',
-    },
     TR_QR_PASTE_HINT: {
         defaultMessage: 'You can also paste an image from clipboard',
         description: 'Hint about pasting QR code image from clipboard',
@@ -4357,6 +4352,14 @@ export const messages = defineMessages({
     TR_INACTIVE_COINS: {
         id: 'TR_INACTIVE_COINS',
         defaultMessage: 'Available assets to activate',
+    },
+    TR_ACTIVATION_IN_PROGRESS_BANNER: {
+        id: 'TR_ACTIVATION_IN_PROGRESS_BANNER',
+        defaultMessage: 'Activation transaction is being processed.',
+    },
+    TR_DEACTIVATION_IN_PROGRESS_BANNER: {
+        id: 'TR_DEACTIVATION_IN_PROGRESS_BANNER',
+        defaultMessage: 'Deactivation transaction is being processed.',
     },
     TR_ACTIVATE: {
         id: 'TR_ACTIVATE',
@@ -6687,10 +6690,6 @@ export const messages = defineMessages({
         id: 'TR_PIN_HEADING_INITIAL',
         defaultMessage: 'Set a PIN',
     },
-    TR_COMPLETE_SETUP: {
-        id: 'TR_COMPLETE_SETUP',
-        defaultMessage: 'Complete setup',
-    },
     TR_RECOVER_YOUR_WALLET_FROM: {
         id: 'TR_RECOVER_YOUR_WALLET_FROM',
         defaultMessage: 'Recover your wallet using a wallet backup',
@@ -7688,14 +7687,6 @@ export const messages = defineMessages({
         id: 'TR_FIRMWARE_INSTALLATION_PROGRESS_CHECK_YES_BUTTON',
         defaultMessage: 'Yes, I see it',
     },
-    TR_ONBOARDING_COINS_STEP: {
-        id: 'TR_ONBOARDING_COINS_STEP',
-        defaultMessage: 'Activate coins',
-    },
-    TR_ONBOARDING_COINS_STEP_DESCRIPTION: {
-        id: 'TR_ONBOARDING_COINS_STEP_DESCRIPTION',
-        defaultMessage: 'Select which coins to show in Trezor Suite. You can change this anytime.',
-    },
     TR_WHAT_DATA_WE_COLLECT: {
         id: 'TR_WHAT_DATA_WE_COLLECT',
         defaultMessage: 'What data do we collect?',
@@ -7729,10 +7720,6 @@ export const messages = defineMessages({
     TR_TROUBLE_SHOOTING_BLUETOOTH: {
         id: 'TR_TROUBLE_SHOOTING_BLUETOOTH',
         defaultMessage: 'Troubleshooting Bluetooth',
-    },
-    TR_ONBOARDING_ADVANCED: {
-        id: 'TR_ONBOARDING_ADVANCED',
-        defaultMessage: 'Advanced',
     },
     TR_TROUBLESHOOTING_TIP_BROWSER_WEBUSB_TITLE: {
         defaultMessage: 'Use a Chromium-based browser',
@@ -9111,9 +9098,9 @@ export const messages = defineMessages({
         id: 'TR_EARN_YIELD_DASHBOARD_WITHDRAW',
         defaultMessage: 'Withdraw',
     },
-    TR_EARN_YIELD_WITHDRAW_ASSET: {
-        id: 'TR_EARN_YIELD_WITHDRAW_ASSET',
-        defaultMessage: 'Withdraw {symbol}',
+    TR_EARN_YIELD_WITHDRAW: {
+        id: 'TR_EARN_YIELD_WITHDRAW',
+        defaultMessage: 'Withdraw',
     },
     TR_EARN_YIELD_DASHBOARD_SUPPLY_NOW: {
         id: 'TR_EARN_YIELD_DASHBOARD_SUPPLY_NOW',
@@ -9122,6 +9109,58 @@ export const messages = defineMessages({
     TR_EARN_YIELD_SELECT_AMOUNT_AND_APPROVE: {
         id: 'TR_EARN_YIELD_SELECT_AMOUNT_AND_APPROVE',
         defaultMessage: 'Select amount & approve',
+    },
+    TR_EARN_YIELD_SUPPLY: {
+        id: 'TR_EARN_YIELD_SUPPLY',
+        defaultMessage: 'Supply',
+    },
+    TR_EARN_YIELD_AMOUNT_TO_SUPPLY: {
+        id: 'TR_EARN_YIELD_AMOUNT_TO_SUPPLY',
+        defaultMessage: 'Amount to supply',
+    },
+    TR_EARN_YIELD_AMOUNT_TO_WITHDRAW: {
+        id: 'TR_EARN_YIELD_AMOUNT_TO_WITHDRAW',
+        defaultMessage: 'Withdrawal amount',
+    },
+    TR_EARN_YIELD_APPROVED_AMOUNT: {
+        id: 'TR_EARN_YIELD_APPROVED_AMOUNT',
+        defaultMessage: 'Approved amount',
+    },
+    TR_EARN_YIELD_SUPPLY_COMPLETE: {
+        id: 'TR_EARN_YIELD_SUPPLY_COMPLETE',
+        defaultMessage: 'Supply complete',
+    },
+    TR_EARN_YIELD_WITHDRAW_COMPLETE: {
+        id: 'TR_EARN_YIELD_WITHDRAW_COMPLETE',
+        defaultMessage: 'Withdrawal complete',
+    },
+    TR_EARN_YIELD_SUPPLY_COMPLETE_DESCRIPTION: {
+        id: 'TR_EARN_YIELD_SUPPLY_COMPLETE_DESCRIPTION',
+        defaultMessage: 'Your deposit is now earning yield in the vault.',
+    },
+    TR_EARN_YIELD_WITHDRAW_COMPLETE_DESCRIPTION: {
+        id: 'TR_EARN_YIELD_WITHDRAW_COMPLETE_DESCRIPTION',
+        defaultMessage: '{displaySymbol} is now available in your account.',
+    },
+    TR_EARN_YIELD_STATUS: {
+        id: 'TR_EARN_YIELD_STATUS',
+        defaultMessage: 'Status',
+    },
+    TR_EARN_YIELD_COMPLETED: {
+        id: 'TR_EARN_YIELD_COMPLETED',
+        defaultMessage: 'Completed',
+    },
+    TR_EARN_YIELD_SUPPLIED: {
+        id: 'TR_EARN_YIELD_SUPPLIED',
+        defaultMessage: 'Supplied',
+    },
+    TR_EARN_YIELD_BACK_TO_OVERVIEW: {
+        id: 'TR_EARN_YIELD_BACK_TO_OVERVIEW',
+        defaultMessage: 'Back to overview',
+    },
+    TR_MODIFY: {
+        id: 'TR_MODIFY',
+        defaultMessage: 'Modify',
     },
     TR_EARN_YIELD_DASHBOARD_SUPPLIED: {
         id: 'TR_EARN_YIELD_DASHBOARD_SUPPLIED',
