@@ -23,6 +23,7 @@ const btc10000000Account = mockWalletAccount({
 
 const defaultPreloadedState = {
     device: {
+        devices: [],
         selectedDevice: {
             state: {
                 staticSessionId: DEVICE_SESSION_ID,
@@ -74,7 +75,7 @@ describe('AccountListItem', () => {
     };
 
     beforeEach(() => {
-        jest.resetAllMocks();
+        jest.clearAllMocks();
     });
 
     it('should call onPress callback when pressed', () => {

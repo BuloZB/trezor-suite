@@ -14,6 +14,7 @@ import { type SessionsBackgroundInterface } from '../sessions/types';
 import { callThpMessage, parseThpMessage, receiveThpMessage, sendThpMessage } from '../thp';
 import { type Session } from '../types';
 import { receiveAndParse } from '../utils/receive';
+import { error, success } from '../utils/result';
 import { buildMessage, createChunks, sendChunks } from '../utils/send';
 
 interface ConstructorParams extends AbstractTransportParams {
@@ -57,7 +58,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
 
     public listen() {
         if (this.listening) {
-            return this.error({ error: ERRORS.ALREADY_LISTENING });
+            return error({ code: ERRORS.ALREADY_LISTENING });
         }
 
         this.api.listen();
@@ -83,7 +84,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
             this.deviceEvents.emit(descriptor.path, { type: TRANSPORT.DEVICE_REQUEST_RELEASE });
         });
 
-        return this.success(undefined);
+        return success(undefined);
     }
 
     public enumerate({ signal }: AbstractTransportMethodParams<'enumerate'> = {}) {
@@ -103,7 +104,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                     descriptors,
                 });
 
-                return this.success(enumerateDoneResponse.payload.descriptors);
+                return success(enumerateDoneResponse.payload.descriptors);
             },
             { signal },
         );
@@ -117,7 +118,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                 const acquireIntentResponse = await this.sessionsClient.acquireIntent(input);
 
                 if (!acquireIntentResponse.success) {
-                    return this.error({ error: acquireIntentResponse.error });
+                    return error({ code: acquireIntentResponse.error.code });
                 }
 
                 const reset = !!input.previous;
@@ -136,7 +137,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
 
                 this.sessionsClient.acquireDone({ path, sessionOwner: this.id });
 
-                return this.success(acquireIntentResponse.payload.session);
+                return success(acquireIntentResponse.payload.session);
             },
             { signal },
             [ERRORS.DEVICE_DISCONNECTED_DURING_ACTION, ERRORS.SESSION_WRONG_PREVIOUS],
@@ -172,7 +173,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
 
                 const map = Object.fromEntries(entries);
 
-                return this.success(map as Record<OpenDeviceChannel, boolean>);
+                return success(map as Record<OpenDeviceChannel, boolean>);
             },
             { signal },
         );
@@ -186,7 +187,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                 });
 
                 if (!releaseIntentResponse.success) {
-                    return this.error({ error: releaseIntentResponse.error });
+                    return error({ code: releaseIntentResponse.error.code });
                 }
 
                 await this.api.closeDevice(releaseIntentResponse.payload.path, { channel: 'read' });
@@ -195,7 +196,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                     path: releaseIntentResponse.payload.path,
                 });
 
-                return this.success(null);
+                return success(null);
             },
             { signal },
         );
@@ -230,11 +231,11 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                 });
                 if (!getPathBySessionResponse.success) {
                     // session not found means that device was disconnected
-                    if (getPathBySessionResponse.error === 'session not found') {
-                        return this.error({ error: ERRORS.DEVICE_DISCONNECTED_DURING_ACTION });
+                    if (getPathBySessionResponse.error.code === 'session not found') {
+                        return error({ code: ERRORS.DEVICE_DISCONNECTED_DURING_ACTION });
                     }
 
-                    return this.error({ error: ERRORS.UNEXPECTED_ERROR });
+                    return error({ code: ERRORS.UNEXPECTED_ERROR });
                 }
                 const { path } = getPathBySessionResponse.payload;
 
@@ -276,7 +277,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                         logger: this.logger,
                     });
                     if (!callResult.success) {
-                        handleError(callResult.error);
+                        handleError(callResult.error.code);
 
                         return callResult;
                     }
@@ -292,12 +293,12 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                     });
                     thpState?.sync('recv', message.type);
 
-                    return this.success(message);
+                    return success(message);
                 }
                 const sendResult = await sendChunks(chunks, apiWrite);
 
                 if (!sendResult.success) {
-                    handleError(sendResult.error);
+                    handleError(sendResult.error.code);
 
                     return sendResult;
                 }
@@ -305,7 +306,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                 const readResult = await receiveAndParse(this.messages, apiRead, protocol);
 
                 if (!readResult.success) {
-                    handleError(readResult.error);
+                    handleError(readResult.error.code);
 
                     return readResult;
                 }
@@ -331,7 +332,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                     session,
                 });
                 if (!getPathBySessionResponse.success) {
-                    return this.error({ error: getPathBySessionResponse.error });
+                    return error({ code: getPathBySessionResponse.error.code });
                 }
                 const { path } = getPathBySessionResponse.payload;
 
@@ -370,13 +371,18 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                         signal,
                         logger: this.logger,
                     });
-                    thpState?.sync('send', name);
+                    if (thpState) {
+                        if (thpState.isPiggybackAckEnabled) {
+                            thpState.enablePiggybackAck(false);
+                        }
+                        thpState.sync('send', name);
+                    }
                 } else {
                     sendResult = await sendChunks(chunks, apiWrite);
                 }
 
                 if (!sendResult.success) {
-                    if (sendResult.error === ERRORS.DEVICE_DISCONNECTED_DURING_ACTION) {
+                    if (sendResult.error.code === ERRORS.DEVICE_DISCONNECTED_DURING_ACTION) {
                         this.enumerate();
                     }
                 }
@@ -400,7 +406,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                     session,
                 });
                 if (!getPathBySessionResponse.success) {
-                    return this.error({ error: getPathBySessionResponse.error });
+                    return error({ code: getPathBySessionResponse.error.code });
                 }
                 const { path } = getPathBySessionResponse.payload;
 
@@ -429,13 +435,13 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                         thpState,
                     });
 
-                    return this.success(message);
+                    return success(message);
                 }
 
                 const message = await receiveAndParse(this.messages, apiRead, protocol);
 
                 if (!message.success) {
-                    if (message.error === ERRORS.DEVICE_DISCONNECTED_DURING_ACTION) {
+                    if (message.error.code === ERRORS.DEVICE_DISCONNECTED_DURING_ACTION) {
                         this.enumerate();
                     }
                 }
@@ -456,7 +462,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                     return this.api.closeDevice(response.payload.path, { channel: 'read' });
                 }
 
-                return this.success(undefined);
+                return success(undefined);
             });
     }
 

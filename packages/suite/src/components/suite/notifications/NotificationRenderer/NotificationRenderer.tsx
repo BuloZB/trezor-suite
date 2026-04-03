@@ -140,6 +140,13 @@ export const NotificationRenderer = ({
                 icon: 'gear',
             });
 
+        case 'device-forgotten':
+            return renderNotificationView(render, notification, {
+                variant: 'success',
+                message: 'TR_DEVICE_HAS_BEEN_FORGOTTEN',
+                icon: 'check',
+            });
+
         case 'copy-to-clipboard':
             return renderNotificationView(render, notification, {
                 variant: 'success',
@@ -604,6 +611,12 @@ export const NotificationRenderer = ({
                 message: 'TR_CONNECT_POPUP_SUCCESS',
                 icon: 'check',
                 values: { appName: notification.appName },
+            });
+
+        case 'bip-329-labels-imported':
+            return renderNotificationView(render, notification, {
+                variant: 'success',
+                message: 'TR_BIP_329_LABELS_IMPORTED',
             });
 
         default:

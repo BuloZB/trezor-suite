@@ -1,19 +1,25 @@
-import {
+import { mnemonic12Fixtures } from '@suite-common/e2e-evolu-client';
+
+import { AccountLabelId } from '../../../support/enums/accountLabelId';
+import { expect, test } from '../../../support/fixtures';
+
+const {
     accountSeed,
-    addressSeed,
     buildExpectedAccount,
     buildExpectedAddress,
     buildExpectedOutput,
     buildExpectedWallet,
-    outputSeed,
+    createAddressSeed,
+    createOutputSeed,
     ownerSecret,
     walletSeed,
-} from '../../../fixtures/metadata/suite-sync-data';
-import { AccountLabelId } from '../../../support/enums/accountLabelId';
-import { expect, test } from '../../../support/fixtures';
+} = mnemonic12Fixtures;
 
 const defaultWalletIndex = 0;
 
+const BTC_ADDRESS = 'bc1qkkr2uvry034tsj4p52za2pg42ug4pxg5qfxyfa';
+const addressSeed = createAddressSeed(BTC_ADDRESS);
+const outputSeed = createOutputSeed();
 const expectedAccount = buildExpectedAccount({ label: null });
 const expectedWallet = buildExpectedWallet({ label: null });
 const expectedAddress = buildExpectedAddress({ address: addressSeed.address, label: null });
@@ -27,13 +33,13 @@ test.describe('Suite Sync - Remove Labels', { tag: ['@T3W1', '@T3T1'] }, () => {
     test.use({ wipeEvoluRelay: true });
 
     test.beforeEach(async ({ evoluClient, onboardingPage }) => {
-        await test.step('Seed Evolu relay server with existing labels', () => {
-            evoluClient.init({ ownerSecret });
+        await test.step('Seed Evolu relay server with existing labels', async () => {
+            await evoluClient.init({ ownerSecret });
             evoluClient.writeTo('wallet', walletSeed);
             evoluClient.writeTo('account', accountSeed);
             evoluClient.writeTo('address', addressSeed);
             evoluClient.writeTo('output', outputSeed);
-            evoluClient.seedQuotaManagerData();
+            evoluClient.seedQuotaManagerData({ ownerId: mnemonic12Fixtures.ownerId });
         });
 
         await onboardingPage.completeOnboarding({ keepDebugModeEnabled: true });
@@ -92,7 +98,7 @@ test.describe('Suite Sync - Remove Labels', { tag: ['@T3W1', '@T3T1'] }, () => {
         });
 
         await test.step('Verify labels are removed in relay (label is null)', async () => {
-            evoluClient.init({ ownerSecret });
+            await evoluClient.init({ ownerSecret: mnemonic12Fixtures.ownerSecret });
 
             await evoluClient.expectInTable('account', [expectedAccount], { softExpect: true });
             await evoluClient.expectInTable('wallet', [expectedWallet], { softExpect: true });

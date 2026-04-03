@@ -8,6 +8,7 @@ import { type TokenDefinitionsRootState } from '@suite-common/token-definitions'
 import { type NetworkSymbol } from '@suite-common/wallet-config';
 import {
     type FiatRatesRootState,
+    type PhishingRootState,
     type TransactionsRootState,
     selectIsPhishingTransaction,
     selectTransactionBlockTimeById,
@@ -140,9 +141,13 @@ export const TransactionListItemContainer = ({
     );
 
     const isTransactionPending = isPending(transaction);
-    const isPhishingTransaction = useSelector(
-        (state: TokenDefinitionsRootState & TransactionsRootState & FiatRatesRootState) =>
-            selectIsPhishingTransaction(state, txid, accountKey),
+    const { isPhishing: isPhishingTransaction } = useSelector(
+        (
+            state: TokenDefinitionsRootState &
+                TransactionsRootState &
+                FiatRatesRootState &
+                PhishingRootState,
+        ) => selectIsPhishingTransaction(state, txid, accountKey),
     );
 
     const coinSymbol = isPhishingTransaction ? undefined : symbol;
@@ -155,7 +160,12 @@ export const TransactionListItemContainer = ({
             onPress={handleNavigateToTransactionDetail}
             style={applyStyle(transactionListItemContainerStyle, { isFirst, isLast })}
         >
-            <Box flexDirection="row" alignItems="center" justifyContent="space-between">
+            <Box
+                testID={`@transactions/item/${txid}`}
+                flexDirection="row"
+                alignItems="center"
+                justifyContent="space-between"
+            >
                 <Box style={applyStyle(descriptionBoxStyle)}>
                     <TransactionIcon
                         symbol={coinSymbol}

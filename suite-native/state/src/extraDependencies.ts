@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 import * as Device from 'expo-device';
 
+import { type Bip329 } from '@suite-common/bip329-types';
 import { delegatedIdentityKeyCompositionRoot } from '@suite-common/delegated-identity-key';
 import { createNativePlatformEncryption } from '@suite-common/platform-encryption-native';
 import {
@@ -29,6 +30,7 @@ import messages from '@trezor/protobuf/messages.json';
 import { BridgeTransport } from '@trezor/transport';
 import { NativeBluetoothTransport } from '@trezor/transport-native-bluetooth';
 import { NativeUsbTransport } from '@trezor/transport-native-usb';
+import { ok } from '@trezor/type-utils';
 
 const deviceType = Device.isDevice ? 'device' : 'emulator';
 
@@ -43,6 +45,11 @@ const transportsPerDeviceType = {
 } as const;
 
 const transports = transportsPerDeviceType[deviceType];
+
+const bip329: Bip329 = {
+    export: () => ({ accountLabel: null, labelsToExport: [] }),
+    import: () => Promise.resolve(ok()),
+};
 
 type NativeAppDeps = {
     getState: () => any;
@@ -67,10 +74,12 @@ export const createNativeCompositionRoot = (deps: NativeAppDeps): NativeServices
         platformEncryption,
         trezorConnect: TrezorConnect,
         ensureDelegatedIdentityKey,
+        analytics,
     });
 
     return {
         suiteSync,
+        bip329,
         ensureDelegatedIdentityKey,
         platformEncryption,
         analytics,
@@ -179,6 +188,7 @@ export const extraDependencies: ExtraDependenciesStatic = {
         storageLoadExplorer: notImplementedReducer('storageLoadExplorer'),
         storageLoadAccounts: notImplementedReducer('storageLoadAccounts'),
         storageLoadTransactions: notImplementedReducer('storageLoadTransactions'),
+        storageLoadPhishingMetadata: notImplementedReducer('storageLoadPhishingMetadata'),
         storageLoadHistoricRates: notImplementedReducer('storageLoadHistoricRates'),
         setDeviceMetadataReducer: notImplementedReducer('setDeviceMetadataReducer'),
         setDeviceMetadataPasswordsReducer: notImplementedReducer(

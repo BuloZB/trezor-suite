@@ -6,12 +6,18 @@ import {
     isZeroValuePhishingFixtures,
 } from '../__fixtures__/phishing';
 import { isPhishingTransaction } from '../phishing';
+import { DUST_PHISHING_THRESHOLD } from '../phishing/constants';
 import { detectors } from '../phishing/detectors';
 
 describe('isDustValuePhishing', () => {
     isDustValuePhishingFixtures.forEach(({ testName, transaction, result }) => {
         test(testName, () => {
-            expect(detectors.dustValue({ transaction })).toBe(result);
+            expect(
+                detectors.dustValue.validator({
+                    transaction,
+                    dustThreshold: DUST_PHISHING_THRESHOLD,
+                }).isPhishing,
+            ).toBe(result);
         });
     });
 });
@@ -19,7 +25,7 @@ describe('isDustValuePhishing', () => {
 describe('isZeroValuePhishing', () => {
     isZeroValuePhishingFixtures.forEach(({ testName, transaction, result }) => {
         test(testName, () => {
-            expect(detectors.zeroValue({ transaction })).toBe(result);
+            expect(detectors.zeroValue.validator({ transaction }).isPhishing).toBe(result);
         });
     });
 });
@@ -27,7 +33,9 @@ describe('isZeroValuePhishing', () => {
 describe('isFakeTokenPhishing', () => {
     isFakeTokenPhishingFixtures.forEach(({ testName, transaction, tokenDefinitions, result }) => {
         test(testName, () => {
-            expect(detectors.fakeToken({ transaction, tokenDefinitions })).toBe(result);
+            expect(
+                detectors.fakeToken.validator({ transaction, tokenDefinitions }).isPhishing,
+            ).toBe(result);
         });
     });
 });
@@ -35,7 +43,7 @@ describe('isFakeTokenPhishing', () => {
 describe('isUnknownTxPhishing', () => {
     isUnknownTxPhishingFixtures.forEach(({ testName, transaction, result }) => {
         test(testName, () => {
-            expect(detectors.unknownTx({ transaction })).toBe(result);
+            expect(detectors.unknownTx.validator({ transaction }).isPhishing).toBe(result);
         });
     });
 });
@@ -48,7 +56,8 @@ describe('isPhishingTransaction', () => {
                     transaction,
                     tokenDefinitions,
                     txsMarkedAsNotScam: [],
-                }),
+                    dustThreshold: DUST_PHISHING_THRESHOLD,
+                }).isPhishing,
             ).toBe(result);
         });
     });

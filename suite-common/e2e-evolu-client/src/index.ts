@@ -14,3 +14,4 @@ export {
     createAddressRowId,
     createOutputRowId,
 } from './createEvoluRowIds';
+export { mnemonic12Fixtures, immuneFixtures } from './suiteSyncFixtures';

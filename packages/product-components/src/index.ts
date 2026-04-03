@@ -19,6 +19,7 @@ export { TokenTabs, type TokenTab } from './components/SelectAssetModal/TokenTab
 export { NumberInput } from './components/NumberInput/NumberInput';
 export { InputWithOptions } from './components/InputWithOptions/InputWithOptions';
 export { EditableText, type EditableTextProps } from './components/EditableText/EditableText';
+export * from './components/JsonlReader/JsonlReader';
 export { CardList, type CardListProps } from '@trezor/components';
 export { FeeRate } from './components/FeeRate/FeeRate';
 export {
@@ -43,3 +44,9 @@ export { OutlineHighlight } from './components/Settings/OutlineHighlight';
 export { SectionItem } from './components/Settings/SectionItem';
 export { SettingsSection } from './components/Settings/SettingsSection';
 export { TextColumn } from './components/Settings/TextColumn';
+export { StepCard } from './components/StepCard/StepCard';
+export { FeedbackCard, type FeedbackCardProps } from './components/FeedbackCard/FeedbackCard';
+export {
+    EmojiRatingSelector,
+    type EmojiRatingSelectorProps,
+} from './components/EmojiRatingSelector/EmojiRatingSelector';

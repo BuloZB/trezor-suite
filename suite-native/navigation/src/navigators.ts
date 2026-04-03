@@ -5,6 +5,7 @@ import { type BackupType, type Locale } from '@suite-common/suite-types';
 import { type TradingType } from '@suite-common/trading';
 import { type AccountType, type NetworkSymbol } from '@suite-common/wallet-config';
 import {
+    type Account,
     type AccountKey,
     type GeneralPrecomposedTransactionFinal,
     type TokenAddress,
@@ -103,8 +104,8 @@ export type SettingsStackParamList = {
     [SettingsStackRoutes.SettingsSupport]: undefined;
     [SettingsStackRoutes.SettingsAppLog]: undefined;
     [SettingsStackRoutes.SettingsCoinEnabling]: undefined;
-    [SettingsStackRoutes.SettingsSuiteSync]: undefined;
     [SettingsStackRoutes.SettingsAdvanced]: undefined;
+    [SettingsStackRoutes.SettingsExperimental]: undefined;
     [SettingsStackRoutes.TurnOffDeviceAuthenticityCheck]: undefined;
     [SettingsStackRoutes.TurnOffFirmwareAuthenticityCheck]: undefined;
     [SettingsStackRoutes.BitcoinBackends]: undefined;
@@ -384,6 +385,22 @@ export type RootStackParamList = {
     [RootStackRoutes.AccountDetail]: AccountDetailParams;
     [RootStackRoutes.StakingDetail]: { accountKey: AccountKey };
     [RootStackRoutes.StakingManagement]: { accountKey: AccountKey };
+    [RootStackRoutes.HowStakeWorksScreen]: {
+        accountKey?: AccountKey;
+        symbol: NetworkSymbol;
+    };
+    [RootStackRoutes.EarnForm]: {
+        accountKey: AccountKey;
+    };
+    [RootStackRoutes.EarnConsents]: {
+        accountKey: AccountKey;
+        amount: string;
+        account: Account;
+    };
+    [RootStackRoutes.EarnTransactionDataReview]: {
+        accountKey: AccountKey;
+        amount: string;
+    };
     [RootStackRoutes.DeviceSettingsStack]: NavigatorScreenParams<DeviceSettingsStackParamList>;
     [RootStackRoutes.AddCoinAccountStack]: NavigatorScreenParams<AddCoinAccountStackParamList>;
     [RootStackRoutes.ReceiveStack]: NavigatorScreenParams<ReceiveStackParamList>;

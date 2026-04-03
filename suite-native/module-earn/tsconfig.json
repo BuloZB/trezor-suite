@@ -1,6 +1,7 @@
 {
     "extends": "../../tsconfig.base.json",
     "compilerOptions": { "outDir": "libDev" },
+    "include": [".", "**/*.json"],
     "references": [
         { "path": "../../suite-common/device" },
         { "path": "../../suite-common/earn-api" },
@@ -8,7 +9,13 @@
             "path": "../../suite-common/formatters"
         },
         {
+            "path": "../../suite-common/validators"
+        },
+        {
             "path": "../../suite-common/wallet-config"
+        },
+        {
+            "path": "../../suite-common/wallet-constants"
         },
         {
             "path": "../../suite-common/wallet-core"
@@ -19,12 +26,17 @@
         {
             "path": "../../suite-common/wallet-utils"
         },
+        { "path": "../accounts" },
+        { "path": "../alerts" },
         { "path": "../analytics" },
         { "path": "../atoms" },
         { "path": "../clipboard" },
+        { "path": "../confirm-on-trezor" },
         { "path": "../device-manager" },
         { "path": "../feature-flags" },
         { "path": "../formatters" },
+        { "path": "../forms" },
+        { "path": "../helpers" },
         { "path": "../icons" },
         { "path": "../intl" },
         { "path": "../labeling" },
@@ -33,7 +45,9 @@
         { "path": "../services" },
         { "path": "../staking" },
         { "path": "../test-utils" },
+        { "path": "../transaction-management" },
         { "path": "../transactions" },
+        { "path": "../../packages/react-utils" },
         {
             "path": "../../packages/styles-native"
         },

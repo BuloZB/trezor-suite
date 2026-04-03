@@ -10,6 +10,7 @@ import { ReceiveAccountPicker, type ReceiveAccountPickerProps } from '../Receive
 
 const defaultPreloadedState = {
     device: {
+        devices: [],
         selectedDevice: {
             state: { staticSessionId: btc1NormalAccount.deviceState },
             connected: true,
@@ -53,7 +54,7 @@ describe('ReceiveAccountPicker', () => {
     };
 
     beforeEach(() => {
-        jest.resetAllMocks();
+        jest.clearAllMocks();
     });
 
     it('should display nothing when selectedSymbol is not specified', () => {

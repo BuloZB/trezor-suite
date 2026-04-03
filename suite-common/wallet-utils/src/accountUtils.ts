@@ -705,6 +705,12 @@ export const isAccountOutdated = (account: Account, freshInfo: AccountInfo) => {
                 // compare token count (detect added/removed tokens)
                 freshInfo.tokens?.length !== account.tokens?.length
             );
+        case 'tron':
+            return (
+                freshInfo.balance !== account.balance ||
+                JSON.stringify(freshInfo.misc?.tronResources) !==
+                    JSON.stringify(account.misc?.tronResources)
+            );
         default:
             return false;
     }

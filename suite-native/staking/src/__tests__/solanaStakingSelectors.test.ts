@@ -112,6 +112,23 @@ const solStakeData: SolStakeData = {
     },
 };
 
+const messageSystemState = {
+    config: null,
+    currentSequence: 0,
+    timestamp: 0,
+    validMessages: {
+        banner: [],
+        context: [],
+        modal: [],
+        feature: [],
+    },
+    dismissedMessages: {},
+    validExperiments: [],
+    configSource: 'remote' as const,
+    manuallyAddedMessageIds: {},
+    manuallyAddedExperimentIds: {},
+};
+
 const getTestState = ({
     accounts,
     withSolStakeData = false,
@@ -126,6 +143,7 @@ const getTestState = ({
     },
     suiteSync: initialSuiteSyncState,
     suiteSyncData: initialSuiteSyncDataState,
+    messageSystem: messageSystemState,
     device: {
         devices: [
             {
@@ -151,6 +169,7 @@ const getTestState = ({
         areTestnetsEnabled: false,
         shouldShowAutoEjectAlert: false,
         hasAutoEjectAlertBeenDisplayed: false,
+        isTronEnabled: false,
     },
 });
 

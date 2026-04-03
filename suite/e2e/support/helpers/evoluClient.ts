@@ -1,4 +1,4 @@
-import { Upsertable } from '@evolu/common/local-first';
+import { MutationValues } from '@evolu/common';
 import { expect, test } from '@playwright/test';
 import { diff } from 'jest-diff';
 import { isEqual, omit, orderBy } from 'lodash';
@@ -24,13 +24,16 @@ export class EvoluClient extends BaseEvoluClient {
     }
 
     @step()
-    override writeTo<T extends TableName>(table: T, object: Upsertable<(typeof Schema)[T]>) {
+    override writeTo<T extends TableName>(
+        table: T,
+        object: MutationValues<(typeof Schema)[T], 'upsert'>,
+    ) {
         super.writeTo(table, object as any);
     }
 
     @step()
-    seedQuotaManagerData() {
-        seedQuotaManagerData();
+    seedQuotaManagerData({ ownerId }: { ownerId: string }) {
+        seedQuotaManagerData({ ownerId });
     }
 
     @step()
@@ -72,7 +75,7 @@ export class EvoluClient extends BaseEvoluClient {
             timeout?: number;
         },
     ) {
-        const omitFields = options?.omit ?? ['id', 'createdAt'];
+        const omitFields = options?.omit ?? ['createdAt'];
         const timeout = options?.timeout ?? 5_000;
         const expectFn = options?.softExpect ? expect.soft : expect;
 

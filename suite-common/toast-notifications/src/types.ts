@@ -97,6 +97,7 @@ export type ToastPayload<TranslationKey extends UnknownTranslationKey = UnknownT
               | 'wipe-code-changed'
               | 'wipe-code-removed'
               | 'device-wiped'
+              | 'device-forgotten'
               | 'backup-success'
               | 'backup-failed'
               | 'sign-message-success'
@@ -119,7 +120,8 @@ export type ToastPayload<TranslationKey extends UnknownTranslationKey = UnknownT
               | 'could-not-parse-csv'
               | 'thp-credentials-reset'
               | 'sign-transaction-timeout'
-              | 'suite-sync-keys-error';
+              | 'suite-sync-keys-error'
+              | 'bip-329-labels-imported';
       }
     | SentTransactionNotification
     | ApproveTransactionNotification

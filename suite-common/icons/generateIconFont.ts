@@ -10,8 +10,10 @@ import { MOBILE_ICON_FONT_NAME } from './src/constants';
 import { type IconName as AllAvailableIcons } from './src/icons';
 
 const usedIcons = [
+    'arrowBendRightUp',
     'arrowDown',
     'arrowDown',
+    'arrowDownLeft',
     'arrowLineDown',
     'arrowLineUp',
     'arrowLineUpRight',
@@ -41,6 +43,7 @@ const usedIcons = [
     'browsers',
     'bugBeetle',
     'cableUsbC',
+    'calendarBlank',
     'calendar',
     'cameraSlash',
     'caretCircleRight',
@@ -75,6 +78,7 @@ const usedIcons = [
     'deviceMobileCamera',
     'discover',
     'discoverFilled',
+    'everstakeLogo',
     'eye',
     'eyeSlash',
     'facebookLogo',

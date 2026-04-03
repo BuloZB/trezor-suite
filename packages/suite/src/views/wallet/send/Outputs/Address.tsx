@@ -86,6 +86,7 @@ export const Address = ({ output, outputId, outputsCount }: AddressProps) => {
     const recipientId = outputId + 1;
     const label = watch(`outputs.${outputId}.label`, '');
     const address = watch(inputName);
+    const selectedToken = watch(`outputs.${outputId}.token`);
     const options = getDefaultValue('options', []);
     const broadcastEnabled = options.includes('broadcast');
     const isOnline = useSelector(state => state.suite.online);
@@ -93,11 +94,19 @@ export const Address = ({ output, outputId, outputsCount }: AddressProps) => {
 
     const [isExternalAddressCheckWarningDismissed, setIsExternalAddressCheckWarningDismissed] =
         useState(false);
-    const isExternalAddressCheckEnabled = ['eth', 'tsep', 'thod', 'sol', 'dsol'].includes(symbol);
+    const isExternalAddressCheckEnabled = ['eth', 'tsep', 'thod', 'sol', 'dsol', 'trx'].includes(
+        symbol,
+    );
 
     useEffect(() => {
         setIsExternalAddressCheckWarningDismissed(false);
     }, [address]);
+
+    useEffect(() => {
+        if (networkType === 'tron' && address) {
+            trigger(inputName);
+        }
+    }, [selectedToken, networkType, inputName, trigger, address]);
 
     const handleQrClick = useCallback(async () => {
         const uri = await dispatch(openDeferredModal({ type: 'qr-reader' }));
@@ -182,7 +191,7 @@ export const Address = ({ output, outputId, outputsCount }: AddressProps) => {
                     learnMoreUrl: addressDeprecatedUrl ? ALL_URLS[addressDeprecatedUrl] : undefined,
                 };
             case 'evmChecks':
-                if (!checkAddressCheckSum(address)) {
+                if (networkType === 'ethereum' && !checkAddressCheckSum(address)) {
                     return {
                         buttonProps: {
                             onClick: () => {
@@ -311,45 +320,42 @@ export const Address = ({ output, outputId, outputsCount }: AddressProps) => {
                 }
             },
             evmChecks: async (address: string) => {
-                // TODO: tron?
-                if (networkType === 'ethereum') {
-                    if (!isOnline) {
-                        return translationString('TR_ADDRESS_CANT_VERIFY_HISTORY');
+                if (networkType !== 'ethereum' && networkType !== 'tron') return;
+
+                if (!isOnline) {
+                    return translationString('TR_ADDRESS_CANT_VERIFY_HISTORY');
+                }
+
+                const result = await TrezorConnect.getAccountInfo({
+                    descriptor: address,
+                    coin: symbol,
+                });
+
+                if (!result.success) {
+                    return translationString('TR_ADDRESS_CANT_VERIFY_HISTORY');
+                }
+
+                const { payload } = result;
+
+                // 1. Validate address checksum.
+                // Eth addresses are valid without checksum but Trezor displays them as checksummed.
+                if (networkType === 'ethereum' && !checkAddressCheckSum(address)) {
+                    const checksumAndUsageValidationResult = checkIsAddressNotUsedNotChecksummed(
+                        address,
+                        payload.history,
+                        inputName,
+                        setValue,
+                        setHasAddressChecksummed,
+                    );
+                    if (checksumAndUsageValidationResult) {
+                        return translationString('TR_ETH_ADDRESS_NOT_USED_NOT_CHECKSUMMED');
                     }
-                    const params = {
-                        descriptor: address,
-                        coin: symbol,
-                    };
-                    const result = await TrezorConnect.getAccountInfo(params);
+                }
 
-                    if (!result.success) {
-                        return translationString('TR_ADDRESS_CANT_VERIFY_HISTORY');
-                    }
-
-                    const { payload } = result;
-
-                    // 1. Validate address checksum.
-                    // Eth addresses are valid without checksum but Trezor displays them as checksummed.
-                    if (!checkAddressCheckSum(address)) {
-                        const checksumAndUsageValidationResult =
-                            checkIsAddressNotUsedNotChecksummed(
-                                address,
-                                payload.history,
-                                inputName,
-                                setValue,
-                                setHasAddressChecksummed,
-                            );
-                        if (checksumAndUsageValidationResult) {
-                            return translationString('TR_ETH_ADDRESS_NOT_USED_NOT_CHECKSUMMED');
-                        }
-                    }
-
-                    // 2. Check if address is a contract address (right now only for Eth, Hoodi and Sepolia)
-                    if (!isExternalAddressCheckWarningDismissed && isExternalAddressCheckEnabled) {
-                        const isContract = payload.misc?.contractInfo;
-                        if (isContract) {
-                            return translationString('TR_EVM_ADDRESS_IS_CONTRACT');
-                        }
+                if (!isExternalAddressCheckWarningDismissed && isExternalAddressCheckEnabled) {
+                    const isContract = payload.misc?.contractInfo;
+                    if (isContract) {
+                        return translationString('TR_EVM_ADDRESS_IS_CONTRACT');
                     }
                 }
             },
@@ -376,8 +382,11 @@ export const Address = ({ output, outputId, outputsCount }: AddressProps) => {
                     }
                 }
             },
-            rippleToSelf: (value: string) => {
-                if (networkType === 'ripple' && value === descriptor) {
+            noSelfTransfer: (value: string) => {
+                if (
+                    (networkType === 'ripple' || (networkType === 'tron' && !selectedToken)) &&
+                    value === descriptor
+                ) {
                     return translationString('RECIPIENT_CANNOT_SEND_TO_MYSELF');
                 }
             },

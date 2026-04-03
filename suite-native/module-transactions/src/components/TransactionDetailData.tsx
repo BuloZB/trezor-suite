@@ -1,9 +1,13 @@
 import { useDispatch, useSelector } from 'react-redux';
 
 import { useFormatters } from '@suite-common/formatters';
-import { type TokenDefinitionsRootState } from '@suite-common/token-definitions';
+import {
+    type PhishingDetectorId,
+    type TokenDefinitionsRootState,
+} from '@suite-common/token-definitions';
 import {
     type FiatRatesRootState,
+    type PhishingRootState,
     type TransactionsRootState,
     selectBaseCurrency,
     selectHistoricFiatRatesByTimestamp,
@@ -14,10 +18,10 @@ import {
 } from '@suite-common/wallet-core';
 import { type AccountKey, type Timestamp } from '@suite-common/wallet-types';
 import { getFiatRateKey } from '@suite-common/wallet-utils';
-import { Box, Card, InlineAlertBox, Text, VStack, useBottomSheetModal } from '@suite-native/atoms';
+import { Box, Card, FullAlertBox, Text, VStack, useBottomSheetModal } from '@suite-native/atoms';
 import { CryptoAmountFormatter, CryptoToFiatAmountFormatter } from '@suite-native/formatters';
 import { Translation, useTranslate } from '@suite-native/intl';
-import { Link } from '@suite-native/link';
+import { useOpenLink } from '@suite-native/link';
 import { type TypedTokenTransfer, type WalletAccountTransaction } from '@suite-native/tokens';
 import { useNativeStyles } from '@trezor/styles-native';
 import { HELP_CENTER_ZERO_VALUE_ATTACKS } from '@trezor/urls';
@@ -26,6 +30,21 @@ import { TransactionDetailIncludedCoins } from './TransactionDetailIncludedCoins
 import { TransactionDetailRow } from './TransactionDetailRow';
 import { TransactionDetailSheets } from './TransactionDetailSheets';
 import { TransactionOverview, cardStyle } from './TransactionOverview';
+
+const getPhishingWarningTranslationId = (detectorId?: PhishingDetectorId) => {
+    switch (detectorId) {
+        case 'FAKE_TOKEN':
+            return 'transactions.phishing.warningFakeToken';
+        case 'UNKNOWN_TX':
+            return 'transactions.phishing.warningUnknownTx';
+        case 'DUST_AMOUNT':
+            return 'transactions.phishing.warningDustAmount';
+        case 'ZERO_AMOUNT':
+            return 'transactions.phishing.warningZeroAmount';
+        default:
+            return 'transactions.phishing.warning';
+    }
+};
 
 type TransactionDetailDataProps = {
     transaction: WalletAccountTransaction;
@@ -43,14 +62,19 @@ export const TransactionDetailData = ({
     const { DateFormatter, TimeFormatter } = useFormatters();
     const { translate } = useTranslate();
     const { applyStyle } = useNativeStyles();
+    const openLink = useOpenLink();
     const inputsSheetControls = useBottomSheetModal();
 
     const transactionBlockTime = useSelector((state: TransactionsRootState) =>
         selectTransactionBlockTimeById(state, accountKey, transaction.txid),
     );
-    const isPhishingTransaction = useSelector(
-        (state: TokenDefinitionsRootState & TransactionsRootState & FiatRatesRootState) =>
-            selectIsPhishingTransaction(state, transaction.txid, accountKey),
+    const { isPhishing: isPhishingTransaction, detectorId: phishingDetectorId } = useSelector(
+        (
+            state: TokenDefinitionsRootState &
+                TransactionsRootState &
+                FiatRatesRootState &
+                PhishingRootState,
+        ) => selectIsPhishingTransaction(state, transaction.txid, accountKey),
     );
 
     const isTxMarkedAsNotScam = useSelector((state: TransactionsRootState) =>
@@ -71,7 +95,7 @@ export const TransactionDetailData = ({
 
     const hasIncludedCoins = isMultiTokenTransaction || isNetworkTransactionWithTokens;
 
-    const onMarkTxAsNotScamClick = () => {
+    const onMarkTxAsNotScamPress = () => {
         dispatch(
             transactionsActions.markTransactionAsNotScam({
                 key: accountKey,
@@ -81,7 +105,7 @@ export const TransactionDetailData = ({
         );
     };
 
-    const onUnmarkTxAsNotScamClick = () => {
+    const onUnmarkTxAsNotScamPress = () => {
         dispatch(
             transactionsActions.markTransactionAsNotScam({
                 key: accountKey,
@@ -91,42 +115,41 @@ export const TransactionDetailData = ({
         );
     };
 
+    const onLearnMorePress = () => {
+        openLink(HELP_CENTER_ZERO_VALUE_ATTACKS);
+    };
+
     return (
         <VStack spacing="sp16">
             {isPhishingTransaction && (
-                <InlineAlertBox
-                    variant="critical"
-                    title={
-                        <Translation
-                            id="transactions.phishing.warning"
-                            values={{
-                                blogLink: chunks => (
-                                    <Link
-                                        href={HELP_CENTER_ZERO_VALUE_ATTACKS}
-                                        label={chunks}
-                                        textColor="textDefault"
-                                        isUnderlined
-                                        textVariant="body-xs"
-                                    />
-                                ),
-                            }}
-                        />
+                <FullAlertBox
+                    variant="warning"
+                    title={<Translation id={getPhishingWarningTranslationId(phishingDetectorId)} />}
+                    primaryButtonLabel={
+                        <Translation id="transactions.phishing.unhideTransaction" />
                     }
-                    buttonProps={{
-                        onPress: () => onMarkTxAsNotScamClick(),
+                    primaryButtonProps={{
+                        onPress: onMarkTxAsNotScamPress,
                     }}
-                    buttonLabel={<Translation id="transactions.phishing.unhideTransaction" />}
+                    secondaryButtonLabel={<Translation id="generic.buttons.learnMore" />}
+                    secondaryButtonProps={{
+                        onPress: onLearnMorePress,
+                    }}
                 />
             )}
 
             {!isPhishingTransaction && isTxMarkedAsNotScam && (
-                <InlineAlertBox
+                <FullAlertBox
                     variant="info"
                     title={<Translation id="transactions.phishing.markedAsRecognized" />}
-                    buttonProps={{
-                        onPress: () => onUnmarkTxAsNotScamClick(),
+                    primaryButtonProps={{
+                        onPress: onUnmarkTxAsNotScamPress,
                     }}
-                    buttonLabel={<Translation id="transactions.phishing.hideTransaction" />}
+                    primaryButtonLabel={<Translation id="transactions.phishing.hideTransaction" />}
+                    secondaryButtonLabel={<Translation id="generic.buttons.learnMore" />}
+                    secondaryButtonProps={{
+                        onPress: onLearnMorePress,
+                    }}
                 />
             )}
 

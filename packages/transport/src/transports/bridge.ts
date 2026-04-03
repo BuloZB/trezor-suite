@@ -28,6 +28,7 @@ import { bridgeApiCall } from '../utils/bridgeApiCall';
 import * as bridgeApiResult from '../utils/bridgeApiResult';
 import { createProtocolMessage } from '../utils/bridgeProtocolMessage';
 import { receiveAndParse } from '../utils/receive';
+import { error, success } from '../utils/result';
 import { buildMessage } from '../utils/send';
 
 const DEFAULT_URL = 'http://127.0.0.1';
@@ -105,7 +106,7 @@ export class BridgeTransport extends AbstractTransport {
 
                 this.stopped = false;
 
-                return this.success(undefined);
+                return success(undefined);
             },
             { signal },
         );
@@ -114,13 +115,13 @@ export class BridgeTransport extends AbstractTransport {
     // https://github.com/trezor/trezord-go/blob/f559ee5079679aeb5f897c65318d3310f78223ca/core/core.go#L373
     public listen() {
         if (this.listening) {
-            return this.error({ error: ERRORS.ALREADY_LISTENING });
+            return error({ code: ERRORS.ALREADY_LISTENING });
         }
 
         this.listening = true;
         this.listenLoop();
 
-        return this.success(undefined);
+        return success(undefined);
     }
 
     private async listenLoop() {
@@ -131,7 +132,7 @@ export class BridgeTransport extends AbstractTransport {
             });
 
             if (!response.success) {
-                this.emit(TRANSPORT.ERROR, response.error);
+                this.emit(TRANSPORT.ERROR, response.error.code);
             } else {
                 this.handleDescriptorsChange(response.payload);
             }
@@ -171,7 +172,7 @@ export class BridgeTransport extends AbstractTransport {
                     signal,
                 });
 
-                return response.success ? this.success(null) : response;
+                return response.success ? success(null) : response;
             },
             { signal },
         );
@@ -186,7 +187,7 @@ export class BridgeTransport extends AbstractTransport {
     }
 
     public releaseDevice() {
-        return Promise.resolve(this.success(undefined));
+        return Promise.resolve(success(undefined));
     }
 
     private getProtocol(customProtocol?: TransportProtocol) {
@@ -278,12 +279,12 @@ export class BridgeTransport extends AbstractTransport {
                         );
                     }
 
-                    return this.success(message);
+                    return success(message);
                 }
 
                 return receiveAndParse(
                     this.messages,
-                    () => Promise.resolve(this.success(respBytes)),
+                    () => Promise.resolve(success(respBytes)),
                     protocol,
                 );
             },
@@ -319,11 +320,14 @@ export class BridgeTransport extends AbstractTransport {
                 if (!response.success) {
                     return response;
                 }
-                if (protocol.name === 'v2') {
-                    thpState?.sync('send', name);
+                if (thpState) {
+                    if (thpState.isPiggybackAckEnabled) {
+                        thpState.enablePiggybackAck(false);
+                    }
+                    thpState.sync('send', name);
                 }
 
-                return this.success(undefined);
+                return success(undefined);
             },
             { signal, timeout },
         );
@@ -359,12 +363,12 @@ export class BridgeTransport extends AbstractTransport {
                     });
                     thpState?.sync('recv', message.type);
 
-                    return this.success(message);
+                    return success(message);
                 }
 
                 return receiveAndParse(
                     this.messages,
-                    () => Promise.resolve(this.success(respBytes)),
+                    () => Promise.resolve(success(respBytes)),
                     protocol,
                 );
             },
@@ -431,18 +435,18 @@ export class BridgeTransport extends AbstractTransport {
         });
 
         if (!response.success) {
-            if (response.error === ERRORS.UNEXPECTED_ERROR) {
-                return this.unknownError(response.error);
+            if (response.error.code === ERRORS.UNEXPECTED_ERROR) {
+                return this.unknownError(response.error.code);
             }
-            if (response.error === ERRORS.HTTP_ERROR) {
-                return this.error({ error: response.error });
+            if (response.error.code === ERRORS.HTTP_ERROR) {
+                return error({ code: response.error.code });
             }
 
             switch (endpoint) {
                 case '/':
-                    return this.unknownError(response.error);
+                    return this.unknownError(response.error.code);
                 case '/acquire':
-                    return this.unknownError(response.error, [
+                    return this.unknownError(response.error.code, [
                         ERRORS.SESSION_WRONG_PREVIOUS,
                         ERRORS.DEVICE_NOT_FOUND,
                         ERRORS.INTERFACE_UNABLE_TO_OPEN_DEVICE,
@@ -452,7 +456,7 @@ export class BridgeTransport extends AbstractTransport {
                 case '/call':
                 case '/read':
                 case '/post':
-                    return this.unknownError(response.error, [
+                    return this.unknownError(response.error.code, [
                         ERRORS.SESSION_NOT_FOUND,
                         ERRORS.DEVICE_DISCONNECTED_DURING_ACTION,
                         ERRORS.OTHER_CALL_IN_PROGRESS,
@@ -460,18 +464,18 @@ export class BridgeTransport extends AbstractTransport {
                         PROTOCOL_MALFORMED,
                     ]);
                 case '/abort':
-                    return this.unknownError(response.error, [ERRORS.SESSION_NOT_FOUND]);
+                    return this.unknownError(response.error.code, [ERRORS.SESSION_NOT_FOUND]);
                 case '/enumerate':
                 case '/listen':
-                    return this.unknownError(response.error);
+                    return this.unknownError(response.error.code);
                 case '/release':
-                    return this.unknownError(response.error, [
+                    return this.unknownError(response.error.code, [
                         ERRORS.SESSION_NOT_FOUND,
                         ERRORS.DEVICE_DISCONNECTED_DURING_ACTION,
                     ]);
                 default:
-                    return this.error({
-                        error: ERRORS.WRONG_RESULT_TYPE,
+                    return error({
+                        code: ERRORS.WRONG_RESULT_TYPE,
                         message: 'just for type safety, should never happen',
                     });
                 // should never get here
@@ -496,8 +500,8 @@ export class BridgeTransport extends AbstractTransport {
             case '/abort':
                 return bridgeApiResult.empty(response.payload);
             default:
-                return this.error({
-                    error: ERRORS.WRONG_RESULT_TYPE,
+                return error({
+                    code: ERRORS.WRONG_RESULT_TYPE,
                     message: 'just for type safety, should never happen',
                 });
             // should never get here

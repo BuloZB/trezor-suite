@@ -1,10 +1,14 @@
-import { type Evolu, SimpleName } from '@evolu/common';
 import {
-    type Upsertable,
-    createEvolu,
+    AppName,
+    type Evolu,
+    type MutationValues,
     createOwnerWebSocketTransport,
-} from '@evolu/common/local-first';
-import { execSync } from 'child_process';
+    createQueryBuilder,
+    getOrThrow,
+} from '@evolu/common';
+import { createEvolu } from '@evolu/common/local-first';
+import { execFileSync } from 'child_process';
+import path from 'path';
 
 import { Schema, createEvoluAppOwnerFromTrezorData } from '@suite-common/suite-sync-evolu';
 import { type SuiteSyncOwnerSecretHex } from '@suite-common/suite-sync-storage';
@@ -25,35 +29,37 @@ const EVOLU_LOCAL_SERVER_NOT_RUNNING_ERROR =
     'Evolu relay is not running on localhost. Please start the Docker environment:\n' +
     'yarn workspace "@trezor/suite-e2e" docker:suite-sync';
 
+export const createQuery = createQueryBuilder(Schema);
+
 export class BaseEvoluClient {
     private _evolu?: Evolu<typeof Schema>;
 
-    init({ ownerSecret, relayUrl = RELAY_URL }: EvoluClientInitParams) {
-        const deps = createNodeEvoluDeps();
-
+    async init({ ownerSecret, relayUrl = RELAY_URL }: EvoluClientInitParams) {
+        const run = createNodeEvoluDeps();
         const owner = createEvoluAppOwnerFromTrezorData({ data: ownerSecret });
         if (!owner.ok) {
             throw new Error(`Failed to parse owner: ${JSON.stringify(owner.error)}`);
         }
 
         const sanitizedOwnerId = owner.value.id.replaceAll('_', '-');
-        const clientDatabaseName = SimpleName.orThrow(`trezor-suite-e2e-${sanitizedOwnerId}`);
+        const appName = AppName.orThrow(`trezor-suite-e2e-${sanitizedOwnerId}`);
 
-        this._evolu = createEvolu(deps)(Schema, {
-            name: clientDatabaseName,
-            transports: [
-                createOwnerWebSocketTransport({
-                    url: relayUrl,
-                    ownerId: owner.value.id,
+        this._evolu = getOrThrow(
+            await run(
+                createEvolu(Schema, {
+                    appName,
+                    // Intentionally no transport, transport will be passed
+                    // later on, so we can change the RelayUrl at any time.
+                    transports: [
+                        createOwnerWebSocketTransport({
+                            url: relayUrl,
+                            ownerId: owner.value.id,
+                        }),
+                    ],
+                    appOwner: owner.value,
                 }),
-            ],
-            externalAppOwner: owner.value,
-            encryptionKey: owner.value.encryptionKey,
-        });
-
-        this._evolu.subscribeError(() => {
-            console.error('Evolu Error:', this._evolu?.getError());
-        });
+            ),
+        );
     }
 
     get evolu() {
@@ -64,18 +70,13 @@ export class BaseEvoluClient {
         return this._evolu;
     }
 
-    writeTo<T extends TableName>(table: T, object: Upsertable<(typeof Schema)[T]>) {
-        const upsertResult = this.evolu.upsert(table, object as any);
-        if (!upsertResult.ok) {
-            throw new Error(
-                `Upsert to Evolu relay failed: ${JSON.stringify(upsertResult.error, null, 2)}`,
-            );
-        }
+    writeTo<T extends TableName>(table: T, object: MutationValues<(typeof Schema)[T], 'upsert'>) {
+        this.evolu.upsert(table, object as any);
     }
 
     async subscribeToTable(table: TableName) {
         const ownerId = (await this.evolu.appOwner).id;
-        const query = this.evolu.createQuery(db =>
+        const query = createQuery(db =>
             db.selectFrom(table).where('ownerId', '=', ownerId).selectAll(),
         );
 
@@ -89,7 +90,7 @@ export class BaseEvoluClient {
 
     async readFrom(table: TableName) {
         const ownerId = (await this.evolu.appOwner).id;
-        const query = this.evolu.createQuery(db =>
+        const query = createQuery(db =>
             db.selectFrom(table).where('ownerId', '=', ownerId).selectAll(),
         );
 
@@ -100,7 +101,6 @@ export class BaseEvoluClient {
 // Hardcoded quota data for test environment. The quota manager cannot store keys
 // per-wallet, so these limits must be seeded into the DB before running Suite Sync tests.
 // This will be refactored.
-const QUOTA_OWNER_ID = '0Fco3XDgKR59zX5VBvyyGQ';
 const QUOTA_STORAGE_LIMIT = 10486;
 const QUOTA_PUBLIC_KEY =
     '0487472eec47aa28fa62ff3231f60b5c89751318a5598af5f93ab2aad9061ca25f53b352a97b855f16b11b795b715249c8dbfb6e47339f677e30d530f0e80bc4bb';
@@ -108,29 +108,104 @@ const QUOTA_TOTAL_STORAGE_SIZE = 1048576;
 const QUOTA_UNSPENT_STORAGE_SIZE = 1038090;
 const QUOTA_DB_CREDENTIALS = '-U suite-sync -d suite-sync-gate';
 
-export const wipeAndRestartEvoluRelayServer = () => {
-    execSync(
-        'docker compose -f docker/docker-compose.suite-ci-e2e.yml exec -T suite-sync rm -rf /app/data',
-        { cwd: '../../' },
-    );
-    execSync(
-        `docker compose -f docker/docker-compose.suite-ci-e2e.yml exec -T quota-db psql ${QUOTA_DB_CREDENTIALS} -c "TRUNCATE challenges, owner_storage_limits, pubkey_storage_limits RESTART IDENTITY CASCADE;"`,
-        { cwd: '../../' },
-    );
-    execSync(
-        'docker compose -f docker/docker-compose.suite-ci-e2e.yml restart quota-db suite-sync',
-        { cwd: '../../' },
-    );
+const REPO_ROOT = path.resolve(__dirname, '../../../');
+
+const waitForRelayReady = async (maxWaitMs = 30_000) => {
+    const pollIntervalMs = 500;
+    const deadline = Date.now() + maxWaitMs;
+
+    while (Date.now() < deadline) {
+        try {
+            await fetch(RELAY_HEALTH_URL);
+
+            return;
+        } catch {
+            await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+        }
+    }
+    throw new Error(`Evolu relay did not become healthy within ${maxWaitMs}ms after restart`);
 };
 
-export const seedQuotaManagerData = () => {
-    execSync(
-        `docker compose -f docker/docker-compose.suite-ci-e2e.yml exec -T quota-db psql ${QUOTA_DB_CREDENTIALS} -c "INSERT INTO owner_storage_limits (\\"ownerId\\", \\"storageLimit\\") VALUES ('${QUOTA_OWNER_ID}', ${QUOTA_STORAGE_LIMIT}) ON CONFLICT DO NOTHING;"`,
-        { cwd: '../../' },
+export const wipeAndRestartEvoluRelayServer = async () => {
+    execFileSync(
+        'docker',
+        [
+            'compose',
+            '-f',
+            'docker/docker-compose.suite-ci-e2e.yml',
+            'exec',
+            '-T',
+            'suite-sync',
+            'rm',
+            '-rf',
+            '/app/data',
+        ],
+        { cwd: REPO_ROOT },
     );
-    execSync(
-        `docker compose -f docker/docker-compose.suite-ci-e2e.yml exec -T quota-db psql ${QUOTA_DB_CREDENTIALS} -c "INSERT INTO pubkey_storage_limits (\\"publicKey\\", \\"totalStorageSize\\", \\"unspentStorageSize\\") VALUES ('${QUOTA_PUBLIC_KEY}', ${QUOTA_TOTAL_STORAGE_SIZE}, ${QUOTA_UNSPENT_STORAGE_SIZE}) ON CONFLICT DO NOTHING;"`,
-        { cwd: '../../' },
+    execFileSync(
+        'docker',
+        [
+            'compose',
+            '-f',
+            'docker/docker-compose.suite-ci-e2e.yml',
+            'exec',
+            '-T',
+            'quota-db',
+            'psql',
+            ...QUOTA_DB_CREDENTIALS.split(' '),
+            '-c',
+            'TRUNCATE challenges, owner_storage_limits, pubkey_storage_limits RESTART IDENTITY CASCADE;',
+        ],
+        { cwd: REPO_ROOT },
+    );
+    execFileSync(
+        'docker',
+        [
+            'compose',
+            '-f',
+            'docker/docker-compose.suite-ci-e2e.yml',
+            'restart',
+            'quota-db',
+            'suite-sync',
+        ],
+        { cwd: REPO_ROOT },
+    );
+    await waitForRelayReady();
+};
+
+export const seedQuotaManagerData = ({ ownerId }: { ownerId: string }) => {
+    const safeOwnerId = ownerId.replace(/'/g, "''");
+    execFileSync(
+        'docker',
+        [
+            'compose',
+            '-f',
+            'docker/docker-compose.suite-ci-e2e.yml',
+            'exec',
+            '-T',
+            'quota-db',
+            'psql',
+            ...QUOTA_DB_CREDENTIALS.split(' '),
+            '-c',
+            `INSERT INTO owner_storage_limits ("ownerId", "storageLimit") VALUES ('${safeOwnerId}', ${QUOTA_STORAGE_LIMIT}) ON CONFLICT DO NOTHING;`,
+        ],
+        { cwd: REPO_ROOT },
+    );
+    execFileSync(
+        'docker',
+        [
+            'compose',
+            '-f',
+            'docker/docker-compose.suite-ci-e2e.yml',
+            'exec',
+            '-T',
+            'quota-db',
+            'psql',
+            ...QUOTA_DB_CREDENTIALS.split(' '),
+            '-c',
+            `INSERT INTO pubkey_storage_limits ("publicKey", "totalStorageSize", "unspentStorageSize") VALUES ('${QUOTA_PUBLIC_KEY}', ${QUOTA_TOTAL_STORAGE_SIZE}, ${QUOTA_UNSPENT_STORAGE_SIZE}) ON CONFLICT DO NOTHING;`,
+        ],
+        { cwd: REPO_ROOT },
     );
 };
 

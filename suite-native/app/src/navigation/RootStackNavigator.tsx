@@ -26,7 +26,14 @@ import {
     DeviceOnboardingStackNavigator,
 } from '@suite-native/module-device-onboarding';
 import { DeviceSettingsStackNavigator } from '@suite-native/module-device-settings';
-import { StakingDetailScreen, StakingManagementScreen } from '@suite-native/module-earn';
+import {
+    EarnConsentsScreen,
+    EarnFormScreen,
+    EarnTransactionDataReviewScreen,
+    HowStakeWorksScreen,
+    StakingDetailScreen,
+    StakingManagementScreen,
+} from '@suite-native/module-earn';
 import { ExperimentalFeedbackModalScreen } from '@suite-native/module-home';
 import { OnboardingStackNavigator } from '@suite-native/module-onboarding';
 import { PassphraseStackNavigator } from '@suite-native/module-passphrase';
@@ -102,6 +109,26 @@ export const RootStackNavigator = () => {
                 options={{ title: RootStackRoutes.StakingManagement }}
                 name={RootStackRoutes.StakingManagement}
                 component={StakingManagementScreen}
+            />
+            <RootStack.Screen
+                options={{ title: RootStackRoutes.HowStakeWorksScreen }}
+                name={RootStackRoutes.HowStakeWorksScreen}
+                component={HowStakeWorksScreen}
+            />
+            <RootStack.Screen
+                options={{ title: RootStackRoutes.EarnForm }}
+                name={RootStackRoutes.EarnForm}
+                component={EarnFormScreen}
+            />
+            <RootStack.Screen
+                options={{ title: RootStackRoutes.EarnConsents }}
+                name={RootStackRoutes.EarnConsents}
+                component={EarnConsentsScreen}
+            />
+            <RootStack.Screen
+                options={{ title: RootStackRoutes.EarnTransactionDataReview }}
+                name={RootStackRoutes.EarnTransactionDataReview}
+                component={EarnTransactionDataReviewScreen}
             />
             <RootStack.Screen
                 name={RootStackRoutes.DevUtilsStack}

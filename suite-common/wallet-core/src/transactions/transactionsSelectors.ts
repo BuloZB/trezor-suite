@@ -3,6 +3,7 @@ import { A, D, pipe } from '@mobily/ts-belt';
 import { createWeakMapSelector, returnStableArrayIfEmpty } from '@suite-common/redux-utils';
 import {
     type TokenDefinitionsRootState,
+    createPhishingResult,
     isPhishingTransaction,
     selectNetworkTokenDefinitions,
 } from '@suite-common/token-definitions';
@@ -38,6 +39,8 @@ import {
 } from '../blockchain/blockchainReducer';
 import { selectHistoricFiatRates } from '../fiat-rates/fiatRatesSelectors';
 import type { FiatRatesRootState } from '../fiat-rates/fiatRatesTypes';
+import { type PhishingRootState } from '../phishing/phishingReducerTypes';
+import { selectPhishingDustThreshold } from '../phishing/phishingSelectors';
 import { isAccountStakingActive } from '../stake/stakeUtils';
 
 const createMemoizedSelector = createWeakMapSelector.withTypes<
@@ -182,21 +185,25 @@ export const selectIsPhishingTransaction = (
     state: TokenDefinitionsRootState &
         TransactionsRootState &
         AccountsRootState &
-        FiatRatesRootState,
+        FiatRatesRootState &
+        PhishingRootState,
     txid: string,
     accountKey: AccountKey,
 ) => {
     const transaction = selectTransactionByAccountKeyAndTxid(state, accountKey, txid);
-    if (!transaction) return false;
+    if (!transaction) return createPhishingResult(false);
 
     const { tokenDefinitions, txsMarkedAsNotScam, historicRates } =
         selectPhishingTransactionsContext(state, accountKey, transaction.symbol);
+
+    const dustThreshold = selectPhishingDustThreshold(state);
 
     return isPhishingTransaction({
         transaction,
         tokenDefinitions,
         historicRates,
         txsMarkedAsNotScam,
+        dustThreshold,
     });
 };
 

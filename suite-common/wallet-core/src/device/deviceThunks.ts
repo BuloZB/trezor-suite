@@ -1,4 +1,4 @@
-import { bluetoothActions } from '@suite-common/bluetooth';
+import { bluetoothActions, selectKnownDeviceByDeviceId } from '@suite-common/bluetooth';
 import {
     DEVICE_MODULE_PREFIX,
     PORTFOLIO_TRACKER_DEVICE_ID,
@@ -387,6 +387,8 @@ export const toggleAutoEjectThunk = createThunk(
 type ForgetDevicePersistentDataThunkParams = {
     deviceId: TrezorDevice['id'];
     isOsUnpairingFinished?: boolean;
+    skipToggleModalConnection?: boolean;
+    skipDisconnect?: boolean;
 };
 
 /**
@@ -397,7 +399,12 @@ type ForgetDevicePersistentDataThunkParams = {
 export const forgetDevicePersistentDataThunk = createThunk(
     `${DEVICE_MODULE_PREFIX}/forgetSingleDevicePersistentDataThunk`,
     async (
-        { deviceId, isOsUnpairingFinished }: ForgetDevicePersistentDataThunkParams,
+        {
+            deviceId,
+            skipToggleModalConnection,
+            isOsUnpairingFinished,
+            skipDisconnect,
+        }: ForgetDevicePersistentDataThunkParams,
         { dispatch, extra, getState },
     ) => {
         if (!deviceId) return;
@@ -411,11 +418,24 @@ export const forgetDevicePersistentDataThunk = createThunk(
             matchingDevice?.descriptor?.apiType === 'bluetooth' && matchingDevice.descriptor.id
                 ? asBluetoothDeviceId(matchingDevice.descriptor.id)
                 : undefined;
-        if (bluetoothId !== undefined) {
-            dispatch(bluetoothActions.removeKnownDeviceAction({ id: bluetoothId }));
+
+        // Also check for a known BT device by trezor device ID.
+        // The device may have been paired via BT previously but is now
+        // connected via USB — the persistent descriptor won't be 'bluetooth'.
+        const knownBtDevice = selectKnownDeviceByDeviceId(getState(), deviceId);
+        const btIdToRemove =
+            bluetoothId ?? (knownBtDevice ? asBluetoothDeviceId(knownBtDevice.id) : undefined);
+
+        if (btIdToRemove !== undefined) {
+            dispatch(bluetoothActions.removeKnownDeviceAction({ id: btIdToRemove }));
             // try to remove OS-level Bluetooth bonds, if supported by the platform
             await dispatch(
-                extra.thunks.forgetBluetoothDevice({ bluetoothId, isOsUnpairingFinished }),
+                extra.thunks.forgetBluetoothDevice({
+                    bluetoothId: btIdToRemove,
+                    skipToggleModalConnection,
+                    isOsUnpairingFinished,
+                    skipDisconnect,
+                }),
             );
         }
         const credentials = matchingDevice?.thp?.credentials;
@@ -427,22 +447,39 @@ export const forgetDevicePersistentDataThunk = createThunk(
 
 export type ForgetDeviceThunkParams = {
     isOsUnpairingFinished?: boolean;
+    skipToggleModalConnection?: boolean;
+    skipDisconnect?: boolean;
+    deviceId?: TrezorDevice['id'];
 };
 
 export const forgetDeviceThunk = createThunk(
     `${DEVICE_MODULE_PREFIX}/forgetDevice`,
     async (
-        { isOsUnpairingFinished }: ForgetDeviceThunkParams | undefined = {},
+        {
+            skipToggleModalConnection,
+            isOsUnpairingFinished,
+            skipDisconnect,
+            deviceId,
+        }: ForgetDeviceThunkParams | undefined = {},
         { dispatch, getState },
     ) => {
-        const device = selectSelectedDevice(getState());
+        const devices = selectDevices(getState());
+
+        const explicitDevice = deviceId
+            ? devices.find(candidateDevice => candidateDevice.id === deviceId)
+            : undefined;
+        const device = explicitDevice ?? selectSelectedDevice(getState());
         if (!device) return;
 
-        const devices = selectDevices(getState());
         const deviceInstances = getDeviceInstances(device, devices);
 
         await dispatch(
-            forgetDevicePersistentDataThunk({ deviceId: device.id, isOsUnpairingFinished }),
+            forgetDevicePersistentDataThunk({
+                deviceId: device.id,
+                skipToggleModalConnection,
+                isOsUnpairingFinished,
+                skipDisconnect,
+            }),
         );
 
         deviceInstances.forEach(instance => {

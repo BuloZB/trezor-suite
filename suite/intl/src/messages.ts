@@ -2543,6 +2543,23 @@ export const messages = defineMessages({
             'We’ve reserved a small amount of the native token on {supportedNetworks} to cover any extra network fees when you send, swap, or sell your assets.',
         id: 'TR_NETWORK_RESERVE_DESCRIPTION',
     },
+    TR_DUST_PHISHING: {
+        id: 'TR_DUST_PHISHING',
+        defaultMessage: 'Dust phishing threshold',
+    },
+    TR_DUST_PHISHING_DESCRIPTION: {
+        id: 'TR_DUST_PHISHING_DESCRIPTION',
+        defaultMessage:
+            'Adjust the dust threshold for phishing detection. Currently, the dust threshold can only be defined in USD currency. Leaving this field empty will turn off dust amount detection.',
+    },
+    TR_DUST_PHISHING_ERROR_NUMBER: {
+        id: 'TR_DUST_PHISHING_ERROR_NUMBER',
+        defaultMessage: 'Please enter a valid number',
+    },
+    TR_DUST_PHISHING_ERROR_POSITIVE: {
+        id: 'TR_DUST_PHISHING_ERROR_POSITIVE',
+        defaultMessage: 'Dust threshold must be a positive number',
+    },
     TR_CONFIRM_AUTO_EJECT: {
         defaultMessage: 'Enable auto-eject',
         id: 'TR_CONFIRM_AUTO_EJECT',
@@ -3692,17 +3709,26 @@ export const messages = defineMessages({
         id: 'TR_ACCOUNT_DETAILS_XPUB_HEADER',
         defaultMessage: 'Public key (XPUB)',
     },
-    TR_ACCOUNT_DETAILS_EXPORT_LABELS_HEADER: {
-        id: 'TR_ACCOUNT_DETAILS_EXPORT_LABELS_HEADER',
-        defaultMessage: 'Export labels (BIP 329)',
-    },
     TR_ACCOUNT_DETAILS_EXPORT_LABELS_BUTTON: {
         id: 'TR_ACCOUNT_DETAILS_EXPORT_LABELS_BUTTON',
         defaultMessage: 'Export',
     },
-    TR_ACCOUNT_DETAILS_EXPORT_LABELS_DESCRIPTION: {
-        id: 'TR_ACCOUNT_DETAILS_EXPORT_LABELS_DESCRIPTION',
-        defaultMessage: 'Export label files to your computer using the BIP-329 standard.',
+    TR_ACCOUNT_DETAILS_IMPORT_LABELS_BUTTON: {
+        id: 'TR_ACCOUNT_DETAILS_IMPORT_LABELS_BUTTON',
+        defaultMessage: 'Import',
+    },
+    TR_BIP_329_HEADER: {
+        id: 'TR_BIP_329_HEADER',
+        defaultMessage: 'Transaction labels',
+    },
+    TR_BIP_329_DESCRIPTION: {
+        id: 'TR_BIP_329_DESCRIPTION',
+        defaultMessage:
+            'Import or export transaction labels for this account. Compatible with other wallet applications that support the BIP-329 format.',
+    },
+    TR_BIP_329_LABELS_IMPORTED: {
+        id: 'TR_BIP_329_LABELS_IMPORTED',
+        defaultMessage: 'BIP 329 labels imported successfully.',
     },
     TR_ACCOUNT_DETAILS_XPUB: {
         id: 'TR_ACCOUNT_DETAILS_XPUB',
@@ -4232,6 +4258,14 @@ export const messages = defineMessages({
         id: 'TR_BACK_TO_DASHBOARD',
         defaultMessage: 'Back to Dashboard',
     },
+    TR_SAVE: {
+        id: 'TR_SAVE',
+        defaultMessage: 'Save',
+    },
+    TR_TURN_OFF: {
+        id: 'TR_TURN_OFF',
+        defaultMessage: 'Turn off',
+    },
     TR_CANCEL: {
         id: 'TR_CANCEL',
         defaultMessage: 'Cancel',
@@ -4517,11 +4551,11 @@ export const messages = defineMessages({
     },
     TR_FORGET_DEVICE_MODAL_BULLET_FORGET: {
         id: 'TR_FORGET_DEVICE_MODAL_BULLET_FORGET',
-        defaultMessage: 'Trezor Suite will forget this Trezor.',
+        defaultMessage: 'Trezor Suite will forget any existence of this Trezor.',
     },
     TR_FORGET_DEVICE_MODAL_BLUETOOTH_REMOVED_AND_DISCONNECTED: {
         id: 'TR_FORGET_DEVICE_MODAL_BLUETOOTH_REMOVED_AND_DISCONNECTED',
-        defaultMessage: 'Bluetooth pairing will be removed, and your Trezor will be disconnected.',
+        defaultMessage: 'Bluetooth pairing will be removed and Trezor will be disconnected.',
     },
     TR_FORGET_DEVICE_MODAL_BLUETOOTH_REMOVED: {
         id: 'TR_FORGET_DEVICE_MODAL_BLUETOOTH_REMOVED',
@@ -4530,6 +4564,48 @@ export const messages = defineMessages({
     TR_FORGET_DEVICE_MODAL_BULLET_NOT_WIPE: {
         id: 'TR_FORGET_DEVICE_MODAL_BULLET_NOT_WIPE',
         defaultMessage: "Your wallet backup and funds stay intact—they won't be erased.",
+    },
+    TR_FORGET_DEVICE_MODAL_CONFIRM: {
+        id: 'TR_FORGET_DEVICE_MODAL_CONFIRM',
+        defaultMessage: 'Forget device',
+    },
+    TR_DEVICE_HAS_BEEN_FORGOTTEN: {
+        id: 'TR_DEVICE_HAS_BEEN_FORGOTTEN',
+        defaultMessage: 'Device forgotten',
+    },
+    TR_FORGET_DEVICE_MODAL_FINISH_HEADING: {
+        id: 'TR_FORGET_DEVICE_MODAL_FINISH_HEADING',
+        defaultMessage: 'Remove from Bluetooth settings',
+    },
+    TR_FORGET_DEVICE_MODAL_ON_YOUR_COMPUTER: {
+        id: 'TR_FORGET_DEVICE_MODAL_ON_YOUR_COMPUTER',
+        defaultMessage: 'On your computer',
+    },
+    TR_FORGET_DEVICE_MODAL_ON_YOUR_TREZOR: {
+        id: 'TR_FORGET_DEVICE_MODAL_ON_YOUR_TREZOR',
+        defaultMessage: 'On your Trezor',
+    },
+    TR_FORGET_DEVICE_MODAL_REMOVE_FROM_OS: {
+        id: 'TR_FORGET_DEVICE_MODAL_REMOVE_FROM_OS',
+        defaultMessage:
+            '<b>Remove your Trezor from the <link>Bluetooth settings</link>.</b> If you don’t, you might have trouble pairing it again in the future.',
+    },
+    TR_FORGET_DEVICE_MODAL_REMOVE_FROM_TREZOR: {
+        id: 'TR_FORGET_DEVICE_MODAL_REMOVE_FROM_TREZOR',
+        defaultMessage:
+            '<b>Go to Pair & Connect and remove your computer.</b> This will prevent connection errors later.',
+    },
+    TR_FORGET_DEVICE_MODAL_IVE_REMOVED_IT: {
+        id: 'TR_FORGET_DEVICE_MODAL_IVE_REMOVED_IT',
+        defaultMessage: "I've removed it",
+    },
+    TR_FORGET_DEVICE_MODAL_FINISH_FORGETTING_HEADING: {
+        id: 'TR_FORGET_DEVICE_MODAL_FINISH_FORGETTING_HEADING',
+        defaultMessage: 'Finish forgetting this Trezor',
+    },
+    TR_FORGET_DEVICE_MODAL_DISCONNECT_SUBTITLE: {
+        id: 'TR_FORGET_DEVICE_MODAL_DISCONNECT_SUBTITLE',
+        defaultMessage: 'Disconnect your Trezor device from the phone.',
     },
     RECEIVE_TITLE: {
         id: 'RECEIVE_TITLE',
@@ -5257,14 +5333,22 @@ export const messages = defineMessages({
         defaultMessage:
             'Used for smart contract actions like sending tokens. If you run out, TRX is burned as a network fee. Refills within 24 hours.',
     },
+    TR_TRON_FEE_BANDWIDTH: {
+        id: 'TR_TRON_FEE_BANDWIDTH',
+        defaultMessage: '{count} bandwidth',
+    },
+    TR_TRON_FEE_ENERGY: {
+        id: 'TR_TRON_FEE_ENERGY',
+        defaultMessage: '{count} energy',
+    },
     TR_EXPERIMENTAL_TRON_VIEW_ONLY: {
         id: 'TR_EXPERIMENTAL_TRON_VIEW_ONLY',
-        defaultMessage: 'Tron View-Only (Beta)',
+        defaultMessage: 'Tron (Beta)',
     },
     TR_EXPERIMENTAL_TRON_VIEW_ONLY_DESCRIPTION: {
         id: 'TR_EXPERIMENTAL_TRON_VIEW_ONLY_DESCRIPTION',
         defaultMessage:
-            'Enable the Tron network. The latest firmware is required. You can receive funds, check your balance, view tokens, charts, and transaction history (may contain bugs). Full support coming soon (or available via third-party wallets).',
+            'Enable the Tron Network with the latest firmware to check your balance, send and receive Tron and TRC-20 tokens, view charts and your transaction history. Full support is coming soon.',
     },
     TR_EXPERIMENTAL_SUITE_SYNC_DESCRIPTION: {
         id: 'TR_EXPERIMENTAL_SUITE_SYNC_DESCRIPTION',
@@ -6204,6 +6288,19 @@ export const messages = defineMessages({
         defaultMessage: 'Labels not synced',
         id: 'TR_LABELING_NOT_SYNCED',
     },
+    TR_LABELING_SYNCED_THROUGH_TREZOR_SERVERS: {
+        defaultMessage: 'Synced through Trezor servers (default)',
+        id: 'TR_LABELING_SYNCED_THROUGH_TREZOR_SERVERS',
+    },
+    TR_LABELING_SERVERS_DESCRIPTION: {
+        defaultMessage:
+            'Your labels are synced through Trezor servers. You can connect to your own server for more privacy and control.',
+        id: 'TR_LABELING_SERVERS_DESCRIPTION',
+    },
+    TR_LABELING_SERVERS_CHANGE: {
+        defaultMessage: 'Change',
+        id: 'TR_LABELING_SERVERS_CHANGE',
+    },
     TR_TO_MAKE_YOUR_LABELS_PERSISTENT: {
         defaultMessage:
             'To make your labels consistent and available on different devices, connect to a cloud storage provider.',
@@ -6411,6 +6508,30 @@ export const messages = defineMessages({
     TR_LABELING_ERROR: {
         id: 'TR_LABELING_ERROR',
         defaultMessage: 'There was an error saving your label. Try again.',
+    },
+    TR_SUITE_SYNC_SERVER_TREZOR_DEFAULT: {
+        id: 'TR_SUITE_SYNC_SERVER_TREZOR_DEFAULT',
+        defaultMessage: 'Trezor servers (default)',
+    },
+    TR_SUITE_SYNC_SERVER_CUSTOM: {
+        id: 'TR_SUITE_SYNC_SERVER_CUSTOM',
+        defaultMessage: 'Own server',
+    },
+    TR_SUITE_SYNC_SERVER_CUSTOM_PLACEHOLDER: {
+        id: 'TR_SUITE_SYNC_SERVER_CUSTOM_PLACEHOLDER',
+        defaultMessage: 'e.g. https://your-server.domain.com',
+    },
+    TR_SUITE_SYNC_SERVER: {
+        id: 'TR_SUITE_SYNC_SERVER',
+        defaultMessage: 'Sync server',
+    },
+    TR_SUITE_SYNC_SERVER_MODAL: {
+        id: 'TR_SUITE_SYNC_SERVER_MODAL',
+        defaultMessage: 'Suite Sync server',
+    },
+    TR_SUITE_SYNC_SERVER_MODAL_DESCRIPTION: {
+        id: 'TR_SUITE_SYNC_SERVER_MODAL_DESCRIPTION',
+        defaultMessage: 'Connect to your own server to increase your privacy and control.',
     },
     TR_GRAPH_MISSING_DATA_WITH_TOKENS: {
         id: 'TR_GRAPH_MISSING_DATA_WITH_TOKENS',
@@ -8788,6 +8909,26 @@ export const messages = defineMessages({
         id: 'TR_ZERO_PHISHING_BANNER',
         defaultMessage: 'This transaction looks suspicious. <a>Learn more</a>',
     },
+    TR_PHISHING_BANNER_FAKE_TOKEN: {
+        id: 'TR_PHISHING_BANNER_FAKE_TOKEN',
+        defaultMessage:
+            'Proceed with caution. This transaction may include hidden or unrecognized tokens. <a>Learn more</a>',
+    },
+    TR_PHISHING_BANNER_UNKNOWN_TX: {
+        id: 'TR_PHISHING_BANNER_UNKNOWN_TX',
+        defaultMessage:
+            "Proceed with caution. This transaction couldn't be fully verified. <a>Learn more</a>",
+    },
+    TR_PHISHING_BANNER_DUST_AMOUNT: {
+        id: 'TR_PHISHING_BANNER_DUST_AMOUNT',
+        defaultMessage:
+            'Proceed with caution. This transaction contains dust amounts, which can be used in scams. <a>Learn more</a>',
+    },
+    TR_PHISHING_BANNER_ZERO_AMOUNT: {
+        id: 'TR_PHISHING_BANNER_ZERO_AMOUNT',
+        defaultMessage:
+            'Proceed with caution. This transaction has a zero amount and may be suspicious. <a>Learn more</a>',
+    },
     TR_HIDE_TRANSACTION: {
         id: 'TR_HIDE_TRANSACTION',
         defaultMessage: 'Mark as suspicious',
@@ -9082,10 +9223,7 @@ export const messages = defineMessages({
         defaultMessage:
             'Grow your crypto by locking it to help secure the network—and earn rewards in return.',
     },
-    TR_EARN_YIELD_DASHBOARD_TITLE: {
-        id: 'TR_EARN_YIELD_DASHBOARD_TITLE',
-        defaultMessage: 'Stablecoin yield',
-    },
+
     TR_EARN_YIELD_DASHBOARD_TEXT: {
         id: 'TR_EARN_YIELD_DASHBOARD_TEXT',
         defaultMessage: 'Put your stablecoins to work and earn rewards.',
@@ -9157,6 +9295,10 @@ export const messages = defineMessages({
     TR_EARN_YIELD_BACK_TO_OVERVIEW: {
         id: 'TR_EARN_YIELD_BACK_TO_OVERVIEW',
         defaultMessage: 'Back to overview',
+    },
+    TR_EARN_STABLECOIN_YIELD_TITLE: {
+        id: 'TR_EARN_STABLECOIN_YIELD_TITLE',
+        defaultMessage: 'Stablecoin Yield',
     },
     TR_MODIFY: {
         id: 'TR_MODIFY',
@@ -10308,7 +10450,7 @@ export const messages = defineMessages({
     },
     TR_DONE_REMOVING_TREZOR_FROM_SETTINGS: {
         id: 'TR_DONE_REMOVING_TREZOR_FROM_SETTINGS',
-        defaultMessage: 'I’ve removed it',
+        defaultMessage: 'I’ve got it',
     },
     TR_SCAN_TREZORS_NEARBY: {
         id: 'TR_SCAN_TREZORS_NEARBY',
@@ -10342,19 +10484,7 @@ export const messages = defineMessages({
     TR_BLUETOOTH_REMOVE_FROM_BLUETOOTH_SETTINGS_DESCRIPTION: {
         id: 'TR_BLUETOOTH_REMOVE_FROM_BLUETOOTH_SETTINGS_DESCRIPTION',
         defaultMessage:
-            "To unpair completely, make sure you remove your Trezor from your computer's Bluetooth settings. If not, your Trezor won't appear in Trezor Suite when you try to pair it again.",
-    },
-    TR_BLUETOOTH_ERASE_BONDS_SETTINGS: {
-        defaultMessage: 'Unpair Bluetooth connection',
-        id: 'TR_BLUETOOTH_ERASE_BONDS_SETTINGS',
-    },
-    TR_BLUETOOTH_ERASE_BONDS_SETTINGS_DESCRIPTION: {
-        defaultMessage: 'This removes your Trezor from the list of paired devices in Trezor Suite.',
-        id: 'TR_BLUETOOTH_ERASE_BONDS_SETTINGS_DESCRIPTION',
-    },
-    TR_BLUETOOTH_ERASE_BONDS_SETTINGS_UNPAIR: {
-        defaultMessage: 'Unpair',
-        id: 'TR_BLUETOOTH_ERASE_BONDS_SETTINGS_UNPAIR',
+            'If you don’t remove your Trezor from your Bluetooth settings, you might have trouble pairing it again in the future.',
     },
     TR_BLUETOOTH_VERSION_NOT_COMPATIBLE_LINE1: {
         id: 'TR_BLUETOOTH_VERSION_NOT_COMPATIBLE_LINE1',
@@ -10768,20 +10898,20 @@ export const messages = defineMessages({
         id: 'TR_EXCHANGE_DETAIL_FEEDBACK_TITLE',
         defaultMessage: 'How was your trading experience?',
     },
-    TR_EXCHANGE_DETAIL_FEEDBACK_DESCRIPTION: {
-        id: 'TR_EXCHANGE_DETAIL_FEEDBACK_DESCRIPTION',
+    TR_FEEDBACK_CARD_DESCRIPTION: {
+        id: 'TR_FEEDBACK_CARD_DESCRIPTION',
         defaultMessage: 'Your feedback helps us improve—tell us what you think.',
     },
-    TR_EXCHANGE_DETAIL_FEEDBACK_INPUT_BUTTON: {
-        id: 'TR_EXCHANGE_DETAIL_FEEDBACK_INPUT_BUTTON',
+    TR_FEEDBACK_CARD_SEND: {
+        id: 'TR_FEEDBACK_CARD_SEND',
         defaultMessage: 'Send feedback',
     },
-    TR_EXCHANGE_DETAIL_FEEDBACK_SUCCESS_TITLE: {
-        id: 'TR_EXCHANGE_DETAIL_FEEDBACK_SUCCESS_TITLE',
+    TR_FEEDBACK_CARD_SUCCESS_TITLE: {
+        id: 'TR_FEEDBACK_CARD_SUCCESS_TITLE',
         defaultMessage: 'Thanks!',
     },
-    TR_EXCHANGE_DETAIL_FEEDBACK_SUCCESS_DESCRIPTION: {
-        id: 'TR_EXCHANGE_DETAIL_FEEDBACK_SUCCESS_DESCRIPTION',
+    TR_FEEDBACK_CARD_SUCCESS_DESCRIPTION: {
+        id: 'TR_FEEDBACK_CARD_SUCCESS_DESCRIPTION',
         defaultMessage: 'We value your feedback.',
     },
     TR_APPROVE_TITLE: {

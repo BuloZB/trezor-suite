@@ -6,6 +6,7 @@
         {
             "path": "../../suite-common/redux-utils"
         },
+        { "path": "../../suite-common/staking" },
         {
             "path": "../../suite-common/suite-sync"
         },
@@ -16,6 +17,9 @@
             "path": "../../suite-common/wallet-config"
         },
         {
+            "path": "../../suite-common/wallet-constants"
+        },
+        {
             "path": "../../suite-common/wallet-core"
         },
         {
@@ -24,7 +28,9 @@
         {
             "path": "../../suite-common/wallet-utils"
         },
+        { "path": "../device-mutex" },
         { "path": "../labeling" },
+        { "path": "../../packages/connect" },
         { "path": "../../packages/type-utils" },
         { "path": "../../packages/utils" },
         {

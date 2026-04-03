@@ -1087,6 +1087,10 @@ export const messages = {
                     title: 'Coins',
                     subtitle: 'Manage assets that you want to use',
                 },
+                phishing: {
+                    title: 'Phishing',
+                    subtitle: 'Manage phishing detection settings',
+                },
                 suiteSync: {
                     title: 'Suite Sync',
                     subtitle: 'Sync data across your devices',
@@ -1094,10 +1098,36 @@ export const messages = {
                         'Name your wallets, personalize accounts, and label transactions to stay organized on all your approved devices.',
                     toggleDescription:
                         'Keeps your data up to date on all your devices. Your data stays local and syncs only with devices you approve.',
+                    relayUrl: {
+                        card: {
+                            title: 'Relay server',
+                            subtitle: 'Default or custom relay server',
+                        },
+                        screen: {
+                            title: 'Relay server',
+                            subtitle:
+                                'Choose between the default Trezor relay server or set up a custom one.',
+                        },
+                        serverType: {
+                            label: 'Server type',
+                            default: 'Trezor (default)',
+                            custom: 'Custom',
+                        },
+                        customUrlInput: {
+                            label: 'Custom relay URL',
+                            required: 'This field is required.',
+                            invalidUrl: 'Please enter a valid URL.',
+                        },
+                        saved: 'Relay server settings saved.',
+                    },
                 },
                 advanced: {
                     title: 'Advanced',
                     subtitle: 'Expert features for power users ',
+                },
+                experimental: {
+                    title: 'Experimental',
+                    subtitle: 'Get early access to new features',
                 },
                 labeling: {
                     title: 'Labeling',
@@ -1342,6 +1372,24 @@ export const messages = {
                 description: 'Otherwise the app won’t show you anything.',
             },
         },
+        phishing: {
+            settings: {
+                title: 'Phishing',
+                subtitle: 'Manage your phishing detection settings',
+                save: 'Save',
+                turnOff: 'Turn off',
+                placeholder: 'Enter dust threshold in USD',
+            },
+            dustThreshold: {
+                title: 'Dust phishing threshold',
+                subtitle:
+                    'Adjust the dust threshold for phishing detection. Currently, the dust threshold can only be defined in USD currency. Leaving this field empty will turn off dust amount detection.',
+                errors: {
+                    number: 'Please enter a valid number',
+                    positive: 'Dust threshold must be a positive number',
+                },
+            },
+        },
         viewOnly: {
             wallet: {
                 standard: 'Standard wallet',
@@ -1481,6 +1529,15 @@ export const messages = {
                     descriptionLabel: "Tell us what's working and what's not—we read every reply.",
                     submitButton: 'Submit',
                 },
+            },
+        },
+        experimental: {
+            title: 'Experimental features',
+            subtitle: 'For experienced users only. Use at your own risk.',
+            tronViewOnly: {
+                title: 'Tron View-Only (Beta)',
+                description:
+                    'Enable the Tron network. The latest firmware is required. You can receive funds, check your balance, view tokens, charts, and transaction history (may contain bugs). Full support coming soon (or available via third-party wallets).',
             },
         },
         appLog: {
@@ -1921,8 +1978,13 @@ export const messages = {
         },
         phishing: {
             badge: 'Caution!',
-            warning: 'This transaction looks suspicious. <blogLink>Learn more</blogLink>',
-            markedAsRecognized: 'You’ve confirmed this transaction is safe..',
+            warning: 'This transaction looks suspicious.',
+            warningFakeToken: 'This transaction may include hidden or unrecognized tokens.',
+            warningUnknownTx: "This transaction couldn't be fully verified.",
+            warningDustAmount:
+                'This transaction contains dust amounts, which can be used in scams.',
+            warningZeroAmount: 'This transaction has a zero amount and may be suspicious.',
+            markedAsRecognized: 'You’ve confirmed this transaction is safe.',
             hideTransaction: 'Mark as suspicious',
             unhideTransaction: 'Mark as safe',
         },
@@ -2420,6 +2482,59 @@ export const messages = {
                 stepReadyToClaim: 'Ready to claim',
             },
         },
+        earnConsentsScreen: {
+            title: 'Before you continue',
+            entryPeriodCard: {
+                title: 'Entry period',
+                firstItem: 'The entry period can currently take up to 72 days.',
+                secondItem: 'You can not cancel your stake during this period.',
+            },
+            delegatingCard: {
+                title: 'Delegating to Everstake',
+                firstItem:
+                    "Staking transfers the direct control of your {displaySymbol} from your Trezor device to Everstake's smart contract environment.",
+                secondItem: 'Everstake maintains and secures your funds.',
+            },
+        },
+        earnTransactionDataReviewScreen: {
+            title: 'Review with Trezor',
+            successMessage: 'You’re all set.',
+            viewTransactionButton: 'Stake now',
+            pushTransactionFailedAlert: {
+                title: 'Transaction failed',
+                description: 'Failed to submit your stake transaction. Please try again.',
+                primaryButton: 'Go to home',
+            },
+            pendingTransactionConflictAlert: {
+                title: 'Pending transaction detected',
+                description:
+                    'A stake transaction is already pending for this account. Please wait for it to be confirmed before staking again.',
+                primaryButton: 'Go to home',
+            },
+        },
+        earnStakeOutputItem: {
+            title: 'Stake',
+            description: 'Stake {symbol} on Everstake?',
+        },
+        earnSummaryOutputItem: {
+            title: 'Total including fee',
+        },
+        earnFormScreen: {
+            title: '{assetName} staking',
+            amountLabel: 'Amount',
+            stakeMaxButton: 'Stake max',
+            withdrawalFeesBanner:
+                "We've left {amount} {displaySymbol} in your account so you can pay for withdrawal fees.",
+            estimatedRewardsLabel: 'Estimated yearly rewards',
+            estimatedRewardsPlaceholder: 'To be calculated',
+            validation: {
+                amountIsZero: 'Amount must be greater than 0.',
+                amountBelowMinimum: 'Amount must be at least {amount} {symbol}.',
+                insufficientBalance: "You don't have enough balance to stake this amount.",
+                feeBufferReserve: 'Not enough funds left after we reserve for withdrawal fees.',
+                tooManyDecimals: 'Too many decimals.',
+            },
+        },
         earnScreen: {
             title: 'Earn',
             subtitle: 'Staking can be currently managed only in Trezor Suite for desktop.',
@@ -2444,6 +2559,62 @@ export const messages = {
             },
             adaInfo: 'Your ADA stays fully accessible while earning rewards.',
         },
+        howStakeWorksScreen: {
+            title: 'How {displaySymbol} staking works?',
+            subtitle:
+                'Support the {networkName} network. Lock in your funds and earn staking rewards.',
+            infoBannerTitle: '<b>{totalStakedAmount}</b> currently staked with Trezor',
+            benefits: {
+                first: {
+                    title: 'Earn up to ~{potentialRewards} {displaySymbol} annually',
+                    description: 'When staking your total {displaySymbol} balance',
+                },
+                second: {
+                    title: 'Compounds automatically',
+                    description: 'Rewards are re-staked for you',
+                },
+                third: {
+                    title: 'Put your {displaySymbol} to work',
+                    description: 'Enjoy weekly growth while you hold',
+                },
+            },
+            timelineCardTitle: 'Staking timeline',
+            timelineBottomSheetTitle: 'Staking timeline & fees',
+            stakingTimelineTitle: 'Staking',
+            stakingTimeline: {
+                first: {
+                    title: 'Sign staking transaction',
+                    description: 'Network fee',
+                },
+                second: {
+                    title: 'Entry period',
+                    description: '~{entryPeriod} days',
+                },
+                third: {
+                    title: 'Receive weekly rewards',
+                    description: '{apy}% yearly',
+                },
+            },
+            unstakeTimelineTitle: 'Unstake',
+            unstakeTimeline: {
+                first: {
+                    title: 'Sign unstaking transaction',
+                    description: 'Network fee',
+                },
+                second: {
+                    title: 'Leave staking pool',
+                    description: '~{unstakingPeriod} days',
+                },
+                third: {
+                    title: 'Claim unstaked {symbol}',
+                    description: 'Network fee',
+                },
+                fourth: {
+                    title: 'Receive {symbol} in your account',
+                    description: 'Instantly',
+                },
+            },
+        },
         staked: 'Staked',
         stakedAutomatically: 'Staked automatically',
         fullBalance: 'Full balance',
@@ -2460,10 +2631,11 @@ export const messages = {
                 "You're earning nearly 0% in ADA rewards right now. Switch to Everstake to earn up to {apy}% APY. Your funds and past rewards are safe.",
             updateToNewProvider:
                 'Update to our new provider, Everstake, and earn ~{apy}% APY. Your ADA with our previous provider is safe, and your rewards stay intact, though rates aren’t guaranteed.',
-            rewardsReduced: 'Cardano staking rewards reduced',
+            rewardsReduced: '{networkName} staking rewards reduced',
         },
         notAvailable: 'Not available',
         apyNotAvailable: 'APY not available',
+        apyPercentage: '{apy}% APY',
         notAvailableShort: 'N/A',
         stakePendingCard: {
             totalStakePending: 'Total stake pending',

@@ -1,15 +1,18 @@
 export {
     selectIsSuiteSyncEnabled,
+    selectSuiteSyncCustomRelayUrl,
     selectSuiteSyncRelayUrl,
     selectSuiteSyncInteraction,
     selectSuiteSyncOwnerForDeviceStaticId,
     selectIsSuiteSyncDebugEnabled,
     selectHasDeviceSuiteSyncError,
+    selectIsSuiteSyncFeatureAvailable,
     type WithSuiteSyncState,
 } from './suiteSyncSelectors';
 export type { WithSuiteSyncAndDeviceState } from './suiteSyncSelectors';
 export type { SuiteSyncInteraction } from './suiteSyncTypes';
 export { createSuiteSyncCompositionRoot } from './createSuiteSyncCompositionRoot';
+export type { SuiteSyncAnalytics, SuiteSyncAnalyticsDep } from './createSuiteSyncCompositionRoot';
 export {
     suiteSyncSlice,
     suiteSyncReducer,
@@ -20,7 +23,16 @@ export {
     setSuiteSyncOwner,
 } from './suiteSyncSlice';
 export type { SuiteSyncState, SuiteSyncSettings } from './suiteSyncSlice';
-export { DEFAULT_SUITE_SYNC_RELAY_URL } from './relay/relayUrl';
+export { DEFAULT_SUITE_SYNC_RELAY_URL, SUITE_SYNC_RELAY_SERVERS } from './relay/relayUrl';
+export type {
+    SuiteSyncServerTypeSelectValue,
+    SuiteSyncServerTypeOption,
+    ChangeServerModalFields,
+} from './relay/relayServerSettings';
+export {
+    SUITE_SYNC_SERVER_TYPE_OPTIONS_MAP,
+    createChangeSuiteSyncServerSchema,
+} from './relay/relayServerSettings';
 export { prepareSuiteSyncMiddleware } from './suiteSyncMiddleware';
 export {
     suiteSyncDataReducer,
@@ -51,7 +63,6 @@ export {
     selectSuiteSyncOutputLabels,
 } from './data/output/suiteSyncOutputSelectors';
 export { selectAllLabelsForAccount } from './data/labeling/selectAllLabelsForAccount';
-export { suiteSyncToBip329 } from './data/labeling/suiteSyncToBip329';
 export {
     fromSuiteSyncToSearchAccountLabels,
     fromSuiteSyncToSearchOutputLabels,
@@ -61,3 +72,4 @@ export {
     isFwUpgradeNeededForSuiteSync,
     getIsSuiteSyncLabelingActionEnabled,
 } from './suiteSyncUtils';
+export { createSuiteSyncErrorHandler } from './createSuiteSyncErrorHandler';

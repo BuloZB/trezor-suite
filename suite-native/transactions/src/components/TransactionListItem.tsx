@@ -4,6 +4,7 @@ import { type TokenDefinitionsRootState } from '@suite-common/token-definitions'
 import {
     type AccountsRootState,
     type FiatRatesRootState,
+    type PhishingRootState,
     type TransactionsRootState,
     type WalletSettingsRootState,
     selectIsPhishingTransaction,
@@ -56,9 +57,13 @@ export const TransactionListItemValues = ({
         selectIsTestnetAccount(state, accountKey),
     );
 
-    const isPhishingTransaction = useSelector(
-        (state: TokenDefinitionsRootState & TransactionsRootState & FiatRatesRootState) =>
-            selectIsPhishingTransaction(state, transaction.txid, accountKey),
+    const { isPhishing: isPhishingTransaction } = useSelector(
+        (
+            state: TokenDefinitionsRootState &
+                TransactionsRootState &
+                FiatRatesRootState &
+                PhishingRootState,
+        ) => selectIsPhishingTransaction(state, transaction.txid, accountKey),
     );
 
     const { applyStyle } = useNativeStyles();
