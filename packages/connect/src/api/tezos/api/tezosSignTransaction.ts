@@ -1,12 +1,12 @@
 // origin: https://github.com/trezor/connect/blob/develop/src/js/core/methods/TezosSignTransaction.js
 
+import { TezosSignTransaction as TezosSignTransactionSchema } from '@trezor/connect-common/src/types/api/tezos';
 import type { MessagesSchema as PROTO } from '@trezor/protobuf';
 import { Assert } from '@trezor/schema-utils';
 
 import type { MethodMessage, MethodPermission } from '../../../core/AbstractMethod';
 import { AbstractMethod } from '../../../core/AbstractMethod';
 import { getMiscNetwork } from '../../../data/coinInfo';
-import { TezosSignTransaction as TezosSignTransactionSchema } from '../../../types/api/tezos';
 import { validatePath } from '../../../utils/pathUtils';
 import { getFirmwareRange } from '../../common/paramsValidator';
 import * as helper from '../tezosSignTx';
@@ -16,7 +16,15 @@ export default class TezosSignTransaction extends AbstractMethod<
     PROTO.TezosSignTx
 > {
     constructor(message: MethodMessage<'tezosSignTransaction'>) {
-        super(message);
+        const { payload } = message;
+
+        // validate incoming parameters
+        Assert(TezosSignTransactionSchema, payload);
+
+        const path = validatePath(payload.path, 3);
+        const params = helper.createTx(path, payload.branch, payload.operation);
+
+        super(message, params);
         this.requiredDeviceCapabilities = ['Capability_Tezos'];
         this.firmwareRange = getFirmwareRange(
             this.name,
@@ -27,16 +35,6 @@ export default class TezosSignTransaction extends AbstractMethod<
 
     get requiredPermissions(): MethodPermission[] {
         return ['read', 'write'];
-    }
-
-    init() {
-        const { payload } = this;
-
-        // validate incoming parameters
-        Assert(TezosSignTransactionSchema, payload);
-
-        const path = validatePath(payload.path, 3);
-        this.params = helper.createTx(path, payload.branch, payload.operation);
     }
 
     get info() {

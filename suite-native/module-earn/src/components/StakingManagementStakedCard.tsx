@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 
 import { type NetworkSymbol } from '@suite-common/wallet-config';
-import { selectPoolStatsNextRewardPayout } from '@suite-common/wallet-core';
+import { selectEthNextRewardPayout } from '@suite-common/wallet-core';
 import { type AccountKey } from '@suite-common/wallet-types';
 import { Button, Card, HStack, Text, VStack } from '@suite-native/atoms';
 import { CryptoAmountFormatter, CryptoToFiatAmountFormatter } from '@suite-native/formatters';
@@ -12,15 +12,16 @@ import {
     type StackNavigationProps,
 } from '@suite-native/navigation';
 import {
-    selectAPYByAccountKey,
+    selectApy,
     selectRewardsBalanceByAccountKey,
     selectStakedBalanceByAccountKey,
     useSelector,
 } from '@suite-native/staking';
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
+import { BigNumber } from '@trezor/utils';
 
-import { ApyValue } from './ApyValue';
 import { CRYPTO_BALANCE_DECIMALS } from '../constants';
+import { ApyValue } from './ApyValue';
 
 type StakingManagementStakedCardProps = {
     accountKey: AccountKey;
@@ -47,21 +48,24 @@ export const StakingManagementStakedCard = ({
     const { applyStyle } = useNativeStyles();
     const navigation = useNavigation<NavigationProp>();
 
-    const handleStakeMore = () => {
+    const handleStake = () => {
         navigation.navigate(RootStackRoutes.HowStakeWorksScreen, {
             accountKey,
             symbol: networkSymbol,
         });
     };
 
+    const handleUnstake = () => {
+        navigation.navigate(RootStackRoutes.UnstakeFlow, { accountKey });
+    };
+
     const stakedBalance = useSelector(state => selectStakedBalanceByAccountKey(state, accountKey));
+    const hasStakedBalance = new BigNumber(stakedBalance ?? '0').gt(0);
     const rewardsBalance = useSelector(state =>
         selectRewardsBalanceByAccountKey(state, accountKey),
     );
-    const apy = useSelector(state => selectAPYByAccountKey(state, accountKey));
-    const nextRewardPayout = useSelector(state =>
-        selectPoolStatsNextRewardPayout(state, networkSymbol),
-    );
+    const apy = useSelector(state => selectApy(state, { accountKey, networkSymbol }));
+    const nextRewardPayout = useSelector(state => selectEthNextRewardPayout(state));
 
     return (
         <Card noPadding>
@@ -103,7 +107,7 @@ export const StakingManagementStakedCard = ({
             </VStack>
             <HStack justifyContent="space-between" style={applyStyle(stakedSectionStyle)}>
                 <Text variant="body-sm">
-                    {apy != null && 'APY'}
+                    {apy != null && 'APY '}
                     <ApyValue apy={apy} />
                 </Text>
                 {nextRewardPayout != null && (
@@ -116,12 +120,19 @@ export const StakingManagementStakedCard = ({
                 )}
             </HStack>
             <HStack style={applyStyle(buttonsRowStyle)}>
-                {/* TODO: wire up unstake action */}
-                <Button flex={1} colorScheme="primaryElevation0">
-                    <Translation id="earn.stakingManagementScreen.unstakeButton" />
-                </Button>
-                <Button flex={1} colorScheme="primaryElevation0" onPress={handleStakeMore}>
-                    <Translation id="earn.stakingManagementScreen.stakeMoreButton" />
+                {hasStakedBalance && (
+                    <Button flex={1} priority="secondary" onPress={handleUnstake}>
+                        <Translation id="earn.stakingManagementScreen.unstakeButton" />
+                    </Button>
+                )}
+                <Button flex={1} priority="secondary" onPress={handleStake}>
+                    <Translation
+                        id={
+                            hasStakedBalance
+                                ? 'earn.stakingManagementScreen.stakeMoreButton'
+                                : 'earn.stakingManagementScreen.stakeButton'
+                        }
+                    />
                 </Button>
             </HStack>
         </Card>

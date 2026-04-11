@@ -332,11 +332,15 @@ export const selectDeviceById = createMemoizedSelector(
     (devices, deviceId) => devices.find(device => device.id === deviceId),
 );
 
-export const selectDeviceAuthenticity = (state: DeviceRootState) => state.device.deviceAuthenticity;
+export const selectDeviceAuthenticity = (state: DeviceRootState) =>
+    state.device.persistentDeviceData;
 
 export const selectDeviceAuthenticityByDeviceId = createMemoizedSelector(
-    [(_state, deviceId: TrezorDevice['id']) => deviceId, selectDeviceAuthenticity],
-    (deviceId, deviceAuthenticity) => (deviceId ? deviceAuthenticity?.[deviceId] : undefined),
+    [(_state: DeviceRootState, deviceId: TrezorDevice['id']) => deviceId, selectDeviceAuthenticity],
+    (deviceId, persistentDeviceData) =>
+        deviceId
+            ? persistentDeviceData.find(data => data.device_id === deviceId)?.authenticityResult
+            : undefined,
 );
 
 export const selectIsFirmwareAuthenticityCheckDismissed = createMemoizedSelector(
@@ -686,9 +690,7 @@ export const selectSupportChatDeviceUtmParams = createMemoizedSelector(
             result.utm_rev = firmwareRevision;
         }
 
-        if (isDeviceUsingPassphrase) {
-            result.utm_passphrase = isDeviceUsingPassphrase ? 'true' : 'false';
-        }
+        result.utm_passphrase = isDeviceUsingPassphrase ? 'true' : 'false';
 
         return result;
     },

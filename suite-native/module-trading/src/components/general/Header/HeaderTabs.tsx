@@ -116,8 +116,9 @@ export const HeaderTabs = () => {
                 {areTradingExchangeDexesEnabled && (
                     <IconButton
                         iconName="gear"
-                        size="small"
-                        colorScheme="tertiaryElevation0"
+                        size="medium"
+                        intent="neutral"
+                        priority="secondary"
                         accessibilityLabel={translate('moduleTrading.tradingScreen.tabs.settings')}
                         onPress={openModal}
                     />

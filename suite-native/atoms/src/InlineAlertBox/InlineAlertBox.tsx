@@ -15,7 +15,7 @@ import {
 } from './presets';
 
 const alertWrapperStyle = prepareNativeStyle<
-    Omit<InlineAlertBoxStyles, 'buttonColorScheme'> & { isButtonVisible: boolean }
+    Omit<InlineAlertBoxStyles, 'buttonColorProps'> & { isButtonVisible: boolean }
 >((utils, { borderColor, backgroundColor, isButtonVisible }) => ({
     alignItems: 'center',
     borderRadius: utils.borders.radii.r12,
@@ -53,7 +53,7 @@ export const InlineAlertBox = ({
     ...props
 }: InlineAlertBoxProps) => {
     const { applyStyle } = useNativeStyles();
-    const { backgroundColor, borderColor, buttonColorScheme } = variantToColorMap[variant];
+    const { backgroundColor, borderColor, buttonColorProps } = variantToColorMap[variant];
 
     return (
         <HStack
@@ -74,8 +74,8 @@ export const InlineAlertBox = ({
             </Text>
             {buttonLabel && (
                 <Button
-                    size="small"
-                    colorScheme={buttonColorScheme}
+                    size="medium"
+                    {...buttonColorProps}
                     onPress={onButtonPress}
                     {...buttonProps}
                 >

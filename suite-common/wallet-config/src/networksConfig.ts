@@ -362,6 +362,7 @@ export const networks = {
         coingeckoId: 'tron',
         tradeCryptoId: 'tron',
         yieldXyzId: 'tron',
+        caipId: 'tron:0x2b6653dc',
     },
     ada: {
         // icarus derivation
@@ -610,7 +611,7 @@ export const networks = {
         decimals: 18,
         testnet: true,
         explorer: getExplorerUrls('https://sepolia.etherscan.io', 'ethereum'),
-        features: ['rbf', 'sign-verify', 'tokens', 'nfts', 'nft-definitions', 'eip1559', 'graph'],
+        features: ['rbf', 'sign-verify', 'tokens', 'nfts', 'eip1559', 'graph'],
         backendTypes: ['blockbook', 'evm-rpc'],
         accountTypes: {},
         coingeckoId: 'sepolia-test-ethereum', // fake, coingecko does not have testnets
@@ -627,16 +628,7 @@ export const networks = {
         decimals: 18,
         testnet: true,
         explorer: getExplorerUrls('https://hoodi.etherscan.io/', 'ethereum'),
-        features: [
-            'rbf',
-            'sign-verify',
-            'tokens',
-            'staking',
-            'nfts',
-            'nft-definitions',
-            'eip1559',
-            'graph',
-        ],
+        features: ['rbf', 'sign-verify', 'tokens', 'staking', 'nfts', 'eip1559', 'graph'],
         backendTypes: ['blockbook', 'evm-rpc'],
         accountTypes: {},
         coingeckoId: 'hoodi-test-ethereum', // fake, coingecko does not have testnets
@@ -700,6 +692,22 @@ export const networks = {
         yieldXyzId: 'stellar-testnet',
         caipId: 'stellar:testnet',
     },
+    ttrx: {
+        symbol: 'ttrx',
+        displaySymbol: 'tTRX',
+        name: 'Tron Nile',
+        networkType: 'tron',
+        bip43Path: "m/44'/195'/0'/0/i",
+        decimals: 6,
+        testnet: true,
+        features: ['tokens', 'graph', 'nfts'],
+        explorer: getExplorerUrls('https://nile.tronscan.org/#', 'tron'),
+        backendTypes: ['blockbook'],
+        accountTypes: {},
+        coingeckoId: undefined,
+        tradeCryptoId: 'test-tron',
+        yieldXyzId: null,
+    },
 } as const satisfies Networks;
 
 type NetworksConfigs = typeof networks;
@@ -741,5 +749,7 @@ export const [STAKING_SYMBOLS, STAKING_TYPES, PROD_STAKING_SYMBOLS] = typedObjec
 ) as readonly [
     readonly StakingNetworkSymbol[],
     readonly StakingNetworkType[],
-    readonly StakingNetworkSymbol[],
+    readonly (StakingNetworkSymbol & NetworkConfigWithoutTestnets['symbol'])[],
 ];
+
+export type ProdStakingNetworkSymbol = (typeof PROD_STAKING_SYMBOLS)[number];

@@ -1,10 +1,10 @@
 // origin: https://github.com/trezor/connect/blob/develop/src/js/core/methods/helpers/paramsValidator.js
+import type { CoinInfo, FirmwareRange } from '@trezor/connect-common';
 import { ERRORS } from '@trezor/connect-common/src/constants';
 import type { DeviceModelInternal } from '@trezor/device-utils';
 import { typedObjectKeys, versionUtils } from '@trezor/utils';
 
 import { config } from '../../data/config';
-import type { CoinInfo, FirmwareRange } from '../../types';
 import { fromHardened } from '../../utils/pathUtils';
 
 type ParamType = 'string' | 'number' | 'array' | 'array-buffer' | 'boolean' | 'uint' | 'object';
@@ -18,6 +18,14 @@ type Param = {
 };
 
 const invalidParameter = (message: string) => ERRORS.TypedError('Method_InvalidParameter', message);
+
+export const bundlify = <T extends { bundle?: unknown[] }>(payload: T) => ({
+    hasBundle: !!payload.bundle,
+    payload: {
+        ...payload,
+        bundle: payload.bundle ?? [payload],
+    },
+});
 
 export function validateParams<P extends Record<string, any>>(params: P, schema: Param[]): P {
     schema.forEach(field => {

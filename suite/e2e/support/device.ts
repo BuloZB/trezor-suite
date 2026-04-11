@@ -1,8 +1,9 @@
 import { expect } from '@playwright/test';
 
-import { ApplySettings } from '@trezor/protobuf/src/messages-schema';
+import type { ApplySettings } from '@trezor/protobuf/src/definitions';
 import {
     Model,
+    ReadAndConfirmAtomicShamirMnemonicEmu,
     ReadAndConfirmShamirMnemonicEmu,
     SetupEmu,
     TrezorUserEnvLink,
@@ -97,6 +98,11 @@ export class DeviceFixture {
     @step()
     async readAndConfirmShamirMnemonic(options: ReadAndConfirmShamirMnemonicEmu) {
         await TrezorUserEnvLink.readAndConfirmShamirMnemonicEmu(options);
+    }
+
+    @step()
+    async readAndConfirmAtomicShamirMnemonic(options: ReadAndConfirmAtomicShamirMnemonicEmu) {
+        await TrezorUserEnvLink.readAndConfirmAtomicShamirMnemonicEmu(options);
     }
 
     @step()

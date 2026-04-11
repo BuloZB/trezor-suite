@@ -19,10 +19,11 @@ export const TouchableSwitchRowDescription = ({ children }: { children: ReactNod
 
 const LearnMoreButton = ({ onPress }: { onPress: () => void }) => (
     <Button
-        size="small"
-        viewLeft="arrowSquareOut"
+        size="medium"
+        iconLeft="arrowSquareOut"
         onPress={onPress}
-        colorScheme="tertiaryElevation0"
+        intent="neutral"
+        priority="secondary"
     >
         <Translation id="generic.buttons.learnMore" />
     </Button>

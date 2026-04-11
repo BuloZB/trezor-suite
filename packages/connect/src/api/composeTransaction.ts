@@ -1,44 +1,46 @@
 // origin: https://github.com/trezor/connect/blob/develop/src/js/core/methods/ComposeTransaction.js
 
-import { ERRORS } from '@trezor/connect-common/src/constants';
+import {
+    type AccountUtxo,
+    type BitcoinNetworkInfo,
+    type ComposeResult,
+    DEFAULT_SORTING_STRATEGY,
+    type DiscoveryAccount,
+    ERRORS,
+    type PrecomposeParams,
+    type PrecomposedResult,
+    type RefTransaction,
+    type SignedTransaction,
+    UI_REQUEST,
+    UI_RESPONSE,
+    createUiMessage,
+} from '@trezor/connect-common';
 import { BigNumber } from '@trezor/utils/src/bigNumber';
 import { promiseAllSequence } from '@trezor/utils/src/promiseAllSequence';
 import { resolveAfter } from '@trezor/utils/src/resolveAfter';
 import type { ComposeOutput, TransactionInputOutputSortingStrategy } from '@trezor/utxo-lib';
 
 import { initBlockchain, isBackendSupported } from '../backend/BlockchainLink';
-import { DEFAULT_SORTING_STRATEGY } from '../constants/utxo';
-import type { MethodPermission } from '../core/AbstractMethod';
+import type { MethodContext, MethodMessage, MethodPermission } from '../core/AbstractMethod';
 import { AbstractMethod } from '../core/AbstractMethod';
-import { UI_REQUEST, UI_RESPONSE, createUiMessage } from '../events';
-import {
-    TransactionComposer,
-    deriveOutputScript,
-    enhanceSignTx,
-    getReferencedTransactions,
-    inputToTrezor,
-    outputToTrezor,
-    parseTransactionHexes,
-    requireReferencedTransactions,
-    signTx,
-    signTxLegacy,
-    transformReferencedTransactions,
-    validateHDOutput,
-    verifyTx,
-} from './bitcoin';
-import type { AccountUtxo, BitcoinNetworkInfo, DiscoveryAccount } from '../types';
-import { Discovery } from './common/Discovery';
-import { getFirmwareRange, validateParams } from './common/paramsValidator';
 import { fixCoinInfoNetwork, getBitcoinNetwork } from '../data/coinInfo';
-import type { RefTransaction } from '../types/api/bitcoin';
-import type {
-    ComposeResult,
-    PrecomposeParams,
-    PrecomposedResult,
-    SignedTransaction,
-} from '../types/api/composeTransaction';
 import { formatAmount } from '../utils/formatUtils';
 import * as pathUtils from '../utils/pathUtils';
+import { TransactionComposer } from './bitcoin/TransactionComposer';
+import { enhanceSignTx } from './bitcoin/enhanceSignTx';
+import { inputToTrezor } from './bitcoin/inputs';
+import { outputToTrezor, validateHDOutput } from './bitcoin/outputs';
+import {
+    getReferencedTransactions,
+    parseTransactionHexes,
+    requireReferencedTransactions,
+    transformReferencedTransactions,
+} from './bitcoin/refTx';
+import { signTx } from './bitcoin/signtx';
+import { signTxLegacy } from './bitcoin/signtxLegacy';
+import { deriveOutputScript, verifyTx } from './bitcoin/signtxVerify';
+import { Discovery } from './common/Discovery';
+import { getFirmwareRange, validateParams } from './common/paramsValidator';
 
 type Params = {
     outputs: ComposeOutput[];
@@ -55,19 +57,8 @@ type Params = {
 };
 
 export default class ComposeTransaction extends AbstractMethod<'composeTransaction', Params> {
-    discovery?: Discovery;
-
-    get requiredPermissions(): MethodPermission[] {
-        const permissions: MethodPermission[] = ['read', 'write'];
-        if (this.params.push) {
-            permissions.push('push_tx');
-        }
-
-        return permissions;
-    }
-
-    init() {
-        const { payload } = this;
+    constructor(message: MethodMessage<'composeTransaction'>) {
+        const { payload } = message;
         // validate incoming parameters
         validateParams(payload, [
             { name: 'outputs', type: 'array', required: true },
@@ -88,9 +79,6 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
         }
         // validate backend
         isBackendSupported(coinInfo);
-
-        // set required firmware from coinInfo support
-        this.firmwareRange = getFirmwareRange(this.name, coinInfo, this.firmwareRange);
 
         // validate each output and transform into @trezor/utxo-lib/compose format
         const outputs: ComposeOutput[] = [];
@@ -114,11 +102,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
         //     throw error 'Total amount is too low';
         // }
 
-        this.useDevice = !payload.account && !payload.feeLevels;
-
-        this.useUi = this.useDevice;
-
-        this.params = {
+        const params = {
             outputs,
             coinInfo,
             identity: payload.identity,
@@ -131,6 +115,26 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
             push: typeof payload.push === 'boolean' ? payload.push : false,
             total,
         };
+
+        super(message, params);
+
+        this.useDevice = !payload.account && !payload.feeLevels;
+
+        this.useUi = this.useDevice;
+
+        // set required firmware from coinInfo support
+        this.firmwareRange = getFirmwareRange(this.name, coinInfo, this.firmwareRange);
+    }
+
+    discovery?: Discovery;
+
+    get requiredPermissions(): MethodPermission[] {
+        const permissions: MethodPermission[] = ['read', 'write'];
+        if (this.params.push) {
+            permissions.push('push_tx');
+        }
+
+        return permissions;
     }
 
     get info() {
@@ -143,13 +147,14 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
         return `Send ${formatAmount(this.params.total.toString(), this.params.coinInfo)}`;
     }
 
-    private getBlockchain() {
-        return initBlockchain(this.params.coinInfo, this.postMessage, this.params.identity);
+    private getBlockchain(sendCoreMessage: MethodContext['sendCoreMessage']) {
+        return initBlockchain(this.params.coinInfo, sendCoreMessage, this.params.identity);
     }
 
-    async precompose(
+    private async precompose(
         account: PrecomposeParams['account'],
         feeLevels: PrecomposeParams['feeLevels'],
+        sendCoreMessage: MethodContext['sendCoreMessage'],
     ): Promise<PrecomposedResult[]> {
         const { coinInfo, outputs, baseFee, sortingStrategy } = this.params;
         const address_n = pathUtils.validatePath(account.path);
@@ -170,7 +175,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
 
         // This is mandatory, @trezor/utxo-lib/compose expects current block height
         // TODO: make it possible without it (offline composing)
-        const blockchain = await this.getBlockchain();
+        const blockchain = await this.getBlockchain(sendCoreMessage);
         await composer.init(blockchain);
 
         return feeLevels.map(level => {
@@ -194,16 +199,20 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
         });
     }
 
-    async run(): Promise<SignedTransaction | PrecomposedResult[]> {
+    async run(context: MethodContext): Promise<SignedTransaction | PrecomposedResult[]> {
         if (this.params.account && this.params.feeLevels) {
-            return this.precompose(this.params.account, this.params.feeLevels);
+            return this.precompose(
+                this.params.account,
+                this.params.feeLevels,
+                context.sendCoreMessage,
+            );
         }
 
         // discover accounts and wait for user action
-        const { account, utxo } = await this.selectAccount();
+        const { account, utxo } = await this.selectAccount(context);
 
         // wait for fee selection
-        const response = await this.selectFee(account, utxo);
+        const response = await this.selectFee(account, utxo, context);
         // check for interruption
         if (!this.discovery) {
             throw ERRORS.TypedError(
@@ -214,20 +223,20 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
 
         if (typeof response === 'string') {
             // back to account selection
-            return this.run();
+            return this.run(context);
         }
 
         return response;
     }
 
-    async selectAccount() {
+    private async selectAccount(context: MethodContext) {
         const { coinInfo } = this.params;
-        const blockchain = await this.getBlockchain();
-        const dfd = this.createUiPromise(UI_RESPONSE.RECEIVE_ACCOUNT, this.getDevice());
+        const blockchain = await this.getBlockchain(context.sendCoreMessage);
+        const dfd = context.createUiPromise(UI_RESPONSE.RECEIVE_ACCOUNT, this.getDevice());
 
         if (this.discovery && this.discovery.completed) {
             const { discovery } = this;
-            this.postMessage(
+            context.sendCoreMessage(
                 createUiMessage(UI_REQUEST.SELECT_ACCOUNT, {
                     type: 'end',
                     coinInfo,
@@ -256,7 +265,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
         this.discovery = discovery;
 
         discovery.on('progress', accounts => {
-            this.postMessage(
+            context.sendCoreMessage(
                 createUiMessage(UI_REQUEST.SELECT_ACCOUNT, {
                     type: 'progress',
                     // preventEmpty: true,
@@ -266,7 +275,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
             );
         });
         discovery.on('complete', () => {
-            this.postMessage(
+            context.sendCoreMessage(
                 createUiMessage(UI_REQUEST.SELECT_ACCOUNT, {
                     type: 'end',
                     coinInfo,
@@ -282,7 +291,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
 
         // set select account view
         // this view will be updated from discovery events
-        this.postMessage(
+        context.sendCoreMessage(
             createUiMessage(UI_REQUEST.SELECT_ACCOUNT, {
                 type: 'start',
                 accountTypes: discovery.types.map(t => t.type),
@@ -309,11 +318,15 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
         };
     }
 
-    async selectFee(account: DiscoveryAccount, utxos: AccountUtxo[]) {
+    private async selectFee(
+        account: DiscoveryAccount,
+        utxos: AccountUtxo[],
+        context: MethodContext,
+    ) {
         const { coinInfo, outputs, sortingStrategy } = this.params;
 
         // get backend instance (it should be initialized before)
-        const blockchain = await this.getBlockchain();
+        const blockchain = await this.getBlockchain(context.sendCoreMessage);
         const composer = new TransactionComposer({
             account,
             utxos,
@@ -328,7 +341,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
         const hasFunds = composer.composeAllFeeLevels();
         if (!hasFunds) {
             // show error view
-            this.postMessage(createUiMessage(UI_REQUEST.INSUFFICIENT_FUNDS));
+            context.sendCoreMessage(createUiMessage(UI_REQUEST.INSUFFICIENT_FUNDS));
             // wait few seconds...
             await resolveAfter(2000);
 
@@ -338,7 +351,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
 
         // set select account view
         // this view will be updated from discovery events
-        this.postMessage(
+        context.sendCoreMessage(
             createUiMessage(UI_REQUEST.SELECT_FEE, {
                 feeLevels: composer.getFeeLevelList(),
                 coinInfo: this.params.coinInfo,
@@ -346,18 +359,20 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
         );
 
         // wait for user action
-        return this._selectFeeUiResponse(composer);
+        return this._selectFeeUiResponse(composer, context);
     }
 
-    async _selectFeeUiResponse(
+    private async _selectFeeUiResponse(
         composer: TransactionComposer,
+        context: MethodContext,
     ): Promise<SignedTransaction | 'change-account'> {
-        const resp = await this.createUiPromise(UI_RESPONSE.RECEIVE_FEE, this.getDevice()).promise;
+        const resp = await context.createUiPromise(UI_RESPONSE.RECEIVE_FEE, this.getDevice())
+            .promise;
         switch (resp.payload.type) {
             case 'compose-custom':
                 // recompose custom fee level with requested value
                 composer.composeCustomFee(resp.payload.value);
-                this.postMessage(
+                context.sendCoreMessage(
                     createUiMessage(UI_REQUEST.UPDATE_CUSTOM_FEE, {
                         feeLevels: composer.getFeeLevelList(),
                         coinInfo: this.params.coinInfo,
@@ -365,17 +380,17 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
                 );
 
                 // wait for user action
-                return this._selectFeeUiResponse(composer);
+                return this._selectFeeUiResponse(composer, context);
 
             case 'send':
-                return this._sign(composer.composed[resp.payload.value]);
+                return this._sign(composer.composed[resp.payload.value], context.sendCoreMessage);
 
             default:
                 return 'change-account';
         }
     }
 
-    async _sign(tx: ComposeResult) {
+    private async _sign(tx: ComposeResult, sendCoreMessage: MethodContext['sendCoreMessage']) {
         const device = this.getDevice();
         const { params } = this;
 
@@ -392,7 +407,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
         const requiredRefTxs = requireReferencedTransactions(inputs, options, coinInfo);
         const refTxsIds = getReferencedTransactions(inputs);
         if (requiredRefTxs && refTxsIds.length > 0) {
-            refTxs = await this.getBlockchain()
+            refTxs = await this.getBlockchain(sendCoreMessage)
                 .then(blockchain => blockchain.getTransactionHexes(refTxsIds))
                 .then(parseTransactionHexes(coinInfo.network))
                 .then(transformReferencedTransactions);
@@ -427,7 +442,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
         });
 
         if (params.push) {
-            const blockchain = await this.getBlockchain();
+            const blockchain = await this.getBlockchain(sendCoreMessage);
             const txid = await blockchain.pushTransaction(response.serializedTx);
 
             return {

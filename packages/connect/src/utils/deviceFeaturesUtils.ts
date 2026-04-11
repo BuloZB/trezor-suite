@@ -1,9 +1,9 @@
+import type { CoinInfo, Features, UnavailableCapabilities } from '@trezor/connect-common';
 import { DeviceModelInternal, getFirmwareOrBootloaderVersionArray } from '@trezor/device-utils';
 import type { MessagesSchema as PROTO } from '@trezor/protobuf';
 import { isArrayMember, versionUtils } from '@trezor/utils';
 
 import { config } from '../data/config';
-import type { CoinInfo, Features, UnavailableCapabilities } from '../types';
 
 const DEFAULT_CAPABILITIES_T1: PROTO.Capability[] = [
     'Capability_Bitcoin',
@@ -83,7 +83,7 @@ export const getUnavailableCapabilities = (features: Features, coins: CoinInfo[]
             return !capabilities.includes('Capability_Ethereum');
         }
         // misc
-        if (info.shortcut === 'TRX' && info.type === 'misc') {
+        if ((info.shortcut === 'TRX' || info.shortcut === 'tTRX') && info.type === 'misc') {
             return !capabilities.includes('Capability_Tron');
         }
         if (info.shortcut === 'BNB' && info.type === 'misc') {

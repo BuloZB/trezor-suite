@@ -63,6 +63,8 @@ export type DeviceSuspicionCause =
     | 'packaging';
 
 export type DeviceCompromisedModalFailedCheck =
+    | 'device-id'
+    | 'device-invariability'
     | 'device-authenticity'
     | 'entropy'
     | 'firmware-authenticity';
@@ -104,7 +106,9 @@ export type SettingsStackParamList = {
     [SettingsStackRoutes.SettingsSupport]: undefined;
     [SettingsStackRoutes.SettingsAppLog]: undefined;
     [SettingsStackRoutes.SettingsCoinEnabling]: undefined;
+    [SettingsStackRoutes.SettingsSuiteSync]: undefined;
     [SettingsStackRoutes.SettingsAdvanced]: undefined;
+    [SettingsStackRoutes.SettingsDustPhishing]: undefined;
     [SettingsStackRoutes.SettingsExperimental]: undefined;
     [SettingsStackRoutes.TurnOffDeviceAuthenticityCheck]: undefined;
     [SettingsStackRoutes.TurnOffFirmwareAuthenticityCheck]: undefined;
@@ -385,6 +389,7 @@ export type RootStackParamList = {
     [RootStackRoutes.AccountDetail]: AccountDetailParams;
     [RootStackRoutes.StakingDetail]: { accountKey: AccountKey };
     [RootStackRoutes.StakingManagement]: { accountKey: AccountKey };
+    [RootStackRoutes.StakingInsufficientBalance]: { accountKey: AccountKey };
     [RootStackRoutes.HowStakeWorksScreen]: {
         accountKey?: AccountKey;
         symbol: NetworkSymbol;
@@ -400,6 +405,18 @@ export type RootStackParamList = {
     [RootStackRoutes.EarnTransactionDataReview]: {
         accountKey: AccountKey;
         amount: string;
+    };
+    [RootStackRoutes.UnstakeFlow]: { accountKey: AccountKey };
+    [RootStackRoutes.UnstakeTransactionDataReview]: {
+        accountKey: AccountKey;
+        amount: string;
+    };
+    [RootStackRoutes.ClaimReview]: {
+        accountKey: AccountKey;
+        symbol: NetworkSymbol;
+    };
+    [RootStackRoutes.ClaimTransactionDataReview]: {
+        accountKey: AccountKey;
     };
     [RootStackRoutes.DeviceSettingsStack]: NavigatorScreenParams<DeviceSettingsStackParamList>;
     [RootStackRoutes.AddCoinAccountStack]: NavigatorScreenParams<AddCoinAccountStackParamList>;
@@ -422,7 +439,7 @@ export type RootStackParamList = {
     [RootStackRoutes.Storybook]: undefined;
     [RootStackRoutes.PassphraseStack]: NavigatorScreenParams<PassphraseStackParamList>;
     [RootStackRoutes.StellarManageTokenStack]: NavigatorScreenParams<StellarManageTokenStackParamList>;
-    [RootStackRoutes.ExperimentalFeedbackModal]: { feature: ExperimentalFeature };
+    [RootStackRoutes.FeatureFeedbackModal]: { feature: ExperimentalFeature };
 };
 
 export type TransactionDetailStackParamList = {

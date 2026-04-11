@@ -56,8 +56,8 @@ export const AddAccountButton = ({ flowType, testID }: AddAccountButtonProps) =>
             onPress={
                 isSelectedDevicePortfolioTracker ? navigateToImportScreen : navigateToAddCoinAccount
             }
-            colorScheme="tertiaryElevation0"
-            size="medium"
+            intent="neutral"
+            priority="secondary"
             isLoading={hasDeviceDiscovery}
             isDisabled={hasDeviceDiscovery}
             testID={`${testID}/${isSelectedDevicePortfolioTracker ? 'import' : 'add'}`}

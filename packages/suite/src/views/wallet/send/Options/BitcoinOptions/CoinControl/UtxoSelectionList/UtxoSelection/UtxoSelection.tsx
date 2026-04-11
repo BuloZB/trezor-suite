@@ -4,6 +4,7 @@ import { Translation, useTranslation } from '@suite/intl';
 import { selectLabelingDataForSelectedAccount } from '@suite/metadata';
 import { openModal } from '@suite/modal';
 import {
+    selectIsSuiteSyncEnabled,
     selectSuiteSyncAddressLabels,
     selectSuiteSyncOutputLabels,
 } from '@suite-common/suite-sync';
@@ -23,6 +24,7 @@ import {
 } from '@trezor/components';
 import { type AccountUtxo } from '@trezor/connect';
 
+import { selectIsLegacyLabelingVisible } from 'src/actions/labels/selectIsLegacyLabelingVisible';
 import { Address, BaseCurrencyValue, FormattedCryptoAmount, Labeling } from 'src/components/suite';
 import { TransactionTimestamp, UtxoAnonymity } from 'src/components/wallet';
 import { useDispatch, useSelector } from 'src/hooks/suite';
@@ -77,14 +79,19 @@ export const UtxoSelection = ({ transaction, utxo }: UtxoSelectionProps) => {
             isCoinControlEnabled,
         },
     } = useSendFormContext();
+
+    const isSuiteSyncEnabled = useSelector(selectIsSuiteSyncEnabled);
+    const isLegacyLabelingVisible = useSelector(selectIsLegacyLabelingVisible);
+
     // selecting metadata from store rather than send form context which does not update on metadata change
     const { addressLabels, outputLabels } = useSelector(selectLabelingDataForSelectedAccount);
     const { shallDisplayBaseCurrency } = useDisplayBaseCurrency(account.symbol);
     const suiteSyncAddressLabels = useSelector(state =>
-        selectSuiteSyncAddressLabels(state, account.deviceState),
+        isSuiteSyncEnabled ? selectSuiteSyncAddressLabels(state, account.deviceState) : [],
     );
+
     const suiteSyncOutputLabels = useSelector(state =>
-        selectSuiteSyncOutputLabels(state, account.deviceState),
+        isSuiteSyncEnabled ? selectSuiteSyncOutputLabels(state, account.deviceState) : [],
     );
     const { translationString } = useTranslation();
 
@@ -122,11 +129,12 @@ export const UtxoSelection = ({ transaction, utxo }: UtxoSelectionProps) => {
 
     const addressLabel =
         suiteSyncAddressLabels.find(it => it.address === utxo.address)?.label ??
-        addressLabels[utxo.address];
+        (isLegacyLabelingVisible ? addressLabels[utxo.address] : undefined);
 
     const outputLabel =
         suiteSyncOutputLabels.find(it => it.txId === utxo.txid && it.txTargetId === `${utxo.vout}`)
-            ?.label ?? outputLabels?.[utxo.txid]?.[utxo.vout];
+            ?.label ??
+        (isLegacyLabelingVisible ? outputLabels?.[utxo.txid]?.[utxo.vout] : undefined);
 
     return (
         <GhostContainer onClick={handleCheckbox} padding={12} margin={{ horizontal: -12 }} as="div">

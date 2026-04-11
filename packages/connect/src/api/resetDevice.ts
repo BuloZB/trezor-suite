@@ -1,14 +1,14 @@
 // origin: https://github.com/trezor/connect/blob/develop/src/js/core/methods/ResetDevice.js
+import { UI_REQUEST } from '@trezor/connect-common';
 import { ERRORS } from '@trezor/connect-common/src/constants';
 import { TransportError } from '@trezor/connect-common/src/constants/errors';
+import { MessagesSchema as PROTO } from '@trezor/protobuf';
 import { Assert } from '@trezor/schema-utils';
 import { getRandomInt } from '@trezor/utils';
 
 import { generateEntropy, verifyEntropy } from '../api/firmware/verifyEntropy';
-import { PROTO } from '../constants';
 import type { MethodMessage, MethodPermission } from '../core/AbstractMethod';
 import { AbstractMethod } from '../core/AbstractMethod';
-import { UI_REQUEST } from '../events';
 import { getFirmwareRange } from './common/paramsValidator';
 import { validatePath } from '../utils/pathUtils';
 import { calculateXPubHashes } from './firmware/calculateXPubHash';
@@ -17,22 +17,11 @@ type XPubsPerBip43Path = Record<string, string>; // used only internally, not ex
 
 export default class ResetDevice extends AbstractMethod<'resetDevice', PROTO.ResetDevice> {
     constructor(message: MethodMessage<'resetDevice'>) {
-        super(message);
-        this.allowDeviceMode = [UI_REQUEST.INITIALIZE, UI_REQUEST.SEEDLESS];
-        this.useDeviceState = false;
-        this.skipFinalReload = false;
-        this.firmwareRange = getFirmwareRange(this.name, null, this.firmwareRange);
-    }
-    get requiredPermissions(): MethodPermission[] {
-        return ['management'];
-    }
-
-    init() {
-        const { payload } = this;
+        const { payload } = message;
         // validate bundle type
         Assert(PROTO.ResetDevice, payload);
 
-        this.params = {
+        const params = {
             strength: payload.strength || 256,
             passphrase_protection: payload.passphrase_protection,
             pin_protection: payload.pin_protection,
@@ -45,6 +34,15 @@ export default class ResetDevice extends AbstractMethod<'resetDevice', PROTO.Res
             entropy_check:
                 typeof payload.entropy_check === 'boolean' ? payload.entropy_check : true,
         };
+
+        super(message, params);
+        this.allowDeviceMode = [UI_REQUEST.INITIALIZE, UI_REQUEST.SEEDLESS];
+        this.useDeviceState = false;
+        this.skipFinalReload = false;
+        this.firmwareRange = getFirmwareRange(this.name, null, this.firmwareRange);
+    }
+    get requiredPermissions(): MethodPermission[] {
+        return ['management'];
     }
 
     get info() {

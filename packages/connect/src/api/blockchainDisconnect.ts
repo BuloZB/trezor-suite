@@ -1,5 +1,7 @@
 // origin: https://github.com/trezor/connect/blob/develop/src/js/core/methods/blockchain/BlockchainDisconnect.js
 
+import type { CoinInfo } from '@trezor/connect-common';
+import { CoinObj } from '@trezor/connect-common';
 import { ERRORS } from '@trezor/connect-common/src/constants';
 import { Assert } from '@trezor/schema-utils';
 
@@ -7,8 +9,6 @@ import { findBackend, isBackendSupported } from '../backend/BlockchainLink';
 import type { MethodMessage, MethodPermission } from '../core/AbstractMethod';
 import { AbstractMethod } from '../core/AbstractMethod';
 import { getCoinInfo } from '../data/coinInfo';
-import type { CoinInfo } from '../types';
-import { CoinObj } from '../types';
 
 type Params = {
     coinInfo: CoinInfo;
@@ -17,18 +17,7 @@ type Params = {
 
 export default class BlockchainDisconnect extends AbstractMethod<'blockchainDisconnect', Params> {
     constructor(message: MethodMessage<'blockchainDisconnect'>) {
-        super(message);
-
-        this.useDevice = false;
-        this.useUi = false;
-    }
-
-    get requiredPermissions(): MethodPermission[] {
-        return [];
-    }
-
-    init() {
-        const { payload } = this;
+        const { payload } = message;
 
         // validate incoming parameters
         Assert(CoinObj, payload);
@@ -40,10 +29,19 @@ export default class BlockchainDisconnect extends AbstractMethod<'blockchainDisc
         // validate backend
         isBackendSupported(coinInfo);
 
-        this.params = {
+        const params = {
             coinInfo,
             identity: payload.identity,
         };
+
+        super(message, params);
+
+        this.useDevice = false;
+        this.useUi = false;
+    }
+
+    get requiredPermissions(): MethodPermission[] {
+        return [];
     }
 
     get info() {

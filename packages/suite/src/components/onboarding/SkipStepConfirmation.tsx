@@ -9,6 +9,7 @@ import { type AnyStepId } from 'src/types/onboarding';
 
 type SkipStepConfirmationProps = {
     onCancel: () => void;
+    onConfirm?: () => void;
 };
 
 type SkipModalContent = {
@@ -30,7 +31,6 @@ const getModalContent = (
                 body: <Translation id="TR_SKIP_UPDATE_DESCRIPTION" />,
             };
         case STEP.ID_SECURITY_STEP:
-        case STEP.ID_BACKUP_STEP:
             return {
                 heading: <Translation id="TR_SKIP_BACKUP" />,
                 secondaryButtonText: <Translation id="TR_SKIP_BACKUP" />,
@@ -48,7 +48,7 @@ const getModalContent = (
     }
 };
 
-export const SkipStepConfirmation = ({ onCancel }: SkipStepConfirmationProps) => {
+export const SkipStepConfirmation = ({ onCancel, onConfirm }: SkipStepConfirmationProps) => {
     const { activeStepId, goToNextStep, resolveNextAfterSkipped } = useOnboarding();
     const { heading, secondaryButtonText, body, nextStep } = getModalContent(
         activeStepId,
@@ -58,7 +58,11 @@ export const SkipStepConfirmation = ({ onCancel }: SkipStepConfirmationProps) =>
     if (!heading) return;
 
     const handleSkipStepConfirm = () => {
-        goToNextStep(nextStep);
+        if (onConfirm) {
+            onConfirm();
+        } else {
+            goToNextStep(nextStep);
+        }
     };
 
     return (

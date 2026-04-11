@@ -1,15 +1,15 @@
-import { type EthereumValidatorsQueue } from '@suite-common/wallet-api';
+import { type EthValidatorsQueue } from '@suite-common/earn-staking-api';
 import { type WalletAccountTransaction } from '@suite-common/wallet-types';
 import TrezorConnect, {
     type AccountInfo,
     type InternalTransfer,
     type OkWithDevice,
 } from '@trezor/connect';
+import { type SerializedError } from '@trezor/connect-common/src/constants/errors';
 import {
     type BlockchainEstimatedFee,
     type BlockchainEstimatedFeeLevel,
-} from '@trezor/connect/src/types/api/blockchainEstimateFee';
-import { type SerializedError } from '@trezor/connect-common/src/constants/errors';
+} from '@trezor/connect-common/src/types/api/blockchainEstimateFee';
 import { type Err, type Ok, type Result } from '@trezor/type-utils';
 
 import {
@@ -179,14 +179,14 @@ describe('getStakeTxGasLimit', () => {
 type GetDaysArgs = {
     unstakeTxs: WalletAccountTransaction[];
     stakeTxs: WalletAccountTransaction[];
-    validatorsQueue?: EthereumValidatorsQueue;
+    validatorsQueue?: EthValidatorsQueue;
 };
 describe('getDaysToAddToPool', () => {
     getDaysToAddToPoolFixture.forEach(test => {
-        it(test.description, async () => {
+        it(test.description, () => {
             const { stakeTxs, validatorsQueue } = test.args as GetDaysArgs;
             mockCurrentTime(1720615417); // mock current time to 2024-07-10
-            const result = await getDaysToAddToPool(stakeTxs, validatorsQueue);
+            const result = getDaysToAddToPool(stakeTxs, validatorsQueue);
             expect(result).toEqual(test.result);
         });
     });
@@ -194,10 +194,10 @@ describe('getDaysToAddToPool', () => {
 
 describe('getDaysToUnstake', () => {
     getDaysToUnstakeFixture.forEach(test => {
-        it(test.description, async () => {
+        it(test.description, () => {
             const { unstakeTxs, validatorsQueue } = test.args as GetDaysArgs;
             mockCurrentTime(1720615417); // mock current time to 2024-07-10
-            const result = await getDaysToUnstake(unstakeTxs, validatorsQueue);
+            const result = getDaysToUnstake(unstakeTxs, validatorsQueue);
             expect(result).toEqual(test.result);
         });
     });
@@ -205,9 +205,9 @@ describe('getDaysToUnstake', () => {
 
 describe('getDaysToAddToPoolInitial', () => {
     getDaysToAddToPoolInitialFixture.forEach(test => {
-        it(test.description, async () => {
+        it(test.description, () => {
             const { validatorsQueue } = test.args as GetDaysArgs;
-            const result = await getDaysToAddToPoolInitial(validatorsQueue);
+            const result = getDaysToAddToPoolInitial(validatorsQueue);
             expect(result).toEqual(test.result);
         });
     });
@@ -217,8 +217,8 @@ type GetAdjustedGasLimitConsumptionArgs = Ok<BlockchainEstimatedFee>;
 
 describe('getAdjustedGasLimitConsumption', () => {
     getAdjustedGasLimitConsumptionFixture.forEach(test => {
-        it(test.description, async () => {
-            const result = await getAdjustedGasLimitConsumption(
+        it(test.description, () => {
+            const result = getAdjustedGasLimitConsumption(
                 test.args.estimatedFee as GetAdjustedGasLimitConsumptionArgs,
             );
             expect(result).toEqual(test.result);

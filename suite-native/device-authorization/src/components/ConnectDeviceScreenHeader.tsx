@@ -106,8 +106,8 @@ export const ConnectDeviceScreenHeader = ({
             {shouldDisplayCancelButton && (
                 <IconButton
                     iconName={closeActionType === 'back' ? 'caretLeft' : 'x'}
-                    size="medium"
-                    colorScheme="tertiaryElevation0"
+                    intent="neutral"
+                    priority="secondary"
                     accessibilityRole="button"
                     accessibilityLabel="close"
                     onPress={handleCancel}

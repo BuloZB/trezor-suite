@@ -112,8 +112,9 @@ export const EarnConsentsEntryPeriodCard = ({
                 <HStack style={applyStyle(buttonsRowStyle)}>
                     {learnMoreUrl && (
                         <Button
-                            colorScheme="blueElevation0"
-                            size="small"
+                            intent="info"
+                            priority="secondary"
+                            size="medium"
                             onPress={handleLearnMore}
                             style={applyStyle(learnMoreButtonStyle)}
                         >
@@ -121,8 +122,8 @@ export const EarnConsentsEntryPeriodCard = ({
                         </Button>
                     )}
                     <Button
-                        colorScheme="blueBold"
-                        size="small"
+                        intent="info"
+                        size="medium"
                         onPress={handleConfirm}
                         style={applyStyle(confirmButtonStyle)}
                     >

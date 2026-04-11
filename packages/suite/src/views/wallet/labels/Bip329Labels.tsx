@@ -21,6 +21,7 @@ import {
 import { HELP_CENTER_BIP329_URL } from '@trezor/urls';
 
 import { exportMetadataToBip329File } from 'src/actions/labels/exportMetadataToBip329File';
+import { selectIsLegacyLabelingVisible } from 'src/actions/labels/selectIsLegacyLabelingVisible';
 import { LearnMoreButton } from 'src/components/suite/LearnMoreButton';
 import { suiteSyncErrorHandler } from 'src/components/suite/labeling/suiteSyncErrorHandler';
 import { useDefaultAccountLabel, useDispatch, useSelector } from 'src/hooks/suite';
@@ -34,7 +35,7 @@ type Bip329LabelsProps = {
 
 export const Bip329Labels = ({ account, isLoading }: Bip329LabelsProps) => {
     const isSuiteSyncEnabled = useSelector(selectIsSuiteSyncEnabled);
-    const isMetadataEnabled = useSelector(state => state.metadata.enabled);
+    const isLegacyLabelingVisible = useSelector(selectIsLegacyLabelingVisible);
 
     const dispatch = useDispatch();
     const { bip329 } = useSuiteServices();
@@ -44,7 +45,7 @@ export const Bip329Labels = ({ account, isLoading }: Bip329LabelsProps) => {
     const canImportBip329Labels = isSuiteSyncEnabled;
 
     const shouldDisplayBip329Labels =
-        account.networkType === 'bitcoin' && (isMetadataEnabled || canImportBip329Labels);
+        account.networkType === 'bitcoin' && (isLegacyLabelingVisible || isSuiteSyncEnabled);
 
     if (!shouldDisplayBip329Labels) {
         return null;

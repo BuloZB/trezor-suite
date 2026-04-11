@@ -1,13 +1,13 @@
 import { SYSTEM_PROGRAM_PUBLIC_KEY } from '@trezor/blockchain-link-utils/src/solana';
+import type { CoinInfo } from '@trezor/connect-common';
+import { SolanaComposeTransaction as SolanaComposeTransactionSchema } from '@trezor/connect-common';
 import { ERRORS } from '@trezor/connect-common/src/constants';
 import { Assert } from '@trezor/schema-utils';
 
 import { initBlockchain, isBackendSupported } from '../../../backend/BlockchainLink';
-import type { MethodMessage, MethodPermission } from '../../../core/AbstractMethod';
+import type { MethodContext, MethodMessage, MethodPermission } from '../../../core/AbstractMethod';
 import { AbstractMethod } from '../../../core/AbstractMethod';
 import { getCoinInfo } from '../../../data/coinInfo';
-import type { CoinInfo } from '../../../types';
-import { SolanaComposeTransaction as SolanaComposeTransactionSchema } from '../../../types/api/solana';
 import {
     buildTokenTransferTransaction,
     buildTransferTransaction,
@@ -24,17 +24,7 @@ export default class SolanaComposeTransaction extends AbstractMethod<
     SolanaComposeTransactionParams
 > {
     constructor(message: MethodMessage<'solanaComposeTransaction'>) {
-        super(message);
-        this.useDevice = false;
-        this.useUi = false;
-    }
-
-    get requiredPermissions(): MethodPermission[] {
-        return [];
-    }
-
-    init() {
-        const { payload } = this;
+        const { payload } = message;
 
         // validate bundle type
         Assert(SolanaComposeTransactionSchema, payload);
@@ -46,20 +36,25 @@ export default class SolanaComposeTransaction extends AbstractMethod<
         // validate backend
         isBackendSupported(coinInfo);
 
-        this.params = {
-            coinInfo,
-            ...payload,
-        };
+        const params = { coinInfo, ...payload };
+
+        super(message, params);
+        this.useDevice = false;
+        this.useUi = false;
+    }
+
+    get requiredPermissions(): MethodPermission[] {
+        return [];
     }
 
     get info() {
         return 'Compose Solana transaction';
     }
 
-    async run() {
+    async run({ sendCoreMessage }: MethodContext) {
         const backend = await initBlockchain(
             this.params.coinInfo,
-            this.postMessage,
+            sendCoreMessage,
             this.params.identity,
         );
 

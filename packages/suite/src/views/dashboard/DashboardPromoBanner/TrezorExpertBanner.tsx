@@ -6,8 +6,9 @@ import { resolveStaticPath } from '@trezor/env-utils';
 import { borders, colorVariants, spacings, spacingsPx } from '@trezor/theme';
 import { DASHBOARD_BANNER_TEX_URL } from '@trezor/urls';
 
+import { useExternalLink, useLayoutSize } from 'src/hooks/suite';
+
 import { AnimatedWrapper, CloseButton } from './CommonPromoBannerComponents';
-import { useExternalLink, useLayoutSize } from '../../../hooks/suite';
 
 const underlineImage = resolveStaticPath(
     `${IMAGES_PATH}/${IMAGES.DASHBOARD_PROMO_BANNER_UNDERLINE}`,
@@ -44,7 +45,7 @@ const Title = () => {
     return (
         <Text
             typographyStyle={isBelowLaptop ? 'headline-sm' : 'headline-md'}
-            color="baseContentPrimaryInverse"
+            color="contentOnDarkPrimary"
             flex="1"
         >
             <Translation
@@ -64,7 +65,7 @@ const Description = () => {
     return (
         <Text
             typographyStyle={isBelowDesktop ? 'body-sm-strong' : 'headline-sm'}
-            color="baseContentBrandInverse"
+            color="contentOnDarkBrand"
         >
             <Translation id="TR_PROMO_BANNER_DASHBOARD_TEX_DESCRIPTION" />
         </Text>
@@ -101,7 +102,7 @@ export const TrezorExpertBanner = ({ onClose, onCTAClick, isVisible }: TrezorExp
             <Box
                 height={213}
                 padding={{ horizontal: 24 }}
-                backgroundColor="baseFillSurfaceBrandDark"
+                backgroundColor="surfaceFillBrandDark"
                 data-testid="@dashboard/promo-banner/trezor-expert"
             >
                 <Row

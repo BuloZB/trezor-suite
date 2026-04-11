@@ -32,6 +32,7 @@ import { copyToClipboard } from '@trezor/dom-utils';
 import { CoinLogo, ConfirmOnDevicePill } from '@trezor/product-components';
 import { spacings } from '@trezor/theme';
 
+import { selectIsLegacyLabelingVisible } from 'src/actions/labels/selectIsLegacyLabelingVisible';
 import { AccountLabel } from 'src/components/suite/AccountLabel';
 import { Address } from 'src/components/suite/Address';
 import { QrCode } from 'src/components/suite/QrCode';
@@ -75,7 +76,10 @@ export const ConfirmValueModal = ({
     const { openNodeById } = useGuideOpenNode();
     const { translationString } = useTranslation();
     const analytics = useAnalytics();
+
     const isSuiteSyncEnabled = useSelector(selectIsSuiteSyncEnabled);
+    const isLegacyLabelingVisible = useSelector(selectIsLegacyLabelingVisible);
+
     const legacyMetadataState = useSelector(state => state.metadata);
 
     // block labeling if metadata needs to be enabled on device until receive address is confirmed (device locked)
@@ -85,7 +89,9 @@ export const ConfirmValueModal = ({
         (!legacyMetadataState.enabled || legacyMetadataState.providers.length === 0);
 
     const suiteSyncAddressLabels = useSelector(state =>
-        account ? selectSuiteSyncAddressLabels(state, account.deviceState) : undefined,
+        account && isSuiteSyncEnabled
+            ? selectSuiteSyncAddressLabels(state, account.deviceState)
+            : undefined,
     );
 
     const canConfirmOnDevice = !!(device?.connected && device?.available);
@@ -119,7 +125,8 @@ export const ConfirmValueModal = ({
     }, [canConfirmOnDevice, dispatch, isConfirmed, modalContext, validateOnDevice]);
 
     const addressLabel =
-        suiteSyncAddressLabels?.find(it => it.address === value)?.label ?? addressLabels[value];
+        suiteSyncAddressLabels?.find(it => it.address === value)?.label ??
+        (isLegacyLabelingVisible ? addressLabels[value] : undefined);
 
     return (
         <Modal.Backdrop onClick={onCancel}>

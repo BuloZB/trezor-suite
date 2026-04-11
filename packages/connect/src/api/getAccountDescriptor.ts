@@ -1,14 +1,26 @@
+import type {
+    CoinInfo,
+    DerivationPath,
+    GetAccountDescriptorResponse,
+} from '@trezor/connect-common';
+import {
+    Bundle,
+    GetAccountDescriptorParams,
+    UI_REQUEST,
+    createUiMessage,
+} from '@trezor/connect-common';
 import { ERRORS } from '@trezor/connect-common/src/constants';
 import { Assert } from '@trezor/schema-utils';
 
-import { getFirmwareRange } from './common/paramsValidator';
-import type { MethodMessage, MethodPermission, MethodReturnType } from '../core/AbstractMethod';
+import { bundlify, getFirmwareRange } from './common/paramsValidator';
+import type {
+    MethodContext,
+    MethodMessage,
+    MethodPermission,
+    MethodReturnType,
+} from '../core/AbstractMethod';
 import { AbstractMethod, DEFAULT_FIRMWARE_RANGE } from '../core/AbstractMethod';
 import { getCoinInfo } from '../data/coinInfo';
-import { UI_REQUEST, createUiMessage } from '../events';
-import { Bundle, type CoinInfo, type DerivationPath } from '../types';
-import type { GetAccountDescriptorResponse } from '../types/api/getAccountDescriptor';
-import { GetAccountDescriptorParams } from '../types/api/getAccountDescriptor';
 import { getAccountLabel } from '../utils/accountUtils';
 import { getSerializedPath, validatePath } from '../utils/pathUtils';
 
@@ -22,26 +34,12 @@ export default class GetAccountDescriptor extends AbstractMethod<
     hasBundle?: boolean;
 
     constructor(message: MethodMessage<'getAccountDescriptor'>) {
-        super(message);
-        this.useDevice = true;
-        this.useUi = true;
-    }
-
-    get requiredPermissions(): MethodPermission[] {
-        return ['read'];
-    }
-
-    init() {
-        // create a bundle with only one batch if bundle doesn't exists
-        this.hasBundle = !!this.payload.bundle;
-        const payload = !this.payload.bundle
-            ? { ...this.payload, bundle: [this.payload] }
-            : this.payload;
+        const { hasBundle, payload } = bundlify(message.payload);
 
         // validate bundle type
         Assert(Bundle(GetAccountDescriptorParams), payload);
 
-        this.params = payload.bundle.map(batch => {
+        const params = payload.bundle.map(batch => {
             // validate coin info
             const coinInfo = getCoinInfo(batch.coin);
             if (!coinInfo) {
@@ -50,9 +48,6 @@ export default class GetAccountDescriptor extends AbstractMethod<
             // validate path
             const address_n = validatePath(batch.path, 3);
 
-            // set firmware range
-            this.firmwareRange = getFirmwareRange(this.name, coinInfo, this.firmwareRange);
-
             return {
                 ...batch,
                 address_n,
@@ -60,7 +55,21 @@ export default class GetAccountDescriptor extends AbstractMethod<
             };
         });
 
+        super(message, params);
+
+        // set firmware range
+        this.firmwareRange = params.reduce(
+            (prev, { coinInfo }) => getFirmwareRange(this.name, coinInfo, prev),
+            this.firmwareRange,
+        );
+        this.hasBundle = hasBundle;
         this.confirmMissingBackup = !this.params.every(batch => batch.suppressBackupWarning);
+        this.useDevice = true;
+        this.useUi = true;
+    }
+
+    get requiredPermissions(): MethodPermission[] {
+        return ['read'];
     }
 
     get info() {
@@ -133,7 +142,7 @@ export default class GetAccountDescriptor extends AbstractMethod<
         return undefined;
     }
 
-    async run() {
+    async run({ sendCoreMessage }: MethodContext) {
         const responses: MethodReturnType<typeof this.name> = [];
 
         const sendProgress = (
@@ -143,7 +152,7 @@ export default class GetAccountDescriptor extends AbstractMethod<
         ) => {
             if (!this.hasBundle || this.disposed) return;
             // send progress to UI
-            this.postMessage(
+            sendCoreMessage(
                 createUiMessage(UI_REQUEST.BUNDLE_PROGRESS, {
                     total: this.params.length,
                     progress,

@@ -27,14 +27,19 @@ import {
 } from '@suite-native/module-device-onboarding';
 import { DeviceSettingsStackNavigator } from '@suite-native/module-device-settings';
 import {
+    ClaimReviewScreen,
+    ClaimTransactionDataReviewScreen,
     EarnConsentsScreen,
     EarnFormScreen,
     EarnTransactionDataReviewScreen,
     HowStakeWorksScreen,
     StakingDetailScreen,
+    StakingInsufficientBalanceScreen,
     StakingManagementScreen,
+    UnstakeFlowScreen,
+    UnstakeTransactionDataReviewScreen,
 } from '@suite-native/module-earn';
-import { ExperimentalFeedbackModalScreen } from '@suite-native/module-home';
+import { FeatureFeedbackModalScreen } from '@suite-native/module-home';
 import { OnboardingStackNavigator } from '@suite-native/module-onboarding';
 import { PassphraseStackNavigator } from '@suite-native/module-passphrase';
 import { SendStackNavigator } from '@suite-native/module-send';
@@ -111,6 +116,16 @@ export const RootStackNavigator = () => {
                 component={StakingManagementScreen}
             />
             <RootStack.Screen
+                options={{ title: RootStackRoutes.StakingInsufficientBalance }}
+                name={RootStackRoutes.StakingInsufficientBalance}
+                component={StakingInsufficientBalanceScreen}
+            />
+            <RootStack.Screen
+                options={{ title: RootStackRoutes.UnstakeFlow }}
+                name={RootStackRoutes.UnstakeFlow}
+                component={UnstakeFlowScreen}
+            />
+            <RootStack.Screen
                 options={{ title: RootStackRoutes.HowStakeWorksScreen }}
                 name={RootStackRoutes.HowStakeWorksScreen}
                 component={HowStakeWorksScreen}
@@ -129,6 +144,21 @@ export const RootStackNavigator = () => {
                 options={{ title: RootStackRoutes.EarnTransactionDataReview }}
                 name={RootStackRoutes.EarnTransactionDataReview}
                 component={EarnTransactionDataReviewScreen}
+            />
+            <RootStack.Screen
+                options={{ title: RootStackRoutes.UnstakeTransactionDataReview }}
+                name={RootStackRoutes.UnstakeTransactionDataReview}
+                component={UnstakeTransactionDataReviewScreen}
+            />
+            <RootStack.Screen
+                options={{ title: RootStackRoutes.ClaimReview }}
+                name={RootStackRoutes.ClaimReview}
+                component={ClaimReviewScreen}
+            />
+            <RootStack.Screen
+                options={{ title: RootStackRoutes.ClaimTransactionDataReview }}
+                name={RootStackRoutes.ClaimTransactionDataReview}
+                component={ClaimTransactionDataReviewScreen}
             />
             <RootStack.Screen
                 name={RootStackRoutes.DevUtilsStack}
@@ -217,8 +247,8 @@ export const RootStackNavigator = () => {
                     component={StellarManageTokenStackNavigator}
                 />
                 <RootStack.Screen
-                    name={RootStackRoutes.ExperimentalFeedbackModal}
-                    component={ExperimentalFeedbackModalScreen}
+                    name={RootStackRoutes.FeatureFeedbackModal}
+                    component={FeatureFeedbackModalScreen}
                 />
 
                 {isDevelopOrDebugEnv() && (

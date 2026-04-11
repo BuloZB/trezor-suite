@@ -1,21 +1,40 @@
 // Monero GetWatchKey implementation
+import type { MoneroWatchKey } from '@trezor/connect-common';
 import { ERRORS } from '@trezor/connect-common/src/constants';
+import { MessagesSchema as PROTO } from '@trezor/protobuf';
 
-import { PROTO } from '../../../constants';
 import type { MethodMessage, MethodPermission } from '../../../core/AbstractMethod';
 import { AbstractMethod } from '../../../core/AbstractMethod';
 import { getMiscNetwork } from '../../../data/coinInfo';
-import type { MoneroWatchKey } from '../../../types/api/monero';
 import { HD_HARDENED, validatePath } from '../../../utils/pathUtils';
 import { getFirmwareRange } from '../../common/paramsValidator';
 
-type Params = PROTO.MoneroGetWatchKey & {
-    address?: string;
+type Params = {
+    proto: PROTO.MoneroGetWatchKey;
 };
 
 export default class MoneroGetWatchKeyMethod extends AbstractMethod<'moneroGetWatchKey', Params> {
     constructor(message: MethodMessage<'moneroGetWatchKey'>) {
-        super(message);
+        const { payload } = message;
+        const path = validatePath(payload.path, 3);
+
+        // require all path components to be hardened
+        const allHardened = path.every(component => (component & HD_HARDENED) !== 0);
+        if (!allHardened) {
+            throw ERRORS.TypedError(
+                'Method_InvalidParameter',
+                `Monero requires all path components to be hardened. Use m/44'/128'/0' format.`,
+            );
+        }
+
+        const proto = {
+            address_n: path,
+            network_type: payload.networkType || PROTO.MoneroNetworkType.MAINNET,
+        };
+        const params = { proto };
+
+        super(message, params);
+
         this.requiredDeviceCapabilities = ['Capability_Monero'];
         this.firmwareRange = getFirmwareRange(
             this.name,
@@ -28,35 +47,17 @@ export default class MoneroGetWatchKeyMethod extends AbstractMethod<'moneroGetWa
         return ['read'];
     }
 
-    init() {
-        const { payload } = this;
-        const path = validatePath(payload.path, 3);
-
-        // require all path components to be hardened
-        const allHardened = path.every(component => (component & HD_HARDENED) !== 0);
-        if (!allHardened) {
-            throw ERRORS.TypedError(
-                'Method_InvalidParameter',
-                `Monero requires all path components to be hardened. Use m/44'/128'/0' format.`,
-            );
-        }
-
-        this.params = {
-            address_n: path,
-            network_type: payload.networkType || PROTO.MoneroNetworkType.MAINNET,
-        };
-    }
-
     get info() {
         return 'Export Monero watch-only credentials';
     }
 
     async run(): Promise<MoneroWatchKey> {
         const cmd = this.getDevice().getCommands();
-        const response = await cmd.typedCall('MoneroGetWatchKey', 'MoneroWatchKey', {
-            address_n: this.params.address_n,
-            network_type: this.params.network_type,
-        });
+        const response = await cmd.typedCall(
+            'MoneroGetWatchKey',
+            'MoneroWatchKey',
+            this.params.proto,
+        );
 
         // The device returns address as hex-encoded bytes, decode it to string
         const addressHex = response.message.address;

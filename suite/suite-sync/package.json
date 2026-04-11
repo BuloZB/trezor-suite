@@ -11,8 +11,8 @@
         "lint:js": "yarn g:eslint '**/*.{ts,tsx,js}'"
     },
     "dependencies": {
-        "@evolu/common": "github:evoluhq/evolu#workspace=@evolu/common&head=common-v8",
-        "@evolu/web": "github:evoluhq/evolu#workspace=@evolu/web&head=common-v8",
+        "@evolu/common": "8.0.0-next.3",
+        "@evolu/web": "3.0.0-next.0",
         "@hookform/resolvers": "^3.3.4",
         "@reduxjs/toolkit": "2.11.2",
         "@suite-common/delegated-identity-key-types": "workspace:*",
@@ -30,7 +30,7 @@
         "@trezor/product-components": "workspace:*",
         "@trezor/theme": "workspace:*",
         "react": "19.2.4",
-        "react-hook-form": "^7.50.1",
+        "react-hook-form": "^7.71.2",
         "react-redux": "9.2.0"
     }
 }

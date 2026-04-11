@@ -15,7 +15,7 @@
     },
     "dependencies": {
         "@mobily/ts-belt": "^3.13.1",
-        "@react-navigation/native": "7.1.26",
+        "@react-navigation/native": "7.1.28",
         "@reduxjs/toolkit": "2.11.2",
         "@suite-common/device": "workspace:*",
         "@suite-common/redux-utils": "workspace:*",
@@ -29,7 +29,7 @@
         "@suite-native/alerts": "workspace:*",
         "@suite-native/analytics": "workspace:*",
         "@suite-native/atoms": "workspace:*",
-        "@suite-native/experimental-features": "workspace:*",
+        "@suite-native/feature-feedback": "workspace:*",
         "@suite-native/formatters": "workspace:*",
         "@suite-native/forms": "workspace:*",
         "@suite-native/helpers": "workspace:*",

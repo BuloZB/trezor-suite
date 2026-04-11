@@ -80,8 +80,8 @@ export const SearchableAccountsListHeader = ({
                         <IconButton
                             iconName="magnifyingGlass"
                             onPress={() => setIsSearchActive(true)}
-                            colorScheme="tertiaryElevation1"
-                            size="medium"
+                            intent="neutral"
+                            priority="secondary"
                         />
                         <Text variant="body-md-strong" numberOfLines={1} adjustsFontSizeToFit>
                             {title}

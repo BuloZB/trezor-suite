@@ -169,8 +169,7 @@ export const Labeling = ({
                 />
             )}
             <SuiteSyncInteractionsTooltip
-                suiteSyncInteraction={suiteSyncInteraction}
-                deviceStaticSessionId={deviceStaticSessionId}
+                suiteSyncInteraction={!legacyMetadataState.enabled ? suiteSyncInteraction : null}
             >
                 <EditableText
                     onSubmit={onSubmit ?? handleSubmit}

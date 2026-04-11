@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { Translation, useTranslation } from '@suite/intl';
-import { metadataLabelingActions } from '@suite/metadata';
+import { metadataLabelingActions, metadataThunks } from '@suite/metadata';
 import { SettingsAnchor } from '@suite/router';
 import { SuiteSyncServers } from '@suite/suite-sync';
 import { events } from '@suite-common/analytics';
@@ -16,6 +16,8 @@ import { HELP_CENTER_LABELING } from '@trezor/urls';
 
 import { SettingsSectionItem } from 'src/components/settings/SettingsSectionItem';
 import { LearnMoreButton } from 'src/components/suite/LearnMoreButton';
+import { LabelingSwitchToLegacyModal } from 'src/components/suite/labeling/LabelingSwitchToLegacyModal';
+import { suiteSyncErrorHandler } from 'src/components/suite/labeling/suiteSyncErrorHandler';
 import {
     LABELING_LEGACY_OPTION_LABEL,
     LABELING_SELECT_OPTIONS,
@@ -28,12 +30,9 @@ import { useLabelingDeviceState } from 'src/hooks/suite/useLabelingDeviceState';
 import { useSuiteServices } from 'src/support/SuiteServicesProvider';
 import { useAnalytics } from 'src/support/useAnalytics';
 
-import { LabelingSwitchToLegacyModal } from '../../../components/suite/labeling/LabelingSwitchToLegacyModal';
-import { suiteSyncErrorHandler } from '../../../components/suite/labeling/suiteSyncErrorHandler';
-
 export const Labeling = () => {
     const { translationString } = useTranslation();
-    const { suiteSync, disableLegacyMetadataIfNeeded } = useSuiteServices();
+    const { suiteSync } = useSuiteServices();
     const dispatch = useDispatch();
     const analytics = useAnalytics();
     const [legacyModalWarningVisible, setLegacyModalWarningVisible] = useState(false);
@@ -73,7 +72,10 @@ export const Labeling = () => {
 
         switch (value) {
             case 'off':
-                disableLegacyMetadataIfNeeded();
+                if (legacyMetadataState.enabled) {
+                    dispatch(metadataThunks.disableMetadata());
+                }
+
                 await suiteSync.turnOffSuiteSync();
                 break;
 

@@ -11,7 +11,7 @@ import { getDisplaySymbol } from '@suite-common/wallet-config';
 import {
     selectAccountIsStakingActive,
     selectCardanoPoolsInfo,
-    selectPoolStatsApyData,
+    selectPoolStatsApy,
 } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
 import {
@@ -23,6 +23,7 @@ import {
 import { Button, Column, Icon, Paragraph, Row, Table } from '@trezor/components';
 import { BigNumber } from '@trezor/utils';
 
+import { HiddenPlaceholder } from 'src/components/suite/HiddenPlaceholder';
 import { useDispatch, useSelector } from 'src/hooks/suite';
 import { useAnalytics } from 'src/support/useAnalytics';
 import { ApyValue } from 'src/views/wallet/staking/components/ApyValue';
@@ -35,7 +36,7 @@ export const EarnStakingAccountRow = ({ account }: { account: Account }) => {
     const dispatch = useDispatch();
     const { CryptoAmountFormatter } = useFormatters();
     const analytics = useAnalytics();
-    const apy = useSelector(state => selectPoolStatsApyData(state, account));
+    const apy = useSelector(state => selectPoolStatsApy(state, { account }));
     const displaySymbol = getDisplaySymbol(account.symbol);
     const isCardanoNetworkType = account.networkType === 'cardano';
     const isStakingActive = useSelector(state => selectAccountIsStakingActive(state, account.key));
@@ -165,13 +166,15 @@ export const EarnStakingAccountRow = ({ account }: { account: Account }) => {
                                 intent="neutral"
                                 priority="secondary"
                             >
-                                <Translation
-                                    id="TR_EARN_STAKING_DASHBOARD_STAKED"
-                                    values={{
-                                        amount: formatCryptoAmount(stakingBalance),
-                                        displaySymbol,
-                                    }}
-                                />
+                                <HiddenPlaceholder>
+                                    <Translation
+                                        id="TR_EARN_STAKING_DASHBOARD_STAKED"
+                                        values={{
+                                            amount: formatCryptoAmount(stakingBalance),
+                                            displaySymbol,
+                                        }}
+                                    />
+                                </HiddenPlaceholder>
                             </Paragraph>
                         )}
                     </Column>
@@ -205,13 +208,15 @@ export const EarnStakingAccountRow = ({ account }: { account: Account }) => {
 
                     {!isCardanoNetworkType && apy && (
                         <Paragraph typographyStyle="body-sm" intent="neutral" priority="secondary">
-                            <Translation
-                                id="TR_EARN_STAKING_DASHBOARD_IF_YOU_ADD"
-                                values={{
-                                    amount: formatCryptoAmount(accountBalance),
-                                    displaySymbol,
-                                }}
-                            />
+                            <HiddenPlaceholder>
+                                <Translation
+                                    id="TR_EARN_STAKING_DASHBOARD_IF_YOU_ADD"
+                                    values={{
+                                        amount: formatCryptoAmount(accountBalance),
+                                        displaySymbol,
+                                    }}
+                                />
+                            </HiddenPlaceholder>
                         </Paragraph>
                     )}
                 </Column>

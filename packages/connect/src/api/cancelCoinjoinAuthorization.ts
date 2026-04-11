@@ -1,30 +1,24 @@
-import type { MessagesSchema as PROTO } from '@trezor/protobuf';
+import { CancelCoinjoinAuthorization as CancelCoinjoinAuthorizationSchema } from '@trezor/connect-common';
 import { Assert } from '@trezor/schema-utils';
 
 import type { MethodMessage, MethodPermission } from '../core/AbstractMethod';
 import { AbstractMethod } from '../core/AbstractMethod';
 import { getFirmwareRange } from './common/paramsValidator';
-import { CancelCoinjoinAuthorization as CancelCoinjoinAuthorizationSchema } from '../types/api/cancelCoinjoinAuthorization';
 
-export default class CancelCoinjoinAuthorization extends AbstractMethod<
-    'cancelCoinjoinAuthorization',
-    PROTO.CancelAuthorization
-> {
+export default class CancelCoinjoinAuthorization extends AbstractMethod<'cancelCoinjoinAuthorization'> {
     constructor(message: MethodMessage<'cancelCoinjoinAuthorization'>) {
-        super(message);
+        const { payload } = message;
+
+        Assert(CancelCoinjoinAuthorizationSchema, payload);
+
+        super(message, undefined);
+        this.preauthorized =
+            typeof payload.preauthorized === 'boolean' ? payload.preauthorized : true;
         this.firmwareRange = getFirmwareRange(this.name, null, this.firmwareRange);
     }
 
     get requiredPermissions(): MethodPermission[] {
         return ['management'];
-    }
-
-    init() {
-        const { payload } = this;
-
-        Assert(CancelCoinjoinAuthorizationSchema, payload);
-        this.preauthorized =
-            typeof payload.preauthorized === 'boolean' ? payload.preauthorized : true;
     }
 
     get info() {

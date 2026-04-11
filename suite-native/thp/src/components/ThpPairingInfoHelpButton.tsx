@@ -15,8 +15,8 @@ export const ThpPairingInfoHelpButton = () => {
     return (
         <Box>
             <IconButton
-                colorScheme="tertiaryElevation0"
-                size="medium"
+                intent="neutral"
+                priority="secondary"
                 iconName="question"
                 onPress={openModal}
             />

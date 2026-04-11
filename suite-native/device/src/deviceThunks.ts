@@ -19,18 +19,18 @@ const getResetDeviceConfig = (walletBackupType: BackupType): PROTO.ResetDevice =
     switch (walletBackupType) {
         case 'shamir-single':
             return {
-                backup_type: 3,
+                backup_type: PROTO.Enum_BackupType.Slip39_Single_Extendable,
                 strength: 128,
             };
         case 'shamir-advanced':
             return {
-                backup_type: 4,
+                backup_type: PROTO.Enum_BackupType.Slip39_Basic_Extendable,
                 strength: 128,
             };
         case '12-words':
-            return { backup_type: PROTO.BackupType.Bip39, strength: 128 };
+            return { backup_type: PROTO.Enum_BackupType.Bip39, strength: 128 };
         case '24-words':
-            return { backup_type: PROTO.BackupType.Bip39, strength: 256 };
+            return { backup_type: PROTO.Enum_BackupType.Bip39, strength: 256 };
         default:
             return exhaustive(walletBackupType);
     }

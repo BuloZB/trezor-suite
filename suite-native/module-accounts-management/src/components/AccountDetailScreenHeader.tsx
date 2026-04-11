@@ -49,8 +49,8 @@ export const AccountDetailScreenHeader = ({ account }: AccountDetailScreenHeader
             customContent={<AccountDetailScreenHeaderContent account={account} />}
             rightIcon={
                 <IconButton
-                    colorScheme="tertiaryElevation0"
-                    size="medium"
+                    intent="neutral"
+                    priority="secondary"
                     iconName="gear"
                     onPress={handleSettingsNavigation}
                     testID="@account-detail/settings-button"

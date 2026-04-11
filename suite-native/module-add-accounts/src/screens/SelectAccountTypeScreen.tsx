@@ -158,7 +158,7 @@ export const SelectAccountTypeScreen = ({
                     <Text variant="body-sm" color="textSubdued" textAlign="center">
                         <Translation id="moduleAddAccounts.selectAccountTypeScreen.aboutTypesLabel" />
                     </Text>
-                    <Button size="medium" colorScheme="tertiaryElevation0" onPress={handleMoreTap}>
+                    <Button intent="neutral" priority="secondary" onPress={handleMoreTap}>
                         <Translation id="moduleAddAccounts.selectAccountTypeScreen.buttons.more" />
                     </Button>
                 </View>
@@ -172,7 +172,7 @@ export const SelectAccountTypeScreen = ({
                     ]}
                 />
                 <View style={applyStyle(buttonWrapperStyle)}>
-                    <Button size="medium" onPress={handleConfirmTap}>
+                    <Button onPress={handleConfirmTap}>
                         <Translation
                             id="moduleAddAccounts.selectAccountTypeScreen.buttons.confirm"
                             values={{

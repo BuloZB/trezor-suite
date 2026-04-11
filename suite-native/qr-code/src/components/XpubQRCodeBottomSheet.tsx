@@ -123,11 +123,11 @@ export const XpubQRCodeBottomSheet = ({
 
                 <Box style={applyStyle(buttonStyle)}>
                     {isXpubShown ? (
-                        <Button size="large" onPress={handleCopyXpub}>
+                        <Button onPress={handleCopyXpub}>
                             <Translation id="moduleAccountManagement.accountSettingsScreen.xpubBottomSheet.copyButton" />
                         </Button>
                     ) : (
-                        <Button size="large" viewLeft="eye" onPress={handleShowXpub}>
+                        <Button iconLeft="eye" onPress={handleShowXpub}>
                             {showButtonTitle}
                         </Button>
                     )}

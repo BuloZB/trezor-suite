@@ -34,8 +34,8 @@ export const SheetHeaderTitle = ({
             <IconButton
                 iconName={rightButtonIcon}
                 onPress={onRightButtonPress}
-                colorScheme="tertiaryElevation0"
-                size="medium"
+                intent="neutral"
+                priority="secondary"
                 accessibilityRole="button"
                 accessibilityLabel={rightButtonA11yLabel}
             />

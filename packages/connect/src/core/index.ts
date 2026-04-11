@@ -1,27 +1,6 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import EventEmitter from 'events';
 
-import { ERRORS } from '@trezor/connect-common/src/constants';
-import { TRANSPORT, TRANSPORT_ERROR } from '@trezor/transport';
-import { createDeferred, createLazy, getSynchronize, throwError } from '@trezor/utils';
-
-import type { AbstractMethod } from './AbstractMethod';
-import { getMethod } from './method';
-import { onCallFirmwareUpdate } from './onCallFirmwareUpdate';
-import { dispose as disposeBackend } from '../backend/BlockchainLink';
-import { DataManager } from '../data/DataManager';
-import { parseLocalFirmwares } from '../data/connectSettings';
-import { initializeFirmwareConfig } from '../data/firmwareInfo';
-import type { Device, DeviceEvents } from '../device/Device';
-import type { IDeviceList } from '../device/DeviceList';
-import { DeviceList, assertDeviceListConnected } from '../device/DeviceList';
-import * as workflows from '../device/workflow';
-import type {
-    CoreCallMessage,
-    CoreEventMessage,
-    CoreRequestMessage,
-    TransportInfo,
-} from '../events';
 import {
     CORE_CALL,
     CORE_EVENT,
@@ -34,10 +13,36 @@ import {
     createResponseMessage,
     createTransportMessage,
     createUiMessage,
-} from '../events';
-import type { ConnectSettings, DeviceIdentity } from '../types';
-import type { LogWriter } from '../utils/debug';
-import { enableLog, initLog, setLogWriter } from '../utils/debug';
+} from '@trezor/connect-common';
+import type {
+    ConnectSettings,
+    CoreCallMessage,
+    CoreEventMessage,
+    CoreRequestMessage,
+    DeviceIdentity,
+    TransportInfo,
+} from '@trezor/connect-common';
+import { ERRORS } from '@trezor/connect-common/src/constants';
+import { parseLocalFirmwares } from '@trezor/connect-common/src/data/connectSettings';
+import {
+    type LogWriter,
+    enableLog,
+    initLog,
+    setLogWriter,
+} from '@trezor/connect-common/src/utils/debug';
+import { TRANSPORT, TRANSPORT_ERROR } from '@trezor/transport';
+import { createDeferred, createLazy, getSynchronize, throwError } from '@trezor/utils';
+
+import type { AbstractMethod } from './AbstractMethod';
+import { getMethod } from './method';
+import { onCallFirmwareUpdate } from './onCallFirmwareUpdate';
+import { dispose as disposeBackend } from '../backend/BlockchainLink';
+import { DataManager } from '../data/DataManager';
+import { initializeFirmwareConfig } from '../data/firmwareInfo';
+import type { Device, DeviceEvents } from '../device/Device';
+import type { IDeviceList } from '../device/DeviceList';
+import { DeviceList, assertDeviceListConnected } from '../device/DeviceList';
+import * as workflows from '../device/workflow';
 import { createUiPromiseManager } from '../utils/uiPromiseManager';
 
 // custom log
@@ -124,20 +129,19 @@ const inner = async (context: CoreContext, method: AbstractMethod<any>, device: 
         sendCoreMessage(createUiMessage(UI_REQUEST.FIRMWARE_OUTDATED, device.toMessageObject()));
     }
 
-    const workflowCtx = {
-        device,
-        method,
-        signal: context.signal,
-    };
-
     // Make sure that device will display pin/passphrase
     if (method.useDeviceState) {
-        await workflows.validateState(workflowCtx);
+        await workflows.validateState({
+            device,
+            method,
+            signal: context.signal,
+            sendCoreMessage,
+        });
     }
 
     // run method
     try {
-        const response = await method.run();
+        const response = await method.run({ sendCoreMessage, createUiPromise: uiPromises.create });
 
         return createResponseMessage(method.responseID, true, response, {
             path: device.getUniquePath(),
@@ -178,13 +182,9 @@ const onCall = async (context: CoreContext, message: CoreCallMessage) => {
     try {
         method = await methodSynchronize(async () => {
             _log.debug('loading method...');
-            const method2 = await getMethod(message, {
-                postMessage: sendCoreMessage,
-                createUiPromise: uiPromises.create,
-            });
+            const method2 = await getMethod(message);
             _log.debug('method selected', method2.name);
-            // start validation process
-            method2.init();
+
             await method2.initAsync?.();
 
             return method2;
@@ -197,11 +197,11 @@ const onCall = async (context: CoreContext, message: CoreCallMessage) => {
         return Promise.resolve();
     }
 
-    if (method.payload.__info) {
+    if (message.payload.__info) {
         const response = method.getMethodInfo();
 
-        if (method.payload.__precomposed) {
-            response.precomposed = await method.payloadToPrecomposed();
+        if (message.payload.__precomposed) {
+            response.precomposed = method.payloadToPrecomposed();
         }
         sendCoreMessage(createResponseMessage(method.responseID, true, response));
 
@@ -211,7 +211,10 @@ const onCall = async (context: CoreContext, message: CoreCallMessage) => {
     // this method is not using the device, there is no need to acquire
     if (!method.useDevice) {
         try {
-            const response = await method.run();
+            const response = await method.run({
+                sendCoreMessage,
+                createUiPromise: uiPromises.create,
+            });
             sendCoreMessage(createResponseMessage(method.responseID, true, response));
         } catch (error) {
             sendCoreMessage(createResponseMessage(method.responseID, false, { error }));

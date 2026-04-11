@@ -1087,10 +1087,6 @@ export const messages = {
                     title: 'Coins',
                     subtitle: 'Manage assets that you want to use',
                 },
-                phishing: {
-                    title: 'Phishing',
-                    subtitle: 'Manage phishing detection settings',
-                },
                 suiteSync: {
                     title: 'Suite Sync',
                     subtitle: 'Sync data across your devices',
@@ -1372,24 +1368,6 @@ export const messages = {
                 description: 'Otherwise the app won’t show you anything.',
             },
         },
-        phishing: {
-            settings: {
-                title: 'Phishing',
-                subtitle: 'Manage your phishing detection settings',
-                save: 'Save',
-                turnOff: 'Turn off',
-                placeholder: 'Enter dust threshold in USD',
-            },
-            dustThreshold: {
-                title: 'Dust phishing threshold',
-                subtitle:
-                    'Adjust the dust threshold for phishing detection. Currently, the dust threshold can only be defined in USD currency. Leaving this field empty will turn off dust amount detection.',
-                errors: {
-                    number: 'Please enter a valid number',
-                    positive: 'Dust threshold must be a positive number',
-                },
-            },
-        },
         viewOnly: {
             wallet: {
                 standard: 'Standard wallet',
@@ -1471,6 +1449,22 @@ export const messages = {
                 subtitle:
                     'Stay safe and secure fair prices by preventing others from interfering with your transactions. Available on {supportedNetworks}.',
             },
+            dustPhishing: {
+                title: 'Dust phishing protection',
+                subtitle:
+                    'Hide suspicious micro transactions used in scams from your transaction history.',
+                enableProtection: 'Enable protection',
+                dustThresholdTitle: 'Dust phishing threshold',
+                dustThresholdDescription:
+                    'Transactions below this amount are marked as suspicious and hidden.',
+                save: 'Save',
+                placeholder: 'Enter dust threshold in USD',
+                errors: {
+                    empty: 'Dust threshold is required',
+                    number: 'Please enter a valid number',
+                    positive: 'Dust threshold must be a positive number',
+                },
+            },
             bitcoinBackends: {
                 title: 'Bitcoin backends',
                 subtitle: 'Manage backend connections',
@@ -1519,16 +1513,16 @@ export const messages = {
                     description:
                         'Keep your wallet, account, and transaction labels updated in Trezor Suite on all your devices. Your data stays safe—only your Trezor can decrypt it.',
                 },
-                feedback: {
-                    title: 'Rate your {featureName} experience',
-                    description:
-                        'It takes just a few seconds. Your feedback helps us improve the feature for everyone.',
-                    rateButton: 'Share feedback',
-                    dismissButton: 'Dismiss',
-                    ratingLabel: "How's {featureName} making you feel?",
-                    descriptionLabel: "Tell us what's working and what's not—we read every reply.",
-                    submitButton: 'Submit',
-                },
+            },
+            featureFeedback: {
+                title: 'Rate your {featureName} experience',
+                description:
+                    'It takes just a few seconds. Your feedback helps us improve the feature for everyone.',
+                rateButton: 'Share feedback',
+                dismissButton: 'Dismiss',
+                ratingLabel: "How's {featureName} making you feel?",
+                descriptionLabel: "Tell us what's working and what's not—we read every reply.",
+                submitButton: 'Submit',
             },
         },
         experimental: {
@@ -2425,6 +2419,8 @@ export const messages = {
             subtitle: {
                 fwRevision: 'Your device firmware revision check failed.',
                 deviceAuthenticity: 'Your device authentication check failed.',
+                deviceId: 'The security check (ID validity check) failed.',
+                invariability: 'Your Trezor’s model or color appears to have been manipulated.',
                 entropy: 'Security check (entropy verification) failed.',
             },
             steps: {
@@ -2457,6 +2453,7 @@ export const messages = {
             totalRewardsLabel: 'Total rewards',
             nextRewardLabel: 'Next reward in {value, plural, one {# day} other {# days}}',
             unstakeButton: 'Unstake',
+            stakeButton: 'Stake',
             stakeMoreButton: 'Stake more',
             stakingHistory: 'Staking history',
             pendingActions: 'Pending actions',
@@ -2481,6 +2478,14 @@ export const messages = {
                     'Withdrawal period (~{days, plural, one {# day} other {# days}})',
                 stepReadyToClaim: 'Ready to claim',
             },
+        },
+        stakingInsufficientBalance: {
+            title: "You don't have enough {displaySymbol} balance",
+            subtitle: 'The minimum amount for staking is {minAmount} {displaySymbol}',
+            getButton: 'Get {displaySymbol}',
+        },
+        stakingAccountSelection: {
+            title: 'Choose account',
         },
         earnConsentsScreen: {
             title: 'Before you continue',
@@ -2512,17 +2517,53 @@ export const messages = {
                 primaryButton: 'Go to home',
             },
         },
+        unstakeTransactionDataReviewScreen: {
+            title: 'Review with Trezor',
+            successMessage: "You're all set.",
+            viewTransactionButton: 'Unstake now',
+            pushTransactionFailedAlert: {
+                title: 'Transaction failed',
+                description: 'Failed to submit your unstake transaction. Please try again.',
+                primaryButton: 'Go to home',
+            },
+            pendingTransactionConflictAlert: {
+                title: 'Pending transaction detected',
+                description:
+                    'An unstake transaction is already pending for this account. Please wait for it to be confirmed before unstaking again.',
+                primaryButton: 'Go to home',
+            },
+        },
+        earnUnstakeOutputItem: {
+            title: 'Unstake',
+            description: 'Unstake {displaySymbol} from stake account?',
+        },
         earnStakeOutputItem: {
             title: 'Stake',
-            description: 'Stake {symbol} on Everstake?',
+            description: 'Stake {displaySymbol} on Everstake?',
         },
         earnSummaryOutputItem: {
             title: 'Total including fee',
         },
+        claimOutputItem: {
+            title: 'Claim',
+            description: 'Claim {displaySymbol} from account?',
+        },
+        claimSummaryOutputItem: {
+            title: 'Total including fee',
+        },
         earnFormScreen: {
             title: '{assetName} staking',
+            unstakeTitle: 'Unstake {displaySymbol}',
+            availableBalance: 'Available balance',
+            unstakingTimeline: 'Unstaking timeline',
+            unstakingPeriodInfo:
+                'The unstaking period is currently {days, plural, one {~# day} other {~# days}}',
+            networkFeeWarning:
+                'Network fees may exceed this amount. Your balance may decrease. Enter higher amount.',
+            reviewAndSign: 'Review & Sign',
             amountLabel: 'Amount',
             stakeMaxButton: 'Stake max',
+            unstakeMaxButton: 'Unstake max',
             withdrawalFeesBanner:
                 "We've left {amount} {displaySymbol} in your account so you can pay for withdrawal fees.",
             estimatedRewardsLabel: 'Estimated yearly rewards',
@@ -2532,6 +2573,13 @@ export const messages = {
                 amountBelowMinimum: 'Amount must be at least {amount} {symbol}.',
                 insufficientBalance: "You don't have enough balance to stake this amount.",
                 feeBufferReserve: 'Not enough funds left after we reserve for withdrawal fees.',
+                tooManyDecimals: 'Too many decimals.',
+            },
+        },
+        unstakeFormScreen: {
+            validation: {
+                amountIsZero: 'Amount must be greater than 0.',
+                insufficientBalance: "You don't have enough staked balance to unstake this amount.",
                 tooManyDecimals: 'Too many decimals.',
             },
         },
@@ -2548,6 +2596,9 @@ export const messages = {
                 stakingTitle: 'Your stakes',
                 stablecoinYieldTitle: 'Your yields',
             },
+            chooseAccountSheet: {
+                title: 'Choose account',
+            },
             earnItem: {
                 rewards: 'Rewards',
                 pending: 'Activation pending',
@@ -2558,6 +2609,7 @@ export const messages = {
                 copyLabel: 'Tap to copy',
             },
             adaInfo: 'Your ADA stays fully accessible while earning rewards.',
+            unstakeButton: 'Unstake',
         },
         howStakeWorksScreen: {
             title: 'How {displaySymbol} staking works?',
@@ -2645,8 +2697,31 @@ export const messages = {
             transactionPending: 'Transaction pending',
             unknownStatus: 'Unknown status',
         },
+        claimReviewScreen: {
+            title: 'Claim {displaySymbol}',
+            reviewAndSignButton: 'Review & Sign',
+            amountLabel: 'Amount',
+            instantClaimBanner: "You'll claim the {displaySymbol} instantly",
+        },
+        claimTransactionDataReviewScreen: {
+            title: 'Review with Trezor',
+            successMessage: "You're all set.",
+            viewTransactionButton: 'Claim now',
+            pushTransactionFailedAlert: {
+                title: 'Transaction failed',
+                description: 'Failed to submit your claim transaction. Please try again.',
+                primaryButton: 'Go to home',
+            },
+            pendingTransactionConflictAlert: {
+                title: 'Pending transaction detected',
+                description:
+                    'A claim transaction is already pending for this account. Please wait for it to be confirmed before claiming again.',
+                primaryButton: 'Go to home',
+            },
+        },
         claimableCard: {
             claimable: 'Claimable',
+            claimButton: 'Claim',
         },
         stakingBottomSheet: {
             title: 'To manage your staked funds, please use Trezor Suite for desktop.',

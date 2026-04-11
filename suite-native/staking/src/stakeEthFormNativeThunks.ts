@@ -3,7 +3,6 @@ import { createThunk } from '@suite-common/redux-utils';
 import { getEthNetworkAddresses } from '@suite-common/staking';
 import { getNetwork } from '@suite-common/wallet-config';
 import {
-    type AccountsRootState,
     type FeesRootState,
     type SignTransactionError,
     type SignTransactionTimeoutError,
@@ -48,184 +47,225 @@ export const signEthStakeTransactionNativeThunk = createThunk<
 >(
     `${STAKE_NATIVE_MODULE_PREFIX}/signEthStakeTransactionNativeThunk`,
     async ({ accountKey, amount }, { dispatch, rejectWithValue, getState }) => {
-        const account = selectAccountByKey(getState() as AccountsRootState, accountKey);
+        try {
+            const account = selectAccountByKey(getState(), accountKey);
 
-        if (!account || account.networkType !== 'ethereum') {
-            return rejectWithValue({
-                error: 'sign-transaction-failed',
-                message: 'Ethereum account not found.',
-            });
-        }
+            if (!account || account.networkType !== 'ethereum') {
+                console.error(
+                    `signEthStakeTransactionNativeThunk: Ethereum account not found for key ${accountKey}`,
+                );
 
-        const network = getNetwork(account.symbol);
+                return rejectWithValue({
+                    error: 'sign-transaction-failed',
+                    message: 'Ethereum account not found.',
+                });
+            }
 
-        if (!network.chainId) {
-            return rejectWithValue({
-                error: 'sign-transaction-failed',
-                message: 'Chain ID not found for network.',
-            });
-        }
+            const network = getNetwork(account.symbol);
 
-        await dispatch(updateFeeInfoThunk({ networkSymbol: account.symbol }));
+            if (!network.chainId) {
+                console.error(
+                    `signEthStakeTransactionNativeThunk: Chain ID not found for network ${account.symbol}`,
+                );
 
-        const feeInfo = selectConvertedNetworkFeeInfo(getState() as FeesRootState, account.symbol);
-        const feeLevel = selectPreferredFeeLevel(feeInfo?.levels);
+                return rejectWithValue({
+                    error: 'sign-transaction-failed',
+                    message: 'Chain ID not found for network.',
+                });
+            }
 
-        if (!feeLevel) {
-            return rejectWithValue({
-                error: 'sign-transaction-failed',
-                message: 'Fee info not available.',
-            });
-        }
+            await dispatch(updateFeeInfoThunk({ networkSymbol: account.symbol }));
 
-        const identity = getAccountIdentity(account);
-        const { addressContractPool } = getEthNetworkAddresses(account.symbol);
+            const feeInfo = selectConvertedNetworkFeeInfo(
+                getState() as FeesRootState,
+                account.symbol,
+            );
+            const feeLevel = selectPreferredFeeLevel(feeInfo?.levels);
 
-        const estimatedFee = await TrezorConnect.blockchainEstimateFee({
-            coin: account.symbol,
-            identity,
-            request: {
-                blocks: [2],
-                specific: {
-                    from: account.descriptor,
-                    ...getEthereumEstimateFeeParams(
-                        addressContractPool,
-                        amount,
-                        undefined,
-                        STAKE_CALLDATA,
-                    ),
+            if (!feeLevel) {
+                console.error(
+                    `signEthStakeTransactionNativeThunk: Fee info not available for ${account.symbol}`,
+                );
+
+                return rejectWithValue({
+                    error: 'sign-transaction-failed',
+                    message: 'Fee info not available.',
+                });
+            }
+
+            const identity = getAccountIdentity(account);
+            const { addressContractPool } = getEthNetworkAddresses(account.symbol);
+
+            const estimatedFee = await TrezorConnect.blockchainEstimateFee({
+                coin: account.symbol,
+                identity,
+                request: {
+                    blocks: [2],
+                    specific: {
+                        from: account.descriptor,
+                        ...getEthereumEstimateFeeParams(
+                            addressContractPool,
+                            amount,
+                            undefined,
+                            STAKE_CALLDATA,
+                        ),
+                    },
                 },
-            },
-        });
-
-        if (!estimatedFee.success) {
-            return rejectWithValue({
-                error: 'sign-transaction-failed',
-                message: `Gas limit estimation failed: ${estimatedFee.error.message}`,
             });
-        }
 
-        const rawGasLimit = estimatedFee.payload.levels[0]?.feeLimit;
+            if (!estimatedFee.success) {
+                console.error(
+                    `signEthStakeTransactionNativeThunk: Gas limit estimation failed: ${estimatedFee.error.message}`,
+                );
 
-        if (!rawGasLimit) {
-            return rejectWithValue({
-                error: 'sign-transaction-failed',
-                message: 'Gas limit estimation returned empty value.',
-            });
-        }
+                return rejectWithValue({
+                    error: 'sign-transaction-failed',
+                    message: `Gas limit estimation failed: ${estimatedFee.error.message}`,
+                });
+            }
 
-        const stakeFormState = buildStakeFormState(feeLevel, rawGasLimit);
-        const precomposedTx = buildStakePrecomposedTx(
-            feeLevel,
-            rawGasLimit,
-            addressContractPool,
-            amount,
-        );
+            const rawGasLimit = estimatedFee.payload.levels[0]?.feeLimit;
 
-        dispatch(
-            sendFormActions.storePrecomposedTransaction({
-                formState: stakeFormState,
-                precomposedTransaction: precomposedTx,
-                accountKey,
-            }),
-        );
-        dispatch(
-            formDraftActions.storeDraft({
-                key: getFormDraftKey('stake', ''),
-                formDraft: stakeFormState,
-            }),
-        );
+            if (!rawGasLimit) {
+                console.error(
+                    'signEthStakeTransactionNativeThunk: Gas limit estimation returned empty value.',
+                );
 
-        const deviceAccessResponse = await requestPrioritizedDeviceAccess(async () => {
-            const device = selectSelectedDevice(getState() as DeviceRootState);
+                return rejectWithValue({
+                    error: 'sign-transaction-failed',
+                    message: 'Gas limit estimation returned empty value.',
+                });
+            }
 
-            const { nonce } = await dispatch(
-                ethereumGetCurrentNonceThunk({
-                    selectedAccount: account as Account & { networkType: 'ethereum' },
-                }),
-            ).unwrap();
-
-            const tx = buildEthStakeTx({
-                contractAddress: addressContractPool,
-                amount,
-                chainId: network.chainId!,
-                nonce,
-                rawGasLimit,
+            const stakeFormState = buildStakeFormState(feeLevel, rawGasLimit);
+            const precomposedTx = buildStakePrecomposedTx(
                 feeLevel,
-            });
-
-            return TrezorConnect.ethereumSignTransaction({
-                device: device
-                    ? {
-                          path: device.path,
-                          instance: device.instance,
-                          state: device.state,
-                          useEmptyPassphrase: device.useEmptyPassphrase,
-                      }
-                    : undefined,
-                path: account.path,
-                transaction: tx,
-            });
-        });
-
-        if (!deviceAccessResponse.success) {
-            return rejectWithValue({
-                error: 'sign-transaction-failed',
-                message: 'Prioritized device access or stake preparation failed.',
-            });
-        }
-
-        const signResponse = deviceAccessResponse.payload;
-
-        if (!signResponse.success) {
-            return rejectWithValue({
-                error: 'sign-transaction-failed',
-                errorCode: signResponse.error.code,
-                message: signResponse.error.message,
-            });
-        }
-
-        const { serializedTx } = signResponse.payload;
-
-        dispatch(
-            sendFormActions.storeSignedTransaction({
-                serializedTx: {
-                    tx: serializedTx,
-                    symbol: account.symbol,
-                },
-            }),
-        );
-
-        const pushResponse = await TrezorConnect.pushTransaction({
-            tx: serializedTx,
-            coin: account.symbol,
-            identity,
-        });
-
-        if (!pushResponse.success) {
-            const isPendingConflict = pushResponse.error.message.includes(
-                'could not replace existing tx',
+                rawGasLimit,
+                addressContractPool,
+                amount,
             );
 
-            return rejectWithValue({
-                error: isPendingConflict
-                    ? 'push-transaction-pending-conflict'
-                    : 'push-transaction-failed',
-                message: pushResponse.error.message,
+            dispatch(
+                sendFormActions.storePrecomposedTransaction({
+                    formState: stakeFormState,
+                    precomposedTransaction: precomposedTx,
+                    accountKey,
+                }),
+            );
+            dispatch(
+                formDraftActions.storeDraft({
+                    key: getFormDraftKey('stake', ''),
+                    formDraft: stakeFormState,
+                }),
+            );
+
+            const deviceAccessResponse = await requestPrioritizedDeviceAccess(async () => {
+                const device = selectSelectedDevice(getState() as DeviceRootState);
+
+                const { nonce } = await dispatch(
+                    ethereumGetCurrentNonceThunk({
+                        selectedAccount: account as Account & { networkType: 'ethereum' },
+                    }),
+                ).unwrap();
+
+                const tx = buildEthStakeTx({
+                    contractAddress: addressContractPool,
+                    amount,
+                    chainId: network.chainId!,
+                    nonce,
+                    rawGasLimit,
+                    feeLevel,
+                });
+
+                return TrezorConnect.ethereumSignTransaction({
+                    device: device
+                        ? {
+                              path: device.path,
+                              instance: device.instance,
+                              state: device.state,
+                              useEmptyPassphrase: device.useEmptyPassphrase,
+                          }
+                        : undefined,
+                    path: account.path,
+                    transaction: tx,
+                });
             });
+
+            if (!deviceAccessResponse.success) {
+                console.error(
+                    'signEthStakeTransactionNativeThunk: Prioritized device access or stake preparation failed.',
+                );
+
+                return rejectWithValue({
+                    error: 'sign-transaction-failed',
+                    message: 'Prioritized device access or stake preparation failed.',
+                });
+            }
+
+            const signResponse = deviceAccessResponse.payload;
+
+            if (!signResponse.success) {
+                console.error(
+                    `signEthStakeTransactionNativeThunk: Sign transaction failed: ${signResponse.error.message}`,
+                );
+
+                return rejectWithValue({
+                    error: 'sign-transaction-failed',
+                    errorCode: signResponse.error.code,
+                    message: signResponse.error.message,
+                });
+            }
+
+            const { serializedTx } = signResponse.payload;
+
+            dispatch(
+                sendFormActions.storeSignedTransaction({
+                    serializedTx: {
+                        tx: serializedTx,
+                        symbol: account.symbol,
+                    },
+                }),
+            );
+
+            const pushResponse = await TrezorConnect.pushTransaction({
+                tx: serializedTx,
+                coin: account.symbol,
+                identity,
+            });
+
+            if (!pushResponse.success) {
+                const isPendingConflict = pushResponse.error.message.includes(
+                    'could not replace existing tx',
+                );
+
+                console.error(
+                    `signEthStakeTransactionNativeThunk: Push transaction failed: ${pushResponse.error.message}`,
+                );
+
+                return rejectWithValue({
+                    error: isPendingConflict
+                        ? 'push-transaction-pending-conflict'
+                        : 'push-transaction-failed',
+                    message: pushResponse.error.message,
+                });
+            }
+
+            const { txid } = pushResponse.payload;
+
+            dispatch(
+                addFakePendingEvmTxThunk({
+                    precomposedTransaction: precomposedTx,
+                    precomposedForm: stakeFormState,
+                    txid,
+                    account,
+                }),
+            );
+
+            return { txid };
+        } catch (error) {
+            console.error(`signEthStakeTransactionNativeThunk: Unexpected error: ${error}`);
+
+            return rejectWithValue(undefined);
         }
-
-        const { txid } = pushResponse.payload;
-
-        dispatch(
-            addFakePendingEvmTxThunk({
-                precomposedTransaction: precomposedTx,
-                precomposedForm: stakeFormState,
-                txid,
-                account,
-            }),
-        );
-
-        return { txid };
     },
 );

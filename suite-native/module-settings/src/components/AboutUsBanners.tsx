@@ -58,16 +58,16 @@ export const AboutUsBanners = () => {
                         </Text>
                         <HStack spacing="sp24">
                             <IconButton
-                                size="large"
-                                colorScheme="tertiaryElevation1"
+                                intent="neutral"
+                                priority="secondary"
                                 iconName="twitterLogo"
                                 accessibilityRole="link"
                                 accessibilityLabel="X"
                                 onPress={() => openLink(TREZOR_X_URL, { enforce: true })}
                             />
                             <IconButton
-                                size="large"
-                                colorScheme="tertiaryElevation1"
+                                intent="neutral"
+                                priority="secondary"
                                 iconName="tiktokLogo"
                                 accessibilityRole="link"
                                 accessibilityLabel="tiktok"
@@ -78,8 +78,8 @@ export const AboutUsBanners = () => {
                                 }
                             />
                             <IconButton
-                                size="large"
-                                colorScheme="tertiaryElevation1"
+                                intent="neutral"
+                                priority="secondary"
                                 iconName="instagramLogo"
                                 accessibilityRole="link"
                                 accessibilityLabel="instagram"

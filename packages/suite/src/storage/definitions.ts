@@ -6,7 +6,7 @@ import type { FlagsState } from '@suite/flags';
 import type { SuiteSettingsState } from '@suite/settings';
 import { type AnalyticsState } from '@suite-common/analytics-redux';
 import { type AppRememberedPermission } from '@suite-common/connect-popup/src/connectPopupTypes';
-import { type ExperimentalFeedbackState } from '@suite-common/feedback';
+import { type FeatureFeedbackState } from '@suite-common/feedback';
 import type { MessageState } from '@suite-common/message-system';
 import type { MetadataState } from '@suite-common/metadata-types';
 import { type EncryptedHex } from '@suite-common/platform-encryption';
@@ -30,7 +30,7 @@ import type {
     WalletSettings,
 } from '@suite-common/wallet-types';
 import { type StaticSessionId } from '@trezor/connect';
-import { type FirmwareChannel } from '@trezor/connect/src/types/firmware';
+import { type FirmwareChannel } from '@trezor/connect-common/src/types/firmware';
 
 import type { BioAuthState } from 'src/reducers/bioAuth';
 import type { SuiteState } from 'src/reducers/suite/suiteReducer';
@@ -196,8 +196,8 @@ export interface SuiteDBSchema extends DBSchema {
             permissions: AppRememberedPermission[];
         };
     };
-    experimentalFeedback: {
-        key: 'experimentalFeedback';
-        value: ExperimentalFeedbackState;
+    featureFeedback: {
+        key: 'featureFeedback';
+        value: FeatureFeedbackState;
     };
 }

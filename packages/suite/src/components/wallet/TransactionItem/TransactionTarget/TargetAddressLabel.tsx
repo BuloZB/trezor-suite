@@ -1,14 +1,14 @@
 import { Translation } from '@suite/intl';
 import { type AccountLabels } from '@suite-common/metadata-types';
-import { selectSuiteSyncAddressLabels } from '@suite-common/suite-sync';
+import { selectIsSuiteSyncEnabled, selectSuiteSyncAddressLabels } from '@suite-common/suite-sync';
 import type { NetworkSymbol } from '@suite-common/wallet-config';
 import type { StaticSessionId } from '@trezor/connect';
 import { type ArrayElement } from '@trezor/type-utils';
 
+import { selectIsLegacyLabelingVisible } from 'src/actions/labels/selectIsLegacyLabelingVisible';
 import { Address, AddressLabeling } from 'src/components/suite';
+import { useSelector } from 'src/hooks/suite';
 import { type WalletAccountTransaction } from 'src/types/wallet';
-
-import { useSelector } from '../../../../hooks/suite';
 
 type TargetAddressLabelProps = {
     symbol: NetworkSymbol;
@@ -26,9 +26,11 @@ export const TargetAddressLabel = ({
     deviceStaticSessionId,
 }: TargetAddressLabelProps) => {
     const isLocalTarget = (type === 'sent' || type === 'self') && target.isAccountTarget;
+    const isSuiteSyncEnabled = useSelector(selectIsSuiteSyncEnabled);
+    const isLegacyLabelingVisible = useSelector(selectIsLegacyLabelingVisible);
 
     const suiteSyncAddressLabels = useSelector(state =>
-        selectSuiteSyncAddressLabels(state, deviceStaticSessionId),
+        isSuiteSyncEnabled ? selectSuiteSyncAddressLabels(state, deviceStaticSessionId) : [],
     );
 
     if (isLocalTarget) {
@@ -40,7 +42,7 @@ export const TargetAddressLabel = ({
             {target.addresses?.map((a, i) => {
                 const addressLabel =
                     suiteSyncAddressLabels.find(it => it.address === a)?.label ??
-                    accountMetadata?.addressLabels[a];
+                    (isLegacyLabelingVisible ? accountMetadata?.addressLabels[a] : undefined);
 
                 if (a.startsWith('OP_RETURN ')) {
                     return <span key={i}>{a}</span>;

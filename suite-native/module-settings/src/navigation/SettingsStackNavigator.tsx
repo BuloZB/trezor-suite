@@ -12,9 +12,11 @@ import { SettingsAdvancedScreen } from '../screens/SettingsAdvancedScreen';
 import { SettingsAppLogScreen } from '../screens/SettingsAppLogScreen';
 import { SettingsAutoEjectScreen } from '../screens/SettingsAutoEjectScreen';
 import { SettingsCoinEnablingScreen } from '../screens/SettingsCoinEnablingScreen';
+import { SettingsDustPhishingScreen } from '../screens/SettingsDustPhishingScreen';
 import { SettingsExperimentalScreen } from '../screens/SettingsExperimentalScreen';
 import { SettingsPreferencesScreen } from '../screens/SettingsPreferencesScreen';
 import { SettingsPrivacyScreen } from '../screens/SettingsPrivacyScreen';
+import { SettingsSuiteSyncScreen } from '../screens/SettingsSuiteSyncScreen';
 import { SettingsSupportScreen } from '../screens/SettingsSupportScreen';
 import { TurnOffDeviceAuthenticityCheckScreen } from '../screens/TurnOffDeviceAuthenticityCheckScreen';
 import { TurnOffFirmwareAuthenticityCheckScreen } from '../screens/TurnOffFirmwareAuthenticityCheckScreen';
@@ -55,8 +57,17 @@ export const SettingsStackNavigator = () => (
             component={SettingsCoinEnablingScreen}
         />
         <SettingsStack.Screen
+            options={{ title: SettingsStackRoutes.SettingsSuiteSync }}
+            name={SettingsStackRoutes.SettingsSuiteSync}
+            component={SettingsSuiteSyncScreen}
+        />
+        <SettingsStack.Screen
             name={SettingsStackRoutes.SettingsAdvanced}
             component={SettingsAdvancedScreen}
+        />
+        <SettingsStack.Screen
+            name={SettingsStackRoutes.SettingsDustPhishing}
+            component={SettingsDustPhishingScreen}
         />
         <SettingsStack.Screen
             name={SettingsStackRoutes.SettingsExperimental}

@@ -1,7 +1,7 @@
 import { isAnyOf } from '@reduxjs/toolkit';
 import { type MiddlewareAPI } from 'redux';
 
-import { featureUsed, feedbackDismissed, feedbackRequested } from '@suite/experimental-feedback';
+import { featureUsed, feedbackDismissed, feedbackRequested } from '@suite/feature-feedback';
 import { setFlag } from '@suite/flags';
 import { METADATA, metadataActions } from '@suite/metadata';
 import { suiteSettingsActions } from '@suite/settings';
@@ -148,8 +148,12 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                 }
             }
 
-            if (phishingActions.setDustThreshold.match(action)) {
-                api.dispatch(storageActions.savePhishingMetadata(action.payload));
+            if (phishingActions.setDustPhishing.match(action)) {
+                api.dispatch(
+                    storageActions.savePhishingMetadata({
+                        dustPhishing: action.payload,
+                    }),
+                );
             }
 
             if (
@@ -304,7 +308,7 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
             }
 
             if (isAnyOf(featureUsed, feedbackRequested, feedbackDismissed)(action)) {
-                api.dispatch(storageActions.saveExperimentalFeedback());
+                api.dispatch(storageActions.saveFeatureFeedback());
             }
 
             if (
@@ -321,6 +325,7 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                     deviceActions.connectDevice,
                     deviceActions.deviceChanged,
                     deviceActions.setEntropyCheckResult,
+                    deviceActions.setDeviceAuthenticityResult,
                     deviceActions.clearDevicePersistentData,
                     deviceActions.forgetDevicePersistentData,
                 )(action)

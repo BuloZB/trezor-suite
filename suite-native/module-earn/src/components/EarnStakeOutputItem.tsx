@@ -1,6 +1,6 @@
 import { type LayoutChangeEvent, View } from 'react-native';
 
-import { type NetworkSymbol } from '@suite-common/wallet-config';
+import { type NetworkSymbol, getNetworkDisplaySymbol } from '@suite-common/wallet-config';
 import { type ReviewOutputState } from '@suite-common/wallet-types';
 import { Text } from '@suite-native/atoms';
 import { Translation, useTranslate } from '@suite-native/intl';
@@ -18,6 +18,7 @@ export const EarnStakeOutputItem = ({
     onLayout,
 }: EarnStakeOutputItemProps) => {
     const { translate } = useTranslate();
+    const displaySymbol = getNetworkDisplaySymbol(symbol);
 
     return (
         <View onLayout={onLayout}>
@@ -26,7 +27,10 @@ export const EarnStakeOutputItem = ({
                 outputState={outputState}
             >
                 <Text variant="body-sm" color="textSubdued">
-                    <Translation id="earn.earnStakeOutputItem.description" values={{ symbol }} />
+                    <Translation
+                        id="earn.earnStakeOutputItem.description"
+                        values={{ displaySymbol }}
+                    />
                 </Text>
             </ReviewOutputCard>
         </View>

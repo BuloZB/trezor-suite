@@ -1,30 +1,19 @@
 // origin: https://github.com/trezor/connect/blob/develop/src/js/core/methods/RecoveryDevice.js
 
+import { UI_REQUEST } from '@trezor/connect-common';
+import { RecoveryDevice as RecoveryDeviceSchema } from '@trezor/connect-common/src/types/api/recoveryDevice';
 import type { MessagesSchema as PROTO } from '@trezor/protobuf';
 import { Assert } from '@trezor/schema-utils';
 
 import type { MethodMessage, MethodPermission } from '../core/AbstractMethod';
 import { AbstractMethod } from '../core/AbstractMethod';
-import { UI_REQUEST } from '../events';
-import { RecoveryDevice as RecoveryDeviceSchema } from '../types/api/recoveryDevice';
 
 export default class RecoveryDevice extends AbstractMethod<'recoveryDevice', PROTO.RecoveryDevice> {
     constructor(message: MethodMessage<'recoveryDevice'>) {
-        super(message);
-        this.allowDeviceMode = [...this.allowDeviceMode, UI_REQUEST.INITIALIZE];
-        this.useDeviceState = false;
-        this.skipFinalReload = false;
-        this.useEmptyPassphrase = true;
-    }
-    get requiredPermissions(): MethodPermission[] {
-        return ['management'];
-    }
-
-    init() {
-        const { payload } = this;
+        const { payload } = message;
 
         Assert(RecoveryDeviceSchema, payload);
-        this.params = {
+        const params = {
             word_count: payload.word_count,
             passphrase_protection: payload.passphrase_protection,
             pin_protection: payload.pin_protection,
@@ -35,6 +24,15 @@ export default class RecoveryDevice extends AbstractMethod<'recoveryDevice', PRO
             type: payload.type,
             u2f_counter: payload.u2f_counter,
         };
+
+        super(message, params);
+        this.allowDeviceMode = [...this.allowDeviceMode, UI_REQUEST.INITIALIZE];
+        this.useDeviceState = false;
+        this.skipFinalReload = false;
+        this.useEmptyPassphrase = true;
+    }
+    get requiredPermissions(): MethodPermission[] {
+        return ['management'];
     }
 
     get confirmation() {

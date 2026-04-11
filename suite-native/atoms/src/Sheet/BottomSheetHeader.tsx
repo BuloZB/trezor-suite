@@ -64,8 +64,8 @@ export const BottomSheetHeader = ({
                         <IconButton
                             iconName="x"
                             onPress={onCloseSheet}
-                            colorScheme="tertiaryElevation0"
-                            size="medium"
+                            intent="neutral"
+                            priority="secondary"
                             accessibilityRole="button"
                             accessibilityLabel={translate('generic.buttons.close')}
                             testID="@bottom-sheet/header/close-button"

@@ -1,20 +1,20 @@
-import { ERRORS } from '@trezor/connect-common/src/constants';
-import type { Capability } from '@trezor/protobuf/src/messages';
-import { versionUtils } from '@trezor/utils';
-
-import type { Device } from '../device/Device';
+import { ERRORS, UI_REQUEST } from '@trezor/connect-common';
 import type {
     CallMethodPayload,
     CallMethodResponse,
     CoreEventMessage,
-    UiPromiseCreator,
+    DeviceState,
+    FirmwareRange,
+    PrecomposeResultFinal,
+    StaticSessionId,
     UiRequestButtonData,
     UiRequestConfirmation,
-} from '../events';
-import { UI_REQUEST } from '../events';
-import type { PrecomposeResultFinal } from '../types/api/composeTransaction';
-import type { DeviceState, StaticSessionId } from '../types/device';
-import type { FirmwareRange } from '../types/firmware';
+} from '@trezor/connect-common';
+import type { Capability } from '@trezor/protobuf/src/definitions';
+import { versionUtils } from '@trezor/utils';
+
+import type { Device } from '../device/Device';
+import type { UiPromiseCreator } from '../events';
 
 export type Payload<M> = Extract<CallMethodPayload, { method: M }> & { override?: boolean };
 export type MethodReturnType<M extends CallMethodPayload['method']> = CallMethodResponse<M>;
@@ -39,14 +39,14 @@ export type MethodInfo = {
 };
 
 export type MethodContext = {
-    postMessage: (message: CoreEventMessage) => void;
+    sendCoreMessage: (message: CoreEventMessage) => void;
     createUiPromise: UiPromiseCreator;
 };
 
 export type MethodMessage<Name extends CallMethodPayload['method']> = {
     id?: number;
     payload: Payload<Name>;
-} & MethodContext;
+};
 
 export const DEFAULT_FIRMWARE_RANGE: FirmwareRange = {
     UNKNOWN: { min: '1.0.0', max: '0' },
@@ -113,7 +113,6 @@ export abstract class AbstractMethod<Name extends CallMethodPayload['method'], P
 
     public device: Device | undefined;
 
-    // @ts-expect-error: strictPropertyInitialization
     protected params: Params;
 
     public deviceState?: DeviceState;
@@ -127,8 +126,6 @@ export abstract class AbstractMethod<Name extends CallMethodPayload['method'], P
     public overridden: boolean;
 
     public name: Name; // method name
-
-    public payload: Payload<Name>; // method payload
 
     protected get info() {
         return '';
@@ -162,20 +159,13 @@ export abstract class AbstractMethod<Name extends CallMethodPayload['method'], P
 
     public getButtonRequestData?(code: string, name?: string): UiRequestButtonData | undefined;
 
-    // callbacks
-    public postMessage: (message: CoreEventMessage) => void;
-
-    public createUiPromise: UiPromiseCreator;
-
     public initAsync?(): Promise<void>;
 
-    constructor(message: MethodMessage<Name>) {
+    constructor(message: MethodMessage<Name>, params: Params) {
         const { payload } = message;
         this.name = payload.method;
-        this.payload = payload;
+        this.params = params;
         this.responseID = message.id || 0;
-        this.postMessage = message.postMessage;
-        this.createUiPromise = message.createUiPromise;
         this.deviceState = validateDeviceState(payload.device);
         this.keepSession = typeof payload.keepSession === 'boolean' ? payload.keepSession : false;
         this.skipFinalReload = true;
@@ -201,14 +191,17 @@ export abstract class AbstractMethod<Name extends CallMethodPayload['method'], P
     }
 
     // Used in *getAddress methods
-    protected getUseUi(params: { address?: string; show_display?: boolean }[]) {
-        const useEventListener =
-            this.payload.useEventListener &&
+    protected getUseUi(
+        params: { address?: string; proto: { show_display?: boolean } }[],
+        useEventListener: boolean | undefined,
+    ) {
+        const notUseUi =
+            useEventListener &&
             params.length === 1 &&
             typeof params[0].address === 'string' &&
-            params[0].show_display;
+            params[0].proto.show_display;
 
-        return !useEventListener;
+        return !notUseUi;
     }
 
     public setDevice(device: Device) {
@@ -262,8 +255,6 @@ export abstract class AbstractMethod<Name extends CallMethodPayload['method'], P
         }
     }
 
-    public abstract init(): void;
-
     public getMethodInfo(): MethodInfo {
         return {
             useUi: this.useUi,
@@ -277,9 +268,9 @@ export abstract class AbstractMethod<Name extends CallMethodPayload['method'], P
         };
     }
 
-    public payloadToPrecomposed(): Promise<PrecomposeResultFinal | undefined> {
+    public payloadToPrecomposed(): PrecomposeResultFinal | undefined {
         // Suite uses precomposed result for transaction review modals
-        return Promise.resolve(undefined);
+        return undefined;
     }
 
     public checkDeviceCapability() {
@@ -300,7 +291,7 @@ export abstract class AbstractMethod<Name extends CallMethodPayload['method'], P
         }
     }
 
-    public abstract run(): Promise<MethodReturnType<Name>>;
+    public abstract run(context: MethodContext): Promise<MethodReturnType<Name>>;
 
     public dispose() {}
 }

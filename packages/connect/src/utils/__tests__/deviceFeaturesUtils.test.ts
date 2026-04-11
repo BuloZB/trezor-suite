@@ -1,9 +1,9 @@
+import type { CoinInfo, Features } from '@trezor/connect-common';
 import coinsJSONEth from '@trezor/connect-data/files/coins-eth.json';
 import coinsJSON from '@trezor/connect-data/files/coins.json';
 import { DeviceModelInternal } from '@trezor/device-utils';
 
 import { getAllNetworks, parseCoinsJson } from '../../data/coinInfo';
-import type { CoinInfo, Features } from '../../types';
 import {
     getUnavailableCapabilities,
     parseCapabilities,
@@ -159,6 +159,7 @@ describe('utils/deviceFeaturesUtils', () => {
                 tppc: 'update-required',
                 trvn: 'update-required',
                 trx: 'no-support',
+                ttrx: 'no-support',
                 tsep: 'update-required',
                 txrp: 'no-support',
                 uno: 'update-required',
@@ -195,6 +196,7 @@ describe('utils/deviceFeaturesUtils', () => {
                 thod: 'update-required',
                 trvn: 'update-required',
                 trx: 'no-capability',
+                ttrx: 'no-capability',
                 usdt: 'no-capability',
                 sol: 'update-required',
                 dsol: 'update-required',
@@ -227,6 +229,7 @@ describe('utils/deviceFeaturesUtils', () => {
                 thod: 'update-required',
                 tropicDeviceAuthentication: 'no-support',
                 trx: 'no-capability',
+                ttrx: 'no-capability',
                 tsep: 'update-required',
                 usdt: 'no-capability',
                 vtc: 'no-support',

@@ -1,6 +1,6 @@
 import { selectIsSettingsDesktopAppPromoBannerShown } from '@suite/flags';
 import { Translation } from '@suite/intl';
-import { selectIsMetadataEnabled, selectSelectedProviderForLabels } from '@suite/metadata';
+import { selectSelectedProviderForLabels } from '@suite/metadata';
 import { selectHasExperimentalFeature } from '@suite/settings';
 import { Context } from '@suite-common/message-system';
 import { selectIsMevProtectionSettingsVisible } from '@suite-common/mev';
@@ -13,6 +13,7 @@ import {
 import { isDesktop, isLinux, isWeb } from '@trezor/env-utils';
 import { SettingsSection } from '@trezor/product-components';
 
+import { selectIsLegacyLabelingVisible } from 'src/actions/labels/selectIsLegacyLabelingVisible';
 import { SettingsLayout } from 'src/components/settings/SettingsLayout';
 import { ContextMessage } from 'src/components/wallet/WalletLayout/AccountBanners/ContextMessage';
 import { useLayoutSize, useSelector } from 'src/hooks/suite';
@@ -35,6 +36,7 @@ import { DustPhishing } from './DustPhishing';
 import { EarlyAccess } from './EarlyAccess';
 import { Experimental } from './Experimental';
 import { Language } from './Language';
+import { McpServer } from './McpServer';
 import { MevProtection } from './MevProtection';
 import { NetworkReserve } from './NetworkReserve';
 import { ShowApplicationLog } from './ShowApplicationLog';
@@ -55,7 +57,7 @@ export const SettingsGeneral = () => {
     const torStatus = useSelector(state => state.suite.torStatus);
     const enabledNetworks = useSelector(selectEnabledNetworks);
     const desktopUpdate = useSelector(state => state.desktopUpdate);
-    const isMetadataEnabled = useSelector(selectIsMetadataEnabled);
+    const isLegacyLabelingVisible = useSelector(selectIsLegacyLabelingVisible);
     const { isBelowLaptop, isBelowTablet } = useLayoutSize();
 
     const hasBitcoinNetworks = enabledNetworks.some(symbol => {
@@ -67,6 +69,7 @@ export const SettingsGeneral = () => {
     const torExternalExperimentalFeature = useSelector(
         selectHasExperimentalFeature('tor-external'),
     );
+    const mcpServerEnabled = useSelector(selectHasExperimentalFeature('mcp-server'));
 
     const isProviderConnected = useSelector(selectSelectedProviderForLabels);
     const isMevProtectionSettingsVisible = useSelector(selectIsMevProtectionSettingsVisible);
@@ -104,7 +107,7 @@ export const SettingsGeneral = () => {
                 icon="tag"
             >
                 <Labeling />
-                {isMetadataEnabled &&
+                {isLegacyLabelingVisible &&
                     (isProviderConnected ? (
                         <DisconnectLabelingProvider />
                     ) : (
@@ -182,6 +185,16 @@ export const SettingsGeneral = () => {
                 {desktopUpdate.enabled && <EarlyAccess />}
                 <Experimental />
             </SettingsSection>
+
+            {mcpServerEnabled && isDesktop() && (
+                <SettingsSection
+                    isBelowLaptop={isBelowLaptop}
+                    title={<Translation id="TR_EXPERIMENTAL_MCP_SERVER" />}
+                    icon="plugs"
+                >
+                    <McpServer />
+                </SettingsSection>
+            )}
         </SettingsLayout>
     );
 };

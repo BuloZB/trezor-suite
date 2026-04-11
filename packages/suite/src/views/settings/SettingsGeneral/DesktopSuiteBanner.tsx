@@ -11,16 +11,16 @@ import { SCREEN_QUERY } from '@trezor/components/src/config/variables';
 import { spacings, spacingsPx } from '@trezor/theme';
 import { SUITE_URL } from '@trezor/urls';
 
+import { useExternalLink } from 'src/hooks/suite';
 import { useDispatch } from 'src/hooks/suite/useDispatch';
 import { useAnalytics } from 'src/support/useAnalytics';
 
-import { useExternalLink } from '../../../hooks/suite';
 import { bannerAnimationConfig } from '../../dashboard/banner-animations';
 
 const Container = styled(motion.div)`
     position: relative;
     border-radius: 12px;
-    background: ${({ theme }) => theme.baseFillSurfaceBrandDark};
+    background: ${({ theme }) => theme.surfaceFillBrandDark};
     overflow: hidden;
     margin-bottom: ${spacingsPx.xxxxl};
 `;
@@ -43,7 +43,7 @@ const TextContainer = styled.div`
     grid-column: 1/3;
 
     * {
-        color: ${({ theme }) => theme.baseContentPrimaryInverse};
+        color: ${({ theme }) => theme.contentOnDarkPrimary};
     }
 `;
 

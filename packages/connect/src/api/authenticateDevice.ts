@@ -1,3 +1,4 @@
+import { AuthenticateDeviceParams, UI_REQUEST } from '@trezor/connect-common';
 import type { VerifyAuthenticityProofResult } from '@trezor/device-authenticity';
 import {
     deviceAuthenticityBlacklistConfig,
@@ -10,16 +11,24 @@ import { Assert } from '@trezor/schema-utils';
 
 import type { MethodMessage, MethodPermission } from '../core/AbstractMethod';
 import { AbstractMethod } from '../core/AbstractMethod';
-import { UI_REQUEST } from '../events';
 import { getFirmwareRange } from './common/paramsValidator';
-import { AuthenticateDeviceParams } from '../types/api/authenticateDevice';
 
 export default class AuthenticateDevice extends AbstractMethod<
     'authenticateDevice',
     AuthenticateDeviceParams
 > {
     constructor(message: MethodMessage<'authenticateDevice'>) {
-        super(message);
+        const { payload } = message;
+
+        Assert(AuthenticateDeviceParams, payload);
+
+        const params = {
+            config: payload.config,
+            blacklistConfig: payload.blacklistConfig,
+            allowDebugKeys: payload.allowDebugKeys,
+        };
+
+        super(message, params);
         this.useEmptyPassphrase = true;
         this.allowDeviceMode = [UI_REQUEST.INITIALIZE, UI_REQUEST.SEEDLESS];
         this.skipFinalReload = false;
@@ -28,18 +37,6 @@ export default class AuthenticateDevice extends AbstractMethod<
     }
     get requiredPermissions(): MethodPermission[] {
         return ['management'];
-    }
-
-    init() {
-        const { payload } = this;
-
-        Assert(AuthenticateDeviceParams, payload);
-
-        this.params = {
-            config: payload.config,
-            blacklistConfig: payload.blacklistConfig,
-            allowDebugKeys: payload.allowDebugKeys,
-        };
     }
 
     async run() {

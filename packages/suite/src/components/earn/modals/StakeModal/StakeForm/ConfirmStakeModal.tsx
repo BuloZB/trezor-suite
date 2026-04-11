@@ -6,15 +6,14 @@ import { getDaysToAddToPoolInitial } from '@suite-common/staking';
 import { EarnFlow, type StakeModalFlow } from '@suite-common/suite-types/src/staking';
 import { type NetworkType, getNetworkDisplaySymbol } from '@suite-common/wallet-config';
 import { SOLANA_EPOCH_DAYS } from '@suite-common/wallet-constants';
-import { selectValidatorsQueueData } from '@suite-common/wallet-core';
+import { selectEthValidatorsQueue } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
 import { Banner, Card, Checkbox, Column, Modal } from '@trezor/components';
 
+import { getStakingHelpCenterLink } from 'src/components/earn/utils/getStakingHelpCenterLink';
 import { earnFlowToEventTypeMap } from 'src/constants/suite/staking';
 import { useDispatch, useSelector } from 'src/hooks/suite';
 import { useAnalytics } from 'src/support/useAnalytics';
-
-import { getStakingHelpCenterLink } from '../../../utils/getStakingHelpCenterLink';
 
 const getStakeEnteringMessage = (networkType?: NetworkType) => {
     if (networkType === 'ethereum') return 'TR_STAKE_ENTERING_POOL_MAY_TAKE';
@@ -40,7 +39,7 @@ export const ConfirmStakeModal = ({
     const analytics = useAnalytics();
     const dispatch = useDispatch();
     const [hasAgreed, setHasAgreed] = useState(false);
-    const validatorsQueue = useSelector(state => selectValidatorsQueueData(state, account.symbol));
+    const validatorsQueue = useSelector(selectEthValidatorsQueue);
 
     const daysToAddToPool = getDaysToAddToPoolInitial(validatorsQueue);
 

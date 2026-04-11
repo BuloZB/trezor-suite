@@ -49,7 +49,7 @@ export const FullAlertBox = ({
     ...restProps
 }: FullAlertBoxProps) => {
     const { applyStyle } = useNativeStyles();
-    const { backgroundColor, borderColor, primaryButtonColorScheme, secondaryButtonColorScheme } =
+    const { backgroundColor, borderColor, primaryButtonColorProps, secondaryButtonColorProps } =
         variantToColorMap[variant];
 
     return (
@@ -69,8 +69,8 @@ export const FullAlertBox = ({
                         <HStack marginTop="sp12">
                             {secondaryButtonLabel && (
                                 <Button
-                                    size="small"
-                                    colorScheme={secondaryButtonColorScheme}
+                                    size="medium"
+                                    {...secondaryButtonColorProps}
                                     flex={1}
                                     onPress={onPressSecondaryButton}
                                     {...secondaryButtonProps}
@@ -79,8 +79,8 @@ export const FullAlertBox = ({
                                 </Button>
                             )}
                             <Button
-                                size="small"
-                                colorScheme={primaryButtonColorScheme}
+                                size="medium"
+                                {...primaryButtonColorProps}
                                 flex={1}
                                 onPress={onPressPrimaryButton}
                                 {...primaryButtonProps}

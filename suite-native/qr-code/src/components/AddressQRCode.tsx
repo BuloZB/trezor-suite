@@ -71,17 +71,19 @@ export const AddressQRCode = ({
             )}
             <HStack spacing="sp8" justifyContent="center">
                 <Button
-                    size="small"
-                    viewLeft="copy"
+                    size="medium"
+                    iconLeft="copy"
                     onPress={handleCopyAddress}
-                    colorScheme="tertiaryElevation1"
+                    intent="neutral"
+                    priority="secondary"
                 >
                     <Translation id="qrCode.copyButton" />
                 </Button>
                 <Button
-                    size="small"
-                    viewLeft="shareNetwork"
-                    colorScheme="tertiaryElevation1"
+                    size="medium"
+                    iconLeft="shareNetwork"
+                    intent="neutral"
+                    priority="secondary"
                     onPress={handleShareData}
                 >
                     <Translation id="qrCode.shareButton" />

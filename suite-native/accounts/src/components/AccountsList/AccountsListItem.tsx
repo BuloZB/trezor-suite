@@ -35,6 +35,8 @@ export type AccountListItemProps = {
     isLast?: boolean;
     showDivider?: boolean;
     isCryptoBalancePrimary?: boolean;
+    titleLabel?: React.ReactNode;
+    cryptoAmount?: string;
 };
 
 const CRYPTO_PRIMARY_BALANCE_TEXT_PROPS = [
@@ -66,6 +68,8 @@ export const AccountsListItem = ({
     isLast = false,
     showDivider = false,
     isCryptoBalancePrimary = false,
+    titleLabel,
+    cryptoAmount,
 }: AccountListItemProps) => {
     const formattedAccountType = useSelector((state: AccountsRootState) =>
         selectFormattedAccountType(state, account.key),
@@ -108,6 +112,7 @@ export const AccountsListItem = ({
     const [primaryBalanceTextProps, secondaryBalanceTextProps] = isCryptoBalancePrimary
         ? CRYPTO_PRIMARY_BALANCE_TEXT_PROPS
         : [undefined, undefined];
+    const balanceValue = cryptoAmount ?? account.formattedBalance;
     const fiatBalanceValue =
         shouldShowTokenBadge && fiatBalance !== undefined ? (
             <BaseCurrencyAmountFormatter
@@ -118,7 +123,7 @@ export const AccountsListItem = ({
             />
         ) : (
             <CryptoToFiatAmountFormatter
-                value={account.formattedBalance}
+                value={balanceValue}
                 isBalance={true}
                 symbol={account.symbol}
                 {...secondaryBalanceTextProps}
@@ -126,13 +131,27 @@ export const AccountsListItem = ({
         );
     const cryptoBalanceValue = (
         <CryptoAmountFormatter
-            value={account.formattedBalance}
+            value={balanceValue}
             symbol={account.symbol}
             numberOfLines={1}
             adjustsFontSizeToFit
             {...primaryBalanceTextProps}
         />
     );
+
+    const getTitle = () => {
+        if (titleLabel) {
+            return titleLabel;
+        }
+
+        if (shouldShowAccountLabel) {
+            return <AccountLabel account={account} />;
+        }
+
+        return <NetworkDisplaySymbolNameFormatter value={account.symbol} />;
+    };
+
+    const title = getTitle();
 
     return (
         <AccountsListItemBase
@@ -143,13 +162,7 @@ export const AccountsListItem = ({
             onPress={handleOnPress}
             disabled={disabled}
             icon={icon}
-            title={
-                shouldShowAccountLabel ? (
-                    <AccountLabel account={account} />
-                ) : (
-                    <NetworkDisplaySymbolNameFormatter value={account.symbol} />
-                )
-            }
+            title={title}
             badges={
                 <>
                     {formattedAccountType && (

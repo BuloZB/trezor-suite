@@ -1,14 +1,13 @@
 // origin: https://github.com/trezor/connect/blob/develop/src/js/core/methods/StellarSignTransaction.js
 
+import { StellarSignTransaction as StellarSignTransactionSchema } from '@trezor/connect-common';
+import type { PROTO, StellarTransaction } from '@trezor/connect-common';
 import { ERRORS } from '@trezor/connect-common/src/constants';
 import { Assert } from '@trezor/schema-utils';
 
-import type { PROTO } from '../../../constants';
 import type { MethodMessage, MethodPermission } from '../../../core/AbstractMethod';
 import { AbstractMethod } from '../../../core/AbstractMethod';
 import { getMiscNetwork } from '../../../data/coinInfo';
-import type { StellarTransaction } from '../../../types/api/stellar';
-import { StellarSignTransaction as StellarSignTransactionSchema } from '../../../types/api/stellar';
 import { validatePath } from '../../../utils/pathUtils';
 import { getFirmwareRange } from '../../common/paramsValidator';
 import * as helper from '../stellarSignTx';
@@ -30,7 +29,22 @@ export default class StellarSignTransaction extends AbstractMethod<
     Params
 > {
     constructor(message: MethodMessage<'stellarSignTransaction'>) {
-        super(message);
+        const { payload } = message;
+        // validate incoming parameters
+        Assert(StellarSignTransactionSchema, payload);
+
+        const path = validatePath(payload.path, 3);
+        // incoming data should be in stellar-sdk format
+        const { transaction } = payload;
+        const params = {
+            path,
+            networkPassphrase: payload.networkPassphrase,
+            transaction,
+            payment_req: payload.payment_req,
+        };
+
+        super(message, params);
+
         this.requiredDeviceCapabilities = ['Capability_Stellar'];
         this.firmwareRange = getFirmwareRange(
             this.name,
@@ -41,22 +55,6 @@ export default class StellarSignTransaction extends AbstractMethod<
 
     get requiredPermissions(): MethodPermission[] {
         return ['read', 'write'];
-    }
-
-    init() {
-        const { payload } = this;
-        // validate incoming parameters
-        Assert(StellarSignTransactionSchema, payload);
-
-        const path = validatePath(payload.path, 3);
-        // incoming data should be in stellar-sdk format
-        const { transaction } = payload;
-        this.params = {
-            path,
-            networkPassphrase: payload.networkPassphrase,
-            transaction,
-            payment_req: payload.payment_req,
-        };
     }
 
     get info() {

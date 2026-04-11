@@ -57,10 +57,10 @@ export const AccountSettingsShowXpubButton = ({ accountKey }: { accountKey: Acco
                 description: translate('generic.banners.deviceDanger.compromised.subtitle'),
                 icon: 'warning',
                 primaryButtonTitle: translate('generic.banners.deviceDanger.compromised.cta'),
-                primaryButtonVariant: 'redBold',
+                primaryButtonColorProps: { intent: 'critical', priority: 'primary' },
                 onPressPrimaryButton: () => openLink(SUITE_MOBILE_SUPPORT_URL),
                 secondaryButtonTitle: translate('generic.buttons.cancel'),
-                secondaryButtonVariant: 'redElevation0',
+                secondaryButtonColorProps: { intent: 'critical', priority: 'secondary' },
             }),
         [openLink, showAlert, translate],
     );
@@ -97,13 +97,13 @@ export const AccountSettingsShowXpubButton = ({ accountKey }: { accountKey: Acco
                 />
             )}
             <Button
-                size="large"
                 onPress={
                     hasFirmwareAuthenticityCheckHardFailed
                         ? showFirmwareAuthenticityCheckAlert
                         : showXpub
                 }
-                colorScheme="tertiaryElevation0"
+                intent="neutral"
+                priority="secondary"
             >
                 {buttonTitle}
             </Button>

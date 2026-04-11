@@ -69,12 +69,12 @@ export const PassphraseScreenHeader = () => {
                 primaryButtonTitle: (
                     <Translation id="modulePassphrase.confirmOnDevice.warningSheet.primaryButton" />
                 ),
-                primaryButtonVariant: 'redBold',
+                primaryButtonColorProps: { intent: 'critical', priority: 'primary' },
                 onPressPrimaryButton: handleClose,
                 secondaryButtonTitle: (
                     <Translation id="modulePassphrase.confirmOnDevice.warningSheet.secondaryButton" />
                 ),
-                secondaryButtonVariant: 'redElevation0',
+                secondaryButtonColorProps: { intent: 'critical', priority: 'secondary' },
             });
         } else {
             TrezorConnect.cancel();
@@ -88,8 +88,8 @@ export const PassphraseScreenHeader = () => {
         <ScreenHeaderWrapper>
             <IconButton
                 iconName="x"
-                size="medium"
-                colorScheme="tertiaryElevation0"
+                intent="neutral"
+                priority="secondary"
                 accessibilityRole="button"
                 accessibilityLabel="close"
                 onPress={handleCancel}

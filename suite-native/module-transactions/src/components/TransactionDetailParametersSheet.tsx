@@ -136,8 +136,8 @@ export const TransactionDetailParametersSheet = ({
                                 <IconButton
                                     iconName="copy"
                                     onPress={handleClickCopy}
-                                    colorScheme="tertiaryElevation1"
-                                    size="medium"
+                                    intent="neutral"
+                                    priority="secondary"
                                 />
                             </Box>
                         </Box>

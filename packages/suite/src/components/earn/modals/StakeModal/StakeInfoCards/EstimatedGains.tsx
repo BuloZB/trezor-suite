@@ -2,17 +2,16 @@ import React, { useMemo } from 'react';
 
 import { Translation } from '@suite/intl';
 import { calculateGains, getNetworkAdjustedStakingBalance } from '@suite-common/staking';
-import { selectPoolStatsApyData } from '@suite-common/wallet-core';
+import { selectPoolStatsApy } from '@suite-common/wallet-core';
 import { Column, Grid, Image, Paragraph, Text } from '@trezor/components';
 
+import { getStakingHelpCenterLink } from 'src/components/earn/utils/getStakingHelpCenterLink';
 import { BaseCurrencyValue } from 'src/components/suite/BaseCurrencyValue';
 import { FormattedCryptoAmount } from 'src/components/suite/FormattedCryptoAmount';
 import { TrezorLink } from 'src/components/suite/TrezorLink';
 import { useSupplyFormContext } from 'src/hooks/earn/useSupplyForm';
 import { useSelector } from 'src/hooks/suite';
 import { CRYPTO_INPUT } from 'src/types/earn/earnFormFields';
-
-import { getStakingHelpCenterLink } from '../../../utils/getStakingHelpCenterLink';
 
 export const EstimatedGains = () => {
     const { account, getValues, formState } = useSupplyFormContext();
@@ -34,7 +33,7 @@ export const EstimatedGains = () => {
         return '0';
     }, [hasInvalidFormState, value, account]);
 
-    const apy = useSelector(state => selectPoolStatsApyData(state, account));
+    const apy = useSelector(state => selectPoolStatsApy(state, { account }));
 
     const gains = [
         {

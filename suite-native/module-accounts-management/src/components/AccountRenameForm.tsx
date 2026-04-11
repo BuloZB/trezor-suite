@@ -14,7 +14,7 @@ import {
     useAccountLabelForm,
 } from '@suite-native/accounts';
 import { Box, Button, type InputType, VStack } from '@suite-native/atoms';
-import { featureUsed } from '@suite-native/experimental-features';
+import { featureUsed } from '@suite-native/feature-feedback';
 import { Form, TextInputField } from '@suite-native/forms';
 import { Translation, useTranslate } from '@suite-native/intl';
 import {
@@ -116,7 +116,6 @@ export const AccountRenameForm = ({ accountKey, onSubmit }: AccountRenameFormPro
                     />
                     <Button
                         onPress={handleRenameAccount}
-                        size="large"
                         isDisabled={hasErrors}
                         testID="@account-detail/settings/account-rename/confirm-button"
                     >
