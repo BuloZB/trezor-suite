@@ -25,6 +25,7 @@ import { TradingPage } from './pageObjects/trading/tradingPage';
 import { TrezorInput } from './pageObjects/trezorInput';
 import { WalletPage } from './pageObjects/walletPage';
 import { suiteBaseTest } from './testExtends/suiteBaseFixture';
+import { TradingStoreFixture } from './tradingStore';
 
 type Fixtures = {
     dashboardPage: DashboardPage;
@@ -43,6 +44,7 @@ type Fixtures = {
     analytics: AnalyticsFixture;
     analyticsHelper: AnalyticsHelper;
     indexedDb: IndexedDbFixture;
+    tradingStore: TradingStoreFixture;
     metadataMock: MetadataMock;
     blockbookMock: BlockbookMock;
     solanaStakingMock: SolanaStakingMock;
@@ -102,6 +104,9 @@ const test = suiteBaseTest.extend<Fixtures>({
     indexedDb: async ({ page }, use) => {
         await use(new IndexedDbFixture(page));
     },
+    tradingStore: async ({ page }, use) => {
+        await use(new TradingStoreFixture(page));
+    },
     metadataMock: async ({ page }, use) => {
         const metadataMock = new MetadataMock(page);
         await use(metadataMock);
@@ -129,7 +134,9 @@ const test = suiteBaseTest.extend<Fixtures>({
     },
     evoluClient: async ({}, use) => {
         await checkEvoluRelayServerRunning();
-        await use(new EvoluClient());
+        const evoluClient = new EvoluClient();
+        await use(evoluClient);
+        await evoluClient.dispose();
     },
 });
 

@@ -14,8 +14,7 @@
     "bugs": {
         "url": "https://github.com/trezor/trezor-suite/issues"
     },
-    "npmPublishAccess": "public",
-    "license": "SEE LICENSE IN LICENSE.md",
+    "license": "MIT",
     "description": "Collection of assets and utils used by trezor-connect library.",
     "main": "./src/index.ts",
     "files": [
@@ -28,34 +27,52 @@
         "types": "./lib/index.d.ts",
         "exports": {
             ".": {
-                "import": "./libESM/index.mjs",
-                "require": "./lib/index.js",
-                "types": "./lib/index.d.ts"
+                "import": {
+                    "types": "./libESM/index.d.mts",
+                    "default": "./libESM/index.mjs"
+                },
+                "require": {
+                    "types": "./lib/index.d.ts",
+                    "default": "./lib/index.js"
+                }
             },
-            "./lib/*": "./lib/*.js",
+            "./lib/*": {
+                "types": "./lib/*.d.ts",
+                "default": "./lib/*.js"
+            },
+            "./libESM/*": "./libESM/*",
+            "./lib/constants": {
+                "types": "./lib/constants/index.d.ts",
+                "default": "./lib/constants/index.js"
+            },
+            "./libESM/constants": {
+                "types": "./libESM/constants/index.d.mts",
+                "default": "./libESM/constants/index.mjs"
+            },
+            "./lib/data": {
+                "types": "./lib/data/index.d.ts",
+                "default": "./lib/data/index.js"
+            },
+            "./libESM/data": {
+                "types": "./libESM/data/index.d.mts",
+                "default": "./libESM/data/index.mjs"
+            },
             "./lib/events": {
                 "types": "./lib/events/index.d.ts",
                 "default": "./lib/events/index.js"
+            },
+            "./libESM/events": {
+                "types": "./libESM/events/index.d.mts",
+                "default": "./libESM/events/index.mjs"
             },
             "./lib/types": {
                 "types": "./lib/types/index.d.ts",
                 "default": "./lib/types/index.js"
             },
-            "./lib/data": "./lib/data/index.js",
-            "./lib/data/*": "./lib/data/*.js",
-            "./lib/constants": "./lib/constants/index.js",
-            "./lib/constants/*": "./lib/constants/*.js",
-            "./libESM/*": "./libESM/*",
-            "./libESM/events": {
-                "types": "./libESM/events/index.d.mts",
-                "default": "./libESM/events/index.mjs"
-            },
             "./libESM/types": {
                 "types": "./libESM/types/index.d.mts",
                 "default": "./libESM/types/index.mjs"
-            },
-            "./libESM/constants/*": "./libESM/constants/*",
-            "./libESM/data/*": "./libESM/data/*"
+            }
         }
     },
     "scripts": {
@@ -67,26 +84,24 @@
         "depcheck": "yarn g:depcheck",
         "lint:js": "yarn g:eslint '**/*.{ts,tsx,js}'"
     },
-    "__dependencies_note__": "We are in the middle of migration, in a followup, @trezor/transport, @trezor/utxo-lib, @trezor/protobuf should not be dependencies of this package",
     "dependencies": {
         "@trezor/device-utils": "workspace:*",
         "@trezor/protobuf": "workspace:*",
         "@trezor/protocol": "workspace:^",
         "@trezor/schema-utils": "workspace:*",
-        "@trezor/transport": "workspace:*",
         "@trezor/type-utils": "workspace:*",
-        "@trezor/utils": "workspace:*",
-        "@trezor/utxo-lib": "workspace:*"
+        "@trezor/utils": "workspace:*"
     },
     "peerDependencies": {
         "tslib": "^2.6.2"
     },
-    "__devDependencies_note__": "even here, coin specific libs should not be listed, we need to find another way, probably copying of types",
     "devDependencies": {
         "@fivebinaries/coin-selection": "3.0.0",
         "@trezor/blockchain-link": "workspace:^",
         "@trezor/blockchain-link-types": "workspace:^",
         "@trezor/device-authenticity": "workspace:^",
+        "@trezor/transport": "workspace:*",
+        "@trezor/utxo-lib": "workspace:*",
         "@types/chrome": "^0.0.299",
         "@types/jest": "29.5.12",
         "@types/node": "22.13.10"

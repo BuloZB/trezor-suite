@@ -31,6 +31,7 @@ export * from './Button/Button';
 export * from './Button/AsyncButton';
 export * from './Button/IconButton';
 export * from './Button/TextButton';
+export { buttonSizeToDimensionsMap } from './Button/utils';
 export * from './Select/Select';
 export * from './Select/SelectItem';
 export * from './Spinner/Spinner';
@@ -81,6 +82,7 @@ export * from './AnimatedDoubleView/AnimatedDoubleView';
 export * from './AnimatedDoubleView/AnimatedDoubleInput';
 export * from './Pressable';
 export * from './SegmentedControl';
+export * from './ProgressBar';
 
 export { useDebugView } from './DebugView';
 export { TouchableSwitchRow, TouchableSwitchRowDescription } from './TouchableSwitchRow';

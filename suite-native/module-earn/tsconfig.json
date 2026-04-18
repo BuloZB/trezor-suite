@@ -6,8 +6,18 @@
         { "path": "../../suite-common/device" },
         { "path": "../../suite-common/earn-api" },
         {
+            "path": "../../suite-common/earn-staking-api"
+        },
+        {
             "path": "../../suite-common/formatters"
         },
+        {
+            "path": "../../suite-common/message-system"
+        },
+        {
+            "path": "../../suite-common/redux-utils"
+        },
+        { "path": "../../suite-common/staking" },
         {
             "path": "../../suite-common/validators"
         },
@@ -41,8 +51,10 @@
         { "path": "../intl" },
         { "path": "../labeling" },
         { "path": "../link" },
+        { "path": "../message-system" },
         { "path": "../navigation" },
         { "path": "../services" },
+        { "path": "../settings" },
         { "path": "../staking" },
         { "path": "../test-utils" },
         { "path": "../transaction-management" },

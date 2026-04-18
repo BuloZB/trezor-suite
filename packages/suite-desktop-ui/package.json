@@ -9,12 +9,14 @@
         "depcheck": "yarn g:depcheck",
         "type-check": "yarn g:tsc --build tsconfig.json",
         "type-check:watch": "yarn type-check -- --watch",
-        "lint:styles": "npx stylelint './src/**/*{.ts,.tsx}' --cache --config ../../.stylelintrc",
+        "lint:styles": "stylelint './src/**/*{.ts,.tsx}' --cache --config ../../.stylelintrc",
         "lint:js": "yarn g:eslint '**/*.{ts,tsx,js}'"
     },
     "dependencies": {
         "@sentry/electron": "^7.10.0",
+        "@suite-common/github": "workspace:*",
         "@suite/analytics": "workspace:*",
+        "@suite/desktop-update": "workspace:*",
         "@suite/flags": "workspace:*",
         "@suite/intl": "workspace:*",
         "@suite/router": "workspace:*",

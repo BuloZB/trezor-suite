@@ -147,7 +147,6 @@ test.describe('Analytics Events', { tag: ['@webOnly', '@T3W1', '@T3T1', '@smoke'
             await settingsPage.changeTheme(Theme.Dark);
             await settingsPage.toggleTestnetNetworks();
             await settingsPage.navigateTo('coins');
-            await settingsPage.coinsTab.enableNetwork('eth');
             await settingsPage.coinsTab.enableNetwork('thod');
             await settingsPage.coinsTab.disableNetwork('btc');
             await settingsPage.coinsTab.openNetworkAdvanceSettings('eth');

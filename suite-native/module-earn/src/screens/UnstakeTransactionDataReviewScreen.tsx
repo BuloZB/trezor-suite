@@ -22,6 +22,7 @@ import {
     ScreenHeader,
     type StackProps,
     TransactionDetailStackRoutes,
+    useNavigateToInitialScreen,
 } from '@suite-native/navigation';
 import {
     type TransactionReviewOutputsState,
@@ -32,6 +33,7 @@ import {
 } from '@suite-native/transaction-management';
 
 import { UnstakeTransactionDataReviewStepList } from '../components/UnstakeTransactionDataReviewStepList';
+import { useStakingDetailNavigation } from '../hooks/useStakingDetailNavigation';
 
 const navigateToUnstakedTransactionAction = ({
     accountKey,
@@ -45,7 +47,7 @@ const navigateToUnstakedTransactionAction = ({
         routes: [
             {
                 name: RootStackRoutes.AppTabs,
-                params: { screen: AppTabsRoutes.HomeStack },
+                params: { screen: AppTabsRoutes.EarnStack },
             },
             {
                 name: RootStackRoutes.TransactionDetailStack,
@@ -68,6 +70,8 @@ export const UnstakeTransactionDataReviewScreen = ({
     const { confirmOnTrezorRef, revealConfirmOnTrezorSheet, closeSheet } =
         useConfirmOnTrezorController();
     const { accountKey } = route.params;
+    const { navigateToStakingDetail } = useStakingDetailNavigation();
+    const navigateToInitialScreen = useNavigateToInitialScreen();
     const [txid, setTxid] = useState<string>('');
 
     const isAddressConfirmed = useSelector((state: TransactionReviewOutputsState) =>
@@ -92,10 +96,10 @@ export const UnstakeTransactionDataReviewScreen = ({
 
     useFocusEffect(
         useCallback(() => {
-            if (isAddressConfirmed) {
-                navigation.navigate(RootStackRoutes.StakingDetail, { accountKey });
+            if (isAddressConfirmed && account) {
+                navigateToStakingDetail({ accountKey, symbol: account.symbol });
             }
-        }, [accountKey, isAddressConfirmed, navigation]),
+        }, [account, accountKey, isAddressConfirmed, navigateToStakingDetail]),
     );
 
     useEffect(() => {
@@ -109,17 +113,6 @@ export const UnstakeTransactionDataReviewScreen = ({
             closeSheet();
         }
     }, [closeSheet, showSignSuccessMessage]);
-
-    const handleClose = useCallback(() => {
-        navigation.dispatch(
-            CommonActions.reset({
-                index: 0,
-                routes: [
-                    { name: RootStackRoutes.AppTabs, params: { screen: AppTabsRoutes.EarnStack } },
-                ],
-            }),
-        );
-    }, [navigation]);
 
     const handleViewTransaction = useCallback(() => {
         navigation.dispatch(navigateToUnstakedTransactionAction({ accountKey, txid }));
@@ -138,7 +131,7 @@ export const UnstakeTransactionDataReviewScreen = ({
                         </Text>
                     }
                     closeActionType="close"
-                    closeAction={handleClose}
+                    closeAction={navigateToInitialScreen}
                 />
             }
         >

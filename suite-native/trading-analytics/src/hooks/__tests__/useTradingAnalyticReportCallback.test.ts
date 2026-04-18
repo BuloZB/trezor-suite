@@ -7,7 +7,11 @@ import {
 } from '@suite-native/analytics';
 import { useAnalytics } from '@suite-native/services';
 import { type PreloadedState, renderHookWithStoreProvider } from '@suite-native/test-utils';
-import { exchangeQuotes, getWalletState, sellQuotes } from '@suite-native/trading-fixtures';
+import {
+    banxaCreditCardSellQuote,
+    getWalletState,
+    mercuryoFixedWorstQuote,
+} from '@suite-native/trading-fixtures';
 
 import { useTradingAnalyticReportCallback } from '../useTradingAnalyticReportCallback';
 
@@ -38,7 +42,7 @@ describe('useTradingAnalyticReportCallback', () => {
             preloadedState = {
                 wallet: getWalletState({ tradeType: 'sell' }),
             };
-            preloadedState.wallet!.trading!.sell!.selectedQuote = sellQuotes[0];
+            preloadedState.wallet!.trading!.sell!.selectedQuote = banxaCreditCardSellQuote;
         });
 
         it('should return sell analytics callback', () => {
@@ -67,7 +71,7 @@ describe('useTradingAnalyticReportCallback', () => {
             preloadedState = {
                 wallet: getWalletState({ tradeType: 'exchange' }),
             };
-            preloadedState.wallet!.trading!.exchange!.selectedQuote = exchangeQuotes[0];
+            preloadedState.wallet!.trading!.exchange!.selectedQuote = mercuryoFixedWorstQuote;
         });
 
         it('should return exchange analytics callback', () => {

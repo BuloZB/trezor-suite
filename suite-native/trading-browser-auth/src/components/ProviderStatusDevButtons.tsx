@@ -14,7 +14,7 @@ const ProviderStatusDevButtonsContent = () => {
         <VStack spacing="sp4" flex={1}>
             <HStack>
                 <Text variant="body-sm-strong">Current status:</Text>
-                <Text variant="body-sm-strong" color="textSubdued">
+                <Text variant="body-sm-strong" color="contentSecondary">
                     {currentStatus}
                 </Text>
             </HStack>
@@ -22,7 +22,7 @@ const ProviderStatusDevButtonsContent = () => {
                 <Button
                     intent="critical"
                     priority="secondary"
-                    size="medium"
+                    size="small"
                     onPress={() => {
                         dispatchHelper('window_closed_incomplete');
                     }}
@@ -32,17 +32,19 @@ const ProviderStatusDevButtonsContent = () => {
                 <Button
                     intent="info"
                     priority="secondary"
-                    size="medium"
+                    size="small"
                     onPress={() => {
                         dispatchHelper('window_closed_with_success');
                     }}
                 >
                     with_success
                 </Button>
+            </HStack>
+            <HStack justifyContent="center">
                 <Button
                     intent="critical"
                     priority="primary"
-                    size="medium"
+                    size="small"
                     onPress={() => {
                         dispatchHelper('confirmation_failed');
                     }}
@@ -50,19 +52,17 @@ const ProviderStatusDevButtonsContent = () => {
                     failed
                 </Button>
                 <Button
-                    size="medium"
+                    size="small"
                     onPress={() => {
                         dispatchHelper('confirmation_success');
                     }}
                 >
                     success
                 </Button>
-            </HStack>
-            <HStack justifyContent="center">
                 <Button
                     intent="warning"
                     priority="secondary"
-                    size="medium"
+                    size="small"
                     onPress={() => {
                         dispatchHelper('inactive');
                         dispatchHelper('window_opened');

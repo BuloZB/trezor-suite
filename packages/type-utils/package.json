@@ -2,8 +2,7 @@
     "name": "@trezor/type-utils",
     "version": "10.0.0-alpha.1",
     "homepage": "https://github.com/trezor/trezor-suite/tree/develop/packages/type-utils",
-    "npmPublishAccess": "public",
-    "license": "See LICENSE.md in repo root",
+    "license": "MIT",
     "repository": {
         "type": "git",
         "url": "git://github.com/trezor/trezor-suite.git"
@@ -18,9 +17,14 @@
         "types": "./lib/index.d.ts",
         "exports": {
             ".": {
-                "import": "./libESM/index.mjs",
-                "require": "./lib/index.js",
-                "types": "./lib/index.d.ts"
+                "import": {
+                    "types": "./libESM/index.d.mts",
+                    "default": "./libESM/index.mjs"
+                },
+                "require": {
+                    "types": "./lib/index.d.ts",
+                    "default": "./lib/index.js"
+                }
             }
         }
     },

@@ -6,7 +6,7 @@ import { BASE_CRYPTO_MAX_DISPLAYED_DECIMALS, useFormatters } from '@suite-common
 import { selectAccountNetworkSymbol } from '@suite-common/wallet-core';
 import { type AccountKey } from '@suite-common/wallet-types';
 import { isPositiveBalance } from '@suite-common/wallet-utils';
-import { Box, Button, HStack, Text, VStack } from '@suite-native/atoms';
+import { Box, Button, HStack, InlineAlertBox, Text, VStack } from '@suite-native/atoms';
 import { Icon } from '@suite-native/icons';
 import { Translation } from '@suite-native/intl';
 import {
@@ -21,6 +21,8 @@ import {
 } from '@suite-native/staking';
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 
+import { useMessageSystemStaking } from '../hooks/useMessageSystemStaking';
+
 type NavigationProp = StackNavigationProps<RootStackParamList, RootStackRoutes.StakingManagement>;
 
 type StakingManagementReadyToClaimCardProps = {
@@ -28,7 +30,7 @@ type StakingManagementReadyToClaimCardProps = {
 };
 
 const containerStyle = prepareNativeStyle(utils => ({
-    backgroundColor: utils.colors.backgroundPrimarySubtleOnElevation1,
+    backgroundColor: utils.colors.legacyBackgroundPrimarySubtleOnElevation1,
     borderRadius: utils.borders.radii.r12,
     padding: utils.spacings.sp16,
 }));
@@ -46,6 +48,8 @@ export const StakingManagementReadyToClaimCard = ({
     const claimableAmount = useSelector((state: NativeStakingRootState) =>
         selectClaimableAmountByAccountKey(state, accountKey),
     );
+
+    const { isClaimingDisabled, claimingMessageContent } = useMessageSystemStaking(symbol);
 
     const handleClaimPress = useCallback(() => {
         if (!symbol) {
@@ -68,7 +72,7 @@ export const StakingManagementReadyToClaimCard = ({
     return (
         <Box style={applyStyle(containerStyle)}>
             <HStack spacing="sp12">
-                <Icon name="checkCircle" size="large" color="iconDefault" />
+                <Icon name="checkCircle" size="large" color="contentPrimary" />
                 <VStack flex={1} spacing="sp12">
                     <Text variant="body-md">
                         <Translation
@@ -78,8 +82,16 @@ export const StakingManagementReadyToClaimCard = ({
                             }}
                         />
                     </Text>
-                    <Button size="medium" isFullWidth onPress={handleClaimPress}>
-                        <Text variant="body-sm-strong" color="textOnPrimary">
+                    {isClaimingDisabled && claimingMessageContent && (
+                        <InlineAlertBox variant="warning" title={claimingMessageContent} />
+                    )}
+                    <Button
+                        size="small"
+                        isFullWidth
+                        onPress={handleClaimPress}
+                        isDisabled={isClaimingDisabled}
+                    >
+                        <Text variant="body-sm-strong" color="contentButtonBrandPrimary">
                             <Translation id="earn.stakingManagementScreen.claim.claimButton" />
                         </Text>
                     </Button>

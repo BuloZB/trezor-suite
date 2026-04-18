@@ -6,22 +6,24 @@ import type {
     AccountUtxo,
     CoinInfo,
     DerivationPath,
+    DiscoveryAccount,
     GetAccountInfo as GetAccountInfoParams,
 } from '@trezor/connect-common';
 import { ERRORS } from '@trezor/connect-common/src/constants';
 import { resolveAfter } from '@trezor/utils/src/resolveAfter';
 
-import { initBlockchain, isBackendSupported } from '../backend/BlockchainLink';
+import { type Blockchain, initBlockchain, isBackendSupported } from '../backend/BlockchainLink';
 import type {
     MethodContext,
     MethodMessage,
     MethodPermission,
     MethodReturnType,
 } from '../core/AbstractMethod';
-import { AbstractMethod, DEFAULT_FIRMWARE_RANGE } from '../core/AbstractMethod';
+import { AbstractMethod } from '../core/AbstractMethod';
 import { getCoinInfo } from '../data/coinInfo';
 import { Discovery } from './common/Discovery';
-import { bundlify, getFirmwareRange, validateParams } from './common/paramsValidator';
+import { bundlify, validateParams } from './common/paramsValidator';
+import { requestExistingAccounts } from './common/requestExistingAccounts';
 import { getAccountLabel, isUtxoBased } from '../utils/accountUtils';
 import { getSerializedPath, validatePath } from '../utils/pathUtils';
 
@@ -99,10 +101,7 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
         this.useDeviceState = willUseDevice;
         this.useUi = willUseDevice;
         this.confirmMissingBackup = !params.every(batch => batch.suppressBackupWarning);
-        this.firmwareRange = params.reduce(
-            (prev, { coinInfo }) => getFirmwareRange(this.name, coinInfo, prev),
-            this.firmwareRange,
-        );
+        this.requiredFirmwareCoins = params.map(({ coinInfo }) => coinInfo);
     }
 
     get requiredPermissions(): MethodPermission[] {
@@ -158,38 +157,6 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
                 view: 'export-account-info' as const,
                 label: `Export info for: ${str.join('')}`,
             };
-        }
-    }
-
-    // override AbstractMethod function
-    // this is a special case where we want to check firmwareRange in bundle
-    // and return error with bundle indexes
-    checkFirmwareRange() {
-        if (this.params.length === 1) {
-            return super.checkFirmwareRange();
-        }
-        // for trusted mode check each batch and return error with invalid bundle indexes
-        // find invalid ranges
-        const invalid = [];
-        for (let i = 0; i < this.params.length; i++) {
-            // set FW range for current batch
-            this.firmwareRange = getFirmwareRange(
-                this.name,
-                this.params[i].coinInfo,
-                DEFAULT_FIRMWARE_RANGE,
-            );
-            const exception = super.checkFirmwareRange();
-            if (exception) {
-                invalid.push({
-                    index: i,
-                    exception,
-                    coin: this.params[i].coin,
-                });
-            }
-        }
-        // return invalid ranges in custom error
-        if (invalid.length > 0) {
-            throw ERRORS.TypedError('Method_Discovery_BundleException', JSON.stringify(invalid));
         }
     }
 
@@ -320,8 +287,51 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
     }
 
     private async discover(request: Request, context: MethodContext) {
-        const { coinInfo, identity, defaultAccountType, derivationType } = request;
+        const { coinInfo, identity } = request;
         const blockchain = await initBlockchain(coinInfo, context.sendCoreMessage, identity);
+
+        // Try to get existing accounts from the host (e.g. Suite) to skip device discovery
+        const existingAccounts = await requestExistingAccounts({
+            postMessage: context.sendCoreMessage,
+            createUiPromise: context.createUiPromise,
+            device: this.getDevice(),
+            coinInfo,
+        });
+
+        if (existingAccounts) {
+            return this.selectExistingAccount(existingAccounts, request, blockchain, context);
+        }
+
+        return this.runDiscovery(request, blockchain, context);
+    }
+
+    private async selectExistingAccount(
+        accounts: DiscoveryAccount[],
+        request: Request,
+        blockchain: Blockchain,
+        context: MethodContext,
+    ) {
+        const { coinInfo, defaultAccountType } = request;
+        const dfd = context.createUiPromise(UI_RESPONSE.RECEIVE_ACCOUNT, this.getDevice());
+
+        context.sendCoreMessage(
+            createUiMessage(UI_REQUEST.SELECT_ACCOUNT, {
+                type: 'complete',
+                accountTypes: [...new Set(accounts.map(a => a.type))],
+                defaultAccountType,
+                coinInfo,
+                accounts,
+            }),
+        );
+
+        const uiResp = await dfd.promise;
+        const account = accounts[uiResp.payload];
+
+        return this.fetchAccountInfo(account, request, blockchain);
+    }
+
+    private async runDiscovery(request: Request, blockchain: Blockchain, context: MethodContext) {
+        const { coinInfo, defaultAccountType, derivationType } = request;
         const dfd = context.createUiPromise(UI_RESPONSE.RECEIVE_ACCOUNT, this.getDevice());
 
         const discovery = new Discovery({
@@ -332,19 +342,27 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
 
         discovery.on('progress', accounts => {
             context.sendCoreMessage(
-                createUiMessage(UI_REQUEST.SELECT_ACCOUNT, {
-                    type: 'progress',
-                    coinInfo,
-                    accounts,
-                }),
+                createUiMessage(
+                    UI_REQUEST.SELECT_ACCOUNT,
+                    {
+                        type: 'progress',
+                        coinInfo,
+                        accounts,
+                    },
+                    dfd.requestId,
+                ),
             );
         });
         discovery.on('complete', () => {
             context.sendCoreMessage(
-                createUiMessage(UI_REQUEST.SELECT_ACCOUNT, {
-                    type: 'end',
-                    coinInfo,
-                }),
+                createUiMessage(
+                    UI_REQUEST.SELECT_ACCOUNT,
+                    {
+                        type: 'end',
+                        coinInfo,
+                    },
+                    dfd.requestId,
+                ),
             );
         });
         // catch error from discovery process
@@ -355,12 +373,16 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
         // set select account view
         // this view will be updated from discovery events
         context.sendCoreMessage(
-            createUiMessage(UI_REQUEST.SELECT_ACCOUNT, {
-                type: 'start',
-                accountTypes: discovery.types.map(t => t.type),
-                defaultAccountType,
-                coinInfo,
-            }),
+            createUiMessage(
+                UI_REQUEST.SELECT_ACCOUNT,
+                {
+                    type: 'start',
+                    accountTypes: discovery.types.map(t => t.type),
+                    defaultAccountType,
+                    coinInfo,
+                },
+                dfd.requestId,
+            ),
         );
 
         // wait for user action
@@ -372,6 +394,16 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
         if (!discovery.completed) {
             await resolveAfter(501); // temporary solution, TODO: immediately resolve will cause "device call in progress"
         }
+
+        return this.fetchAccountInfo(account, request, blockchain);
+    }
+
+    private async fetchAccountInfo(
+        account: DiscoveryAccount,
+        request: Request,
+        blockchain: Blockchain,
+    ) {
+        const { coinInfo } = request;
 
         // get account info from backend
         const info = await blockchain.getAccountInfo({

@@ -8,7 +8,11 @@ const require = createRequire(import.meta.url);
 
 const main: StorybookConfig = {
     stories: ['../../**/stories/**/*.stories.?(ts|tsx|js|jsx)'],
-    staticDirs: ['../../../suite-common/icons/iconFontsMobile', '../../../packages/theme/fonts'],
+    staticDirs: [
+        '../../../suite-common/icons/iconFontsMobile',
+        '../../../packages/theme/fonts',
+        '../web/static/js',
+    ],
     framework: {
         name: '@storybook/react-native-web-vite',
         options: {
@@ -49,16 +53,12 @@ const main: StorybookConfig = {
                         require.resolve('@formatjs/intl-listformat/polyfill.js'),
                 },
             },
-            optimizeDeps: {
-                esbuildOptions: {
-                    // process.version is accessed by readable-stream (bundled inside browserify-sign →
-                    // crypto-browserify) during dep pre-bundling, before the vite-plugin-node-polyfills
-                    // process shim is applied. Without this define, process.version is undefined and
-                    // readable-stream v2 throws "Cannot read properties of undefined (reading 'slice')".
-                    define: {
-                        'process.version': '"v18.0.0"',
-                    },
-                },
+            // process.version is accessed by readable-stream (bundled inside browserify-sign →
+            // crypto-browserify) during dep pre-bundling, before the vite-plugin-node-polyfills
+            // process shim is applied. Without this define, process.version is undefined and
+            // readable-stream v2 throws "Cannot read properties of undefined (reading 'slice')".
+            define: {
+                'process.version': '"v18.0.0"',
             },
             plugins: [nodePolyfills()],
         };

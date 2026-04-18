@@ -1,19 +1,25 @@
 import { RoundedIcon } from '@suite-native/atoms';
 
 export type FiatCurrencyIconProps = {
-    size: 'small' | 'medium';
+    size: 'extraSmall' | 'small' | 'medium';
 };
 
+const fiatIconSizes = {
+    extraSmall: 16,
+    small: 32,
+    medium: 48,
+} as const;
+
 export const FiatCurrencyIcon = ({ size }: FiatCurrencyIconProps) => {
-    const containerSize = size === 'small' ? 24 : 32;
+    const containerSize = fiatIconSizes[size];
 
     return (
         <RoundedIcon
             name="coin"
-            color="iconSubdued"
+            color="contentSecondary"
             iconSize={size}
             containerSize={containerSize}
-            backgroundColor="backgroundSurfaceElevation0"
+            backgroundColor="surfaceFillPage"
         />
     );
 };

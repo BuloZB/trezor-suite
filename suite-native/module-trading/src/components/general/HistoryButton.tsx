@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux';
 
 import { useNavigation } from '@react-navigation/native';
 
-import { AnimatedBox, HStack, Text } from '@suite-native/atoms';
+import { AnimatedBox, HStack, Text, buttonSizeToDimensionsMap } from '@suite-native/atoms';
 import { Icon } from '@suite-native/icons';
 import { Translation } from '@suite-native/intl';
 import {
@@ -32,13 +32,10 @@ export type NavigationProps = StackToStackCompositeNavigationProps<
 const TRADE_HISTORY_BUTTON_TEST_ID = '@trading/history/button';
 
 const buttonStyle = prepareNativeStyle(utils => ({
-    backgroundColor: utils.colors.backgroundSurfaceElevationNegative,
-    borderColor: utils.colors.borderOnElevationNegative,
+    ...buttonSizeToDimensionsMap.large,
+    backgroundColor: utils.colors.surfaceFillSunken,
+    borderColor: utils.colors.borderNeutral,
     borderWidth: utils.borders.widths.small,
-    borderRadius: utils.borders.radii.round,
-    paddingHorizontal: utils.spacings.sp16,
-    paddingVertical: utils.spacings.sp8,
-    minHeight: 56,
     justifyContent: 'space-between',
     alignItems: 'center',
 }));
@@ -57,10 +54,10 @@ const HistoryButtonMemoized = memo(({ isFormMountedRecently }: HistoryButtonProp
         >
             <Pressable onPress={handleOnPress} testID={TRADE_HISTORY_BUTTON_TEST_ID}>
                 <HStack style={applyStyle(buttonStyle)}>
-                    <Text variant="body-md" color="textSubdued">
+                    <Text variant="body-md" color="contentSecondary">
                         <Translation id="moduleTrading.tradeHistory.button.title" />
                     </Text>
-                    <Icon name="caretCircleRight" color="iconSubdued" />
+                    <Icon name="caretCircleRight" color="contentSecondary" />
                 </HStack>
             </Pressable>
         </AnimatedBox>

@@ -1,8 +1,16 @@
+import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 
+import { getEthereumStakingAddressByType } from '@suite-common/staking';
 import { getNetworkDisplaySymbol } from '@suite-common/wallet-config';
+import { type AccountsRootState, selectAccountByKey } from '@suite-common/wallet-core';
+import {
+    asAmountSubunit,
+    getStakingLimitsByNetworkSymbol,
+    subunitsToUnits,
+} from '@suite-common/wallet-utils';
 import { AccountDetailsCard } from '@suite-native/accounts';
 import { Box, Button, InlineAlertBox, Text, VStack } from '@suite-native/atoms';
 import { Translation } from '@suite-native/intl';
@@ -14,10 +22,16 @@ import {
     type StackNavigationProps,
 } from '@suite-native/navigation';
 import {
+    CLAIM_CALLDATA,
     type NativeStakingRootState,
     selectCanClaimByAccountKey,
     selectClaimableAmountByAccountKey,
 } from '@suite-native/staking';
+import { FeeSelector } from '@suite-native/transaction-management';
+import { BigNumber } from '@trezor/utils';
+
+import { useComposeEarnFees } from '../hooks/useComposeEarnFees';
+import { buildEarnComposeFormState } from '../utils';
 
 export const ClaimReviewScreen = () => {
     const route = useRoute<RouteProp<RootStackParamList, RootStackRoutes.ClaimReview>>();
@@ -32,6 +46,34 @@ export const ClaimReviewScreen = () => {
     const claimableAmount = useSelector((state: NativeStakingRootState) =>
         selectClaimableAmountByAccountKey(state, accountKey),
     );
+    const availableBalance = useSelector(
+        (state: AccountsRootState) =>
+            selectAccountByKey(state, accountKey)?.availableBalance ?? '0',
+    );
+
+    const feeBuffer = getStakingLimitsByNetworkSymbol(symbol)?.MIN_BALANCE_FOR_FEE_BUFFER;
+    const isInsufficientFeeBalance =
+        !!feeBuffer &&
+        subunitsToUnits({
+            value: asAmountSubunit(new BigNumber(availableBalance)),
+            symbol,
+        }).lt(feeBuffer);
+
+    const claimFormState = useMemo(
+        () =>
+            buildEarnComposeFormState(
+                getEthereumStakingAddressByType(symbol, 'claim'),
+                '0',
+                CLAIM_CALLDATA,
+            ),
+        [symbol],
+    );
+
+    const { formDraft, formDraftKey, updateFeeLevelThunk } = useComposeEarnFees({
+        accountKey,
+        formState: claimFormState,
+        formDraftPrefix: 'claim',
+    });
 
     const handleReviewAndSign = () => {
         navigation.navigate(RootStackRoutes.ClaimTransactionDataReview, { accountKey });
@@ -54,7 +96,7 @@ export const ClaimReviewScreen = () => {
             }
             footer={
                 <Box paddingHorizontal="sp16" paddingBottom="sp16">
-                    <Button onPress={handleReviewAndSign}>
+                    <Button onPress={handleReviewAndSign} isDisabled={isInsufficientFeeBalance}>
                         <Translation id="earn.claimReviewScreen.reviewAndSignButton" />
                     </Button>
                 </Box>
@@ -67,7 +109,19 @@ export const ClaimReviewScreen = () => {
                     titleLabel={<Translation id="earn.claimReviewScreen.amountLabel" />}
                     cryptoAmount={claimableAmount}
                 />
-                {canClaimInstantly && (
+                {isInsufficientFeeBalance && (
+                    <InlineAlertBox
+                        variant="critical"
+                        iconName="warningCircle"
+                        title={
+                            <Translation
+                                id="transactionManagement.precomposedTransaction.errors.amountNotEnoughCurrencyFee"
+                                values={{ networkDisplaySymbol: displaySymbol }}
+                            />
+                        }
+                    />
+                )}
+                {canClaimInstantly && !isInsufficientFeeBalance && (
                     <InlineAlertBox
                         variant="success"
                         title={
@@ -78,6 +132,14 @@ export const ClaimReviewScreen = () => {
                         }
                     />
                 )}
+                <FeeSelector
+                    accountKey={accountKey}
+                    updateThunk={updateFeeLevelThunk}
+                    selectedFee={formDraft?.selectedFee ?? 'normal'}
+                    selectedFeePerUnit={formDraft?.feePerUnit}
+                    formDraft={formDraft}
+                    formDraftKey={formDraftKey}
+                />
             </VStack>
         </Screen>
     );

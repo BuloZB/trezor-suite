@@ -1,7 +1,7 @@
 {
     "name": "@trezor/protobuf",
     "version": "10.0.0-alpha.1",
-    "license": "See LICENSE.md in repo root",
+    "license": "MIT",
     "repository": {
         "type": "git",
         "url": "git://github.com/trezor/trezor-suite.git"
@@ -16,23 +16,35 @@
         "types": "./lib/index.d.ts",
         "exports": {
             ".": {
-                "import": "./libESM/index.mjs",
-                "require": "./lib/index.js",
-                "types": "./lib/index.d.ts"
+                "import": {
+                    "types": "./libESM/index.d.mts",
+                    "default": "./libESM/index.mjs"
+                },
+                "require": {
+                    "types": "./lib/index.d.ts",
+                    "default": "./lib/index.js"
+                }
             },
-            "./lib/*": "./lib/*.js",
+            "./lib/*": {
+                "types": "./lib/*.d.ts",
+                "default": "./lib/*.js"
+            },
             "./libESM/*": "./libESM/*",
+            "./lib/definitions": {
+                "types": "./lib/definitions/index.d.ts",
+                "default": "./lib/definitions/index.js"
+            },
+            "./libESM/definitions": {
+                "types": "./libESM/definitions/index.d.mts",
+                "default": "./libESM/definitions/index.mjs"
+            },
             "./messages.json": "./messages.json"
         }
     },
-    "npmPublishAccess": "public",
     "files": [
         "lib/",
         "libESM/",
         "CHANGELOG.md",
-        "scripts/protobuf-build.sh",
-        "scripts/protobuf-patches",
-        "scripts/protobuf-types.js",
         "messages.json"
     ],
     "scripts": {
