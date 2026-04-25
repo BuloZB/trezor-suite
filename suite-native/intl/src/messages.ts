@@ -2025,6 +2025,14 @@ export const messages = {
                 vault: 'Vault',
                 apy: 'Annual percentage yield',
                 supplied: 'Supplied',
+                supplyMore: 'Supply more',
+                withdraw: 'Withdraw',
+                apyBreakdown: {
+                    apyLabel: '{apy} APY',
+                    autoCompounded: 'Automatically added and compounded.',
+                    manualCompound: 'Manually claim and deposit to compound.',
+                    footer: 'APY may change over time.',
+                },
             },
         },
         emptyState: {
@@ -2069,6 +2077,7 @@ export const messages = {
             warningDustAmount:
                 'This transaction contains dust amounts, which can be used in scams.',
             warningZeroAmount: 'This transaction has a zero amount and may be suspicious.',
+            warningTrc10Transfer: 'This transaction is a TRC10 transfer and may be suspicious.',
             markedAsRecognized: 'You’ve confirmed this transaction is safe.',
             hideTransaction: 'Mark as suspicious',
             unhideTransaction: 'Mark as safe',
@@ -2535,6 +2544,14 @@ export const messages = {
     earn: {
         staking: 'Staking',
         stablecoinYield: 'Stablecoin yield',
+        portfolioTracker: {
+            alert: {
+                title: 'Staking is disabled in the portfolio tracker',
+                description:
+                    'Connect your device to enable full functionality or use our desktop app.',
+                copyLabel: 'Tap to copy',
+            },
+        },
         instantStakeBanner: {
             stakedTitle: '{amount} {displaySymbol} staked instantly',
             unstakedTitle: '{amount} {displaySymbol} unstaked instantly',
@@ -2559,6 +2576,12 @@ export const messages = {
             stakeMoreButton: 'Stake more',
             stakingHistory: 'Staking history',
             pendingActions: 'Pending actions',
+            instantUnstakeBanner: {
+                title: '{amount} {symbol} unstaked instantly',
+                descriptionWithDays:
+                    "You've received {amount} {symbol} instantly. The remaining is paid out within {days, plural, one {# day} other {# days}}.",
+                descriptionWithoutDays: "You've received {amount} {symbol} instantly.",
+            },
             claim: {
                 readyToClaim: '{amount} unstaked, ready to be claimed',
                 claimButton: 'Claim',
@@ -2687,6 +2710,14 @@ export const messages = {
                 tooManyDecimals: 'Too many decimals.',
             },
         },
+        unstakeFlowScreen: {
+            instantlyAvailable: {
+                label: 'Instantly available (est.)',
+                infoTitle: 'Instantly available (estimate)',
+                infoDescription:
+                    'The liquidity of the staking pool can allow for instant unstake of some funds. The remaining funds will follow the unstaking period.',
+            },
+        },
         earnScreen: {
             title: 'Earn',
             otherOpportunities: 'Other opportunities',
@@ -2754,7 +2785,7 @@ export const messages = {
                 },
                 third: {
                     title: 'Receive weekly rewards',
-                    description: '{apy}% yearly',
+                    description: '~{apy}% yearly',
                 },
             },
             unstakeTimelineTitle: 'Unstake',
@@ -2797,7 +2828,7 @@ export const messages = {
         },
         notAvailable: 'Not available',
         apyNotAvailable: 'APY not available',
-        apyPercentage: '{apy}% APY',
+        apyPercentage: '~{apy}% APY',
         notAvailableShort: 'N/A',
         stakePendingCard: {
             totalStakePending: 'Total stake pending',
@@ -3055,6 +3086,8 @@ export const messages = {
             for: 'For',
             approvalDetailsTitle: 'Approval details',
             limitLabel: 'Limit',
+            currentLimitLabel: 'Current limit',
+            newLimitLabel: 'New limit',
             unlimitedLabel: 'Unlimited',
             limitInfo:
                 'Skip future approvals and pay less fees. {companyName} will gain full access to your {symbol}.',
@@ -3485,6 +3518,17 @@ export const messages = {
                 networkTestnet: 'Transaction is on testnet network',
                 signingWithLabel: 'Signing with',
                 contractLabel: 'Token address',
+                approveLabel: 'Approve',
+                revokeLabel: 'Revoke',
+                tokenApprovalLabel: 'Token approval',
+                tokenRevocationLabel: 'Token revocation',
+                tokenApprovalDescription: 'Review details to approve token spending.',
+                tokenRevocationDescription: 'Review details to revoke token approval.',
+                approveToLabel: 'Approve to',
+                revokeApprovalFromLabel: 'Revoke approval from',
+                amountAllowanceLabel: 'Amount allowance',
+                chainLabel: 'Chain',
+                tokenLabel: 'Token',
                 feeLimitLabel: 'Fee Limit',
                 feeLimitSummaryLabel: 'Summary',
                 summary: {

@@ -1,4 +1,4 @@
-import { type YieldDto } from '@suite-common/earn-api';
+import { type YieldDto } from '@suite-common/earn-stablecoin-api';
 import { type NetworkSymbol } from '@suite-common/wallet-config';
 import { type Account, type TokenInfoBranded, type TokenSymbol } from '@suite-common/wallet-types';
 
@@ -9,6 +9,7 @@ export type YieldAccountOpportunity = {
     vault: YieldDto;
     matchedInputToken: TokenInfoBranded | undefined;
     hasVaultPosition: boolean;
+    hasRewardsData: boolean;
     suppliedAmount: string;
     additionalSupplyAmount: string;
     suppliedSymbol: TokenSymbol;
@@ -25,6 +26,7 @@ export type YieldOpportunityData = Pick<
     YieldAccountOpportunity,
     | 'matchedInputToken'
     | 'hasVaultPosition'
+    | 'hasRewardsData'
     | 'suppliedAmount'
     | 'additionalSupplyAmount'
     | 'suppliedSymbol'

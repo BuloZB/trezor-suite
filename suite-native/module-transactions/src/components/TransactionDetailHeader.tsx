@@ -58,24 +58,17 @@ export const TransactionDetailHeader = ({
         <DiscreetTextTrigger>
             <Box alignItems="center">
                 <VStack spacing="sp16" alignItems="center" justifyContent="center">
-                    <TransactionIcon
-                        transactionType={txType}
-                        isAnimated={isPendingTx}
-                        containerSize={56}
-                        iconSize="extraLarge"
-                        backgroundColor="surfaceFillRaised"
-                    />
+                    <TransactionIcon transactionType={txType} isAnimated={isPendingTx} size={48} />
 
                     {isPendingTx ? (
                         <Badge
-                            variant="yellow"
+                            intent="warning"
                             label={<Translation id="transactions.status.pending" />}
-                            elevation="1"
                         />
                     ) : (
                         !isFailedTx && (
                             <Badge
-                                variant="green"
+                                intent="brand"
                                 label={<Translation id="transactions.status.confirmed" />}
                             />
                         )

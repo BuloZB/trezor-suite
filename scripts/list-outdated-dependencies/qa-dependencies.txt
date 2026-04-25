@@ -1,5 +1,7 @@
 @anthropic-ai/sdk
+@anthropic-ai/claude-code
 @currents/cmd
+@currents/mcp
 @currents/playwright
 @jest/globals
 @jest/reporters
@@ -14,7 +16,6 @@
 @types/xml2js
 @walletconnect/sign-client
 babel-jest
-chai
 detox
 dotenv
 eslint-plugin-playwright

@@ -1,16 +1,18 @@
 import { useMemo } from 'react';
 
-import { type TokenDto, type YieldDto } from '@suite-common/earn-api';
+import { type TokenDto, type YieldDto } from '@suite-common/earn-stablecoin-api';
 import {
     NORMAL_ACCOUNT_TYPE,
     type NetworkSymbol,
     getNetworkByYieldXyzId,
 } from '@suite-common/wallet-config';
+import { selectDeviceSupportedNetworks } from '@suite-common/wallet-core';
 import { type Account, type TokenInfoBranded, toTokenSymbol } from '@suite-common/wallet-types';
 import { getContractAddressForNetworkSymbol } from '@suite-common/wallet-utils';
 import { BigNumber } from '@trezor/utils';
 
 import { getApyPercent } from 'src/components/earn/utils/earnApyUtils';
+import { useSelector } from 'src/hooks/suite';
 
 import {
     compareYieldRowsByAvailableBalanceDesc,
@@ -155,7 +157,7 @@ const getYieldOpportunityData = ({
     account: Account;
     networkSymbol: NetworkSymbol;
     vault: YieldDto;
-}) => {
+}): YieldOpportunityData => {
     const matchedInputToken = getMatchedAccountToken({
         account,
         networkSymbol,
@@ -167,31 +169,34 @@ const getYieldOpportunityData = ({
         token: vault.outputToken,
     });
     const hasVaultPosition = new BigNumber(matchedOutputToken?.balance ?? '0').gt(0);
+    const suppliedAmount = getConvertedOutputTokenBalanceToInputTokenAmount({
+        matchedOutputToken,
+        networkSymbol,
+        vault,
+    });
+    const additionalSupplyAmount = matchedInputToken?.balance ?? '0';
+    const hasRewardsData =
+        new BigNumber(suppliedAmount).gt(0) || new BigNumber(additionalSupplyAmount).gt(0);
 
     return {
         matchedInputToken,
         hasVaultPosition,
-        suppliedAmount: getConvertedOutputTokenBalanceToInputTokenAmount({
-            matchedOutputToken,
-            networkSymbol,
-            vault,
-        }),
-        additionalSupplyAmount: matchedInputToken?.balance ?? '0',
+        hasRewardsData,
+        suppliedAmount,
+        additionalSupplyAmount,
         suppliedSymbol: matchedInputToken?.symbol ?? toTokenSymbol(vault.token.symbol),
         suppliedContractAddress: matchedInputToken?.contract ?? vault.token.address ?? null,
-    } satisfies YieldOpportunityData;
+    };
 };
 
 type UseYieldTableDataProps = {
     availableVaults: YieldDto[];
-    deviceSupportedNetworkSymbols: NetworkSymbol[];
     visibleAccounts: Account[];
     visibleAccountSymbols: Set<NetworkSymbol>;
 };
 
 export const useYieldTableData = ({
     availableVaults,
-    deviceSupportedNetworkSymbols,
     visibleAccounts,
     visibleAccountSymbols,
 }: UseYieldTableDataProps) => {
@@ -253,6 +258,7 @@ export const useYieldTableData = ({
         ];
     }, [availableVaults, visibleAccounts, visibleAccountSymbols]);
 
+    const deviceSupportedNetworkSymbols = useSelector(selectDeviceSupportedNetworks);
     const yieldInactiveVaultOpportunities = useMemo<YieldInactiveVaultOpportunity[]>(() => {
         const opportunities = availableVaults.flatMap(vault => {
             const network = getNetworkByYieldXyzId(vault.network);
@@ -286,8 +292,14 @@ export const useYieldTableData = ({
         [yieldAccountOpportunities],
     );
 
+    const hasAnyRewardsData = useMemo(
+        () => yieldAccountOpportunities.some(opportunity => opportunity.hasRewardsData),
+        [yieldAccountOpportunities],
+    );
+
     return {
         isYieldActive,
+        hasAnyRewardsData,
         yieldAccountOpportunities,
         yieldInactiveVaultOpportunities,
     };

@@ -1498,6 +1498,11 @@ export const messages = defineMessages({
         description: 'Text that appears after backup is finished',
         id: 'TR_BACKUP_FINISHED_TEXT',
     },
+    TR_BACKUP_FINISHED_TEXT_NFC: {
+        defaultMessage:
+            'Make sure to store your backup tags in a secure, private place. No one can recover your funds if you lose your wallet backup - not even Trezor Support.',
+        id: 'TR_BACKUP_FINISHED_TEXT_NFC',
+    },
     TR_BACKUP_RECOVERY_SEED: {
         defaultMessage: 'Wallet backup',
         id: 'TR_BACKUP_RECOVERY_SEED',
@@ -1757,6 +1762,28 @@ export const messages = defineMessages({
     TR_HIDDEN: {
         defaultMessage: 'Hidden',
         id: 'TR_HIDDEN',
+    },
+    TR_DEFI: {
+        defaultMessage: 'DeFi',
+        id: 'TR_DEFI',
+    },
+    TR_DEFI_BANNER_TEXT: {
+        id: 'TR_DEFI_BANNER_TEXT',
+        defaultMessage:
+            'These tokens represent your DeFi positions. Sending or swapping them will transfer ownership of those positions.',
+    },
+    TR_DEFI_YIELD_TOKEN_BANNER_TITLE: {
+        id: 'TR_DEFI_YIELD_TOKEN_BANNER_TITLE',
+        defaultMessage: '{token} represents your position in a vault.',
+    },
+    TR_DEFI_YIELD_TOKEN_BANNER_DESCRIPTION: {
+        id: 'TR_DEFI_YIELD_TOKEN_BANNER_DESCRIPTION',
+        defaultMessage:
+            'If you transfer this token elsewhere, you will move your entire position and stop future rewards.',
+    },
+    TR_DEFI_NO_VAULT_TOOLTIP: {
+        id: 'TR_DEFI_NO_VAULT_TOOLTIP',
+        defaultMessage: 'No vault found',
     },
     TR_CONFIRM: {
         defaultMessage: 'Confirm',
@@ -5593,6 +5620,69 @@ export const messages = defineMessages({
         defaultMessage:
             'The last wallet backup attempt on this device failed. You can only back up your wallet once.',
     },
+    TR_NFC_BACKUP_HEADING: {
+        id: 'TR_NFC_BACKUP_HEADING',
+        defaultMessage: 'NFC backup',
+    },
+    TR_NFC_BACKUP_RESILIENCE: {
+        id: 'TR_NFC_BACKUP_RESILIENCE',
+        defaultMessage: 'You can recover your wallet even if one backup tag is lost or damaged.',
+    },
+    TR_NFC_BACKUP_THRESHOLD_DESCRIPTION: {
+        id: 'TR_NFC_BACKUP_THRESHOLD_DESCRIPTION',
+        defaultMessage:
+            "Any 2 of the 3 backup tags can recover your wallet. It doesn't matter which tags you use.",
+    },
+    TR_NFC_BACKUP_CONTINUE_WITH_NFC: {
+        id: 'TR_NFC_BACKUP_CONTINUE_WITH_NFC',
+        defaultMessage: 'Continue with NFC backup',
+    },
+    TR_NFC_BACKUP_CHOOSE_DIFFERENT_TYPE: {
+        id: 'TR_NFC_BACKUP_CHOOSE_DIFFERENT_TYPE',
+        defaultMessage: 'Choose different backup type',
+    },
+    TR_NFC_BACKUP_THREE_TAGS: {
+        id: 'TR_NFC_BACKUP_THREE_TAGS',
+        defaultMessage: 'Your wallet backup consists of 3 Trezor wallet backup tags.',
+    },
+    TR_NFC_BACKUP_THREE_TAGS_DESCRIPTION: {
+        id: 'TR_NFC_BACKUP_THREE_TAGS_DESCRIPTION',
+        defaultMessage: 'Each tag stores 1 of the 3 unique shares of your wallet backup.',
+    },
+    TR_NFC_BACKUP_NO_TAGS_HEADING: {
+        id: 'TR_NFC_BACKUP_NO_TAGS_HEADING',
+        defaultMessage: "Don't have NFC tags?",
+    },
+    TR_NFC_BACKUP_NO_TAGS_DESCRIPTION: {
+        id: 'TR_NFC_BACKUP_NO_TAGS_DESCRIPTION',
+        defaultMessage: 'You can finish setup now and create your wallet backup later.',
+    },
+    TR_NFC_BACKUP_FINISH_AND_ORDER_HEADING: {
+        id: 'TR_NFC_BACKUP_FINISH_AND_ORDER_HEADING',
+        defaultMessage: 'Finish setup and order NFC tags',
+    },
+    TR_NFC_BACKUP_FINISH_AND_ORDER_DESCRIPTION: {
+        id: 'TR_NFC_BACKUP_FINISH_AND_ORDER_DESCRIPTION',
+        defaultMessage:
+            'Finish setting up your device. Then you will be redirected to the Trezor Store to order NFC tags. Create your wallet backup once they arrive.',
+    },
+    TR_NFC_BACKUP_ALTERNATIVE_BADGE: {
+        id: 'TR_NFC_BACKUP_ALTERNATIVE_BADGE',
+        defaultMessage: 'Alternative',
+    },
+    TR_NFC_BACKUP_WORDLIST_HEADING: {
+        id: 'TR_NFC_BACKUP_WORDLIST_HEADING',
+        defaultMessage: 'Create wordlist backup',
+    },
+    TR_NFC_BACKUP_WORDLIST_DESCRIPTION: {
+        id: 'TR_NFC_BACKUP_WORDLIST_DESCRIPTION',
+        defaultMessage:
+            'Write down one or more 20-word wordlists (shares) on paper or metal. You can upgrade to NFC backup later.',
+    },
+    TR_NFC_BACKUP_WORDLIST_CTA: {
+        id: 'TR_NFC_BACKUP_WORDLIST_CTA',
+        defaultMessage: 'Create wordlist backup',
+    },
     DISCONNECT_DEVICE_DESCRIPTION: {
         id: 'DISCONNECT_DEVICE_DESCRIPTION',
         defaultMessage: 'Your Trezor was wiped and no longer holds any private keys.',
@@ -6381,6 +6471,33 @@ export const messages = defineMessages({
     TR_LABELING_SERVERS_CHANGE: {
         defaultMessage: 'Change server',
         id: 'TR_LABELING_SERVERS_CHANGE',
+    },
+    TR_LEGACY_LABELING_TURN_ON_SUITE_SYNC_BANNER_DESCRIPTION: {
+        defaultMessage:
+            'Keep your wallet, account, and transaction labels consistent on all your devices.',
+        id: 'TR_LEGACY_LABELING_TURN_ON_SUITE_SYNC_BANNER_DESCRIPTION',
+    },
+    TR_LABELING_MIGRATION_TITLE: {
+        defaultMessage: 'Migrate legacy labels to Suite Sync',
+        id: 'TR_LABELING_MIGRATION_TITLE',
+    },
+    TR_LABELING_MIGRATION_DESCRIPTION: {
+        defaultMessage:
+            'Select a legacy labeling provider and import labels from selected wallet. Existing Suite Sync labels will stay unchanged.',
+        id: 'TR_LABELING_MIGRATION_DESCRIPTION',
+    },
+    TR_LABELING_MIGRATION_MODAL_HEADING: {
+        defaultMessage: 'Migrate legacy labels',
+        id: 'TR_LABELING_MIGRATION_MODAL_HEADING',
+    },
+    TR_LABELING_MIGRATION_MODAL_DESCRIPTION: {
+        defaultMessage:
+            'Choose where your legacy labels are stored. Only missing labels will be copied to Suite Sync.',
+        id: 'TR_LABELING_MIGRATION_MODAL_DESCRIPTION',
+    },
+    TR_LABELING_MIGRATION_SUCCESS: {
+        defaultMessage: '{added} labels migrated successfully, {skipped} skipped',
+        id: 'TR_LABELING_MIGRATION_SUCCESS',
     },
     TR_TO_MAKE_YOUR_LABELS_PERSISTENT: {
         defaultMessage:
@@ -8133,6 +8250,14 @@ export const messages = defineMessages({
         id: 'TR_EARN_YOUR_UNSTAKED_FUNDS',
         defaultMessage: 'Your unstaked {networkDisplaySymbol} is ready',
     },
+    TR_EARN_CLAIM_REWARDS_LABEL: {
+        id: 'TR_EARN_CLAIM_REWARDS_LABEL',
+        defaultMessage: 'Available rewards',
+    },
+    TR_EARN_CLAIM_REWARDS_BUTTON: {
+        id: 'TR_EARN_CLAIM_REWARDS_BUTTON',
+        defaultMessage: 'Claim',
+    },
     TR_RECEIVING_SYMBOL: {
         id: 'TR_RECEIVING_SYMBOL',
         defaultMessage:
@@ -8650,6 +8775,10 @@ export const messages = defineMessages({
         id: 'TR_LOADING_ACCOUNTS_DESCRIPTION',
         defaultMessage: 'You can change your selected assets once your accounts are loaded.',
     },
+    TR_MIGRATE: {
+        defaultMessage: 'Migrate',
+        id: 'TR_MIGRATE',
+    },
     TR_LOADING_FACT_TITLE: {
         id: 'TR_LOADING_FACT_TITLE',
         defaultMessage: 'Did you know?',
@@ -9014,6 +9143,11 @@ export const messages = defineMessages({
         id: 'TR_PHISHING_BANNER_ZERO_AMOUNT',
         defaultMessage:
             'Proceed with caution. This transaction has a zero amount and may be suspicious. <a>Learn more</a>',
+    },
+    TR_PHISHING_BANNER_TRC10_TRANSFER: {
+        id: 'TR_PHISHING_BANNER_TRC10_TRANSFER',
+        defaultMessage:
+            'Proceed with caution. This transaction is a TRC10 transfer and may be suspicious. <a>Learn more</a>',
     },
     TR_HIDE_TRANSACTION: {
         id: 'TR_HIDE_TRANSACTION',

@@ -1,4 +1,3 @@
-tiny-secp256k1
 @arethetypeswrong/cli
 @blockaid/client
 @bufbuild/buf
@@ -21,7 +20,6 @@ tiny-secp256k1
 @types/jws
 @types/lodash
 @types/node
-@types/node-fetch
 @types/semver
 @types/sharedworker
 @types/w3c-web-usb

@@ -10,7 +10,7 @@
         "lint:js": "yarn g:eslint '**/*.{ts,tsx,js}'",
         "lint:js:fix": "yarn lint:js --fix",
         "type-check": "yarn g:tsc --build",
-        "test:unit": "yarn g:jest",
+        "test:unit": "yarn g:jest:native",
         "test:unit:watch": "yarn g:jest --watch"
     },
     "dependencies": {
@@ -38,9 +38,12 @@
         "react-redux": "9.2.0"
     },
     "devDependencies": {
+        "@suite-common/test-utils": "workspace:*",
         "@suite-native/test-utils": "workspace:*",
+        "@suite-native/test-utils-store": "workspace:*",
         "@suite-native/trading-fixtures": "workspace:*",
         "@suite-native/trading-types": "workspace:*",
+        "@suite-native/transaction-management": "workspace:*",
         "@types/invity-api": "^1.1.15"
     }
 }

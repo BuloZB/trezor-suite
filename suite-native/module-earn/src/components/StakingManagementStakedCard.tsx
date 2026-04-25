@@ -20,8 +20,8 @@ import {
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 import { BigNumber } from '@trezor/utils';
 
-import { CRYPTO_BALANCE_DECIMALS } from '../constants';
 import { ApyValue } from './ApyValue';
+import { useEarnPortfolioTrackerGuard } from './EarnPortfolioTrackerGuard';
 import { useMessageSystemStaking } from '../hooks/useMessageSystemStaking';
 
 type StakingManagementStakedCardProps = {
@@ -47,9 +47,16 @@ export const StakingManagementStakedCard = ({
     networkSymbol,
 }: StakingManagementStakedCardProps) => {
     const { applyStyle } = useNativeStyles();
+    const { isPortfolioTrackerDevice, openPortfolioTrackerSheet } = useEarnPortfolioTrackerGuard();
     const navigation = useNavigation<NavigationProp>();
 
     const handleStake = () => {
+        if (isPortfolioTrackerDevice) {
+            openPortfolioTrackerSheet();
+
+            return;
+        }
+
         navigation.navigate(RootStackRoutes.HowStakeWorksScreen, {
             accountKey,
             symbol: networkSymbol,
@@ -57,6 +64,12 @@ export const StakingManagementStakedCard = ({
     };
 
     const handleUnstake = () => {
+        if (isPortfolioTrackerDevice) {
+            openPortfolioTrackerSheet();
+
+            return;
+        }
+
         navigation.navigate(RootStackRoutes.UnstakeFlow, { accountKey });
     };
 
@@ -84,7 +97,6 @@ export const StakingManagementStakedCard = ({
                 <CryptoAmountFormatter
                     value={stakedBalance}
                     symbol={networkSymbol}
-                    decimals={CRYPTO_BALANCE_DECIMALS}
                     variant="headline-sm"
                     color="contentPrimary"
                 />
@@ -102,14 +114,13 @@ export const StakingManagementStakedCard = ({
                     </Text>
                     <Badge
                         label={<Translation id="earn.stakingManagementScreen.autoRestakedBadge" />}
-                        variant="greenSubtle"
+                        intent="brand"
                         size="small"
                     />
                 </HStack>
                 <CryptoAmountFormatter
                     value={rewardsBalance}
                     symbol={networkSymbol}
-                    decimals={CRYPTO_BALANCE_DECIMALS}
                     variant="headline-sm"
                     color="contentPrimary"
                 />

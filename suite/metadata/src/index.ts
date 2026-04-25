@@ -8,8 +8,10 @@ export * as metadataLabelingConstants from './metadataLabelingConstants';
 export * as METADATA from './metadataConstants';
 export { moveLabelsForRbfOldMetadataThunk } from './moveLabelsForRbfOldMetadataThunk';
 export { MetadataProviderModal } from './MetadataProviderModal';
+export { MetadataProviderSelectionModal } from './MetadataProviderSelectionModal';
 export { metadataMiddleware } from './metadataMiddleware';
 export * from './fromLegacyMetadataToSearchLabels';
+export * from './selectIsLegacyLabelingVisible';
 
 // used in e2e tests
 export * from './metadataUtils';

@@ -4,13 +4,7 @@ import { tradingExchangeActions, tradingSettingsActions } from '@suite-common/tr
 import { type AccountKey } from '@suite-common/wallet-types';
 import { events } from '@suite-native/analytics';
 import { useAnalytics } from '@suite-native/services';
-import {
-    type PreloadedState,
-    type TestStore,
-    act,
-    initStore,
-    renderHookWithStoreProvider,
-} from '@suite-native/test-utils';
+import { type TestStore, act, renderHookWithStoreProvider } from '@suite-native/test-utils-store';
 import {
     btcAsset,
     getBtcAccount,
@@ -21,6 +15,7 @@ import {
 } from '@suite-native/trading-fixtures';
 import { type ExchangeFormType } from '@suite-native/trading-types';
 
+import { createTradingLightStore } from '../../../__tests__/tradingTestUtils';
 import { useExchangeForm } from '../useExchangeForm';
 import { useExchangeSelectQuote } from '../useExchangeSelectQuote';
 
@@ -82,25 +77,28 @@ describe('useExchangeSelectQuote', () => {
             'eth-account-key' as AccountKey, // Todo: create properly via `createAccountKey()`
         );
 
-        const preloadedState: PreloadedState = {
-            wallet: {
-                trading: getInitializedTradingStateWithQuotes(),
-                accounts: [btcAccount, ethAccount],
-            },
-        };
+        const tradingState = getInitializedTradingStateWithQuotes();
 
         if (isLoading !== undefined) {
-            preloadedState.wallet!.trading!.exchange!.isLoading = isLoading;
+            tradingState.exchange.isLoading = isLoading;
         }
         if (dexQuoteApprovalPrefetchLoadingQuoteId !== undefined) {
-            preloadedState.wallet!.trading!.exchange!.dexQuoteApprovalPrefetchLoadingQuoteId =
+            tradingState.exchange.dexQuoteApprovalPrefetchLoadingQuoteId =
                 dexQuoteApprovalPrefetchLoadingQuoteId;
         }
 
-        preloadedState.wallet!.trading!.exchange!.tradingAccountKey = 'btc-account-key';
-        preloadedState.wallet!.trading!.exchange!.receiveAccountKey = 'eth-account-key';
+        tradingState.exchange.tradingAccountKey = 'btc-account-key' as AccountKey;
+        tradingState.exchange.receiveAccountKey = 'eth-account-key' as AccountKey;
 
-        return initStore(preloadedState).store;
+        return createTradingLightStore({
+            tradeType: 'exchange',
+            overrides: {
+                wallet: {
+                    trading: tradingState,
+                    accounts: [btcAccount, ethAccount],
+                },
+            },
+        });
     };
 
     const renderExchangeForm = () =>
@@ -134,16 +132,40 @@ describe('useExchangeSelectQuote', () => {
             const { result } = renderUseExchangeSelectQuote();
             expect(result.current.canProceed).toBe(false);
         });
+
+        it('selectQuote should not dispatch selectQuoteThunk when isLoading', () => {
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            const { result } = renderUseExchangeSelectQuote();
+
+            dispatchSpy.mockClear();
+            act(() => {
+                result.current.selectQuote();
+            });
+
+            expect(dispatchSpy).not.toHaveBeenCalled();
+        });
+
+        it('selectQuoteForRevoke should not dispatch selectQuoteThunk when isLoading', () => {
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            const { result } = renderUseExchangeSelectQuote();
+
+            dispatchSpy.mockClear();
+            act(() => {
+                result.current.selectQuoteForRevoke();
+            });
+
+            expect(dispatchSpy).not.toHaveBeenCalled();
+        });
     });
 
     describe('while prefetching dex quote approval info', () => {
-        beforeEach(async () => {
-            store = await getInitializedStore({
+        beforeEach(() => {
+            store = getInitializedStore({
                 isLoading: false,
                 dexQuoteApprovalPrefetchLoadingQuoteId: invityDexQuote.quoteId!,
             });
 
-            const { result } = await renderExchangeForm();
+            const { result } = renderExchangeForm();
             exchangeForm = result.current;
 
             act(() => {
@@ -152,16 +174,16 @@ describe('useExchangeSelectQuote', () => {
         });
 
         it('should canProceed be false while prefetch is loading for approval-required quote', async () => {
-            const { result } = await renderUseExchangeSelectQuote();
+            const { result } = renderUseExchangeSelectQuote();
 
             await act(() => Promise.resolve());
 
             expect(result.current.canProceed).toBe(false);
         });
 
-        it('should not dispatch selectQuoteThunk while prefetch is loading for approval-required quote', async () => {
+        it('should not dispatch selectQuoteThunk while prefetch is loading for approval-required quote', () => {
             const dispatchSpy = jest.spyOn(store, 'dispatch');
-            const { result } = await renderUseExchangeSelectQuote();
+            const { result } = renderUseExchangeSelectQuote();
 
             dispatchSpy.mockClear();
             act(() => {
@@ -176,7 +198,7 @@ describe('useExchangeSelectQuote', () => {
                 exchangeForm.setValue('quote', mercuryoFixedBestQuote);
             });
 
-            const { result } = await renderUseExchangeSelectQuote();
+            const { result } = renderUseExchangeSelectQuote();
 
             await act(() => Promise.resolve());
 
@@ -191,11 +213,23 @@ describe('useExchangeSelectQuote', () => {
                 });
             });
 
-            const { result } = await renderUseExchangeSelectQuote();
+            const { result } = renderUseExchangeSelectQuote();
 
             await act(() => Promise.resolve());
 
             expect(result.current.canProceed).toBe(true);
+        });
+
+        it('selectQuoteForRevoke should not dispatch selectQuoteThunk while prefetch is loading for approval-required quote', () => {
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            const { result } = renderUseExchangeSelectQuote();
+
+            dispatchSpy.mockClear();
+            act(() => {
+                result.current.selectQuoteForRevoke();
+            });
+
+            expect(dispatchSpy).not.toHaveBeenCalled();
         });
     });
 
@@ -235,7 +269,6 @@ describe('useExchangeSelectQuote', () => {
                         quote: expect.objectContaining({
                             quoteId: mercuryoFixedBestQuote?.quoteId,
                         }),
-                        timer: expect.objectContaining({ timeSpent: { seconds: 0 } }),
                     }),
                 }),
             );
@@ -257,7 +290,6 @@ describe('useExchangeSelectQuote', () => {
                     type: 'selectQuoteThunkMock',
                     payload: expect.objectContaining({
                         quote: expect.objectContaining({ swapSlippage: '1.5' }),
-                        timer: expect.objectContaining({ timeSpent: { seconds: 0 } }),
                     }),
                 }),
             );
@@ -320,6 +352,66 @@ describe('useExchangeSelectQuote', () => {
             });
 
             expect(mockNavigation.navigate).toHaveBeenCalledWith('TradingExchangePreview', {});
+        });
+
+        describe('selectQuoteForRevoke', () => {
+            it('should call selectQuoteThunk when selectQuoteForRevoke is called', () => {
+                const dispatchSpy = jest.spyOn(store, 'dispatch');
+
+                const { result } = renderUseExchangeSelectQuote();
+
+                act(() => {
+                    result.current.selectQuoteForRevoke();
+                });
+
+                expect(dispatchSpy).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        type: 'selectQuoteThunkMock',
+                        payload: expect.objectContaining({
+                            quote: expect.objectContaining({
+                                quoteId: mercuryoFixedBestQuote.quoteId,
+                            }),
+                        }),
+                    }),
+                );
+            });
+
+            it('should not call selectQuoteThunk when account is not fully selected', () => {
+                act(() => {
+                    [
+                        tradingExchangeActions.setReceiveAccountKey(
+                            'btc-account-key' as AccountKey, // Todo: create properly via `createAccountKey()`
+                        ),
+                        tradingExchangeActions.setTradingAccountKey(
+                            'eth-account-key' as AccountKey, // Todo: create properly via `createAccountKey()`
+                        ),
+                    ].forEach(store.dispatch);
+                    exchangeForm.setValue('receiveAsset', btcAsset);
+                });
+
+                const dispatchSpy = jest.spyOn(store, 'dispatch');
+                const { result, reportMock } = renderUseExchangeSelectQuote();
+
+                dispatchSpy.mockClear();
+                act(() => {
+                    result.current.selectQuoteForRevoke();
+                });
+
+                expect(dispatchSpy).not.toHaveBeenCalled();
+                expect(mockNavigation.navigate).toHaveBeenCalledWith('ReceiveAccounts', {
+                    symbol: 'btc',
+                    tradingType: 'exchange',
+                });
+
+                expect(reportMock).toHaveBeenCalledWith({
+                    type: events.tradingExchangeEvent.name,
+                    payload: expect.objectContaining({
+                        step: 'account-selection',
+                        action: 'revoke',
+                        exchangeName: 'mercuryo',
+                    }),
+                });
+            });
         });
     });
 
@@ -472,5 +564,67 @@ describe('useExchangeSelectQuote', () => {
                 shouldIncreaseLimit: true,
             });
         });
+
+        it.each(['needs_increase', 'needs_revoke', 'approved'])(
+            'selectQuoteForRevoke should navigate to TradingExchangeRevoke with shouldIncreaseLimit: false when approval status is [%s]',
+            approvalStatus => {
+                mockGetApprovalStatus.mockReturnValue(approvalStatus);
+
+                act(() => {
+                    exchangeForm.setValue('quote', mercuryoFixedBestQuote);
+                });
+
+                const dispatchSpy = jest.spyOn(store, 'dispatch');
+                const { result } = renderUseExchangeSelectQuote();
+                dispatchSpy.mockClear();
+
+                act(() => {
+                    result.current.selectQuoteForRevoke();
+                });
+
+                const dispatchCall = dispatchSpy.mock.calls[0][0];
+                const { nextStep } = (dispatchCall as any).payload;
+
+                act(() => {
+                    nextStep();
+                });
+
+                expect(mockNavigation.navigate).toHaveBeenCalledWith('TradingExchangeRevoke', {
+                    shouldIncreaseLimit: false,
+                });
+                expect(dispatchSpy).toHaveBeenCalledWith({
+                    type: '@trading-exchange/savePreselectedQuote',
+                    payload: mercuryoFixedBestQuote,
+                });
+            },
+        );
+
+        it.each(['not_needed', 'needs_approval'])(
+            'selectQuoteForRevoke should not navigate when approval status is [%s]',
+            approvalStatus => {
+                mockGetApprovalStatus.mockReturnValue(approvalStatus);
+
+                act(() => {
+                    exchangeForm.setValue('quote', mercuryoFixedBestQuote);
+                });
+
+                const dispatchSpy = jest.spyOn(store, 'dispatch');
+                const { result } = renderUseExchangeSelectQuote();
+                dispatchSpy.mockClear();
+
+                act(() => {
+                    result.current.selectQuoteForRevoke();
+                });
+
+                const dispatchCall = dispatchSpy.mock.calls[0][0];
+                const { nextStep } = (dispatchCall as any).payload;
+
+                act(() => {
+                    nextStep();
+                });
+
+                expect(mockNavigation.navigate).not.toHaveBeenCalled();
+            },
+        );
     });
 });

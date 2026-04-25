@@ -25,7 +25,8 @@ import { Discovery } from './common/Discovery';
 import { bundlify, validateParams } from './common/paramsValidator';
 import { requestExistingAccounts } from './common/requestExistingAccounts';
 import { getAccountLabel, isUtxoBased } from '../utils/accountUtils';
-import { getSerializedPath, validatePath } from '../utils/pathUtils';
+import { buildOutputDescriptor } from '../utils/buildOutputDescriptor';
+import { fromHardened, getScriptType, getSerializedPath, validatePath } from '../utils/pathUtils';
 
 type Request = GetAccountInfoParams & { address_n: number[]; coinInfo: CoinInfo };
 
@@ -60,6 +61,7 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
                 { name: 'contractFilter', type: 'string' },
                 { name: 'gap', type: 'number' },
                 { name: 'marker', type: 'object' },
+                { name: 'includeErc4626', type: 'boolean' },
                 { name: 'defaultAccountType', type: 'string' },
                 { name: 'derivationType', type: 'number' },
                 { name: 'suppressBackupWarning', type: 'boolean' },
@@ -187,6 +189,8 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
             let { descriptor } = request;
             let legacyXpub: string | undefined;
             let descriptorChecksum: string | undefined;
+            let rootFingerprint: number | undefined;
+            let outputDescriptorBip380: string | undefined;
 
             if (this.disposed) break;
 
@@ -200,6 +204,21 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
                         descriptor = accountDescriptor.descriptor;
                         legacyXpub = accountDescriptor.legacyXpub;
                         descriptorChecksum = accountDescriptor.descriptorChecksum;
+                        rootFingerprint = accountDescriptor.rootFingerprint;
+                        // outputDescriptorBip380 is provided by firmware >= 2.6.5.
+                        // For older firmware, build it from the available data (bitcoin only).
+                        outputDescriptorBip380 =
+                            accountDescriptor.outputDescriptorBip380 ??
+                            (request.coinInfo.type === 'bitcoin' && legacyXpub
+                                ? buildOutputDescriptor({
+                                      coin: request.coinInfo.name,
+                                      account: fromHardened(address_n[2]),
+                                      purpose: fromHardened(address_n[0]),
+                                      scriptType: getScriptType(address_n),
+                                      xpub: legacyXpub,
+                                      rootFingerprint,
+                                  })
+                                : undefined);
                     }
                 } catch (error) {
                     if (this.hasBundle) {
@@ -243,6 +262,7 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
                     gap: request.gap,
                     marker: request.marker,
                     tokenAccountsPubKeys: request.tokenAccountsPubKeys,
+                    includeErc4626: request.includeErc4626,
                 });
 
                 if (this.disposed) break;
@@ -266,6 +286,7 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
                     legacyXpub,
                     utxo,
                     descriptorChecksum,
+                    outputDescriptorBip380,
                 };
                 responses.push(account);
 
@@ -418,6 +439,7 @@ export default class GetAccountInfo extends AbstractMethod<'getAccountInfo', Req
             contractFilter: request.contractFilter,
             gap: request.gap,
             marker: request.marker,
+            includeErc4626: request.includeErc4626,
         });
 
         let utxo: AccountUtxo[] | undefined;

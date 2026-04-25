@@ -1,6 +1,6 @@
 import { selectIsSettingsDesktopAppPromoBannerShown } from '@suite/flags';
 import { Translation } from '@suite/intl';
-import { selectSelectedProviderForLabels } from '@suite/metadata';
+import { selectIsLegacyLabelingVisible, selectSelectedProviderForLabels } from '@suite/metadata';
 import { selectHasExperimentalFeature } from '@suite/settings';
 import { Context } from '@suite-common/message-system';
 import { selectIsMevProtectionSettingsVisible } from '@suite-common/mev';
@@ -13,7 +13,6 @@ import {
 import { isDesktop, isLinux, isWeb } from '@trezor/env-utils';
 import { SettingsSection } from '@trezor/product-components';
 
-import { selectIsLegacyLabelingVisible } from 'src/actions/labels/selectIsLegacyLabelingVisible';
 import { SettingsLayout } from 'src/components/settings/SettingsLayout';
 import { ContextMessage } from 'src/components/wallet/WalletLayout/AccountBanners/ContextMessage';
 import { useLayoutSize, useSelector } from 'src/hooks/suite';
@@ -36,6 +35,7 @@ import { DustPhishing } from './DustPhishing';
 import { EarlyAccess } from './EarlyAccess';
 import { Experimental } from './Experimental';
 import { Language } from './Language';
+import { LegacyLabelingMigration } from './LegacyLabelingMigration';
 import { McpServer } from './McpServer';
 import { MevProtection } from './MevProtection';
 import { NetworkReserve } from './NetworkReserve';
@@ -113,6 +113,7 @@ export const SettingsGeneral = () => {
                     ) : (
                         <ConnectLabelingProvider />
                     ))}
+                <LegacyLabelingMigration />
             </SettingsSection>
 
             <SettingsSection

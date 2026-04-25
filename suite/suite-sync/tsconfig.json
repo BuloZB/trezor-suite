@@ -17,6 +17,9 @@
             "path": "../../suite-common/suite-sync-evolu"
         },
         {
+            "path": "../../suite-common/suite-sync-storage"
+        },
+        {
             "path": "../../suite-common/suite-sync-types"
         },
         {
@@ -32,6 +35,7 @@
         {
             "path": "../../packages/product-components"
         },
-        { "path": "../../packages/theme" }
+        { "path": "../../packages/theme" },
+        { "path": "../../packages/type-utils" }
     ]
 }

@@ -42,7 +42,9 @@
         {
             "path": "../../suite-common/device-authenticity"
         },
-        { "path": "../../suite-common/earn-api" },
+        {
+            "path": "../../suite-common/earn-stablecoin-api"
+        },
         {
             "path": "../../suite-common/earn-staking-api"
         },
@@ -60,7 +62,6 @@
         {
             "path": "../../suite-common/geolocation"
         },
-        { "path": "../../suite-common/github" },
         { "path": "../../suite-common/logger" },
         {
             "path": "../../suite-common/message-system"
@@ -164,13 +165,18 @@
             "path": "../../suite/firmware-upgrade"
         },
         { "path": "../../suite/flags" },
+        { "path": "../../suite/github" },
         {
             "path": "../../suite/idb-migration-utils"
         },
         { "path": "../../suite/intl" },
         { "path": "../../suite/locks" },
         { "path": "../../suite/metadata" },
+        {
+            "path": "../../suite/metadata-migration"
+        },
         { "path": "../../suite/modal" },
+        { "path": "../../suite/nfc" },
         {
             "path": "../../suite/onboarding-components"
         },
@@ -184,6 +190,7 @@
         { "path": "../../suite/router" },
         { "path": "../../suite/settings" },
         { "path": "../../suite/suite-sync" },
+        { "path": "../../suite/thp" },
         { "path": "../../suite/trading" },
         { "path": "../../suite/tx-simulation" },
         { "path": "../address-validator" },

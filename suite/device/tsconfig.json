@@ -12,6 +12,7 @@
         {
             "path": "../../suite-common/wallet-core"
         },
+        { "path": "../locks" },
         { "path": "../router" },
         { "path": "../../packages/connect" },
         {
