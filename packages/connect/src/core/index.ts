@@ -39,10 +39,11 @@ import { onCallFirmwareUpdate } from './onCallFirmwareUpdate';
 import { dispose as disposeBackend } from '../backend/BlockchainLink';
 import { DataManager } from '../data/DataManager';
 import { initializeFirmwareConfig } from '../data/firmwareInfo';
+import { loadProtobufModules } from '../data/protobufLoader';
 import type { Device, DeviceEvents } from '../device/Device';
 import type { IDeviceList } from '../device/DeviceList';
 import { DeviceList, assertDeviceListConnected } from '../device/DeviceList';
-import * as workflows from '../device/workflow';
+import { validateState } from '../device/workflow/validateState';
 import { createUiPromiseManager } from '../utils/uiPromiseManager';
 
 // custom log
@@ -135,7 +136,7 @@ const inner = async (context: CoreContext, method: AbstractMethod<any>, device: 
 
     // Make sure that device will display pin/passphrase
     if (method.useDeviceState) {
-        await workflows.validateState({
+        await validateState({
             device,
             method,
             signal: context.signal,
@@ -910,14 +911,13 @@ export class Core extends EventEmitter {
             if (localFirmwares) {
                 DataManager.setLocalFirmwares(localFirmwares);
             }
+            await loadProtobufModules();
             const { debug, priority, manifest } = DataManager.getSettings();
-            const messages = DataManager.getProtobufMessages();
 
             enableLog(debug);
 
             this._deviceList = new DeviceList({
                 debug,
-                messages,
                 priority,
                 manifest,
             });

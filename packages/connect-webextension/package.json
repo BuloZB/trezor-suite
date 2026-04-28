@@ -45,8 +45,9 @@
     "types": "src/index.ts",
     "scripts": {
         "build:lib": "yarn build:lib:cjs && yarn build:lib:esm",
-        "build:lib:cjs": "yarn g:rimraf ./lib && yarn g:tsc --build tsconfig.lib.json && ../../scripts/publish/replace-imports.sh ./lib cjs",
-        "build:lib:esm": "yarn g:rimraf ./libESM && yarn g:tsc --build tsconfig.libESM.json && ../../scripts/publish/replace-imports.sh ./libESM esm",
+        "build:lib:cjs": "yarn g:rimraf ./lib && yarn g:tsc --build tsconfig.lib.json && ../../scripts/publish/replace-imports.sh ./lib cjs && yarn build:dts:inline",
+        "build:lib:esm": "yarn g:rimraf ./libESM && yarn g:tsc --build tsconfig.libESM.json && ../../scripts/publish/replace-imports.sh ./libESM esm && DTS_OUT_DIR=libESM yarn build:dts:inline",
+        "build:dts:inline": "node ../../scripts/inline-devdep-types.mjs",
         "depcheck": "yarn g:depcheck",
         "type-check": "yarn g:tsc --build",
         "lint:js": "yarn g:eslint '**/*.{ts,tsx,js}'"
@@ -58,7 +59,7 @@
     "devDependencies": {
         "@babel/preset-typescript": "^7.28.5",
         "@trezor/eslint": "workspace:*",
-        "@types/chrome": "^0.0.299",
+        "@types/chrome": "^0.1.40",
         "@types/w3c-web-usb": "^1.0.14",
         "babel-loader": "^10.1.1",
         "rimraf": "^6.1.2",

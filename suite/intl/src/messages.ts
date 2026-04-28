@@ -33,6 +33,23 @@ export const messages = defineMessages({
         defaultMessage: 'No assets are active',
         id: 'TR_ACCOUNT_EXCEPTION_DISCOVERY_EMPTY',
     },
+    TR_DASHBOARD_ACTIVATE_ASSETS_DESC: {
+        defaultMessage:
+            'Enable the networks you want to use. You can receive or buy assets on any network you enable.',
+        id: 'TR_DASHBOARD_ACTIVATE_ASSETS_DESC',
+    },
+    TR_DASHBOARD_MODAL_ACTIVATE_ASSETS_TITLE: {
+        defaultMessage: 'Choose networks',
+        id: 'TR_DASHBOARD_MODAL_ACTIVATE_ASSETS_TITLE',
+    },
+    TR_DASHBOARD_MODAL_ACTIVATE_ASSETS_DESC: {
+        defaultMessage: 'You can receive or buy assets on any network you enable.',
+        id: 'TR_DASHBOARD_MODAL_ACTIVATE_ASSETS_DESC',
+    },
+    TR_DASHBOARD_MODAL_ACTIVATE_ASSETS_NOTE: {
+        defaultMessage: 'You can change your networks anytime in Settings.',
+        id: 'TR_DASHBOARD_MODAL_ACTIVATE_ASSETS_NOTE',
+    },
     TR_ACCOUNT_EXCEPTION_DISCOVERY_EMPTY_DESC: {
         defaultMessage: 'Go to settings to activate assets.',
         id: 'TR_ACCOUNT_EXCEPTION_DISCOVERY_EMPTY_DESC',
@@ -318,9 +335,9 @@ export const messages = defineMessages({
         defaultMessage: 'Disable Tor to see better offers.',
         id: 'TR_TRADING_DISABLE_TOR',
     },
-    TR_CHECKED_BALANCES_ON: {
-        defaultMessage: 'Checked balances on',
-        id: 'TR_CHECKED_BALANCES_ON',
+    TR_READY_ON: {
+        defaultMessage: 'Ready on',
+        id: 'TR_READY_ON',
     },
     TR_ALL_NETWORKS: {
         defaultMessage: 'All networks',
@@ -1425,21 +1442,13 @@ export const messages = defineMessages({
         id: 'TR_BIO_AUTH_SYSTEM_MESSAGE_WIN',
     },
     TR_ADDRESS_DISPLAY: {
-        defaultMessage: 'Address display',
+        defaultMessage: 'Spaced address formatting',
         id: 'TR_ADDRESS_DISPLAY',
     },
     TR_ADDRESS_DISPLAY_DESCRIPTION: {
         defaultMessage:
-            'Display address continuous (bc1wetes...v54d8d) or spaced (bc1w etes ... v54d 8d).',
+            'Display addresses with spaces for easier reading. When disabled, addresses are shown as a continuous string.',
         id: 'TR_ADDRESS_DISPLAY_DESCRIPTION',
-    },
-    TR_ORIGINAL_ADDRESS: {
-        defaultMessage: 'Continuous',
-        id: 'TR_ORIGINAL_ADDRESS',
-    },
-    TR_CHUNKED_ADDRESS: {
-        defaultMessage: 'Spaced',
-        id: 'TR_CHUNKED_ADDRESS',
     },
     TR_ASSETS: {
         defaultMessage: 'Coin',
@@ -1756,7 +1765,7 @@ export const messages = defineMessages({
         id: 'TR_COIN_DISCOVERY_LOADER_DESCRIPTION',
     },
     TR_COINS: {
-        defaultMessage: 'Coins',
+        defaultMessage: 'Networks',
         id: 'TR_COINS',
     },
     TR_HIDDEN: {
@@ -2596,6 +2605,22 @@ export const messages = defineMessages({
         id: 'TR_DUST_PHISHING_ERROR_EMPTY',
         defaultMessage: 'Dust threshold cannot be empty',
     },
+    TR_GAP_LIMIT_ERROR_EMPTY: {
+        id: 'TR_GAP_LIMIT_ERROR_EMPTY',
+        defaultMessage: 'Gap limit cannot be empty',
+    },
+    TR_GAP_LIMIT_ERROR_NUMBER: {
+        id: 'TR_GAP_LIMIT_ERROR_NUMBER',
+        defaultMessage: 'Enter a valid whole number',
+    },
+    TR_GAP_LIMIT_ERROR_POSITIVE: {
+        id: 'TR_GAP_LIMIT_ERROR_POSITIVE',
+        defaultMessage: 'Gap limit must be a positive number',
+    },
+    TR_GAP_LIMIT_ERROR_TOO_LOW: {
+        id: 'TR_GAP_LIMIT_ERROR_TOO_LOW',
+        defaultMessage: 'Gap limit must be at least {min}',
+    },
     TR_CONFIRM_AUTO_EJECT: {
         defaultMessage: 'Enable auto-eject',
         id: 'TR_CONFIRM_AUTO_EJECT',
@@ -3118,20 +3143,6 @@ export const messages = defineMessages({
         defaultMessage: 'System',
         id: 'TR_SETTINGS_SAME_AS_SYSTEM',
     },
-    TR_SETTINGS_TOOLTIP_DESCRIPTION_BTC_ONLY: {
-        defaultMessage: '<strong>Power user?</strong> Set up <tor>Tor</tor> in Settings first.',
-        id: 'TR_SETTINGS_TOOLTIP_DESCRIPTION_BTC_ONLY',
-    },
-    TR_SETTINGS_TOOLTIP_DESCRIPTION_DESKTOP: {
-        defaultMessage:
-            '<strong>Power user?</strong> Set up <tor>Tor</tor> & <networks>networks</networks> in Settings first.',
-        id: 'TR_SETTINGS_TOOLTIP_DESCRIPTION_DESKTOP',
-    },
-    TR_SETTINGS_TOOLTIP_DESCRIPTION_WEB: {
-        defaultMessage:
-            '<strong>Power user?</strong> Set up <networks>networks</networks> in Settings first.',
-        id: 'TR_SETTINGS_TOOLTIP_DESCRIPTION_WEB',
-    },
     TR_SETTINGS_DEVICE_BANNER_TITLE_DISCONNECTED: {
         defaultMessage: 'Connect your Trezor to access device settings',
         id: 'TR_SETTINGS_DEVICE_BANNER_TITLE_DISCONNECTED',
@@ -3461,6 +3472,10 @@ export const messages = defineMessages({
         defaultMessage: 'unknown',
         id: 'TR_UNKNOWN_CONFIRMATION_TIME',
     },
+    TR_UNKNOWN: {
+        defaultMessage: 'Unknown',
+        id: 'TR_UNKNOWN',
+    },
     TR_UNKNOWN_TRANSACTION: {
         defaultMessage: 'Unknown transaction',
         id: 'TR_UNKNOWN_TRANSACTION',
@@ -3612,6 +3627,10 @@ export const messages = defineMessages({
     TR_YOUR_WALLET_IS_READY_WHAT: {
         defaultMessage: 'Your wallet is ready',
         id: 'TR_YOUR_WALLET_IS_READY_WHAT',
+    },
+    TR_DASHBOARD_EMPTY_WALLET_DESC: {
+        defaultMessage: 'Get started by receiving or buying crypto.',
+        id: 'TR_DASHBOARD_EMPTY_WALLET_DESC',
     },
     TR_GAS_PRICE: {
         id: 'TR_GAS_PRICE',
@@ -4487,6 +4506,10 @@ export const messages = defineMessages({
     TR_COIN_SETTINGS: {
         id: 'TR_COIN_SETTINGS',
         defaultMessage: 'Activate assets',
+    },
+    TR_DASHBOARD_GET_STARTED: {
+        id: 'TR_DASHBOARD_GET_STARTED',
+        defaultMessage: 'Get started',
     },
     TR_SELECT_COIN_FOR_SETTINGS: {
         id: 'TR_SELECT_COIN_FOR_SETTINGS',
@@ -5412,6 +5435,46 @@ export const messages = defineMessages({
         id: 'TR_TRON_ACCOUNT_ACTIVATION_FEE_TOOLTIP',
         defaultMessage: 'New TRON accounts require a one-time 1 TRX network fee to activate.',
     },
+    TR_TRON_TX_CREATE_ACCOUNT: {
+        id: 'TR_TRON_TX_CREATE_ACCOUNT',
+        defaultMessage: 'Create Account',
+    },
+    TR_TRON_TX_UPDATE_ACCOUNT: {
+        id: 'TR_TRON_TX_UPDATE_ACCOUNT',
+        defaultMessage: 'Update Account',
+    },
+    TR_TRON_TX_DEPLOY_SMART_CONTRACT: {
+        id: 'TR_TRON_TX_DEPLOY_SMART_CONTRACT',
+        defaultMessage: 'Deploy Smart Contract',
+    },
+    TR_TRON_TX_VOTE_WITNESS: {
+        id: 'TR_TRON_TX_VOTE_WITNESS',
+        defaultMessage: 'Vote Witness',
+    },
+    TR_TRON_TX_FREEZE_BALANCE: {
+        id: 'TR_TRON_TX_FREEZE_BALANCE',
+        defaultMessage: 'Freeze Balance',
+    },
+    TR_TRON_TX_UNFREEZE_BALANCE: {
+        id: 'TR_TRON_TX_UNFREEZE_BALANCE',
+        defaultMessage: 'Unfreeze Balance',
+    },
+    TR_TRON_TX_WITHDRAW_BALANCE: {
+        id: 'TR_TRON_TX_WITHDRAW_BALANCE',
+        defaultMessage: 'Withdraw Balance',
+    },
+    TR_TRON_TX_CLAIM_REWARDS: {
+        id: 'TR_TRON_TX_CLAIM_REWARDS',
+        defaultMessage: 'Claim Rewards',
+    },
+    TR_TRON_TX_DELEGATE_RESOURCE: {
+        id: 'TR_TRON_TX_DELEGATE_RESOURCE',
+        defaultMessage: 'Delegate Resource',
+    },
+    TR_TRON_TX_UNDELEGATE_RESOURCE: {
+        id: 'TR_TRON_TX_UNDELEGATE_RESOURCE',
+        defaultMessage: 'Undelegate Resource',
+    },
     TR_EXPERIMENTAL_TRON_VIEW_ONLY: {
         id: 'TR_EXPERIMENTAL_TRON_VIEW_ONLY',
         defaultMessage: 'Tron (Beta)',
@@ -5420,6 +5483,15 @@ export const messages = defineMessages({
         id: 'TR_EXPERIMENTAL_TRON_VIEW_ONLY_DESCRIPTION',
         defaultMessage:
             'Enable the Tron Network with the latest firmware to check your balance, send and receive TRX and tokens, view charts and transaction history, and use WalletConnect. Full support, including freezing and voting, is coming soon.',
+    },
+    TR_EXPERIMENTAL_GAP_LIMIT: {
+        id: 'TR_EXPERIMENTAL_GAP_LIMIT',
+        defaultMessage: 'Gap Limit',
+    },
+    TR_EXPERIMENTAL_GAP_LIMIT_DESCRIPTION: {
+        id: 'TR_EXPERIMENTAL_GAP_LIMIT_DESCRIPTION',
+        defaultMessage:
+            'When recovering or scanning a wallet, Trezor checks addresses one by one and stops after finding 20 consecutive unused ones. If some of your transactions are missing, raise this limit to scan further.',
     },
     TR_EXPERIMENTAL_MCP_SERVER: {
         id: 'TR_EXPERIMENTAL_MCP_SERVER',
@@ -6565,6 +6637,10 @@ export const messages = defineMessages({
         id: 'TR_LABELING_ENABLED',
         defaultMessage: 'Labeling',
     },
+    SETTINGS_BACKEND_SETTINGS_CUSTOM_GAP_LIMIT: {
+        id: 'SETTINGS_BACKEND_SETTINGS_CUSTOM_GAP_LIMIT',
+        defaultMessage: 'Custom Gap Limit',
+    },
     SETTINGS_BACKEND_SETTINGS_DESCRIPTION: {
         id: 'SETTINGS_BACKEND_SETTINGS_DESCRIPTION',
         defaultMessage:
@@ -6766,7 +6842,7 @@ export const messages = defineMessages({
     },
     TR_ENABLE_MORE_COINS: {
         id: 'TR_ENABLE_MORE_COINS',
-        defaultMessage: 'Activate more assets',
+        defaultMessage: 'Add networks',
     },
     TR_BACKUP_RECOVERY_SEED_FAILED_TITLE: {
         id: 'TR_BACKUP_RECOVERY_SEED_FAILED_TITLE',
@@ -9539,13 +9615,49 @@ export const messages = defineMessages({
         id: 'TR_EARN_STABLECOIN_YIELD_TITLE',
         defaultMessage: 'Stablecoin yield',
     },
+    TR_EARN_VAULT_NAME: {
+        id: 'TR_EARN_VAULT_NAME',
+        defaultMessage: '{vaultName} Vault',
+    },
+    TR_EARN_YIELD_PENDING_SUPPLY: {
+        id: 'TR_EARN_YIELD_PENDING_SUPPLY',
+        defaultMessage: 'Confirming supply...',
+    },
+    TR_EARN_YIELD_PENDING_WITHDRAW: {
+        id: 'TR_EARN_YIELD_PENDING_WITHDRAW',
+        defaultMessage: 'Confirming withdrawal...',
+    },
+    TR_EARN_YIELD_APPROVAL_TOO_LOW: {
+        id: 'TR_EARN_YIELD_APPROVAL_TOO_LOW',
+        defaultMessage: 'Approval is too low. Modify approval or lower the amount.',
+    },
+    TR_EARN_YIELD_MODIFY_APPROVAL: {
+        id: 'TR_EARN_YIELD_MODIFY_APPROVAL',
+        defaultMessage: 'Modify approval',
+    },
     TR_MODIFY: {
         id: 'TR_MODIFY',
         defaultMessage: 'Modify',
     },
+    TR_EARN_YIELD_INCREASE_APPROVAL: {
+        id: 'TR_EARN_YIELD_INCREASE_APPROVAL',
+        defaultMessage: 'Increase approval',
+    },
+    TR_EARN_YIELD_REVOKE_APPROVAL: {
+        id: 'TR_EARN_YIELD_REVOKE_APPROVAL',
+        defaultMessage: 'Revoke approval',
+    },
     TR_EARN_YIELD_DASHBOARD_SUPPLIED: {
         id: 'TR_EARN_YIELD_DASHBOARD_SUPPLIED',
         defaultMessage: '{amount} {displaySymbol} supplied',
+    },
+    TR_EARN_YIELD_ERROR_GENERIC: {
+        id: 'TR_EARN_YIELD_ERROR_GENERIC',
+        defaultMessage: 'Something went wrong. Please try again.',
+    },
+    TR_EARN_YIELD_ERROR_TRANSACTION_FAILED: {
+        id: 'TR_EARN_YIELD_ERROR_TRANSACTION_FAILED',
+        defaultMessage: 'Transaction failed.',
     },
     TR_EARN_DASHBOARD_ACTIVE: {
         id: 'TR_EARN_DASHBOARD_ACTIVE',
@@ -9571,6 +9683,10 @@ export const messages = defineMessages({
     TR_STAKING_MODAL_OUTDATED_BUTTON: {
         id: 'TR_STAKING_MODAL_OUTDATED_BUTTON',
         defaultMessage: 'Update provider',
+    },
+    TR_EARN_DASHBOARD_TABLE_ACCOUNT_BALANCE: {
+        id: 'TR_EARN_DASHBOARD_TABLE_ACCOUNT_BALANCE',
+        defaultMessage: 'Account & balance',
     },
     TR_EARN_DASHBOARD_TABLE_ACCOUNT_VAULT: {
         id: 'TR_EARN_DASHBOARD_TABLE_ACCOUNT_VAULT',
@@ -9869,7 +9985,7 @@ export const messages = defineMessages({
     },
     TR_EARN_YIELD_NUTSHELL_COMPOUND_INTEREST: {
         id: 'TR_EARN_YIELD_NUTSHELL_COMPOUND_INTEREST',
-        defaultMessage: 'We then invest your yield so you benefit from compound interest.',
+        defaultMessage: 'Your supplied {supplySymbol} earns yield that compounds over time.',
     },
     TR_EARN_YIELD_NUTSHELL_VAULT_TOKENS: {
         id: 'TR_EARN_YIELD_NUTSHELL_VAULT_TOKENS',
@@ -9891,7 +10007,7 @@ export const messages = defineMessages({
     },
     TR_EARN_YIELD_EARN_REWARDS_EACH_BLOCK: {
         id: 'TR_EARN_YIELD_EARN_REWARDS_EACH_BLOCK',
-        defaultMessage: 'Earn rewards with each mined block',
+        defaultMessage: 'Earn rewards with each confimed block',
     },
     TR_EARN_YIELD_RECEIVE_IN_ACCOUNT: {
         id: 'TR_EARN_YIELD_RECEIVE_IN_ACCOUNT',
@@ -10099,6 +10215,18 @@ export const messages = defineMessages({
     TR_STAKE_ACKNOWLEDGE_ENTRY_PERIOD: {
         id: 'TR_STAKE_ACKNOWLEDGE_ENTRY_PERIOD',
         defaultMessage: 'I acknowledge the entry period.',
+    },
+    TR_TX_STAKE_STAKE: {
+        id: 'TR_TX_STAKE_STAKE',
+        defaultMessage: 'Stake',
+    },
+    TR_TX_STAKE_UNSTAKE: {
+        id: 'TR_TX_STAKE_UNSTAKE',
+        defaultMessage: 'Unstake',
+    },
+    TR_TX_STAKE_CLAIM: {
+        id: 'TR_TX_STAKE_CLAIM',
+        defaultMessage: 'Claim Withdraw Request',
     },
     TR_STAKE_STAKE: {
         id: 'TR_STAKE_STAKE',

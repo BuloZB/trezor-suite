@@ -2132,6 +2132,18 @@ export const messages = {
             claiming: 'Claiming',
             changeDelegate: 'Change delegate',
             changingDelegate: 'Changing delegate',
+            tron: {
+                createAccount: 'Create Account',
+                updateAccount: 'Update Account',
+                deploySmartContract: 'Deploy Smart Contract',
+                voteWitness: 'Vote Witness',
+                freezeBalance: 'Freeze Balance',
+                unfreezeBalance: 'Unfreeze Balance',
+                withdrawBalance: 'Withdraw Balance',
+                claimRewards: 'Claim Rewards',
+                delegateResource: 'Delegate Resource',
+                undelegateResource: 'Undelegate Resource',
+            },
         },
         TransactionDetailScreen: {
             sheetSubtitle: 'Transaction #{transactionId}',
@@ -2544,6 +2556,7 @@ export const messages = {
     earn: {
         staking: 'Staking',
         stablecoinYield: 'Stablecoin yield',
+        vaultName: '{vaultName} Vault',
         portfolioTracker: {
             alert: {
                 title: 'Staking is disabled in the portfolio tracker',
@@ -3117,6 +3130,17 @@ export const messages = {
         tradingReviewOutputs: {
             title: 'Review with Trezor',
             submitButton: 'Send transaction',
+        },
+        tradingConfirmationScreen: {
+            approveHeaderTitle: 'Approve {symbol} spending',
+            revokeHeaderTitle: 'Revoke {symbol} approval',
+            approveTitle: 'Confirming approval',
+            revokeTitle: 'Confirming revoke',
+            subtitle: 'This may take a few moments.',
+            pending: 'Pending',
+            error: 'Error confirming transaction. Please try again.',
+            date: 'Date',
+            exploreInBlockchain: 'Explore in blockchain',
         },
         exchangeApprovalLimitSheet: {
             title: 'Set limit',

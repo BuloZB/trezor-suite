@@ -1,11 +1,12 @@
 import { Translation } from '@suite/intl';
 import { openModal } from '@suite/modal';
-import { goto } from '@suite/router';
+import { type EarnParams, goto } from '@suite/router';
 import {
     type EarnAnalyticsStep,
     EarnFlow,
     EarnProvider,
 } from '@suite-common/suite-types/src/staking';
+import { type Account } from '@suite-common/wallet-types';
 import { Box, Button, Column, IconButton, Row, Text } from '@trezor/components';
 import { AssetLogo } from '@trezor/product-components';
 
@@ -14,20 +15,20 @@ import { PageHeader } from 'src/components/suite/layouts/SuiteLayout';
 import { useDispatch } from 'src/hooks/suite';
 
 import { useAllYieldOpportunities } from '../../dashboard/yield/hooks/useAllYieldOpportunities';
-import { useEarnRouteAccount } from '../../utils/useEarnRouteAccount';
 
 interface YieldPageHeaderProps {
     analyticsStep: Extract<EarnAnalyticsStep, 'yield-supply' | 'yield-withdraw'>;
+    account?: Account;
+    routeParams?: EarnParams;
 }
 
-export const YieldPageHeader = ({ analyticsStep }: YieldPageHeaderProps) => {
+export const YieldPageHeader = ({ analyticsStep, account, routeParams }: YieldPageHeaderProps) => {
     const dispatch = useDispatch();
-    const { account, routeParams } = useEarnRouteAccount();
     const { yieldOpportunities } = useAllYieldOpportunities();
     const vault = routeParams
         ? yieldOpportunities.find(opportunity => opportunity.id === routeParams.yieldId)
         : undefined;
-    const vaultName = vault?.metadata.name;
+    const vaultName = vault?.outputToken?.name;
     const networkSymbol = account?.symbol;
 
     const onBackClick = () => {
@@ -71,7 +72,6 @@ export const YieldPageHeader = ({ analyticsStep }: YieldPageHeaderProps) => {
                     <Row alignItems="center" gap={12} overflow="hidden">
                         {networkSymbol && (
                             <AssetLogo
-                                coingeckoId={vault?.token?.coinGeckoId}
                                 placeholder={vault?.token?.symbol || vault?.token?.name || ''}
                                 symbol={networkSymbol}
                                 contractAddress={vault?.token?.address}
@@ -81,7 +81,7 @@ export const YieldPageHeader = ({ analyticsStep }: YieldPageHeaderProps) => {
                         )}
                         <Column gap={2} overflow="hidden">
                             <Text typographyStyle="body-md-strong" ellipsisLineCount={1}>
-                                {vaultName}
+                                <Translation id="TR_EARN_VAULT_NAME" values={{ vaultName }} />
                             </Text>
                             {account && (
                                 <AccountLabel

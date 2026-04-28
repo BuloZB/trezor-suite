@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 
 import {
+    type YieldFlowType,
     fetchAndUpdateAccountThunk,
     selectConvertedNetworkFeeInfo,
+    selectStablecoinYieldSession,
     selectTransactionByAccountKeyAndTxid,
+    stablecoinYieldActions,
 } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
 import { isPending } from '@suite-common/wallet-utils';
@@ -23,20 +26,21 @@ const getPollIntervalMs = (blockTime: number | undefined): number => {
     );
 };
 
-type PendingTransaction = {
-    txid: string;
-};
-
 type UseYieldPendingTransactionTrackingProps = {
     account: Account;
-    pendingTransaction: PendingTransaction | null;
+    flowType: YieldFlowType;
+    flowKey: string;
 };
 
 export const useYieldPendingTransactionTracking = ({
     account,
-    pendingTransaction,
+    flowType,
+    flowKey,
 }: UseYieldPendingTransactionTrackingProps) => {
     const dispatch = useDispatch();
+    const pendingTransaction = useSelector(
+        state => selectStablecoinYieldSession(state, flowType, flowKey).action.pendingTransaction,
+    );
     const trackedPendingTransaction = useSelector(state =>
         pendingTransaction
             ? selectTransactionByAccountKeyAndTxid(state, account.key, pendingTransaction.txid)
@@ -45,7 +49,6 @@ export const useYieldPendingTransactionTracking = ({
     const feeInfo = useSelector(state => selectConvertedNetworkFeeInfo(state, account.symbol));
     const pollIntervalMs = getPollIntervalMs(feeInfo?.blockTime);
 
-    // Keep polling even before the tx appears in wallet.transactions.
     const isCurrentlyPending =
         !!pendingTransaction &&
         (!trackedPendingTransaction || isPending(trackedPendingTransaction));
@@ -61,4 +64,52 @@ export const useYieldPendingTransactionTracking = ({
 
         return () => clearInterval(interval);
     }, [account.key, dispatch, isCurrentlyPending, pollIntervalMs]);
+
+    useEffect(() => {
+        if (!pendingTransaction || !trackedPendingTransaction) {
+            return;
+        }
+
+        if (isPending(trackedPendingTransaction)) {
+            return;
+        }
+
+        if (trackedPendingTransaction.type === 'failed') {
+            dispatch(stablecoinYieldActions.transactionFailed({ flowType, flowKey }));
+
+            return;
+        }
+
+        if (pendingTransaction.type === 'revoke' || pendingTransaction.type === 'revoke-only') {
+            dispatch(stablecoinYieldActions.revokeSuccess({ flowType, flowKey }));
+
+            return;
+        }
+
+        if (pendingTransaction.type === 'approve') {
+            dispatch(
+                stablecoinYieldActions.completeApproval({
+                    flowType,
+                    flowKey,
+                    amount: pendingTransaction.amount,
+                }),
+            );
+
+            return;
+        }
+
+        if (pendingTransaction.type === flowType) {
+            dispatch(
+                stablecoinYieldActions.completeAction({
+                    flowType,
+                    flowKey,
+                    amount: pendingTransaction.amount,
+                }),
+            );
+
+            return;
+        }
+
+        dispatch(stablecoinYieldActions.resetSession({ flowType, flowKey }));
+    }, [flowKey, flowType, pendingTransaction, dispatch, trackedPendingTransaction]);
 };

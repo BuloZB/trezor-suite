@@ -450,7 +450,8 @@ export type TransactionDetailStackParamList = {
     };
 };
 
-export type ExchangeFlowType = 'swap' | 'approve' | 'revoke';
+export type ConfirmingScreenFlowType = 'approve' | 'revoke';
+export type ExchangeFlowType = 'swap' | ConfirmingScreenFlowType;
 
 export type TradingStackParamList = {
     [TradingStackRoutes.Trading]: { tradingType?: TradingType };
@@ -480,6 +481,9 @@ export type TradingStackParamList = {
         tokenContract?: TokenAddress;
         orderId: string;
         flowType: ExchangeFlowType;
+    };
+    [TradingStackRoutes.TradingConfirming]: {
+        flowType: ConfirmingScreenFlowType;
     };
 };
 

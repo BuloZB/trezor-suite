@@ -13,6 +13,7 @@ import {
     prepareStakeReducer,
     prepareTransactionsReducer,
     prepareWalletSettingsReducer,
+    stablecoinYieldReducer,
 } from '@suite-common/wallet-core';
 
 import { extraDependencies } from 'src/support/extraDependencies';
@@ -55,6 +56,7 @@ const WalletReducers = combineReducers({
     coinjoin: coinjoinReducer,
     stake: stakeReducer,
     settings: walletSettingsReducer,
+    stablecoinYield: stablecoinYieldReducer,
 });
 
 export default WalletReducers;

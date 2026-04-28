@@ -14,6 +14,7 @@ import {
     type discoveryActions,
     type explorerActions,
     type sendFormActions,
+    type stablecoinYieldActions,
     type stakeActions,
 } from '@suite-common/wallet-core';
 
@@ -73,6 +74,9 @@ type ConnectPopupAction = ReturnType<
 type AccountSearchAction = ReturnType<
     (typeof accountSearchActions)[keyof typeof accountSearchActions]
 >;
+type StablecoinYieldAction = ReturnType<
+    (typeof stablecoinYieldActions)[keyof typeof stablecoinYieldActions]
+>;
 
 export type WalletAction =
     | TokenDefinitionsAction
@@ -94,4 +98,5 @@ export type WalletAction =
     | AccountsAction
     | StakeAction
     | ConnectPopupAction
-    | WalletSettingsAction;
+    | WalletSettingsAction
+    | StablecoinYieldAction;

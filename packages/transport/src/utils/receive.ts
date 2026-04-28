@@ -1,4 +1,4 @@
-import { decodeMessage } from '@trezor/protobuf';
+import { protobufManager } from '@trezor/protobuf';
 import { PROTOCOL_MALFORMED, type TransportProtocol } from '@trezor/protocol';
 
 import { error, success } from './result';
@@ -17,7 +17,7 @@ export async function receive<T extends Receiver>(receiver: T, protocol: Transpo
         const { length, messageType, payload, header } = protocol.decode(readResult.payload);
         const [, chunkHeader] = protocol.getHeaders(data);
 
-        const result = Buffer.alloc(length);
+        const result: Buffer = Buffer.alloc(length);
         payload.copy(result);
 
         let offset = payload.length;
@@ -48,15 +48,14 @@ export async function receive<T extends Receiver>(receiver: T, protocol: Transpo
 }
 
 export async function receiveAndParse<T extends Receiver>(
-    messages: Parameters<typeof decodeMessage>[0],
     receiver: T,
     protocol: TransportProtocol,
 ) {
     const readResult = await receive(receiver, protocol);
     if (!readResult.success) return readResult;
 
-    const { messageType, payload } = readResult.payload;
-    const message = decodeMessage(messages, messageType, payload);
+    const { messageType, payload, length } = readResult.payload;
+    const message = protobufManager.decode(messageType, payload.subarray(0, length));
 
     return success(message);
 }

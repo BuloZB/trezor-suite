@@ -31,8 +31,10 @@ export { DeviceWithScene } from './components/DeviceWithScene/DeviceWithScene';
 export { getModelFrontColor, getLargeModelImagePath } from './utils/getModelFrontColor';
 export { DataAnalytics } from './components/DataAnalytics';
 export { AssetLogo } from './components/AssetLogo/AssetLogo';
+export { AssetLogoWithId } from './components/AssetLogo/AssetLogoWithId';
 export {
     type AssetLogoProps,
+    type AssetLogoWithIdProps,
     type AssetLogoSize,
     allowedAssetLogoSizes,
 } from './components/AssetLogo/AssetLogoWithId';
@@ -60,3 +62,7 @@ export {
 } from './components/EmojiRatingSelector/EmojiRatingSelector';
 export { QuickActionButton } from './components/QuickActionButton/QuickActionButton';
 export { TooltipRow } from './components/TooltipRow/TooltipRow';
+export {
+    PendingTransactionInfo,
+    type PendingTransactionInfoProps,
+} from './components/PendingTransactionInfo/PendingTransactionInfo';

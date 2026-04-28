@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 
 import { Translation } from '@suite/intl';
-import type { YieldFlowType } from '@suite-common/suite-types';
+import type { YieldFlowType } from '@suite-common/wallet-core';
 import { Banner } from '@trezor/components';
 
 type YieldDisabledBannerProps = {
