@@ -101,6 +101,7 @@ const usedIcons = [
     'hourglass',
     'house',
     'houseFilled',
+    'identificationCard',
     'image',
     'info',
     'instagramLogo',
@@ -111,6 +112,7 @@ const usedIcons = [
     'linkBreak',
     'lock',
     'magnifyingGlass',
+    'mapPin',
     'minus',
     'newspaper',
     'package',
@@ -119,6 +121,7 @@ const usedIcons = [
     'pencil',
     'pencilSimple',
     'pencilSimpleLine',
+    'percent',
     'piggyBank',
     'piggyBankFilled',
     'pictureFrame',
@@ -182,6 +185,7 @@ const usedIcons = [
     'wifiX',
     'x',
     'xCircle',
+    'identificationCard',
 ] as const satisfies AllAvailableIcons[];
 
 const tempAssetsDir = path.join(__dirname, 'assetsTemp');

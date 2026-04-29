@@ -2692,7 +2692,7 @@ export const messages = {
         earnFormScreen: {
             title: '{assetName} staking',
             unstakeTitle: 'Unstake {displaySymbol}',
-            availableBalance: 'Available balance',
+            staked: 'Staked',
             unstakingTimeline: 'Unstaking timeline',
             unstakingPeriodInfo:
                 'The unstaking period is currently {days, plural, one {~# day} other {~# days}}',
@@ -2929,12 +2929,25 @@ export const messages = {
             rate: 'Rate',
             selectedRate: 'Selected rate',
             footer: {
+                termsOfProvider:
+                    'This service is offered by {companyName}, not Trezor. <link>Terms apply</link>',
                 termsAndConditionsProvider:
                     "Trezor doesn't provide this service. It's governed by <link>{companyName}'s Terms & Conditions</link>.",
                 termsAndConditionsGeneral:
                     "Trezor doesn't provide this service. It's governed by provider's Terms & Conditions.",
                 termsOfUse: "Trezor's Terms of Use",
                 learnMore: 'Learn more',
+                termsAndConditionsGeneric:
+                    'This service is offered by a third-party provider, not Trezor. Provider’s terms apply.',
+                howTradingWorksSheet: {
+                    title: 'How trading works',
+                    sheetTitle: 'How trading with Trezor works',
+                    item1: 'Trezor compares trusted exchange providers to find the best offer',
+                    item2: 'Providers use your location only to show relevant offers',
+                    item3: 'Trezor never sees your payment or KYC data\n<text>You share it only with the exchange if you complete the trade.</text>',
+                    item4: 'How fees are calculated',
+                    item5: 'Trezor’s Terms of Use',
+                },
             },
             balance: 'Balance:',
             providerOffer: 'Provider offer: {amount}',
@@ -2945,7 +2958,10 @@ export const messages = {
                 settings: 'Advanced settings',
             },
             kycWarning: 'This provider requires to know your identity.',
+            kycRequired: 'Identity verification will be required.',
             buttons: {
+                buyVia: 'Buy via {providerName}',
+                sellVia: 'Sell via {providerName}',
                 continue: 'Continue',
                 swap: 'Swap',
                 approveAndSwap: 'Approve and swap',
