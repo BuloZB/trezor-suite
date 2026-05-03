@@ -64,6 +64,7 @@ export const buildMainMenu = (mainWindowProxy: MainWindowProxy) => {
         },
         // { role: 'windowMenu' }
         {
+            role: 'windowMenu',
             label: 'Window',
             submenu: [{ role: 'minimize' }, { role: 'zoom' }],
             // extended below
@@ -98,6 +99,7 @@ export const buildMainMenu = (mainWindowProxy: MainWindowProxy) => {
         );
         // Extend "Window"
         mainMenuTemplate[3].submenu.push(
+            { role: 'togglefullscreen' },
             { type: 'separator' },
             { role: 'front' },
             { type: 'separator' },

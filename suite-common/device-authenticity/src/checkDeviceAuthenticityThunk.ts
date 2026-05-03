@@ -65,17 +65,25 @@ export const checkDeviceAuthenticityThunk = createThunk<
             getState(),
             Feature.deviceAuthenticityCheckTropic,
         );
+        const isMCURemotelyDisabled = selectIsFeatureDisabled(
+            getState(),
+            Feature.deviceAuthenticityCheckMCU,
+        );
         const isOverallValid = isDeviceAuthenticityValid({
             result: result.payload,
             isOptigaRemotelyDisabled,
             isTropicRemotelyDisabled,
+            isMCURemotelyDisabled,
         });
         const storedResult = { valid: isOverallValid, ...result.payload };
 
         // successful TrezorConnect call, but the signature authenticity validation failed
         if (!isOverallValid) {
             // to keep the notification short, display only the first error that failed
-            const error = result.payload.optigaResult.error ?? result.payload.tropicResult?.error;
+            const error =
+                result.payload.optigaResult.error ??
+                result.payload.tropicResult?.error ??
+                result.payload.mcuResult?.error;
             dispatch(
                 notificationsActions.addToast({
                     type: 'device-authenticity-error',

@@ -1,17 +1,24 @@
-import { Translation } from '@suite/intl';
+import { useEffect } from 'react';
+
+import { events } from '@suite/analytics';
+import { Translation, useTranslation } from '@suite/intl';
 import { splitYieldPendingTransaction } from '@suite-common/wallet-core';
 import { Banner, BulletList, Button, Column, Row, Text } from '@trezor/components';
 
 import { FormattedCryptoAmount } from 'src/components/suite/FormattedCryptoAmount';
+import { useAnalytics } from 'src/support/useAnalytics';
 
 import { useYieldSupplyContext } from './useYieldSupplyContext';
 import { YieldActionStep } from '../common/YieldActionStep';
 import { YieldActionStepWarning } from '../common/YieldActionStepWarning';
 import { YieldApproveModal } from '../common/YieldApproveModal';
 import { YieldApproveStep } from '../common/YieldApproveStep';
-import { YieldFlowComplete } from '../common/YieldFlowComplete';
+import { YieldFlowCompleteSupply } from '../common/YieldFlowCompleteSupply';
 
 export const YieldSupplyForm = () => {
+    const analytics = useAnalytics();
+    const { translationString } = useTranslation();
+
     const {
         account,
         token,
@@ -52,13 +59,99 @@ export const YieldSupplyForm = () => {
     const { approvalPendingTransaction, actionPendingTransaction: supplyPendingTransaction } =
         splitYieldPendingTransaction(pendingTransaction, 'supply');
 
+    // trigger success analytics event
+    useEffect(() => {
+        if (flow.currentStep === 'complete') {
+            analytics.report({
+                type: events.yieldSupplyEvent.name,
+                payload: {
+                    type: 'success',
+                    action: 'continue',
+                    networkSymbol: token.networkSymbol,
+                    contractAddress: token.contractAddress ?? undefined,
+                },
+            });
+        }
+    }, [flow.currentStep, analytics, token.networkSymbol, token.contractAddress]);
+
+    // trigger error analytics event
+    useEffect(() => {
+        if (errorMessage) {
+            analytics.report({
+                type: events.yieldSupplyEvent.name,
+                payload: {
+                    type: 'error',
+                    action: 'continue',
+                    networkSymbol: token.networkSymbol,
+                    contractAddress: token.contractAddress ?? undefined,
+                    errorMessage: translationString(errorMessage),
+                },
+            });
+        }
+    }, [analytics, errorMessage, token.networkSymbol, token.contractAddress, translationString]);
+
+    const handleOnApprove = () => {
+        analytics.report({
+            type: events.yieldSupplyEvent.name,
+            payload: {
+                type: 'approve',
+                action: 'continue',
+                networkSymbol: token.networkSymbol,
+                contractAddress: token.contractAddress ?? undefined,
+            },
+        });
+
+        submitApprove();
+    };
+
+    const handleOnRevoke = () => {
+        analytics.report({
+            type: events.yieldSupplyEvent.name,
+            payload: {
+                type: 'revoke',
+                action: 'continue',
+                networkSymbol: token.networkSymbol,
+                contractAddress: token.contractAddress ?? undefined,
+            },
+        });
+
+        submitRevoke();
+    };
+
+    const handleOnModify = () => {
+        analytics.report({
+            type: events.yieldSupplyEvent.name,
+            payload: {
+                type: 'modify',
+                action: 'continue',
+                networkSymbol: token.networkSymbol,
+                contractAddress: token.contractAddress ?? undefined,
+            },
+        });
+
+        enterModifyApproval();
+    };
+
+    const handleOnSupply = () => {
+        analytics.report({
+            type: events.yieldSupplyEvent.name,
+            payload: {
+                type: 'supply',
+                action: 'continue',
+                networkSymbol: token.networkSymbol,
+                contractAddress: token.contractAddress ?? undefined,
+            },
+        });
+
+        submitAction();
+    };
+
     return (
         <>
             <Column width="100%" alignItems="center">
                 <Column gap={24} width="100%" maxWidth={500}>
                     {flow.currentStep === 'complete' ? (
-                        <YieldFlowComplete
-                            flowType="supply"
+                        <YieldFlowCompleteSupply
                             apy={apy}
                             input={{
                                 token,
@@ -97,7 +190,7 @@ export const YieldSupplyForm = () => {
                                                     size="small"
                                                     intent="neutral"
                                                     priority="secondary"
-                                                    onClick={enterModifyApproval}
+                                                    onClick={handleOnModify}
                                                 >
                                                     <Translation id="TR_MODIFY" />
                                                 </Button>
@@ -130,8 +223,8 @@ export const YieldSupplyForm = () => {
                                         }
                                         pendingApproveTransaction={approvalPendingTransaction}
                                         onMaxClick={() => setAmountInput(maxAmount)}
-                                        onApprove={submitApprove}
-                                        onRevoke={submitRevoke}
+                                        onApprove={handleOnApprove}
+                                        onRevoke={handleOnRevoke}
                                         onPendingTxClick={openPendingTransaction}
                                     />
                                 </BulletList.Item>
@@ -164,7 +257,7 @@ export const YieldSupplyForm = () => {
                                             }
                                             pendingTransaction={supplyPendingTransaction}
                                             onMaxClick={() => setAmountInput(maxAmount)}
-                                            onSubmit={submitAction}
+                                            onSubmit={handleOnSupply}
                                             onPendingTxClick={openPendingTransaction}
                                         />
                                     )}

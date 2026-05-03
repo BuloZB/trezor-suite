@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 
+import { getCountryFlag } from '@suite-common/flags';
 import { type CountryChangeContext, events } from '@suite-native/analytics';
-import { Text } from '@suite-native/atoms';
+import { Flag, HStack, Text } from '@suite-native/atoms';
 import { useFormContext } from '@suite-native/forms';
 import { Translation, useTranslate } from '@suite-native/intl';
 import { useAnalytics } from '@suite-native/services';
@@ -35,6 +36,7 @@ export const CountryOfResidencePicker = ({ testID, context }: CountryOfResidence
 
     const { watch, setValue } = useFormContext<TradingLocationFormValues>();
     const selectedValue = watch('country');
+    const selectedFlag = getCountryFlag(selectedValue?.value);
 
     const setSelectedValue = useCallback(
         (value: TradingLocationFormValues['country']) => setValue('country', value),
@@ -63,17 +65,22 @@ export const CountryOfResidencePicker = ({ testID, context }: CountryOfResidence
                 noBottomBorder
             >
                 {selectedValue ? (
-                    <Text
-                        color="contentSecondary"
-                        variant="body-md"
+                    <HStack
+                        alignItems="center"
                         accessibilityLabel={translate(
                             'tradingResidence.locationSettings.selectedCountryOfResidence',
                         )}
-                        testID={valueTestID}
-                        numberOfLines={1}
                     >
-                        {selectedValue.shortLabel}
-                    </Text>
+                        {selectedFlag && <Flag country={selectedFlag} size={20} />}
+                        <Text
+                            color="contentSecondary"
+                            variant="body-md"
+                            numberOfLines={1}
+                            testID={valueTestID}
+                        >
+                            {selectedValue.codeAlpha3}
+                        </Text>
+                    </HStack>
                 ) : (
                     <Text
                         color="contentDisabled"

@@ -36,7 +36,13 @@ export type YieldApproveModalState = {
 };
 
 export type YieldPendingTransactionState = {
-    type: 'approve' | 'revoke' | 'revoke-only' | 'supply' | 'withdraw';
+    type: 'approve' | 'revoke' | 'revoke-only' | 'supply' | 'withdraw' | 'claim';
     txid: string;
     amount: string;
+};
+
+export type YieldFlowCompleteRewardItem = {
+    token: YieldFlowDisplayToken;
+    value: string;
+    fiatValue?: string | null;
 };

@@ -61,12 +61,12 @@ describe('Trade Sell [@androidOnly]', () => {
         });
 
         it('should request trezor connect before preview', async () => {
-            await tradingSellActions.selectCountry('Czechi', 'Czechia', '🇨🇿 CZE');
+            await tradingSellActions.selectCountry('Czechi', 'Czechia', 'CZE');
             await tradingSellActions.selectFiatCurrency('EUR');
             await tradingSellActions.selectSendAsset('USDC');
             await tradingSellActions.setSendCryptoAmount('55');
 
-            await tradingSellActions.scrollToLearnMoreLink();
+            await tradingSellActions.viewHowTradingWorks();
             await tradingSellActions.expectValidSellForm();
 
             await tradingSellActions.confirmTradingForm();
@@ -99,12 +99,12 @@ describe('Trade Sell [@androidOnly]', () => {
         });
 
         it('Basic sell USDC for EUR', async () => {
-            await tradingSellActions.selectCountry('Czechi', 'Czechia', '🇨🇿 CZE');
+            await tradingSellActions.selectCountry('Czechi', 'Czechia', 'CZE');
             await tradingSellActions.selectFiatCurrency('EUR');
             await tradingSellActions.selectSendAsset('USDC');
             await tradingSellActions.setSendCryptoAmount('55');
 
-            await tradingSellActions.scrollToLearnMoreLink();
+            await tradingSellActions.viewHowTradingWorks();
             await tradingSellActions.expectValidSellForm();
 
             await tradingSellActions.viewReceiveMethods();

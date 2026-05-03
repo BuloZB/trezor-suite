@@ -64,7 +64,11 @@ export const FiatCurrencySheet = memo(
                 ListEmptyComponent={<FiatCurrencyListEmptyComponent />}
                 handleComponent={renderHandle}
                 renderItem={({ value, ...rest }) => (
-                    <FiatCurrencyListItem {...rest} onPress={() => onFiatSelectCallback(value)} />
+                    <FiatCurrencyListItem
+                        {...rest}
+                        value={value}
+                        onPress={() => onFiatSelectCallback(value)}
+                    />
                 )}
                 data={filteredData}
                 keyExtractor={keyExtractor}

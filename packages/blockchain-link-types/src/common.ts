@@ -2,7 +2,7 @@ import type { SocksProxyAgentOptions } from 'socks-proxy-agent';
 
 import type { BaseCurrencyCode } from './baseCurrency';
 import type {
-    Token as BlockbookToken,
+    ContractInfoProtocols,
     TronAccountExtraData,
     TronChainExtraData,
 } from './blockbook-api';
@@ -326,7 +326,7 @@ export interface TokenInfo {
     accounts?: TokenAccount[];
     policyId?: string;
     fingerprint?: string;
-    erc4626?: BlockbookToken['erc4626'];
+    protocols?: ContractInfoProtocols;
 }
 
 /**

@@ -11,13 +11,12 @@ import {
     type YieldFlowDisplayToken,
     type YieldFlowToken,
     doTokensMatch,
+    getConvertedOutputTokenBalanceToInputTokenAmount,
+    getStablecoinYieldFlowKey,
 } from '@suite-common/wallet-core';
 import type { Account, TokenInfoBranded } from '@suite-common/wallet-types';
-import { getContractAddressForNetworkSymbol } from '@suite-common/wallet-utils';
+import { getApyPercent, getContractAddressForNetworkSymbol } from '@suite-common/wallet-utils';
 import type { TokenInfo } from '@trezor/connect';
-import { BigNumber } from '@trezor/utils';
-
-import { getApyPercent } from 'src/components/earn/utils/earnApyUtils';
 
 const hasTokenSymbol = (
     accountToken: NonNullable<Account['tokens']>[number],
@@ -47,53 +46,6 @@ const getMatchedAccountToken = ({
                 secondToken: token,
             }),
     );
-};
-
-const getConvertedOutputTokenBalanceToInputTokenAmount = ({
-    account,
-    vault,
-    matchedOutputToken,
-}: {
-    account: Account;
-    vault: YieldDto;
-    matchedOutputToken: TokenInfoBranded | undefined;
-}) => {
-    if (!matchedOutputToken) {
-        return '0';
-    }
-
-    if (
-        doTokensMatch({
-            networkSymbol: account.symbol,
-            firstToken: vault.outputToken,
-            secondToken: vault.token,
-        })
-    ) {
-        return matchedOutputToken.balance ?? '0';
-    }
-
-    const pricePerShareState = vault.state?.pricePerShareState;
-
-    if (
-        !pricePerShareState ||
-        !doTokensMatch({
-            networkSymbol: account.symbol,
-            firstToken: pricePerShareState.shareToken,
-            secondToken: vault.outputToken,
-        }) ||
-        !doTokensMatch({
-            networkSymbol: account.symbol,
-            firstToken: pricePerShareState.quoteToken,
-            secondToken: vault.token,
-        })
-    ) {
-        return '0';
-    }
-
-    return new BigNumber(matchedOutputToken.balance ?? '0')
-        .times(pricePerShareState.price)
-        .decimalPlaces(vault.token.decimals, BigNumber.ROUND_DOWN)
-        .toString();
 };
 
 type UseResolvedYieldFlowDataResult = {
@@ -186,13 +138,19 @@ export const useResolvedYieldFlowData = ({
 
     const suppliedAmount = vault
         ? getConvertedOutputTokenBalanceToInputTokenAmount({
-              account,
-              vault,
-              matchedOutputToken,
+              networkSymbol: account.symbol,
+              token: vault.token,
+              outputToken: vault.outputToken,
+              outputTokenBalance: matchedOutputToken?.balance,
+              pricePerShareState: vault.state?.pricePerShareState,
           })
         : '0';
 
-    const flowKey = `${account.key}:${routeParams.yieldId}:${resolvedContractAddress ?? ''}`;
+    const flowKey = getStablecoinYieldFlowKey({
+        accountKey: account.key,
+        tokenContract: resolvedContractAddress,
+        yieldId: routeParams.yieldId,
+    });
 
     const apy = vault?.rewardRate?.total != null ? getApyPercent(vault.rewardRate.total) : null;
 

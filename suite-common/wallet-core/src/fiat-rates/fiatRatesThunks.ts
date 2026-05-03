@@ -1,7 +1,11 @@
 import { fetchCurrentFiatRates, fetchLastWeekFiatRates } from '@suite-common/fiat-services';
 import { createThunk } from '@suite-common/redux-utils';
 import { selectIsSpecificCoinDefinitionKnown } from '@suite-common/token-definitions';
-import { getNetworkFeatures } from '@suite-common/wallet-config';
+import {
+    type BackendType,
+    type NetworkSymbol,
+    getNetworkFeatures,
+} from '@suite-common/wallet-config';
 import {
     type AccountKey,
     type FiatRatesResult,
@@ -9,6 +13,7 @@ import {
     type TickerId,
     type TickerResult,
     type Timestamp,
+    type TokenAddress,
     type WalletAccountTransaction,
     asTimestamp,
     toTokenAddress,
@@ -19,8 +24,9 @@ import {
     isTestnet,
 } from '@suite-common/wallet-utils';
 import type { BaseCurrencyCode } from '@trezor/blockchain-link-types';
+import TrezorConnect from '@trezor/connect';
 import { type TimerId, exhaustive } from '@trezor/type-utils';
-import { typedObjectKeys } from '@trezor/utils';
+import { BigNumber, typedObjectKeys } from '@trezor/utils';
 
 import { FIAT_RATES_MODULE_PREFIX, REFETCH_INTERVAL } from './fiatRatesConstants';
 import { selectTickersToBeUpdated } from './fiatRatesSelectors';
@@ -30,6 +36,85 @@ import {
     selectIsElectrumBackendSelected,
 } from '../blockchain/blockchainSelectors';
 import { selectTransactionsWithMissingRates } from '../transactions/transactionsSelectors';
+
+interface FetchErc4626DataProps {
+    coin: NetworkSymbol;
+    contract: TokenAddress;
+}
+
+const fetchErc4626Data = async ({ coin, contract }: FetchErc4626DataProps) => {
+    const response = await TrezorConnect.blockchainGetContractInfo({
+        coin,
+        contract,
+        protocols: ['erc4626'],
+    });
+
+    if (!response.success) {
+        throw new Error(`Error fetching ERC4626 token info for ${contract}`);
+    }
+
+    if (!response.payload.protocols?.erc4626) {
+        throw new Error(`ERC4626 token ${contract} is missing ERC4626 data`);
+    }
+
+    return response.payload.protocols.erc4626;
+};
+
+interface FetchErc4626FiatRateProps {
+    ticker: TickerId;
+    rateType: RateTypeWithoutHistoric;
+    baseCurrencyCode: BaseCurrencyCode;
+    backendType: BackendType | undefined;
+    skipCache: boolean;
+}
+
+const fetchErc4626FiatRate = async ({
+    ticker,
+    rateType,
+    baseCurrencyCode,
+    backendType,
+    skipCache,
+}: FetchErc4626FiatRateProps): Promise<FiatRatesResult> => {
+    if (!ticker.tokenAddress) {
+        throw new Error('Token address is missing from ERC4626 token');
+    }
+
+    const erc4626 = await fetchErc4626Data({ coin: ticker.symbol, contract: ticker.tokenAddress });
+
+    if (!erc4626.asset) {
+        throw new Error(`ERC4626 token ${ticker.tokenAddress} is missing underlying asset data`);
+    }
+
+    // convertToAssets1Share is raw underlying asset units per 1 whole vault share
+    if (!erc4626.convertToAssets1Share) {
+        throw new Error(`ERC4626 token ${ticker.tokenAddress} is missing convertToAssets1Share`);
+    }
+
+    const fetchFiatRatesFn =
+        rateType === 'current' ? fetchCurrentFiatRates : fetchLastWeekFiatRates;
+
+    const underlyingAssetRate = await fetchFiatRatesFn({
+        ticker: { symbol: ticker.symbol, tokenAddress: toTokenAddress(erc4626.asset.contract) },
+        localCurrency: baseCurrencyCode,
+        backendType,
+        skipCache,
+    });
+
+    if (!underlyingAssetRate?.rate) {
+        throw new Error(
+            `Failed to fetch underlying asset fiat rate for ERC4626 token ${erc4626.asset.contract}`,
+        );
+    }
+
+    // get exchange ratio
+    const exchangeRate = new BigNumber(erc4626.convertToAssets1Share).shiftedBy(
+        -erc4626.asset.decimals,
+    );
+    // calculate vault fiat rate
+    const vaultRate = new BigNumber(underlyingAssetRate.rate).multipliedBy(exchangeRate).toNumber();
+
+    return { rate: vaultRate, lastTickerTimestamp: underlyingAssetRate.lastTickerTimestamp };
+};
 
 type UpdateTxsFiatRatesThunkPayload = {
     accountKey: AccountKey;
@@ -124,6 +209,22 @@ export const updateFiatRatesThunk = createThunk<
                 throw new Error('Testnet');
             }
 
+            const backendType = selectActiveBackendType(getState(), ticker.symbol);
+
+            // fetch ERC4626 fiat rate from Blockbook
+            if (
+                ticker.protocols?.includes('erc4626') &&
+                (!backendType || backendType === 'blockbook')
+            ) {
+                return fetchErc4626FiatRate({
+                    ticker,
+                    rateType,
+                    baseCurrencyCode,
+                    backendType,
+                    skipCache,
+                });
+            }
+
             const hasCoinDefinitions = getNetworkFeatures(ticker.symbol).includes(
                 'coin-definitions',
             );
@@ -138,8 +239,6 @@ export const updateFiatRatesThunk = createThunk<
                     throw new Error('Missing token definition');
                 }
             }
-
-            const backendType = selectActiveBackendType(getState(), ticker.symbol);
 
             const rate = await ((): Promise<FiatRatesResult | null> => {
                 switch (rateType) {

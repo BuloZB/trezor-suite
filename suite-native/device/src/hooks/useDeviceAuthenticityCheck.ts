@@ -40,6 +40,9 @@ export const useDeviceAuthenticityCheck = () => {
     const isTropicRemotelyDisabled = useSelector((state: MessageSystemRootState) =>
         selectIsFeatureDisabled(state, Feature.deviceAuthenticityCheckTropic),
     );
+    const isMCURemotelyDisabled = useSelector((state: MessageSystemRootState) =>
+        selectIsFeatureDisabled(state, Feature.deviceAuthenticityCheckMCU),
+    );
     const analytics = useAnalytics();
     const device = useSelector(selectSelectedDevice);
     const isDeviceBootloaderUnlocked = !!device && !device?.features?.bootloader_locked;
@@ -87,11 +90,17 @@ export const useDeviceAuthenticityCheck = () => {
                 result: result.payload,
                 isOptigaRemotelyDisabled,
                 isTropicRemotelyDisabled,
+                isMCURemotelyDisabled,
             });
 
             return { valid: isOverallValid, ...result.payload };
         },
-        [isDeviceBootloaderUnlocked, isOptigaRemotelyDisabled, isTropicRemotelyDisabled],
+        [
+            isDeviceBootloaderUnlocked,
+            isOptigaRemotelyDisabled,
+            isTropicRemotelyDisabled,
+            isMCURemotelyDisabled,
+        ],
     );
 
     const handleDeviceAccessError = useCallback(
@@ -199,6 +208,9 @@ export const useDeviceAuthenticityCheck = () => {
                 }
                 if ('tropicResult' in storedResult && storedResult.tropicResult?.error) {
                     reportCheckResult('compromised', storedResult.tropicResult.error, storedResult);
+                }
+                if ('mcuResult' in storedResult && storedResult.mcuResult?.error) {
+                    reportCheckResult('compromised', storedResult.mcuResult.error, storedResult);
                 }
             } else if (result.success) {
                 handleSuccess();

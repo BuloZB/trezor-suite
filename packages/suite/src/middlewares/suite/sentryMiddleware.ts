@@ -149,6 +149,9 @@ const sentryMiddleware =
                 if ('tropicResult' in result && result.tropicResult?.error) {
                     reportToSentry(result.tropicResult.error);
                 }
+                if ('mcuResult' in result && result.mcuResult?.error) {
+                    reportToSentry(result.mcuResult.error);
+                }
                 break;
             }
             default:

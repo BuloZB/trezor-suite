@@ -4,16 +4,19 @@ import type {
     AvailableVsCurrencies,
     Address as BlockbookAddress,
     Block as BlockbookBlock,
+    ContractInfoProtocol as BlockbookContractInfoProtocol,
     Token as BlockbookToken,
     TokenTransfer as BlockbookTokenTransfer,
     Tx as BlockbookTx,
     Utxo as BlockbookUtxo,
+    ContractInfoResult,
     FiatTicker,
     MempoolTxidFilterEntries,
     WsAccountUtxoReq,
     WsBlockFilterReq,
     WsBlockFiltersBatchReq,
     WsBlockHashRes,
+    WsContractInfoReq,
     WsEstimateFeeRes,
     WsInfoRes,
     WsMempoolFiltersReq,
@@ -165,6 +168,11 @@ export interface FiatRatesForTimestamp {
 
 export type AvailableCurrencies = Omit<RequiredKey<AvailableVsCurrencies, 'ts'>, 'error'>;
 
+export type ContractInfoProtocol = BlockbookContractInfoProtocol;
+
+export type ContractInfoParams = WsContractInfoReq;
+export type ContractInfoResponse = ContractInfoResult;
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare function FSend(method: 'getInfo'): Promise<ServerInfo>;
 declare function FSend(method: 'getBlockHash', params: { height: number }): Promise<BlockHash>;
@@ -206,6 +214,10 @@ declare function FSend(
 ): Promise<FiatRatesForTimestamp>;
 declare function FSend(method: 'estimateFee', params: EstimateFeeParams): Promise<Fee>;
 declare function FSend(method: 'rpcCall', params: RpcCallParams): Promise<{ data: string }>;
+declare function FSend(
+    method: 'getContractInfo',
+    params: ContractInfoParams,
+): Promise<ContractInfoResponse>;
 declare function FSend(
     method: 'subscribeAddresses',
     params: { addresses: string[] },

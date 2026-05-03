@@ -49,7 +49,7 @@ export default class AuthenticateDevice extends AbstractMethod<
         const config = this.params.config || deviceAuthenticityConfig;
         const blacklistConfig = this.params.blacklistConfig || deviceAuthenticityBlacklistConfig;
         const commonParams = {
-            data: prepareDeviceAuthenticityData({ payload: challenge }),
+            signedData: prepareDeviceAuthenticityData({ payload: challenge }),
             deviceModel: this.getDevice().features.internal_model,
             allowDebugKeys: this.params.allowDebugKeys,
             config,
@@ -75,15 +75,31 @@ export default class AuthenticateDevice extends AbstractMethod<
             if (isAvailable) {
                 return await verifyAuthenticityProof({ ...commonParams, certificates, signature });
             }
-            if (isRequired) {
-                return { valid: false, error: 'RESPONSE_PAYLOAD_MISSING' };
+
+            return isRequired ? { valid: false, error: 'RESPONSE_PAYLOAD_MISSING' } : null;
+        };
+
+        const getMCUResult = async (): Promise<VerifyAuthenticityProofResult | null> => {
+            const { mcu_signature: signature, mcu_certificates: certificates } = message;
+            const isAvailable = signature !== undefined && certificates.length > 0;
+            const isRequired = !this.getDevice().unavailableCapabilities['mcuDeviceAuthentication'];
+            if (isAvailable) {
+                return await verifyAuthenticityProof({
+                    ...commonParams,
+                    certificates,
+                    signature,
+                });
             }
 
-            return null;
+            return isRequired ? { valid: false, error: 'RESPONSE_PAYLOAD_MISSING' } : null;
         };
-        const optigaResult = await getOptigaResult();
-        const tropicResult = await getTropicResult();
 
-        return { optigaResult, tropicResult };
+        const [optigaResult, tropicResult, mcuResult] = await Promise.all([
+            getOptigaResult(),
+            getTropicResult(),
+            getMCUResult(),
+        ]);
+
+        return { optigaResult, tropicResult, mcuResult };
     }
 }

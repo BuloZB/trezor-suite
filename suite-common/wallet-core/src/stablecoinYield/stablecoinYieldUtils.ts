@@ -5,6 +5,7 @@ import {
     parseUnsignedEvmTransaction,
 } from '@suite-common/earn-stablecoin-api';
 import type { NetworkSymbol } from '@suite-common/wallet-config';
+import { type AccountKey } from '@suite-common/wallet-types';
 import {
     getContractAddressForNetworkSymbol,
     getEvmApprovalTxData,
@@ -37,6 +38,31 @@ type WithdrawRequestAmountParams = {
     receiptToken: TokenLike;
     pricePerShare?: string | number;
 };
+
+type ConvertOutputTokenBalanceParams = {
+    networkSymbol: NetworkSymbol;
+    token: TokenLike;
+    outputToken?: TokenLike;
+    outputTokenBalance?: string | null;
+    pricePerShareState?: {
+        shareToken: TokenLike;
+        quoteToken: TokenLike;
+        price: string | number;
+    };
+};
+
+type GetStablecoinYieldFlowKeyParams = {
+    accountKey: AccountKey;
+    tokenContract?: string | null;
+    yieldId: string;
+};
+
+export const getStablecoinYieldFlowKey = ({
+    accountKey,
+    tokenContract,
+    yieldId,
+}: GetStablecoinYieldFlowKeyParams) =>
+    `${accountKey}:${yieldId}:${tokenContract?.toLowerCase() ?? ''}`;
 
 export const splitYieldPendingTransaction = (
     pendingTransaction: YieldPendingTransactionState | null,
@@ -111,6 +137,43 @@ export const getWithdrawRequestAmount = ({
     return new BigNumber(amount)
         .div(pricePerShare)
         .decimalPlaces(receiptToken.decimals, BigNumber.ROUND_DOWN)
+        .toString();
+};
+
+export const getConvertedOutputTokenBalanceToInputTokenAmount = ({
+    networkSymbol,
+    token,
+    outputToken,
+    outputTokenBalance,
+    pricePerShareState,
+}: ConvertOutputTokenBalanceParams) => {
+    if (!outputTokenBalance) {
+        return '0';
+    }
+
+    if (doTokensMatch({ networkSymbol, firstToken: outputToken, secondToken: token })) {
+        return outputTokenBalance;
+    }
+
+    if (
+        !pricePerShareState ||
+        !doTokensMatch({
+            networkSymbol,
+            firstToken: pricePerShareState.shareToken,
+            secondToken: outputToken,
+        }) ||
+        !doTokensMatch({
+            networkSymbol,
+            firstToken: pricePerShareState.quoteToken,
+            secondToken: token,
+        })
+    ) {
+        return '0';
+    }
+
+    return new BigNumber(outputTokenBalance)
+        .times(pricePerShareState.price)
+        .decimalPlaces(token.decimals, BigNumber.ROUND_DOWN)
         .toString();
 };
 
