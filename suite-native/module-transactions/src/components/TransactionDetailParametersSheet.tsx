@@ -144,6 +144,17 @@ export const TransactionDetailParametersSheet = ({
                             </Box>
                         </Box>
                     </TransactionDetailRow>
+
+                    {transaction.tronSpecific?.note && (
+                        <TransactionDetailRow
+                            title={translate(
+                                'transactions.TransactionDetailScreen.parametersSheet.tronNote',
+                            )}
+                        >
+                            <Text>{transaction.tronSpecific.note}</Text>
+                        </TransactionDetailRow>
+                    )}
+
                     <TransactionDetailRow
                         title={translate(
                             'transactions.TransactionDetailScreen.parametersSheet.confirmations',
@@ -157,6 +168,42 @@ export const TransactionDetailParametersSheet = ({
                         </Box>
                     </TransactionDetailRow>
                 </Card>
+
+                {transaction.solanaSpecific?.memo && (
+                    <Card>
+                        <TransactionDetailRow
+                            title={translate(
+                                'transactions.TransactionDetailScreen.parametersSheet.memo',
+                            )}
+                        >
+                            <Box
+                                flexDirection="row"
+                                alignItems="center"
+                                paddingLeft="sp16"
+                                justifyContent="flex-end"
+                            >
+                                <Text numberOfLines={1} style={{ flexShrink: 1 }}>
+                                    {transaction.solanaSpecific.memo}
+                                </Text>
+                                <Box marginLeft="sp8">
+                                    <IconButton
+                                        iconName="copy"
+                                        onPress={() =>
+                                            copyToClipboard(
+                                                transaction.solanaSpecific!.memo!,
+                                                translate(
+                                                    'transactions.TransactionDetailScreen.parametersSheet.memoCopied',
+                                                ),
+                                            )
+                                        }
+                                        intent="neutral"
+                                        priority="secondary"
+                                    />
+                                </Box>
+                            </Box>
+                        </TransactionDetailRow>
+                    </Card>
+                )}
 
                 {parametersCardIsDisplayed && (
                     <Card>

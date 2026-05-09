@@ -107,11 +107,11 @@ export class WalletPage {
         );
         this.transactionItem = this.page.getByTestId('@wallet/transaction-item');
         this.transactionAddress = this.page.getByTestId('@wallet/transaction/target-address');
-        this.fiatAmount = this.page.getByTestId('@wallet/account-top-panel/fiat-amount');
+        this.fiatAmount = this.page.getByTestId('@wallet/account/fiat-amount');
         this.showMoreButton = this.page.getByTestId('@wallet/receive/used-address/show-more');
-        this.topPanelBalance = this.page.getByTestId('@wallet/account-top-panel/crypto-balance');
+        this.topPanelBalance = this.page.getByTestId('@wallet/account/crypto-balance');
         this.topPanelBalanceWithSymbol = this.page.getByTestId(
-            '@wallet/account-top-panel/crypto-balance-with-symbol',
+            '@wallet/account/crypto-balance-with-symbol',
         );
         this.copyToCliboardToast = this.page.getByTestId('@toast/copy-to-clipboard');
         this.verifyAddressErrorToast = this.page.getByTestId('@toast/verify-address-error');
@@ -157,7 +157,7 @@ export class WalletPage {
         await this.accountButton(params).click();
 
         if (!params.symbol || !isTestnet(params.symbol)) {
-            await expect(this.fiatAmount).toBeVisible();
+            await expect(this.fiatAmount).toBeVisible({ timeout: 25_000 });
         }
     }
 

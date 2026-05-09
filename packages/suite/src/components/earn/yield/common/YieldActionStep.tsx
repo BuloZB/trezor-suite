@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 
 import { Translation } from '@suite/intl';
 import type {
+    YieldActionFlowType,
     YieldFlowDisplayToken,
-    YieldFlowType,
     YieldPendingTransactionState,
 } from '@suite-common/wallet-core';
 import { Button, Column } from '@trezor/components';
@@ -12,7 +12,7 @@ import { YieldAmountCard } from './YieldAmountCard';
 import { YieldPendingTransaction } from './YieldPendingTransaction';
 
 const actionStepTranslationMap = {
-    supply: {
+    deposit: {
         amountLabelTranslationId: 'TR_EARN_YIELD_AMOUNT_TO_SUPPLY',
         submitTranslationId: 'TR_EARN_YIELD_SUPPLY',
         balanceLabelTranslationId: 'TR_BALANCE',
@@ -25,11 +25,13 @@ const actionStepTranslationMap = {
 } as const;
 
 export type YieldActionStepProps = {
-    flowType: YieldFlowType;
+    flowType: YieldActionFlowType;
     token: YieldFlowDisplayToken;
     summaryValue: ReactNode;
     isDisabled?: boolean;
+    isPending?: boolean;
     warning?: ReactNode;
+    networkFeeWarning?: ReactNode;
     pendingTransaction?: YieldPendingTransactionState;
     onMaxClick?: () => void;
     onSubmit: () => void;
@@ -41,7 +43,9 @@ export const YieldActionStep = ({
     token,
     summaryValue,
     isDisabled = false,
+    isPending = false,
     warning,
+    networkFeeWarning,
     pendingTransaction,
     onMaxClick,
     onSubmit,
@@ -66,11 +70,14 @@ export const YieldActionStep = ({
                 isDisabled={!!pendingTransaction}
             />
 
+            {networkFeeWarning}
+
             <Button
                 size="large"
                 width="100%"
                 onClick={onSubmit}
-                isDisabled={isDisabled || !!pendingTransaction}
+                isDisabled={isDisabled}
+                isLoading={isPending}
             >
                 <Translation id={submitTranslationId} />
             </Button>

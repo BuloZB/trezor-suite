@@ -1,7 +1,7 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { IntlProvider } from 'react-intl';
 
-import { selectLanguage } from '@suite/settings';
+import { selectLanguage, selectShowTranslationKeys } from '@suite/settings';
 import type { Locale } from '@suite-common/suite-types';
 import { isDevEnv } from '@suite-common/suite-utils';
 import enMessages from '@trezor/suite-data/files/translations/en-US.json';
@@ -17,7 +17,9 @@ const useFetchMessages = (locale: Locale) => {
             const messages =
                 locale === 'en-US'
                     ? {}
-                    : await import(`@trezor/suite-data/files/translations/${locale}.json`)
+                    : await import(
+                          /* webpackChunkName: "translations/[request]" */ `@trezor/suite-data/files/translations/${locale}.json`
+                      )
                           .then(res => res.default)
                           .catch(() => ({}));
             if (!active) return;
@@ -39,12 +41,18 @@ interface ConnectedIntlProviderProps {
 
 export const ConnectedIntlProvider = ({ children }: ConnectedIntlProviderProps) => {
     const locale = useSelector(selectLanguage);
+    const showTranslationKeys = useSelector(selectShowTranslationKeys);
     const messages = useFetchMessages(locale);
+    const effectiveMessages = useMemo(() => {
+        if (!showTranslationKeys) return messages;
+
+        return Object.fromEntries(Object.keys(messages).map(id => [id, id]));
+    }, [messages, showTranslationKeys]);
 
     return (
         <IntlProvider
             locale={locale}
-            messages={messages}
+            messages={effectiveMessages}
             onError={err => {
                 if (isDevEnv) {
                     // ignore, this expected

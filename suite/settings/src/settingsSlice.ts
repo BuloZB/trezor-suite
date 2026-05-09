@@ -5,7 +5,6 @@ import { type OAuthServerEnvironment } from '@suite-common/metadata-types';
 import { createSliceWithExtraDeps } from '@suite-common/redux-utils';
 import { type Locale } from '@suite-common/suite-types';
 import type { InvityServerEnvironment } from '@suite-common/trading';
-import { AddressDisplayOptions } from '@suite-common/wallet-types';
 import { type ConnectSettings } from '@trezor/connect';
 import { isWeb } from '@trezor/env-utils';
 import { type SuiteThemeVariant } from '@trezor/suite-desktop-api';
@@ -20,6 +19,7 @@ export interface DebugModeOptions {
     isUnlockedBootloaderAllowed: boolean;
     showConnectLogs: boolean;
     isN4w1BackupEnabled: boolean;
+    showTranslationKeys: boolean;
 }
 
 export interface AutodetectSettings {
@@ -44,7 +44,6 @@ export interface SuiteSettingsState {
         firmwareHash: boolean;
         deviceMeta: boolean;
     };
-    addressDisplayType: AddressDisplayOptions;
     experimental?: ExperimentalFeature[];
     sidebarWidth: number;
     isCoinsFilterVisible: boolean;
@@ -78,12 +77,12 @@ export const suiteSettingsInitialState: SuiteSettingsState = {
         isUnlockedBootloaderAllowed: false,
         showConnectLogs: false,
         isN4w1BackupEnabled: false,
+        showTranslationKeys: false,
     },
     autodetect: {
         language: true,
         theme: true,
     },
-    addressDisplayType: AddressDisplayOptions.CHUNKED,
     sidebarWidth: SIDEBAR_WIDTH_NUMERIC,
     isCoinsFilterVisible: false,
     suiteSyncRelayUrl: null,
@@ -108,12 +107,6 @@ const suiteSettingsSlice = createSliceWithExtraDeps({
         },
         setTheme: (state, { payload }: PayloadAction<SuiteSettingsState['theme']['variant']>) => {
             state.theme.variant = payload;
-        },
-        setAddressDisplayType: (
-            state,
-            { payload }: PayloadAction<SuiteSettingsState['addressDisplayType']>,
-        ) => {
-            state.addressDisplayType = payload;
         },
         setAutodetect: (state, { payload }: PayloadAction<Partial<AutodetectSettings>>) => {
             state.autodetect = { ...state.autodetect, ...payload };

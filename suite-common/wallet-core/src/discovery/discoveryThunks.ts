@@ -7,6 +7,7 @@ import {
     selectDevices,
     selectEntropyCheckResultByDeviceId,
     selectSelectedDevice,
+    shouldDeviceBeRemembered,
 } from '@suite-common/device';
 import {
     type AnyAction,
@@ -137,6 +138,7 @@ export const applyDeviceStatesThunk = createThunk<
 
             // now we expect that there is exactly one device without state - meaning that we want to update its state
             const isAutoEjectEnabled = selectIsDeviceAutoEjectEnabled(getState());
+            const remember = shouldDeviceBeRemembered({ isAutoEjectEnabled, device });
 
             if (devicesByPathWithoutState.length === 1) {
                 dispatch(
@@ -144,18 +146,26 @@ export const applyDeviceStatesThunk = createThunk<
                         device,
                         state: newDeviceState,
                         useEmptyPassphrase,
-                        isAutoEjectEnabled,
                     }),
                 );
+                dispatch(deviceActions.setRememberDevice({ device, remember }));
+
+                // select the device after deviceReducer updates it (it's a new object reference)
+                const newlyAddedDevice = selectDeviceByStaticSessionId(getState(), staticSessionId);
+                if (newlyAddedDevice === undefined) {
+                    return rejectWithValue('applyDeviceStatesThunk: newly added device not found');
+                }
+
+                return fulfillWithValue({ device: newlyAddedDevice });
             } else {
                 dispatch(
                     deviceActions.addAuthorizedDevice({
                         device,
                         state: newDeviceState,
                         useEmptyPassphrase,
-                        isAutoEjectEnabled,
                     }),
                 );
+                dispatch(deviceActions.setRememberDevice({ device, remember }));
 
                 // select the device after deviceReducer updates it (it's a new object reference)
                 const newlyAddedDevice = selectDeviceByStaticSessionId(getState(), staticSessionId);
@@ -163,9 +173,9 @@ export const applyDeviceStatesThunk = createThunk<
                     return rejectWithValue('applyDeviceStatesThunk: newly added device not found');
                 }
                 dispatch(selectDeviceThunk({ device: newlyAddedDevice }));
-            }
 
-            return fulfillWithValue({ device });
+                return fulfillWithValue({ device: newlyAddedDevice });
+            }
         } catch (error) {
             console.error('applyDeviceStatesThunk error', error);
 
@@ -724,13 +734,11 @@ export const runAdditionalDiscoveryThunk = createThunk(
         assertStaticSessionId(deviceStateResponse.payload.state);
 
         if (device.useEmptyPassphrase) {
-            const isAutoEjectEnabled = selectIsDeviceAutoEjectEnabled(getState());
             dispatch(
                 deviceActions.setDeviceState({
                     device,
                     state: deviceStateResponse.payload.state,
                     useEmptyPassphrase: device.useEmptyPassphrase,
-                    isAutoEjectEnabled,
                 }),
             );
         }
@@ -764,8 +772,17 @@ export const runAdditionalDiscoveryThunk = createThunk(
 
         // have Connect check the discovered account with persisted xpub hashes, but those are valid only for standard wallet
         const entropyCheckResult = selectEntropyCheckResultByDeviceId(getState(), device.id);
+        // NOTE: pass only staticSessionId (not the full updatedDevice) to avoid overwriting the freshly-derived
+        // sessionId in Connect's in-memory Device cache with the stale value stored in Redux state.
+        // Connect's setState merge logic preserves the up-to-date sessionId when only staticSessionId is provided.
+        // This mirrors the behaviour of runDiscoveryThunk and prevents repeated passphrase prompts.
         const result = await TrezorConnect.discoverAccounts({
-            device: updatedDevice,
+            device: {
+                path: updatedDevice.path,
+                instance: updatedDevice.instance,
+                state: { staticSessionId },
+                useEmptyPassphrase: updatedDevice.useEmptyPassphrase,
+            },
             coins: accountsParam,
             entropyCheckResult,
         });

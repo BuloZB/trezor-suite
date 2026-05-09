@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 
 import { Translation } from '@suite/intl';
 import { goto } from '@suite/router';
+import { selectIsDebugModeActive } from '@suite/settings';
 import { Context } from '@suite-common/message-system';
-import { NORMAL_ACCOUNT_TYPE } from '@suite-common/wallet-config';
+import { NORMAL_ACCOUNT_TYPE, isEarnYieldClaimSupported } from '@suite-common/wallet-config';
 import { selectVisibleDeviceAccounts } from '@suite-common/wallet-core';
 import { Button, Card, Column, Table } from '@trezor/components';
 
@@ -33,6 +34,7 @@ export const EarnYieldTable = () => {
         useMessageSystemEarnDashboard('yield');
     const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
 
+    const isDebugMode = useSelector(selectIsDebugModeActive);
     const visibleAccounts = useSelector(selectVisibleDeviceAccounts);
     const visibleAccountSymbols = useMemo(() => {
         const normalAccounts = visibleAccounts.filter(
@@ -66,28 +68,41 @@ export const EarnYieldTable = () => {
     const merkleRewardsSources = useMemo(
         () =>
             yieldAccountOpportunities.flatMap(opportunity => {
-                if (!opportunity.hasVaultPosition || !opportunity.account) {
+                const { networkSymbol, account } = opportunity;
+                if (
+                    !(
+                        isEarnYieldClaimSupported(networkSymbol, { isDebugMode }) &&
+                        account &&
+                        account.networkType === 'ethereum'
+                    )
+                ) {
+                    return [];
+                }
+
+                // account with nonce 1 sent only 1 tx (when user supplies, first tx is approval)
+                const isEmptyAccount = Number(account?.misc?.nonce ?? 0) <= 1;
+
+                if (isEmptyAccount) {
                     return [];
                 }
 
                 return [
                     {
-                        networkSymbol: opportunity.networkSymbol,
-                        address: opportunity.account.descriptor,
+                        networkSymbol,
+                        address: account.descriptor,
                     },
                 ];
             }),
-        [yieldAccountOpportunities],
+        [yieldAccountOpportunities, isDebugMode],
     );
     const { merkleRewardsQuery } = useMerkleRewards(merkleRewardsSources);
     const { rewards } = merkleRewardsQuery.data;
-    const isClaimDisabled =
-        !merkleRewardsQuery.isSuccess || !merkleRewardsQuery.data.totalRewardsToClaim.value.gt(0);
     const claimableAccounts = useMemo<EarnYieldClaimableAccount[]>(
         () =>
             merkleRewardsQuery.isSuccess ? getClaimableAccounts({ rewards, visibleAccounts }) : [],
         [merkleRewardsQuery.isSuccess, rewards, visibleAccounts],
     );
+    const isClaimDisabled = !merkleRewardsQuery.isSuccess || claimableAccounts.length === 0;
 
     const badge = getEarnDashboardBadgeState({
         isSectionActive: !isYieldDashboardDisabled && isYieldActive,
@@ -123,19 +138,23 @@ export const EarnYieldTable = () => {
                     <EarnFeatureDisabledBanner content={content} />
                 ) : (
                     <Column gap={16} alignItems="center">
-                        <EarnYieldClaimRewardsBanner
-                            value={merkleRewardsQuery.data.totalRewardsToClaim.value}
-                            currency={merkleRewardsQuery.data.totalRewardsToClaim.currency}
-                            isValueLoading={merkleRewardsQuery.isLoading}
-                            isClaimDisabled={isClaimDisabled}
-                            onClaim={() => setIsClaimModalOpen(true)}
-                        />
-                        {isClaimModalOpen && (
-                            <EarnYieldClaimSelectAccountModal
-                                claimableAccounts={claimableAccounts}
-                                onSelect={handleClaimableAccountSelect}
-                                onClose={() => setIsClaimModalOpen(false)}
-                            />
+                        {(isYieldActive || claimableAccounts.length > 0) && (
+                            <>
+                                <EarnYieldClaimRewardsBanner
+                                    value={merkleRewardsQuery.data.totalRewardsToClaim.value}
+                                    currency={merkleRewardsQuery.data.totalRewardsToClaim.currency}
+                                    isValueLoading={merkleRewardsQuery.isLoading}
+                                    isClaimDisabled={isClaimDisabled}
+                                    onClaim={() => setIsClaimModalOpen(true)}
+                                />
+                                {isClaimModalOpen && (
+                                    <EarnYieldClaimSelectAccountModal
+                                        claimableAccounts={claimableAccounts}
+                                        onSelect={handleClaimableAccountSelect}
+                                        onClose={() => setIsClaimModalOpen(false)}
+                                    />
+                                )}
+                            </>
                         )}
                         <Card paddingType="none">
                             <Table isRowHighlightedOnHover margin={{ top: 8 }}>

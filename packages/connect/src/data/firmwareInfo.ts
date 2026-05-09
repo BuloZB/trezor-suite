@@ -21,7 +21,9 @@ import {
 import { getIntegerInRangeFromString, removeTrailingSlashes, versionUtils } from '@trezor/utils';
 import type { VersionArray } from '@trezor/utils/src/versionUtils';
 
-import { DataManager } from './DataManager';
+import * as firmwareReleaseStore from './firmwareReleaseStore';
+import * as localFirmwareStore from './localFirmwareStore';
+import * as settingsStore from './settingsStore';
 import { getReleaseAsset, getReleasesAssetByDeviceModelAndFirmwareType } from '../utils/assetUtils';
 import { httpRequest } from '../utils/assets';
 import { getOnlineFirmwareBaseUrl } from '../utils/firmwareReleaseConfigUtils';
@@ -39,7 +41,7 @@ const getBundledFirmwareVersion = (
     deviceModel: DeviceModelInternal,
     firmwareType: FirmwareType,
 ): string | undefined => {
-    const localFirmwareReleaseConfig = DataManager.getLocalFirmwareReleaseConfig();
+    const localFirmwareReleaseConfig = firmwareReleaseStore.getLocal();
     const modelReleases = localFirmwareReleaseConfig.releases[deviceModel];
     const bundledRelease = modelReleases?.[firmwareType];
     if (!bundledRelease) {
@@ -81,9 +83,7 @@ const getOnlineReleaseByPath = async (releasePath: string) => {
         - test-unsigned-stable https://data.trezor.io/dev/firmware/releases/unsigned-stable/t3t1/universal/t3t1-2.8.10-universal.json
         - localhost-unsigned http://localhost:3000/firmware/unsigned/t3t1/universal/t3t1-2.8.10-universal.json
      */
-    const onlineFirmwareBaseUrl = getOnlineFirmwareBaseUrl(
-        DataManager.getSettings('firmwareChannel'),
-    );
+    const onlineFirmwareBaseUrl = getOnlineFirmwareBaseUrl(settingsStore.get('firmwareChannel'));
     const url = `${onlineFirmwareBaseUrl.BASE_URL}/${releasePath}`;
 
     const response = await httpRequest(url, 'json', {
@@ -103,9 +103,7 @@ const getOnlineReleasePath = (
     firmwareVersion: VersionArray,
     firmwareType: FirmwareType,
 ): string => {
-    const onlineFirmwareBaseUrl = getOnlineFirmwareBaseUrl(
-        DataManager.getSettings('firmwareChannel'),
-    );
+    const onlineFirmwareBaseUrl = getOnlineFirmwareBaseUrl(settingsStore.get('firmwareChannel'));
     const firmwareTypeFileString =
         firmwareType === FirmwareType.BitcoinOnly ? 'bitcoinonly' : 'universal';
     const relaseJsonFilename = `${deviceModel.toLowerCase()}-${firmwareVersion.join('.')}-${firmwareTypeFileString}.json`;
@@ -137,7 +135,7 @@ export const getReleaseConfig = (
     if (internal_model === DeviceModelInternal.UNKNOWN) {
         return undefined;
     }
-    const firmwareReleaseConfig = DataManager.getFirmwareReleaseConfig();
+    const firmwareReleaseConfig = firmwareReleaseStore.getReleases();
 
     if (!firmwareReleaseConfig) {
         throw new Error('Firmware release config not loaded.');
@@ -179,9 +177,9 @@ export const getReleaseByVersion = async (
 
     const releaseName = buildLocalReleaseName(firmwareType, deviceModel, firmwareVersion);
 
-    const { firmwareDir, firmwareList } = DataManager.getLocalFirmwares();
+    const { firmwareDir, firmwareList } = localFirmwareStore.get();
     if (
-        isFirmwareCacheUsedForSelectedSource(DataManager.getSettings('firmwareChannel')) &&
+        isFirmwareCacheUsedForSelectedSource(settingsStore.get('firmwareChannel')) &&
         firmwareList.includes(releaseName)
     ) {
         const localReleasePath = `${firmwareDir}${releaseName}`;
@@ -288,7 +286,7 @@ export const initializeFirmwareConfig = async (
     }
 
     // We had some issue getting remote so we use local data.
-    const localFirmwareReleaseConfig = DataManager.getLocalFirmwareReleaseConfig();
+    const localFirmwareReleaseConfig = firmwareReleaseStore.getLocal();
     const localReleases = createLocalFirmwareConfig(localFirmwareReleaseConfig);
 
     return {
@@ -298,7 +296,7 @@ export const initializeFirmwareConfig = async (
 };
 
 export const getLanguage = (languageBinPath: string) => {
-    const baseUrl = getOnlineFirmwareBaseUrl(DataManager.getSettings('firmwareChannel'));
+    const baseUrl = getOnlineFirmwareBaseUrl(settingsStore.get('firmwareChannel'));
     const url = `${baseUrl.BASE_URL}/${languageBinPath}`;
 
     return httpRequest(url, 'binary');
@@ -319,7 +317,7 @@ const getCurrentVersion = (features: Features): CurrentVersion => {
 };
 
 const getIntermediaryMessageRelease = (features: Features) => {
-    const config = DataManager.getFirmwareIntermediaryReleaseConfig();
+    const config = firmwareReleaseStore.getIntermediary();
     if (!config) {
         throw new Error('Firmware release config not loaded.');
     }
@@ -353,7 +351,7 @@ const getIsBitcoinOnlyAvailable = (features: Features) => {
         return false;
     }
 
-    const firmwareReleaseConfig = DataManager.getFirmwareReleaseConfig();
+    const firmwareReleaseConfig = firmwareReleaseStore.getReleases();
 
     if (!firmwareReleaseConfig) {
         throw new Error('Firmware release config not loaded.');
@@ -623,7 +621,7 @@ export const getFirmwareLocation = ({
 
     const versionString = firmwareVersion.join('.');
 
-    const bundledBaseUrl = removeTrailingSlashes(DataManager.getSettings('binFilesBaseUrl'));
+    const bundledBaseUrl = removeTrailingSlashes(settingsStore.get('binFilesBaseUrl'));
     // Here we care just to know if the binaries are bundled, in order to use them locally instead of fetching them
     // if they are in default remote we ignore it.
     const isRealBundled = !bundledBaseUrl.includes('data.trezor.io');
@@ -640,9 +638,9 @@ export const getFirmwareLocation = ({
         };
     }
 
-    const { firmwareDir, firmwareList } = DataManager.getLocalFirmwares();
+    const { firmwareDir, firmwareList } = localFirmwareStore.get();
     if (
-        isFirmwareCacheUsedForSelectedSource(DataManager.getSettings('firmwareChannel')) &&
+        isFirmwareCacheUsedForSelectedSource(settingsStore.get('firmwareChannel')) &&
         firmwareList.includes(firmwareName)
     ) {
         return {
@@ -651,7 +649,7 @@ export const getFirmwareLocation = ({
         };
     }
 
-    const onlineBaseUrl = getOnlineFirmwareBaseUrl(DataManager.getSettings('firmwareChannel'));
+    const onlineBaseUrl = getOnlineFirmwareBaseUrl(settingsStore.get('firmwareChannel'));
 
     return {
         baseUrl: onlineBaseUrl.BASE_URL,

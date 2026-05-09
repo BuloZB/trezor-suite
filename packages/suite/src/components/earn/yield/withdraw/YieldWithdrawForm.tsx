@@ -21,11 +21,12 @@ export const YieldWithdrawForm = () => {
         token,
         receiptToken,
         maxAmount,
-        liveAmount,
         completedAmount,
         completedReceiptAmount,
         errorMessage,
         pendingTransaction,
+        actionNetworkFeeWarning,
+        isAmountEmpty,
         isAmountTooHigh,
         isSubmittingAction,
         setAmountInput,
@@ -120,7 +121,15 @@ export const YieldWithdrawForm = () => {
                             warning={
                                 <YieldActionStepWarning isInsufficientFunds={isAmountTooHigh} />
                             }
-                            isDisabled={!liveAmount || isAmountTooHigh || isSubmittingAction}
+                            networkFeeWarning={
+                                actionNetworkFeeWarning ? (
+                                    <YieldActionStepWarning
+                                        networkFeeWarning={actionNetworkFeeWarning}
+                                    />
+                                ) : undefined
+                            }
+                            isDisabled={isAmountEmpty || isAmountTooHigh || isSubmittingAction}
+                            isPending={isSubmittingAction}
                             pendingTransaction={withdrawPendingTransaction}
                             onMaxClick={() => setAmountInput(maxAmount)}
                             onSubmit={handleOnWithdraw}

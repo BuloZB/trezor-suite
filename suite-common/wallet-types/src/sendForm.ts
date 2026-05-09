@@ -81,8 +81,9 @@ export interface FormState {
     ethereumNonce?: string; // TODO: ethereum RBF
     ethereumDataAscii?: string;
     ethereumAdjustGasLimit?: string; // if used, final gas limit = estimated limit * ethereumAdjustGasLimit
-    transactionData?: string; // used for solana serialized txn from trading api or ethereum txn hex data
-    destinationTag?: string; // For Ripple and Stellar
+    tronDataAscii?: string;
+    transactionData?: string; // used for solana serialized txn from trading api, ethereum or tron txn hex data
+    destinationTag?: string; // For Ripple, Stellar, and Solana
     rbfParams?: RbfTransactionParams;
     isCoinControlEnabled: boolean;
     hasCoinControlBeenOpened: boolean;
@@ -94,6 +95,6 @@ export interface FormState {
 }
 
 export type YieldFormMetadata = {
-    type: 'supply' | 'withdraw';
+    type: 'deposit' | 'withdraw';
     vaultName: string;
 };

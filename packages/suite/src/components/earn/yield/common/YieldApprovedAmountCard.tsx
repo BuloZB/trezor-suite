@@ -3,17 +3,21 @@ import type { YieldFlowDisplayToken } from '@suite-common/wallet-core';
 import { Card, IconButton, Row, Text } from '@trezor/components';
 import { AssetLogo } from '@trezor/product-components';
 
-import { FormattedCryptoAmount } from 'src/components/suite/FormattedCryptoAmount';
+import { ApprovedAmountValue } from './ApprovedAmountValue';
 
 type YieldApprovedAmountCardProps = {
     token: YieldFlowDisplayToken;
     amount: string;
+    isLoading?: boolean;
+    hasError?: boolean;
     onRevoke?: () => void;
 };
 
 export const YieldApprovedAmountCard = ({
     token,
     amount,
+    isLoading = false,
+    hasError = false,
     onRevoke,
 }: YieldApprovedAmountCardProps) => (
     <Card fillType="flat" paddingType="small">
@@ -28,8 +32,14 @@ export const YieldApprovedAmountCard = ({
                     contractAddress={token.contractAddress ?? null}
                     placeholder={token.symbol}
                     showNetworkIcon
+                    isBordered={false}
                 />
-                <FormattedCryptoAmount value={amount} symbol={token.symbol} />
+                <ApprovedAmountValue
+                    amount={amount}
+                    token={token}
+                    isLoading={isLoading}
+                    hasError={hasError}
+                />
                 {onRevoke && (
                     <IconButton
                         icon="x"

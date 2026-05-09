@@ -274,6 +274,12 @@ export const BasicTxDetails = ({
                     </Item>
                 )}
 
+                {tx.solanaSpecific?.memo && (
+                    <Item label={<Translation id="MEMO" />} iconName="tag">
+                        <BlurUrls text={tx.solanaSpecific.memo} />
+                    </Item>
+                )}
+
                 {/* TX ID */}
                 <Item label={<Translation id="TR_TXID" />} iconName="fingerprint">
                     <Link
@@ -294,6 +300,12 @@ export const BasicTxDetails = ({
                 {tx.tronSpecific?.bandwidthUsage && (
                     <Item label={<Translation id="TR_TRON_BANDWIDTH" />} iconName="gasPump">
                         {tx.tronSpecific.bandwidthUsage}
+                    </Item>
+                )}
+
+                {tx.tronSpecific?.note && (
+                    <Item label={<Translation id="TR_TRON_NOTE" />} iconName="pencil">
+                        {tx.tronSpecific.note}
                     </Item>
                 )}
             </Grid>

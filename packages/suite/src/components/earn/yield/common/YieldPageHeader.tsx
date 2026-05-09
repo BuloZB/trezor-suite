@@ -42,7 +42,7 @@ export const YieldPageHeader = ({ analyticsStep, account, routeParams }: YieldPa
                 from: (() => {
                     switch (analyticsStep) {
                         case 'yield-supply':
-                            return 'supply-form';
+                            return 'deposit-form';
                         case 'yield-withdraw':
                             return 'withdraw-form';
                     }
@@ -97,11 +97,12 @@ export const YieldPageHeader = ({ analyticsStep, account, routeParams }: YieldPa
                                 contractAddress={vault?.token?.address}
                                 showNetworkIcon
                                 size={32}
+                                isBordered={false}
                             />
                         )}
                         <Column gap={2} overflow="hidden">
                             <Text typographyStyle="body-md-strong" ellipsisLineCount={1}>
-                                <Translation id="TR_EARN_VAULT_NAME" values={{ vaultName }} />
+                                {vaultName}
                             </Text>
                             {account && (
                                 <AccountLabel

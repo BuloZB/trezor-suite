@@ -118,6 +118,12 @@ export const messages = {
                 subtitle: 'You can do this anytime.',
                 button: 'Start setup',
             },
+            initializedDevice: {
+                title: 'Your wallet is ready',
+                subtitle:
+                    'Add the networks you want to use. You can buy or receive assets on any network you enable.',
+                button: 'Get started',
+            },
             portfolioTracker: {
                 title: 'Get started',
                 subtitle: 'Sync your coin addresses and view your portfolio balance.',
@@ -1331,6 +1337,11 @@ export const messages = {
                 subtitle:
                     'Stay safe and secure fair prices by preventing others from interfering with your transactions. Available on {supportedNetworks}.',
             },
+            addressDisplay: {
+                title: 'Spaced address formatting',
+                subtitle:
+                    'Display addresses with spaces for easier reading. When disabled, addresses are shown as a continuous string.',
+            },
             dustPhishing: {
                 title: 'Dust phishing protection',
                 subtitle:
@@ -1840,6 +1851,15 @@ export const messages = {
                     'Used for smart contract actions like sending tokens. If depleted, TRX is burned as a fee. Refills automatically over time (up to 24 hours).',
             },
         },
+        accountSettingsExportBip329Button: {
+            title: 'Export labels',
+            button: 'Export',
+            description:
+                'Export transaction labels for this account. Compatible with other wallet applications that support the BIP-329 format.',
+            exportSuccessfulToast: 'Labels exported.',
+            exportFailedToast: 'Failed to export labels.',
+            fileSavingNotSupported: 'File saving is not supported on this platform.',
+        },
     },
     transactions: {
         title: 'Transactions',
@@ -1871,6 +1891,7 @@ export const messages = {
         },
         detail: {
             header: '<transactionType></transactionType> transaction',
+            unstakeHeader: 'Unstake {amount}',
             exploreButton: 'Explore in blockchain',
             feeLabel: 'Fee',
             dateLabel: 'Date',
@@ -1939,12 +1960,15 @@ export const messages = {
             },
             parametersSheet: {
                 confirmations: 'Confirmations',
+                tronNote: 'Note',
                 feeRate: 'Fee rate',
                 rbf: 'RBF',
                 lockTime: 'Lock time',
                 broadcast: 'Broadcast',
                 transactionId: 'Transaction ID',
                 transactionIdCopied: 'Transaction ID copied',
+                memo: 'Memo',
+                memoCopied: 'Memo copied',
                 ethereum: {
                     gasLimit: 'Gas limit',
                     gasUsed: 'Gas used',
@@ -2172,13 +2196,32 @@ export const messages = {
                         primaryButton: 'I understand',
                     },
                 },
+                solana: {
+                    memo: {
+                        label: 'Memo',
+                        addButton: 'Add memo',
+                        editButton: 'Edit memo',
+                        inputPlaceholder: 'Enter your memo',
+                        saveButton: 'Save memo',
+                        removeButton: 'Remove memo',
+                    },
+                },
             },
         },
         tron: {
             accountActivationFee: 'Activation Fee',
             accountActivationFeeTitle: 'Activation fee',
             accountActivationFeeDescription:
-                'New TRON accounts require a one-time 1 TRX network fee to activate.',
+                'New TRON accounts require a one-time 1 {networkDisplaySymbol} network fee to activate.',
+            note: {
+                label: 'Note',
+                addButton: 'Add note',
+                editButton: 'Edit note',
+                inputPlaceholder: 'Enter your note',
+                saveButton: 'Save note',
+                removeButton: 'Remove note',
+                info: 'Adds 1 {networkDisplaySymbol} in network fee.',
+            },
         },
         fees: {
             recipient: {
@@ -2293,7 +2336,6 @@ export const messages = {
     earn: {
         staking: 'Staking',
         stablecoinYield: 'Stablecoin yield',
-        vaultName: '{vaultName} Vault',
         portfolioTracker: {
             alert: {
                 title: 'Staking is disabled in the portfolio tracker',
@@ -3333,6 +3375,7 @@ export const messages = {
                 tokenLabel: 'Token',
                 feeLimitLabel: 'Fee Limit',
                 feeLimitSummaryLabel: 'Summary',
+                noteLabel: 'Note',
                 summary: {
                     label: 'Total including fee',
                     totalAmount: 'Total amount',
@@ -3403,15 +3446,27 @@ export const messages = {
             confirmButton: 'Confirm location',
             skipButton: 'Not now',
             countryOfResidence: 'Country of residence',
+            countrySubdivision: 'State of residence',
             noCountryOfResidence: 'No country of residence selected',
             selectedCountryOfResidence: 'Selected country of residence',
+            noCountrySubdivision: 'No state selected',
+            selectedCountrySubdivision: 'Selected state',
             notSelected: 'Not selected',
+            selectCountrySubdivisionButton: 'Select state',
+            selectCountrySubdivisionLabel:
+                'To see available offers, select your state of residence.',
         },
         countrySheet: {
             title: 'Country of residence',
             emptyTitle: 'Country not found',
             emptyDescription: 'Check the spelling or browse the list to select an option.',
             searchInputPlaceholder: 'Search country',
+        },
+        countrySubdivisionSheet: {
+            title: 'State of residence',
+            emptyTitle: 'State not found',
+            emptyDescription: 'Check the spelling or browse the list to select an option.',
+            searchInputPlaceholder: 'Search state',
         },
     },
     moduleDemoAccountQuestionnaire: {
@@ -3505,6 +3560,13 @@ export const messages = {
             cantDeactivateTitle: "You can't deactivate a token with a balance",
             cantDeactivateDescription:
                 'You need to transfer or convert your balance to zero first. Try selling for XLM.',
+        },
+    },
+    networks: {
+        initialSetup: {
+            title: 'Add your networks',
+            subtitle: 'You can buy or receive assets on any network you enable.',
+            banner: 'You can customize these anytime in Settings.',
         },
     },
 };

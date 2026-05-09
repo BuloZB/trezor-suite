@@ -30,7 +30,7 @@ interface Props<TFieldValues extends FeesFormValues> extends UseFormReturn<TFiel
     defaultValue?: FeeLevel['label'];
     feeInfo?: FeeInfo;
     onChange?: (prev?: FeeLevel['label'], current?: FeeLevel['label']) => void;
-    composeRequest: SendContextValues['composeTransaction'];
+    composeRequest?: SendContextValues['composeTransaction'];
     composedLevels?: PrecomposedLevels | PrecomposedLevelsCardano;
 }
 
@@ -161,7 +161,7 @@ export const useFees = <TFieldValues extends FeesFormValues>({
             feePerUnit = '';
             feeLimit = '';
             clearErrors(['feePerUnit', 'feeLimit', 'maxPriorityFeePerGas', 'maxFeePerGas']);
-            composeRequest();
+            composeRequest?.();
         }
 
         setValue('selectedFee', level);

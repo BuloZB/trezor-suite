@@ -1,6 +1,6 @@
 import { type RequestEnableTorResponse } from '@suite-common/suite-config';
 import { type NetworkSymbol } from '@suite-common/wallet-config';
-import { type Account, type AddressType } from '@suite-common/wallet-types';
+import { type Account, type AddressType, type EvmSelectedFee } from '@suite-common/wallet-types';
 import { type UI_REQUEST } from '@trezor/connect';
 import { type Deferred } from '@trezor/utils';
 
@@ -216,7 +216,20 @@ export type UserContextPayload =
           type: 'auto-start-before-quit';
       }
     | {
-          type: 'tx-simulation';
+          type: 'connect-popup-tx-simulation';
+      }
+    | {
+          type: 'earn-yield-tx-simulation';
+          data: unknown;
+          decision: Deferred<
+              | {
+                    value: true;
+                    selectedFee: EvmSelectedFee | null;
+                }
+              | {
+                    value: false;
+                }
+          >;
       }
     | {
           type: 'wipe-device-success';

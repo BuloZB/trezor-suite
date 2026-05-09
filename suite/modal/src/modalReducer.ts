@@ -151,6 +151,15 @@ const modalReducer = (state: State = initialState, action: AnyAction): State => 
             return initialState;
 
         case UI_REQUEST.CLOSE_UI_WINDOW:
+            // Always close device-driven modals when the device signals CLOSE_UI_WINDOW,
+            // even if preserve is set (preserve protects user-context modals, not device prompts).
+            if (
+                state.context === MODAL_CONTEXT_DEVICE ||
+                state.context === MODAL_CONTEXT_DEVICE_CONFIRMATION
+            ) {
+                return initialState;
+            }
+
             return state.preserve ? state : initialState;
 
         case MODAL_PRESERVE:
@@ -180,6 +189,18 @@ export const selectModalType = (state: ModalRootState) => {
 
     return undefined;
 };
+
+type ContextModal<Context extends ModalState['context']> = Extract<
+    ModalState,
+    { context: Context }
+>;
+
+type UserContextModal = ContextModal<typeof MODAL_CONTEXT_USER>['payload'];
+
+export type UserContextModalType<Type extends UserContextModal['type']> = Extract<
+    UserContextModal,
+    { type: Type }
+>;
 
 export const selectRecoveryWordRequestInputType = (state: ModalRootState) => {
     if (state.modal.context !== MODAL_CONTEXT_DEVICE) {

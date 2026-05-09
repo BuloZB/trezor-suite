@@ -1,11 +1,7 @@
 import { useMemo } from 'react';
 
 import { type TokenDto, type YieldDto } from '@suite-common/earn-stablecoin-api';
-import {
-    NORMAL_ACCOUNT_TYPE,
-    type NetworkSymbol,
-    getNetworkByYieldXyzId,
-} from '@suite-common/wallet-config';
+import { type NetworkSymbol, getNetworkByYieldXyzId } from '@suite-common/wallet-config';
 import {
     doTokensMatch,
     getConvertedOutputTokenBalanceToInputTokenAmount,
@@ -19,7 +15,9 @@ import { useSelector } from 'src/hooks/suite';
 
 import {
     compareYieldRowsByAvailableBalanceDesc,
+    compareYieldRowsByNetworkOnly,
     compareYieldRowsBySuppliedAmountDesc,
+    compareYieldRowsByTokenNetworkOrder,
 } from '../../utils/earnYieldUtils';
 import {
     type YieldAccountOpportunity,
@@ -121,9 +119,7 @@ export const useYieldTableData = ({
             }
 
             const networkAccounts = visibleAccounts.filter(
-                account =>
-                    account.accountType === NORMAL_ACCOUNT_TYPE &&
-                    account.symbol === network.symbol,
+                account => account.symbol === network.symbol,
             );
 
             return networkAccounts.map(account => ({
@@ -141,12 +137,12 @@ export const useYieldTableData = ({
         });
 
         const activeOpportunities: YieldAccountOpportunity[] = [];
-        const supplyableOpportunities: YieldAccountOpportunity[] = [];
-        const buyOnlyOpportunities: YieldAccountOpportunity[] = [];
+        const depositableOpportunities: YieldAccountOpportunity[] = [];
+        const noBalanceOpportunities: YieldAccountOpportunity[] = [];
 
         allOpportunities.forEach(opportunity => {
             const hasMatchedInputToken = opportunity.matchedInputToken !== undefined;
-            const hasSupplyableBalance = new BigNumber(opportunity.additionalSupplyAmount).gt(0);
+            const hasDepositableBalance = new BigNumber(opportunity.additionalSupplyAmount).gt(0);
 
             if (opportunity.hasVaultPosition) {
                 activeOpportunities.push(opportunity);
@@ -154,19 +150,23 @@ export const useYieldTableData = ({
                 return;
             }
 
-            if (hasMatchedInputToken && hasSupplyableBalance) {
-                supplyableOpportunities.push(opportunity);
+            if (hasMatchedInputToken && hasDepositableBalance) {
+                depositableOpportunities.push(opportunity);
 
                 return;
             }
 
-            buyOnlyOpportunities.push(opportunity);
+            noBalanceOpportunities.push(opportunity);
         });
 
         return [
-            ...activeOpportunities.toSorted(compareYieldRowsBySuppliedAmountDesc),
-            ...supplyableOpportunities.toSorted(compareYieldRowsByAvailableBalanceDesc),
-            ...buyOnlyOpportunities.toSorted(compareYieldRowsByAvailableBalanceDesc),
+            ...activeOpportunities
+                .toSorted(compareYieldRowsBySuppliedAmountDesc)
+                .toSorted(compareYieldRowsByNetworkOnly),
+            ...depositableOpportunities
+                .toSorted(compareYieldRowsByAvailableBalanceDesc)
+                .toSorted(compareYieldRowsByTokenNetworkOrder),
+            ...noBalanceOpportunities.toSorted(compareYieldRowsByTokenNetworkOrder),
         ];
     }, [availableVaults, visibleAccounts, visibleAccountSymbols]);
 

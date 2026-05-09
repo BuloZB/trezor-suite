@@ -228,11 +228,15 @@ const constructOldFlow = ({
             });
     }
 
-    if (
-        precomposedForm.transactionData &&
-        (!precomposedTx.token || precomposedForm.yieldMetadata)
-    ) {
-        outputs.push({ type: 'data', value: precomposedForm.transactionData });
+    if (precomposedForm.tronDataAscii) {
+        outputs.push({ type: 'note', value: precomposedForm.tronDataAscii });
+    } else {
+        if (
+            precomposedForm.transactionData &&
+            (!precomposedTx.token || precomposedForm.yieldMetadata)
+        ) {
+            outputs.push({ type: 'data', value: precomposedForm.transactionData });
+        }
     }
 
     // For bump fee we have to analyze tx data,
@@ -334,14 +338,18 @@ const constructNewFlow = ({
         });
     }
 
-    if (
-        (precomposedForm.transactionData && !precomposedTx.token && !isEvmApproval) ||
-        (precomposedForm.transactionData && isEvmApproval && !isApprovalFlowSupported) ||
-        (precomposedForm.transactionData &&
-            precomposedForm.yieldMetadata &&
-            !isUpdatedEthereumSendFlow)
-    ) {
-        outputs.push({ type: 'data', value: precomposedForm.transactionData });
+    if (precomposedForm.tronDataAscii) {
+        outputs.push({ type: 'note', value: precomposedForm.tronDataAscii });
+    } else {
+        if (
+            (precomposedForm.transactionData && !precomposedTx.token && !isEvmApproval) ||
+            (precomposedForm.transactionData && isEvmApproval && !isApprovalFlowSupported) ||
+            (precomposedForm.transactionData &&
+                precomposedForm.yieldMetadata &&
+                !isUpdatedEthereumSendFlow)
+        ) {
+            outputs.push({ type: 'data', value: precomposedForm.transactionData });
+        }
     }
 
     const isRbf = isRbfBumpFeeTransaction(precomposedTx);
@@ -426,8 +434,9 @@ const constructNewFlow = ({
                     outputs.push(tokenOutput);
                     outputs.push({ type: 'address', value: o.address });
                 } else if (
-                    (precomposedForm.transactionData && !isEvmApproval) ||
-                    (isEvmApproval && !isApprovalFlowSupported)
+                    !isTron &&
+                    ((precomposedForm.transactionData && !isEvmApproval) ||
+                        (isEvmApproval && !isApprovalFlowSupported))
                 ) {
                     // EVM contract call
                     outputs.push({ type: 'contract', value: o.address });
@@ -505,6 +514,13 @@ const constructNewFlow = ({
 
     if (networkType === 'ripple' && hasDestinationTag && precomposedForm.destinationTag) {
         outputs.unshift({
+            type: 'destination-tag',
+            value: precomposedForm.destinationTag,
+        });
+    }
+
+    if (isSolana && precomposedForm.destinationTag) {
+        outputs.push({
             type: 'destination-tag',
             value: precomposedForm.destinationTag,
         });

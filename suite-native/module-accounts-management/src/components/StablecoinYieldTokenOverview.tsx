@@ -94,11 +94,7 @@ export const StablecoinYieldTokenOverview = ({
         }
 
         showAlert({
-            title: vault.outputToken?.name ? (
-                <Translation id="earn.vaultName" values={{ vaultName: vault.outputToken.name }} />
-            ) : (
-                ''
-            ),
+            title: vault.outputToken?.name ?? '',
             description: translate(
                 'moduleAccounts.accountDetail.stablecoinYield.apyBreakdown.apyLabel',
                 { apy },
@@ -107,6 +103,7 @@ export const StablecoinYieldTokenOverview = ({
                 <StablecoinYieldApyBreakdown
                     networkSymbol={account.symbol}
                     rewards={vault.rewardRate.components}
+                    underlyingToken={vault.token}
                 />
             ),
             textAlign: 'center',
@@ -170,16 +167,7 @@ export const StablecoinYieldTokenOverview = ({
                         <Text variant="body-sm" color="contentSecondary">
                             <Translation id="moduleAccounts.accountDetail.stablecoinYield.vault" />
                         </Text>
-                        <Text variant="body-sm">
-                            {vault.outputToken?.name ? (
-                                <Translation
-                                    id="earn.vaultName"
-                                    values={{ vaultName: vault.outputToken.name }}
-                                />
-                            ) : (
-                                ''
-                            )}
-                        </Text>
+                        <Text variant="body-sm">{vault.outputToken?.name ?? ''}</Text>
                     </HStack>
                     <CardDivider />
                     <PressableOpacity
@@ -225,7 +213,7 @@ export const StablecoinYieldTokenOverview = ({
                                     intent="brand"
                                     priority="secondary"
                                     size="medium"
-                                    testID="@account-detail/stablecoin-yield/supply-more-button"
+                                    testID="@account-detail/stablecoin-yield/deposit-more-button"
                                 >
                                     <Translation id="moduleAccounts.accountDetail.stablecoinYield.supplyMore" />
                                 </Button>

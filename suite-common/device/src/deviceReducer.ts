@@ -17,7 +17,6 @@ import { type Err } from '@trezor/type-utils';
 
 import { type DeviceStateActionPayload, deviceActions } from './deviceActions';
 import { PORTFOLIO_TRACKER_DEVICE_ID } from './deviceConstants';
-import { shouldDeviceBeRemembered } from './deviceUtils';
 
 export type DeviceReducerState = {
     /**
@@ -31,6 +30,7 @@ export type DeviceReducerState = {
     /**
      * Because we have `devices` as merged DEVICE+WALLET we persist
      * data that are DEVICE only here to separate them.
+     * TODO consider extracting to a subreducer persistentDeviceDataReducer
      */
     persistentDeviceData: PersistentDeviceData[]; // is an array since there is not a single primary id, device can be matched by various criteria
 
@@ -119,11 +119,7 @@ const merge = (
  * @param {Device} device
  * @returns
  */
-const connectDevice = (
-    draft: DeviceReducerState,
-    { state, ...device }: Device,
-    { isAutoEjectEnabled }: { isAutoEjectEnabled: boolean },
-) => {
+const connectDevice = (draft: DeviceReducerState, { state, ...device }: Device) => {
     const currentTime = new Date().getTime();
 
     const deviceCommonFields = {
@@ -184,7 +180,7 @@ const connectDevice = (
     // get not affected devices
     // and exclude unacquired devices with current "device_id" (they will become acquired)
     const otherDevices: TrezorDevice[] = draft.devices.filter(
-        d => affectedDevices.indexOf(d as AcquiredDevice) < 0 && unacquiredDevices.indexOf(d) < 0,
+        d => !affectedDevices.includes(d as AcquiredDevice) && !unacquiredDevices.includes(d),
     );
 
     // clear draft
@@ -201,7 +197,7 @@ const connectDevice = (
         ...deviceCommonFields,
         state,
         useEmptyPassphrase: undefined,
-        remember: shouldDeviceBeRemembered({ isAutoEjectEnabled, device }),
+        remember: false,
         temporaryRemember: false,
         available: true,
         instance: deviceInstance,
@@ -272,9 +268,7 @@ const changeDevice = (
                 (d.mode === 'bootloader' && d.remember && d.id === device.id)),
     ) as AcquiredDevice[];
 
-    const otherDevices = draft.devices.filter(
-        d => affectedDevices.indexOf(d as AcquiredDevice) === -1,
-    );
+    const otherDevices = draft.devices.filter(d => !affectedDevices.includes(d as AcquiredDevice));
     // clear draft
     draft.devices.splice(0, draft.devices.length);
     // fill draft with not affected devices
@@ -325,7 +319,7 @@ const changeDevice = (
 
 const addAuthorizedDevice = (
     draft: DeviceReducerState,
-    { device, state, useEmptyPassphrase, isAutoEjectEnabled }: DeviceStateActionPayload,
+    { device, state, useEmptyPassphrase }: DeviceStateActionPayload,
 ) => {
     const { discovered, ...oldDevice } = device;
     const newDevice = {
@@ -334,7 +328,6 @@ const addAuthorizedDevice = (
         instance: deviceUtils.getNewInstanceNumber(draft.devices, device),
         walletNumber: deviceUtils.getNewWalletNumber(draft.devices, device),
         useEmptyPassphrase,
-        remember: shouldDeviceBeRemembered({ isAutoEjectEnabled, device }),
         state,
     };
 
@@ -343,7 +336,7 @@ const addAuthorizedDevice = (
 
 const setDeviceState = (
     draft: DeviceReducerState,
-    { device, state, useEmptyPassphrase, isAutoEjectEnabled }: DeviceStateActionPayload,
+    { device, state, useEmptyPassphrase }: DeviceStateActionPayload,
 ) => {
     // change only acquired devices
     if (!device.features) return;
@@ -366,8 +359,6 @@ const setDeviceState = (
     affectedDevice[0].useEmptyPassphrase = useEmptyPassphrase;
     affectedDevice[0].walletNumber = deviceUtils.getNewWalletNumber(draft.devices, device);
     delete affectedDevice[0].discovered;
-
-    affectedDevice[0].remember = shouldDeviceBeRemembered({ isAutoEjectEnabled, device });
 };
 
 /**
@@ -564,6 +555,18 @@ export const setDeviceAuthenticity = (
     data.authenticityResult = result;
 };
 
+export const setManualDeviceCheckSuccess = (
+    draft: DeviceReducerState,
+    deviceId: TrezorDevice['id'],
+) => {
+    const data = draft.persistentDeviceData.find(
+        persistentDeviceData => persistentDeviceData.device_id === deviceId,
+    );
+    // expected to exist; device must have been connected or changed for this action to happen
+    if (data === undefined) return;
+    data.manualCheckResult = { success: true };
+};
+
 // called after successful wipeDevice
 const requestDeviceReconnect = (draft: DeviceReducerState) => {
     // only acquired devices
@@ -667,6 +670,9 @@ export const prepareDeviceReducer = createReducerWithExtraDeps(
                 // nullish deviceId is impossible unless meta checks (id) are disabled. If it is nullish, it's no-op.
                 setDeviceAuthenticity(state, payload.deviceId, payload.result);
             })
+            .addCase(deviceActions.setManualDeviceCheckSuccess, (state, { payload }) => {
+                setManualDeviceCheckSuccess(state, payload.deviceId);
+            })
             .addCase(deviceActions.dismissFirmwareAuthenticityCheck, (state, { payload }) => {
                 if (!state.dismissedSecurityChecks) {
                     state.dismissedSecurityChecks = {};
@@ -720,8 +726,8 @@ export const prepareDeviceReducer = createReducerWithExtraDeps(
             })
             .addMatcher(
                 isAnyOf(deviceActions.connectDevice, deviceActions.connectUnacquiredDevice),
-                (state, { payload: { device, isAutoEjectEnabled } }) => {
-                    connectDevice(state, device, { isAutoEjectEnabled });
+                (state, { payload: { device } }) => {
+                    connectDevice(state, device);
                     updatePersistentDeviceData(state, device);
                 },
             );

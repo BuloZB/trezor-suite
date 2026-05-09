@@ -29,6 +29,7 @@ import {
     convertAmountUnitsToSubunits,
     fromBaseCurrencyToCryptoUnit,
     getCryptoAmountWithReserve,
+    getDecimalsForBaseCurrency,
     isZero,
 } from '@suite-common/wallet-utils';
 import { BigNumber, isChanged } from '@trezor/utils';
@@ -68,7 +69,7 @@ export const useTradingFormActions = <T extends TradingSellExchangeFormProps>({
 }: TradingUseFormActionsProps<T>): TradingUseFormActionsReturnProps => {
     const dispatch = useDispatch();
     const { symbol } = account;
-    const { shouldSendInSats } = useBitcoinAmountUnit(symbol);
+    const { isBtcSatsAmountUnit: shouldSendInSats } = useBitcoinAmountUnit(symbol);
     const isNetworkReserveEnabled = useSelector(selectIsNetworkReserveEnabled);
     const accounts = useSelector(selectVisibleDeviceAccounts);
     const isNotFormPage = pageType !== 'form';
@@ -79,15 +80,16 @@ export const useTradingFormActions = <T extends TradingSellExchangeFormProps>({
     const { outputs, sendCryptoSelect } = getValues();
     const values = useWatch<TradingSellExchangeFormProps>({ control });
     const previousValues = useRef<typeof values | null>(isNotFormPage ? draftUpdated : null);
-    const tokenAddress = outputs?.[0]?.token;
-    const tokenData = account.tokens?.find(t => t.contract === tokenAddress);
-    const isBalanceZero = tokenData
-        ? isZero(tokenData.balance || '0')
-        : isZero(account.formattedBalance);
-
     const sendCryptoAccount = useSelector(state =>
         selectAccountByKey(state, sendCryptoSelect?.accountKey),
     );
+    const tokenAddress = outputs?.[0]?.token;
+    const tokenData = (sendCryptoAccount ?? account).tokens?.find(
+        t => t.contract.toLowerCase() === tokenAddress?.toLowerCase(),
+    );
+    const isBalanceZero = tokenData
+        ? isZero(tokenData.balance || '0')
+        : isZero(account.formattedBalance);
     const tradingFiatValues = useTradingFiatValues({
         cryptoId: sendCryptoSelect?.id,
         amount: sendCryptoAccount?.balance,
@@ -141,8 +143,12 @@ export const useTradingFormActions = <T extends TradingSellExchangeFormProps>({
             formattedAmount.gt(0) // formatAmount() returns '-1' on error
         ) {
             const fiatValueBigNumber = formattedAmount.multipliedBy(rate.rate);
+            const fiatDecimals = getDecimalsForBaseCurrency({
+                code: mappedBaseCurrencyCode,
+                isInSats: false,
+            });
 
-            setValue(TRADING_FORM_OUTPUT_FIAT, fiatValueBigNumber.toFixed(2), {
+            setValue(TRADING_FORM_OUTPUT_FIAT, fiatValueBigNumber.toFixed(fiatDecimals), {
                 shouldValidate: true,
             });
         }
@@ -242,7 +248,7 @@ export const useTradingFormActions = <T extends TradingSellExchangeFormProps>({
         const cryptoAmountWithReserve = isNetworkReserveEnabled
             ? getCryptoAmountWithReserve({
                   symbol: account.symbol,
-                  contractAddress: tokenAddress,
+                  contractAddress: tokenAddress ?? tokenData?.contract,
                   balance: account.formattedBalance,
                   amount: cryptoInputValue,
                   fee: feeInUnits?.toString(),
@@ -281,16 +287,6 @@ export const useTradingFormActions = <T extends TradingSellExchangeFormProps>({
         composeRequest(TRADING_FORM_OUTPUT_AMOUNT);
         setValue(TRADING_FORM_OUTPUT_FIAT, '', { shouldDirty: true });
     };
-
-    // reset preselectedQuote when opening swap form
-    useEffect(() => {
-        const cryptoValue = values?.outputs?.[0]?.amount;
-        const previousCryptoValue = previousValues.current?.outputs?.[0].amount;
-
-        if (cryptoValue === '' && previousCryptoValue === undefined) {
-            dispatch(tradingExchangeActions.savePreselectedQuote(undefined));
-        }
-    }, [values, previousValues, dispatch]);
 
     // call change handler on every change of text inputs with debounce
     useDebounce(

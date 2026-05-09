@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import type { BankAccount, CryptoId, SellFiatTrade, SellFiatTradeResponse } from 'invity-api';
@@ -29,7 +29,6 @@ import {
     selectTradingSellInfo,
     selectTradingSellIsFromRedirect,
     selectTradingSellIsLoading,
-    selectTradingSellPreselectedQuote,
     selectTradingSellQuotes,
     selectTradingSellQuotesRequest,
     selectTradingSellSelectedQuote,
@@ -73,7 +72,6 @@ export const useTradingSellForm = ({
     const analytics = useAnalytics();
     const type = 'sell';
     const isFormPage = pageType === 'form';
-    const isOffersPage = pageType === 'offers';
     const dispatch = useDispatch();
     const { translationString } = useTranslation();
     const isLoading = useSelector(selectTradingSellIsLoading);
@@ -81,7 +79,6 @@ export const useTradingSellForm = ({
     const isFromRedirect = useSelector(selectTradingSellIsFromRedirect);
     const quotes = useSelector(selectTradingSellQuotes);
     const transactionId = useSelector(selectTradingSellTransactionId);
-    const preselectedQuote = useSelector(selectTradingSellPreselectedQuote);
     const selectedQuote = useSelector(selectTradingSellSelectedQuote);
     const sellInfo = useSelector(selectTradingSellInfo);
     const amountLimits = useSelector(selectTradingSellAmountLimits);
@@ -116,7 +113,7 @@ export const useTradingSellForm = ({
 
     const baseCurrencyCode = useSelector(selectBaseCurrency);
     const network = networks[account.symbol];
-    const { shouldSendInSats } = useBitcoinAmountUnit(account.symbol);
+    const { isBtcSatsAmountUnit: shouldSendInSats } = useBitcoinAmountUnit(account.symbol);
     const localCurrencyOption = { value: baseCurrencyCode, label: baseCurrencyCode.toUpperCase() };
     const trades = useSelector(selectTradingTrades);
     const trade = trades.find(
@@ -308,60 +305,27 @@ export const useTradingSellForm = ({
         );
     };
 
-    const goToOffers = async () => {
-        await handleChange();
-
-        dispatch(tradingSellActions.setTradingAccountKey(account.key)); // save account for offers page
-        dispatch(goto({ routeName: 'wallet-trading-sell-offers' }));
-
-        analytics.report({
-            type: events.tradeCompareOffersEvent.name,
-            payload: {
-                type: 'sell',
-            },
-        });
-    };
-
     const selectQuote = async (quote: SellFiatTrade) => {
         const provider = sellInfo && quote.exchange ? sellInfo.providerInfos[quote.exchange] : null;
 
         if (!quotesRequest || !provider) return;
 
-        switch (pageType) {
-            case 'form': {
-                analytics.report({
-                    type: events.tradeSellEvent.name,
-                    payload: {
-                        action: 'continue',
-                        step: 'sell-form',
-                        cryptoLabel: draftUpdated?.sendCryptoSelect?.displaySymbol,
-                        cryptoNetworkSymbol: draftUpdated?.sendCryptoSelect?.networkSymbol,
-                        cryptoContractAddress:
-                            draftUpdated?.sendCryptoSelect?.contractAddress ?? undefined,
-                        exchangeName: quote?.exchange,
-                        receiveMethod: draftUpdated?.paymentMethod?.value,
-                        countryOfResidence: draftUpdated?.countrySelect?.value,
-                        fractionButton: helpers.fractionButton
-                            ? `${(100 / helpers.fractionButton).toString()}%`
-                            : undefined,
-                    },
-                });
-                break;
-            }
-            case 'offers': {
-                analytics.report({
-                    type: events.tradeSellEvent.name,
-                    payload: {
-                        action: 'continue',
-                        step: 'offers-form',
-                        exchangeName: quote?.exchange,
-                        receiveMethod: draftUpdated?.paymentMethod?.value,
-                        countryOfResidence: draftUpdated?.countrySelect?.value,
-                    },
-                });
-                break;
-            }
-        }
+        analytics.report({
+            type: events.tradeSellEvent.name,
+            payload: {
+                action: 'continue',
+                step: 'sell-form',
+                cryptoLabel: draftUpdated?.sendCryptoSelect?.displaySymbol,
+                cryptoNetworkSymbol: draftUpdated?.sendCryptoSelect?.networkSymbol,
+                cryptoContractAddress: draftUpdated?.sendCryptoSelect?.contractAddress ?? undefined,
+                exchangeName: quote?.exchange,
+                receiveMethod: draftUpdated?.paymentMethod?.value,
+                countryOfResidence: draftUpdated?.countrySelect?.value,
+                fractionButton: helpers.fractionButton
+                    ? `${(100 / helpers.fractionButton).toString()}%`
+                    : undefined,
+            },
+        });
 
         const nextStep = () => {
             dispatch(goto({ routeName: 'wallet-trading-sell-confirm' }));
@@ -475,37 +439,31 @@ export const useTradingSellForm = ({
         dispatch(tradingThunks.loadInitialDataThunk({ activeSection: type }));
     }, [dispatch]);
 
-    useEffect(() => {
-        if (!preselectedQuote) {
-            return;
-        }
+    const onQuoteSelected = useCallback(
+        (quote: SellFiatTrade) => {
+            const quoteProvider = quote.exchange;
+            const quotePaymentMethod = quote.paymentMethod;
 
-        const preselectedProvider = preselectedQuote.exchange;
-        const preselectedPaymentMethod = preselectedQuote.paymentMethod;
-        const shouldUpdateProvider = !!preselectedProvider && preselectedProvider !== provider;
-        const shouldUpdatePaymentMethod =
-            !!preselectedPaymentMethod && paymentMethod?.value !== preselectedPaymentMethod;
+            if (quoteProvider && quoteProvider !== provider) {
+                setValue(TRADING_FORM_PROVIDER_SELECT, quoteProvider);
+            }
 
-        dispatch(tradingSellActions.savePreselectedQuote(undefined));
+            if (quotePaymentMethod && paymentMethod?.value !== quotePaymentMethod) {
+                const matchingOption = paymentMethods.find(
+                    method => method.value === quotePaymentMethod,
+                );
 
-        if (shouldUpdateProvider) {
-            setValue(TRADING_FORM_PROVIDER_SELECT, preselectedProvider);
-        }
-
-        if (shouldUpdatePaymentMethod) {
-            const matchingOption = paymentMethods.find(
-                method => method.value === preselectedPaymentMethod,
-            );
-
-            setValue(
-                TRADING_FORM_PAYMENT_METHOD_SELECT,
-                matchingOption ?? {
-                    value: preselectedPaymentMethod,
-                    label: preselectedQuote.paymentMethodName ?? preselectedPaymentMethod,
-                },
-            );
-        }
-    }, [paymentMethod, paymentMethods, preselectedQuote, provider, setValue, dispatch]);
+                setValue(
+                    TRADING_FORM_PAYMENT_METHOD_SELECT,
+                    matchingOption ?? {
+                        value: quotePaymentMethod,
+                        label: quote.paymentMethodName ?? quotePaymentMethod,
+                    },
+                );
+            }
+        },
+        [paymentMethod, paymentMethods, provider, setValue],
+    );
 
     useEffect(() => {
         if (!isChanged(defaultValues, values)) {
@@ -560,12 +518,12 @@ export const useTradingSellForm = ({
 
     useEffect(() => {
         // We need to clear quotes on offers page without redirecting to form page
-        if (!quotesRequest && !isFormPage && !isOffersPage) {
+        if (!quotesRequest && !isFormPage) {
             dispatch(goto({ routeName: 'wallet-trading-sell' }));
 
             return;
         }
-    }, [quotesRequest, isFormPage, isOffersPage, dispatch]);
+    }, [quotesRequest, isFormPage, dispatch]);
 
     useEffect(() => {
         if (isFromRedirect) {
@@ -612,7 +570,6 @@ export const useTradingSellForm = ({
         amountLimits,
         network,
         device,
-        preselectedQuote,
         selectedQuote,
         shouldSendInSats,
         trade,
@@ -622,8 +579,8 @@ export const useTradingSellForm = ({
         setAmountLimits,
         addBankAccount,
         confirmTrade,
-        goToOffers,
         selectQuote,
+        onQuoteSelected,
         sendTransaction,
         showReserveBanner,
         setShowReserveBanner,

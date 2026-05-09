@@ -20,7 +20,6 @@ import {
     cryptoIdToNetworkAndContractAddress,
     cryptoIdToSymbol,
     filterQuotesAccordingTags,
-    getBestRatedQuote,
     getDefaultCountry,
     getDefaultCountrySubdivision,
     getTagAndInfoNote,
@@ -335,27 +334,17 @@ describe('getDefaultCountrySubdivision', () => {
             name: 'California',
         });
     });
-});
 
-describe('getBestRatedQuote', () => {
-    it('should return undefined if quotes are undefined', () => {
-        expect(getBestRatedQuote(undefined, 'buy')).toStrictEqual(undefined);
+    it('should return correct option for a known subdivision code and country code', () => {
+        expect(getDefaultCountrySubdivision('CA', 'US')).toEqual({
+            value: 'CA',
+            label: 'California',
+            name: 'California',
+        });
     });
 
-    it('should get buy best trade', () => {
-        expect(getBestRatedQuote(BUY_FIXTURE.MIN_MAX_QUOTES_OK, 'buy')).toStrictEqual(
-            BUY_FIXTURE.MIN_MAX_QUOTES_OK[1],
-        );
-    });
-    it('should get sell best trade', () => {
-        expect(getBestRatedQuote(SELL_FIXTURE.MIN_MAX_QUOTES_LOW, 'sell')).toStrictEqual(
-            SELL_FIXTURE.MIN_MAX_QUOTES_LOW[0],
-        );
-    });
-    it('should get exchange best trade', () => {
-        expect(getBestRatedQuote(EXCHANGE_FIXTURE.MIN_MAX_QUOTES_OK, 'exchange')).toStrictEqual(
-            EXCHANGE_FIXTURE.MIN_MAX_QUOTES_OK[EXCHANGE_FIXTURE.MIN_MAX_QUOTES_OK.length - 1],
-        );
+    it('should return undefined when country does not require subdivision', () => {
+        expect(getDefaultCountrySubdivision('CA', 'CZ')).toBeUndefined();
     });
 });
 

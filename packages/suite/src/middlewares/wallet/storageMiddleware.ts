@@ -300,6 +300,7 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                 isAnyOf(
                     connectPopupActions.rememberAppPermissions,
                     connectPopupActions.forgetAppPermissions,
+                    connectPopupActions.setAppSilentMode,
                     walletConnectActions.saveSession,
                     walletConnectActions.removeSession,
                 )(action)
@@ -330,6 +331,7 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                     deviceActions.deviceChanged,
                     deviceActions.setEntropyCheckResult,
                     deviceActions.setDeviceAuthenticityResult,
+                    deviceActions.setManualDeviceCheckSuccess,
                     deviceActions.clearDevicePersistentData,
                     deviceActions.forgetDevicePersistentData,
                 )(action)
@@ -344,6 +346,7 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                 case WALLET_SETTINGS.SET_MEV_PROTECTION:
                 case WALLET_SETTINGS.SET_NETWORK_RESERVE:
                 case WALLET_SETTINGS.SET_AUTO_EJECT:
+                case WALLET_SETTINGS.SET_ADDRESS_DISPLAY_TYPE:
                     api.dispatch(storageActions.saveWalletSettings());
 
                     break;
@@ -353,7 +356,6 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                 case suiteSettingsActions.setExperimentalFeatures.type:
                 case suiteSettingsActions.setOnionLinks.type:
                 case suiteSettingsActions.setTheme.type:
-                case suiteSettingsActions.setAddressDisplayType.type:
                 case suiteSettingsActions.setAutodetect.type:
                 case suiteSettingsActions.setSidebarWidth.type:
                 case suiteSettingsActions.toggleDeviceAuthenticityCheck.type:

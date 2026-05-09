@@ -1,43 +1,55 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { type UseFormReturn, useForm } from 'react-hook-form';
 
+import { useDevice } from '@suite/device';
 import { type TranslationKey } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { type EarnParams } from '@suite/router';
+import { getNetworkDisplaySymbol } from '@suite-common/wallet-config';
 import {
+    type YieldActionFlowType,
+    type YieldAllowanceStatus,
     type YieldApproveModalState,
     type YieldFlowDisplayToken,
     type YieldFlowFormValues,
     type YieldFlowStepId,
     type YieldFlowToken,
-    type YieldFlowType,
     type YieldPendingTransactionState,
     handleYieldApproveCancelThunk,
     handleYieldApproveSuccessTxidThunk,
+    initYieldAllowanceThunk,
+    selectRawNetworkFeeInfo,
     selectStablecoinYieldSession,
     stablecoinYieldActions,
     submitYieldApproveThunk,
     submitYieldRevokeThunk,
 } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
+import { getConvertedOrDefaultFeeInfo } from '@suite-common/wallet-utils';
 import type { BulletListItemState } from '@trezor/components';
 import { useCurrentRef } from '@trezor/react-utils';
 
+import { setConnectionModal, setConnectionMode } from 'src/actions/device/deviceSlice';
 import { submitYieldActionThunk } from 'src/actions/wallet/stablecoinYieldSigningThunks';
 import { useDispatch, useSelector } from 'src/hooks/suite';
 
 import { useResolvedYieldFlowData } from './useResolvedYieldFlowData';
 import { useYieldPendingTransactionTracking } from './useYieldPendingTransactionTracking';
 import {
+    type YieldApprovalAction,
+    type YieldNetworkFeeWarning,
     getBulletListItemStates,
+    getYieldApprovalAction,
+    getYieldEstimatedContractCallFee,
     getYieldModifyAmountInput,
+    getYieldNetworkFeeWarning,
     isAmountGreaterThan,
 } from '../yieldFlowUtils';
 
 type UseYieldFlowProps = {
     account: Account;
     routeParams: EarnParams;
-    flowType: YieldFlowType;
+    flowType: YieldActionFlowType;
 };
 
 type UseYieldFlowStepsResult = {
@@ -56,25 +68,27 @@ export type UseYieldFlowResult = {
     flowKey: string;
     maxAmount: string;
     liveAmount: string;
-    approvedAmount: string | null;
     actionAmount: string | null;
     completedAmount: string;
     completedReceiptAmount: string;
     errorMessage: TranslationKey | undefined;
     approveModalState: YieldApproveModalState | null;
     pendingTransaction: YieldPendingTransactionState | null;
-    isModifyMode: boolean;
-    lastApprovedAmount: string;
-    isRevokeRequired: boolean;
+    allowanceAmount: string;
+    allowanceStatus: YieldAllowanceStatus;
+    approvalAction: YieldApprovalAction;
+    canRevokeAllowance: boolean;
+    approvalNetworkFeeWarning: YieldNetworkFeeWarning | null;
+    actionNetworkFeeWarning: YieldNetworkFeeWarning | null;
     isAmountEmpty: boolean;
     isAmountTooHigh: boolean;
     isApprovalInsufficient: boolean;
     isSubmittingApprove: boolean;
     isSubmittingAction: boolean;
     setAmountInput: (amount: string) => void;
-    submitApprove: () => void;
+    submitApprovalAction: () => void;
     submitAction: () => void;
-    submitRevoke: () => void;
+    revokeAllowance: () => void;
     enterModifyApproval: () => void;
     handleApproveModalCancel: () => Promise<void>;
     handleApproveSuccessTxid: (txid: string) => void;
@@ -99,21 +113,33 @@ export const useYieldFlow = ({
     flowType,
 }: UseYieldFlowProps): UseYieldFlowResult => {
     const dispatch = useDispatch();
+    const { device } = useDevice();
     const methods = useForm<YieldFlowFormValues>({
         defaultValues: {
             amountInput: '',
         },
     });
     const methodsRef = useCurrentRef(methods);
+    const initAllowancePromiseRef = useRef<{ abort: () => void } | null>(null);
 
     const { vault, token, receiptToken, apy, suppliedAmount, flowKey } = useResolvedYieldFlowData({
         account,
         routeParams,
     });
+    const rawFeeInfo = useSelector(state => selectRawNetworkFeeInfo(state, account.symbol));
+    const feeInfo = useMemo(
+        () =>
+            getConvertedOrDefaultFeeInfo({
+                networkType: account.networkType,
+                feeInfo: rawFeeInfo,
+            }),
+        [account.networkType, rawFeeInfo],
+    );
+    const allowanceFlowDataRef = useCurrentRef({ account, vault, token, receiptToken });
 
     const session = useSelector(state => selectStablecoinYieldSession(state, flowType, flowKey));
 
-    const maxAmount = flowType === 'supply' ? (token?.balance ?? '') : suppliedAmount;
+    const maxAmount = flowType === 'deposit' ? (token?.balance ?? '') : suppliedAmount;
 
     useEffect(() => {
         if (!flowKey) {
@@ -133,6 +159,56 @@ export const useYieldFlow = ({
             dispatch(stablecoinYieldActions.disposeSession({ flowType, flowKey }));
         };
     }, [flowKey, flowType, dispatch, methodsRef]);
+
+    const { allowanceStatus } = session.approval;
+
+    useEffect(
+        () => () => {
+            initAllowancePromiseRef.current?.abort();
+            initAllowancePromiseRef.current = null;
+        },
+        [flowKey],
+    );
+
+    useEffect(() => {
+        if (flowType !== 'deposit' || allowanceStatus !== 'idle') {
+            return;
+        }
+
+        const { account, vault, token, receiptToken } = allowanceFlowDataRef.current;
+
+        if (!token || !receiptToken || !vault) {
+            return;
+        }
+
+        const promise = dispatch(
+            initYieldAllowanceThunk({
+                flowKey,
+                flowType,
+                flowData: { account, vault, token, receiptToken },
+            }),
+        );
+
+        initAllowancePromiseRef.current = promise;
+        void promise.finally(() => {
+            if (initAllowancePromiseRef.current === promise) {
+                initAllowancePromiseRef.current = null;
+            }
+        });
+    }, [
+        account.descriptor,
+        account.key,
+        account.symbol,
+        allowanceFlowDataRef,
+        allowanceStatus,
+        dispatch,
+        flowKey,
+        flowType,
+        receiptToken?.contractAddress,
+        token?.contractAddress,
+        token?.decimals,
+        vault?.id,
+    ]);
 
     useYieldPendingTransactionTracking({
         account,
@@ -209,7 +285,22 @@ export const useYieldFlow = ({
         [methodsRef],
     );
 
+    const openDeviceConnectionModal = useCallback(() => {
+        if (device?.descriptor?.apiType === 'bluetooth') {
+            dispatch(setConnectionMode('bluetooth'));
+        }
+        dispatch(setConnectionModal(true));
+    }, [device, dispatch]);
+
+    const isDeviceConnected = !!device?.connected && !!device?.available;
+
     const submitApprove = useCallback(() => {
+        if (!isDeviceConnected) {
+            openDeviceConnectionModal();
+
+            return;
+        }
+
         if (!token || !receiptToken || !vault) {
             dispatch(
                 stablecoinYieldActions.setError({
@@ -232,9 +323,26 @@ export const useYieldFlow = ({
                 amount,
             }),
         );
-    }, [account, flowKey, flowType, receiptToken, dispatch, token, vault, methodsRef]);
+    }, [
+        account,
+        flowKey,
+        flowType,
+        receiptToken,
+        dispatch,
+        token,
+        vault,
+        methodsRef,
+        isDeviceConnected,
+        openDeviceConnectionModal,
+    ]);
 
-    const submitRevoke = useCallback(() => {
+    const revokeAllowance = useCallback(() => {
+        if (!isDeviceConnected) {
+            openDeviceConnectionModal();
+
+            return;
+        }
+
         if (!token || !receiptToken || !vault) {
             dispatch(
                 stablecoinYieldActions.setError({
@@ -247,7 +355,7 @@ export const useYieldFlow = ({
             return;
         }
 
-        const amount = methodsRef.current.getValues('amountInput');
+        const amount = session.approval.allowanceAmount || '0';
 
         void dispatch(
             submitYieldRevokeThunk({
@@ -259,9 +367,47 @@ export const useYieldFlow = ({
         ).then(() => {
             methodsRef.current.reset({ amountInput: '' });
         });
-    }, [account, flowKey, flowType, receiptToken, dispatch, token, vault, methodsRef]);
+    }, [
+        account,
+        flowKey,
+        flowType,
+        receiptToken,
+        dispatch,
+        token,
+        vault,
+        methodsRef,
+        session.approval.allowanceAmount,
+        isDeviceConnected,
+        openDeviceConnectionModal,
+    ]);
+
+    const liveAmount = methods.watch('amountInput');
+
+    const approvalAction = getYieldApprovalAction({
+        liveAmount,
+        allowanceAmount: session.approval.allowanceAmount,
+        isModifyMode: session.approval.isModifyMode,
+        isRevokeRequired: session.approval.isRevokeRequired,
+        tokenContractAddress: token?.contractAddress,
+    });
+
+    const submitApprovalAction = useCallback(() => {
+        if (approvalAction === 'revoke') {
+            revokeAllowance();
+
+            return;
+        }
+
+        submitApprove();
+    }, [approvalAction, revokeAllowance, submitApprove]);
 
     const submitAction = useCallback(() => {
+        if (!isDeviceConnected) {
+            openDeviceConnectionModal();
+
+            return;
+        }
+
         if (!token || !receiptToken || !vault) {
             dispatch(
                 stablecoinYieldActions.setError({
@@ -284,7 +430,18 @@ export const useYieldFlow = ({
                 amount,
             }),
         );
-    }, [account, flowKey, flowType, receiptToken, dispatch, token, vault, methodsRef]);
+    }, [
+        account,
+        flowKey,
+        flowType,
+        receiptToken,
+        dispatch,
+        token,
+        vault,
+        methodsRef,
+        isDeviceConnected,
+        openDeviceConnectionModal,
+    ]);
 
     const handleApproveModalCancel = useCallback(async () => {
         await dispatch(
@@ -302,16 +459,47 @@ export const useYieldFlow = ({
         [dispatch, flowKey, flowType],
     );
 
-    const liveAmount = methods.watch('amountInput');
-
-    const isAmountEmpty = !liveAmount;
+    const isAmountEmpty =
+        !liveAmount || !isAmountGreaterThan({ amount: liveAmount, threshold: '0' });
+    const allowanceAmount = session.approval.allowanceAmount ?? '0';
+    const canRevokeAllowance = isAmountGreaterThan({ amount: allowanceAmount, threshold: '0' });
     const isAmountTooHigh = isAmountGreaterThan({ amount: liveAmount, threshold: maxAmount });
     const isApprovalInsufficient =
         !session.approval.isModifyMode &&
+        session.approval.allowanceStatus === 'loaded' &&
         isAmountGreaterThan({
             amount: liveAmount,
-            threshold: session.approval.amount ?? undefined,
+            threshold: session.approval.allowanceAmount ?? undefined,
         });
+    const networkFeeWarning = useMemo(() => {
+        if (account.networkType !== 'ethereum') {
+            return {
+                approvalNetworkFeeWarning: null,
+                actionNetworkFeeWarning: null,
+            };
+        }
+
+        const networkDisplaySymbol = getNetworkDisplaySymbol(account.symbol);
+        const estimatedContractCallFee = getYieldEstimatedContractCallFee(feeInfo);
+
+        if (!estimatedContractCallFee) {
+            return {
+                approvalNetworkFeeWarning: null,
+                actionNetworkFeeWarning: null,
+            };
+        }
+
+        const warning = getYieldNetworkFeeWarning({
+            availableBalance: account.availableBalance,
+            requiredFee: estimatedContractCallFee,
+            networkDisplaySymbol,
+        });
+
+        return {
+            approvalNetworkFeeWarning: flowType === 'deposit' ? warning : null,
+            actionNetworkFeeWarning: warning,
+        };
+    }, [account.availableBalance, account.networkType, account.symbol, feeInfo, flowType]);
 
     return {
         account,
@@ -323,28 +511,31 @@ export const useYieldFlow = ({
         flowKey,
         maxAmount,
         liveAmount,
-        approvedAmount: session.approval.amount,
         actionAmount: session.action.amount,
         completedAmount: session.result.completedAmount,
         completedReceiptAmount: session.result.completedReceiptAmount,
         errorMessage: session.error as TranslationKey | undefined,
         approveModalState: session.approval.modalState,
         pendingTransaction: session.action.pendingTransaction,
-        isModifyMode: session.approval.isModifyMode,
-        lastApprovedAmount: session.approval.lastApprovedAmount,
-        isRevokeRequired: session.approval.isRevokeRequired,
+        allowanceAmount,
+        allowanceStatus: session.approval.allowanceStatus,
+        approvalAction,
+        canRevokeAllowance,
+        approvalNetworkFeeWarning: networkFeeWarning.approvalNetworkFeeWarning,
+        actionNetworkFeeWarning: networkFeeWarning.actionNetworkFeeWarning,
         isAmountEmpty,
         isAmountTooHigh,
         isApprovalInsufficient,
         isSubmittingApprove:
             session.approval.isSubmitting ||
             session.approval.isPending ||
+            session.approval.isInitializingAllowance ||
             session.approval.modalState !== null,
         isSubmittingAction: session.action.isSubmitting,
         setAmountInput,
-        submitApprove,
+        submitApprovalAction,
         submitAction,
-        submitRevoke,
+        revokeAllowance,
         enterModifyApproval,
         handleApproveModalCancel,
         handleApproveSuccessTxid,

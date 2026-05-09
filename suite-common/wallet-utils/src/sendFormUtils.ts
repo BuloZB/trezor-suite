@@ -196,14 +196,14 @@ export const prepareEthereumTransaction = (
             gasPrice: undefined,
             maxFeePerGas: numberToHex(toWei(txInfo.maxFeePerGas, 'gwei')),
             maxPriorityFeePerGas: numberToHex(toWei(txInfo.maxPriorityFeePerGas || '0', 'gwei')),
-        } as EthereumTransactionEIP1559;
+        } satisfies EthereumTransactionEIP1559;
     } else if (txInfo.gasPrice) {
         result = {
             ...commonTxData,
             gasPrice: numberToHex(toWei(txInfo.gasPrice, 'gwei')),
             maxFeePerGas: undefined,
             maxPriorityFeePerGas: undefined,
-        } as EthereumTransaction;
+        } satisfies EthereumTransaction;
     } else {
         throw new Error('No gas price or maxFeePerGas and maxPriorityFeePerGas provided');
     }
@@ -528,9 +528,12 @@ export const restoreOrigOutputsOrder = (
         });
 };
 
-export const getDefaultValues = (currency: Output['currency']): FormState => ({
+export const getDefaultValues = (
+    currency: Output['currency'],
+    networkType?: NetworkType,
+): FormState => ({
     ...DEFAULT_VALUES,
-    options: ['broadcast', 'destinationTag'],
+    options: networkType === 'solana' ? ['broadcast'] : ['broadcast', 'destinationTag'],
     outputs: [{ ...DEFAULT_PAYMENT, currency }],
     selectedUtxos: [],
 });

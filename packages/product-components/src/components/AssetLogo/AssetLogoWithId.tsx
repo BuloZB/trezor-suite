@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 import { type NetworkSymbol, type NetworkSymbolExtended } from '@suite-common/wallet-config';
 import { getAssetLogoContractAddresses } from '@suite-common/wallet-utils/src/tokenUtils';
@@ -48,6 +48,8 @@ type AssetLogoBaseProps = AllowedFrameProps & {
     placeholder?: string;
     'data-testid'?: string;
     showNetworkIcon?: boolean;
+    customLogoUrl?: string;
+    isBordered?: boolean;
 };
 
 export type AssetLogoProps = AssetLogoBaseProps & {
@@ -68,12 +70,16 @@ const Container = styled.div<TransientProps<AllowedFrameProps> & { $size: number
     ${withFrameProps}
 `;
 
-const Logo = styled.img<{ $size: number; $elevation: Elevation }>`
+const Logo = styled.img<{ $size: number; $elevation: Elevation; $isBordered: boolean }>`
     width: ${({ $size }) => $size}px;
     height: ${({ $size }) => $size}px;
     border-radius: ${borders.radii.full};
-    box-shadow: inset 0 0 0 1px ${mapElevationToBorder};
-    background-color: ${mapElevationToBackground};
+    ${({ $isBordered }) =>
+        $isBordered &&
+        css<{ $elevation: Elevation }>`
+            box-shadow: inset 0 0 0 1px ${mapElevationToBorder};
+            background-color: ${mapElevationToBackground};
+        `}
 `;
 
 const StyledNetworkIcon = styled(NetworkIcon)`
@@ -85,6 +91,7 @@ const StyledNetworkIcon = styled(NetworkIcon)`
 
 interface LogoProps extends React.ImgHTMLAttributes<HTMLImageElement> {
     $size: number;
+    $isBordered: boolean;
 }
 
 const ElevatedLogo = (props: LogoProps) => {
@@ -102,6 +109,8 @@ export const AssetLogoWithId = ({
     placeholder = '',
     placeholderWithTooltip = true,
     showNetworkIcon = false,
+    customLogoUrl,
+    isBordered = true,
     'data-testid': dataTest,
     ...rest
 }: AssetLogoWithIdProps) => {
@@ -137,7 +146,22 @@ export const AssetLogoWithId = ({
     const [showPlaceholder, setShowPlaceholder] = useState(!shouldTryToFetch);
 
     const candidates = useMemo<LogoCandidate[]>(() => {
-        if (!shouldTryToFetch || !canonicalAddresses.length) return [];
+        if (!shouldTryToFetch) return [];
+
+        const result: LogoCandidate[] = [];
+
+        if (
+            customLogoUrl &&
+            !failedAddressesCache.has(makeAddressKey(coingeckoIdLogo, customLogoUrl))
+        ) {
+            result.push({
+                address: customLogoUrl,
+                src: customLogoUrl,
+                srcSet: customLogoUrl,
+            });
+        }
+
+        if (!canonicalAddresses.length) return result;
 
         const filtered = canonicalAddresses.filter(
             address => !failedAddressesCache.has(makeAddressKey(coingeckoIdLogo, address)),
@@ -145,7 +169,7 @@ export const AssetLogoWithId = ({
 
         const hasNative = filtered.some(addr => addr === ZERO_ADDRESS);
 
-        return filtered.map(address => {
+        for (const address of filtered) {
             const url1x = getAssetLogoUrl({
                 coingeckoId: coingeckoIdLogo,
                 contractAddress: !hasNative ? address : undefined,
@@ -159,9 +183,11 @@ export const AssetLogoWithId = ({
                 size,
             });
 
-            return { address, src: url1x, srcSet: `${url1x} 1x, ${url2x} 2x` };
-        });
-    }, [shouldTryToFetch, canonicalAddresses, coingeckoIdLogo, size]);
+            result.push({ address, src: url1x, srcSet: `${url1x} 1x, ${url2x} 2x` });
+        }
+
+        return result;
+    }, [shouldTryToFetch, canonicalAddresses, coingeckoIdLogo, size, customLogoUrl]);
 
     const hasCandidates = candidates.length > 0;
     const hasValidIndex = candidateIndex >= 0 && candidateIndex < candidates.length;
@@ -225,6 +251,7 @@ export const AssetLogoWithId = ({
                         loading="lazy"
                         decoding="async"
                         $size={size}
+                        $isBordered={isBordered}
                         data-testid={dataTest}
                         alt={placeholder}
                         onLoad={handleOnLoad}

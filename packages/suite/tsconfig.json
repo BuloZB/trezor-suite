@@ -26,6 +26,7 @@
         {
             "path": "../../suite-common/bluetooth"
         },
+        { "path": "../../suite-common/calldata" },
         {
             "path": "../../suite-common/connect-init"
         },
@@ -41,6 +42,9 @@
         { "path": "../../suite-common/device" },
         {
             "path": "../../suite-common/device-authenticity"
+        },
+        {
+            "path": "../../suite-common/earn-stablecoin"
         },
         {
             "path": "../../suite-common/earn-stablecoin-api"
@@ -80,6 +84,7 @@
         {
             "path": "../../suite-common/redux-utils"
         },
+        { "path": "../../suite-common/schemas" },
         { "path": "../../suite-common/sentry" },
         { "path": "../../suite-common/staking" },
         {

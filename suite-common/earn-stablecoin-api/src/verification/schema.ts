@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
-const evmHexString = z
-    .string()
-    .startsWith('0x')
-    .transform(s => s as `0x${string}`);
-
-const evmNumberLike = z.union([z.number(), evmHexString]);
+import { evmHexString, evmNumberLike } from '@suite-common/schemas/src/evm';
 
 export const UnsignedEvmTransactionSchema = z.object({
     from: evmHexString,

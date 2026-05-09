@@ -2,6 +2,7 @@
     "extends": "../../tsconfig.base.json",
     "compilerOptions": { "outDir": "libDev" },
     "references": [
+        { "path": "../../suite-common/bip329" },
         { "path": "../../suite-common/device" },
         {
             "path": "../../suite-common/earn-stablecoin-api"
@@ -53,11 +54,14 @@
         { "path": "../navigation" },
         { "path": "../qr-code" },
         { "path": "../services" },
+        { "path": "../toasts" },
         { "path": "../tokens" },
         { "path": "../transactions" },
+        { "path": "../../packages/connect" },
         {
             "path": "../../packages/styles-native"
         },
+        { "path": "../../packages/type-utils" },
         { "path": "../../packages/utils" },
         { "path": "../test-utils-store" },
         { "path": "../../packages/requirements" }

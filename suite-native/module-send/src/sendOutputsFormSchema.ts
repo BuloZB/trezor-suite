@@ -273,6 +273,8 @@ export type OutputsFormValues = yup.InferType<typeof outputSchema>;
 
 export const sendOutputsFormValidationSchema = yup.object({
     outputs: yup.array(outputSchema).required(),
+    transactionData: yup.string(),
+    tronDataAscii: yup.string(),
     isDestinationTagEnabled: yup.boolean(),
     destinationTag: yup
         .string()
@@ -289,7 +291,7 @@ export const sendOutputsFormValidationSchema = yup.object({
 
                 if (!symbol) return true;
                 const networkType = getNetworkType(symbol);
-                if (networkType === 'stellar') return true;
+                if (networkType === 'stellar' || networkType === 'solana') return true;
 
                 if (!value) return true;
 
@@ -312,7 +314,12 @@ export const sendOutputsFormValidationSchema = yup.object({
 
                 if (!symbol) return true;
                 const networkType = getNetworkType(symbol);
-                if (networkType !== 'ripple' && networkType !== 'stellar') return true;
+                if (
+                    networkType !== 'ripple' &&
+                    networkType !== 'stellar' &&
+                    networkType !== 'solana'
+                )
+                    return true;
 
                 // isDestinationTagEnabled is enabled, tag should be set
                 if (!value && isDestinationTagEnabled) return false;
@@ -347,15 +354,23 @@ export const sendOutputsFormValidationSchema = yup.object({
                 const { symbol } = context!;
 
                 if (!symbol) return true;
-                if (getNetworkType(symbol) !== 'stellar') return true;
+                const networkType = getNetworkType(symbol);
+                if (networkType !== 'stellar' && networkType !== 'solana') return true;
 
                 if (!value) return true;
 
-                if (value.length > formInputsMaxLength.stellarTextMemo) {
-                    return false;
-                }
+                const destinationTagMaxLength = (() => {
+                    switch (networkType) {
+                        case 'stellar':
+                            return formInputsMaxLength.stellarTextMemo;
+                        case 'solana':
+                            return formInputsMaxLength.solanaMemo;
+                        default:
+                            throw new Error(`Unsupported network type: ${networkType}`);
+                    }
+                })();
 
-                return true;
+                return value.length <= destinationTagMaxLength;
             },
         ),
     setMaxOutputId: yup.number(),

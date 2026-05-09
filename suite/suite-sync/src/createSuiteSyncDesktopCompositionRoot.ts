@@ -1,5 +1,5 @@
 import { createConsole, createConsoleFormatter } from '@evolu/common';
-import { createRun } from '@evolu/web';
+import { createEvoluDeps, createRun } from '@evolu/web';
 import { type Dispatch } from '@reduxjs/toolkit';
 
 import { type DesktopAnalyticsDep } from '@suite/analytics';
@@ -18,7 +18,7 @@ import {
 import { type SuiteSync } from '@suite-common/suite-sync-types';
 import { type TrezorConnect } from '@trezor/connect';
 
-import { createEvoluDepsFixed } from './createEvoluDepsFixed';
+import { createOnSharedWorkerUnsupported } from './createOnSharedWorkerUnsupported';
 import { createTurnOnDesktopSuiteSync } from './turnOnDesktopSuiteSync';
 
 type SuiteSyncDesktopCompositionRootDeps = {
@@ -37,7 +37,12 @@ export const createSuiteSyncDesktopCompositionRoot = (
         formatter: createConsoleFormatter()({ timestampFormat: 'absolute' }),
     });
 
-    const evoluDeps = createEvoluDepsFixed({ console });
+    const evoluDeps = createEvoluDeps({
+        console,
+        onSharedWorkerUnsupported: createOnSharedWorkerUnsupported({
+            dispatch: deps.dispatch,
+        }),
+    });
 
     const run = createRun(evoluDeps);
 

@@ -11,8 +11,6 @@ export const selectAutodetectLanguage = (state: SuiteSettingsRootState) =>
     state.suiteSettings.autodetect.language;
 export const selectAutodetectTheme = (state: SuiteSettingsRootState) =>
     state.suiteSettings.autodetect.theme;
-export const selectAddressDisplayType = (state: SuiteSettingsRootState) =>
-    state.suiteSettings.addressDisplayType;
 export const selectTorOnionLinks = (state: SuiteSettingsRootState) =>
     state.suiteSettings.torOnionLinks;
 export const selectIsCoinjoinReceiveWarningHidden = (state: SuiteSettingsRootState) =>
@@ -52,3 +50,5 @@ export const selectIsCoinsFilterVisible = (state: SuiteSettingsRootState) =>
     state.suiteSettings.isCoinsFilterVisible;
 export const selectIsN4w1BackupEnabled = (state: SuiteSettingsRootState) =>
     state.suiteSettings.debug.isN4w1BackupEnabled;
+export const selectShowTranslationKeys = (state: SuiteSettingsRootState) =>
+    state.suiteSettings.debug.showTranslationKeys;

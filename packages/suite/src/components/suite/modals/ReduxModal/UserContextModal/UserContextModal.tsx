@@ -11,6 +11,8 @@ import {
     StakeModal,
     UnstakeModal,
 } from 'src/components/earn';
+import { ConnectPopupTxSimulationModal } from 'src/components/tx-simulation/connect-popup';
+import { EarnYieldTxSimulationModal } from 'src/components/tx-simulation/earn-stablecoin';
 import { useDispatch } from 'src/hooks/suite';
 import type { AcquiredDevice } from 'src/types/suite';
 
@@ -51,7 +53,6 @@ import { SafetyChecksModal } from './SafetyChecksModal';
 import { StakeChangeDelegateModal } from './StakeChangeDelegateModal/StakeChangeDelegateModal';
 import { TorLoadingModal } from './TorLoadingModal';
 import { TxDetailModal } from './TxDetailModal/TxDetailModal';
-import { TxSimulationModal } from './TxSimulationModal';
 import { UnecoCoinjoinModal } from './UnecoCoinjoinModal';
 import { WalletConnectProposalModal } from './WalletConnectProposalModal';
 import { WalletConnectSwitchAccountModal } from './WalletConnectSwitchAccountModal';
@@ -183,8 +184,16 @@ export const UserContextModal = ({ payload }: ReduxModalProps<typeof MODAL_CONTE
             return <ConnectLoadingModal />;
         case 'auto-start-before-quit':
             return <AutoStartBeforeQuitModal />;
-        case 'tx-simulation':
-            return <TxSimulationModal />;
+        case 'connect-popup-tx-simulation':
+            return <ConnectPopupTxSimulationModal />;
+        case 'earn-yield-tx-simulation':
+            return (
+                <EarnYieldTxSimulationModal
+                    decision={payload.decision}
+                    data={payload.data}
+                    closeModal={onCancel}
+                />
+            );
         case 'wipe-device-success':
             return <WipeDeviceSuccessModal />;
         default:

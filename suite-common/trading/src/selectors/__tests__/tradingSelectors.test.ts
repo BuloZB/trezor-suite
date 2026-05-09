@@ -34,13 +34,11 @@ import {
     selectTradingActiveSection,
     selectTradingBuy,
     selectTradingBuyAmountLimits,
-    selectTradingBuyBestQuote,
     selectTradingBuyInfo,
     selectTradingBuyIsFromRedirect,
     selectTradingBuyIsLoading,
     selectTradingBuyLastErrorMessage,
     selectTradingBuyLoadingTimestampAndStatus,
-    selectTradingBuyPreselectedQuote,
     selectTradingBuyProviders,
     selectTradingBuyQuoteByOrderId,
     selectTradingBuyQuotes,
@@ -81,13 +79,11 @@ import {
     selectTradingProviderMetadata,
     selectTradingSellAccountKey,
     selectTradingSellAmountLimits,
-    selectTradingSellBestQuote,
     selectTradingSellFormStep,
     selectTradingSellInfo,
     selectTradingSellIsFromRedirect,
     selectTradingSellLastErrorMessage,
     selectTradingSellLoadingTimestampAndStatus,
-    selectTradingSellPreselectedQuote,
     selectTradingSellProviders,
     selectTradingSellQuotes,
     selectTradingSellQuotesByPaymentMethod,
@@ -656,14 +652,6 @@ describe('tradingSelectors', () => {
         expect(selectTradingBuySelectedQuote(state)).toBe(state.wallet.trading.buy.selectedQuote);
     });
 
-    it('selectTradingBuyPreselectedQuote should return correct data', () => {
-        state.wallet.trading.buy.preselectedQuote = state.wallet.trading.buy.quotes[0];
-
-        expect(selectTradingBuyPreselectedQuote(state)).toBe(
-            state.wallet.trading.buy.preselectedQuote,
-        );
-    });
-
     it('selectTradingExchangeSelectedQuote should return correct data', () => {
         expect(selectTradingExchangeSelectedQuote(state)).toBe(
             state.wallet.trading.exchange.selectedQuote,
@@ -699,14 +687,6 @@ describe('tradingSelectors', () => {
 
     it('selectTradingSellSelectedQuote should return correct data', () => {
         expect(selectTradingSellSelectedQuote(state)).toBe(state.wallet.trading.sell.selectedQuote);
-    });
-
-    it('selectTradingSellPreselectedQuote should return correct data', () => {
-        state.wallet.trading.sell.preselectedQuote = state.wallet.trading.sell.quotes[0];
-
-        expect(selectTradingSellPreselectedQuote(state)).toBe(
-            state.wallet.trading.sell.preselectedQuote,
-        );
     });
 
     it('selectTradingPaymentMethods should return correct data', () => {
@@ -1056,18 +1036,6 @@ describe('tradingSelectors', () => {
             expect(selectTradingBuyQuotesByPaymentMethod(state, 'eps')).toBe(
                 selectTradingBuyQuotesByPaymentMethod(state, 'eps'),
             );
-        });
-    });
-
-    describe(selectTradingBuyBestQuote.name, () => {
-        it('should return the best rated buy quote', () => {
-            expect(selectTradingBuyBestQuote(state)?.orderId).toBe('orderId3');
-        });
-
-        it('should return undefined when there are no valid quotes', () => {
-            state.wallet.trading.buy.quotes = [];
-
-            expect(selectTradingBuyBestQuote(state)).toBeUndefined();
         });
     });
 
@@ -1450,20 +1418,6 @@ describe('tradingSelectors', () => {
             expect(selectTradingSellQuotesByPaymentMethod(state, 'creditCard')).toBe(
                 selectTradingSellQuotesByPaymentMethod(state, 'creditCard'),
             );
-        });
-    });
-
-    describe(selectTradingSellBestQuote.name, () => {
-        it('should return the best rated sell quote', () => {
-            expect(selectTradingSellBestQuote(state)?.orderId).toBe(
-                '05a031d0-2c7a-4e7f-9001-67cec1253fae',
-            );
-        });
-
-        it('should return undefined when there are no valid quotes', () => {
-            state.wallet.trading.sell.quotes = [];
-
-            expect(selectTradingSellBestQuote(state)).toBeUndefined();
         });
     });
 

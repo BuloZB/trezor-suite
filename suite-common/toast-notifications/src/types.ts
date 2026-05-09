@@ -24,6 +24,9 @@ type TransactionNotificationPayload = {
     symbol: NetworkSymbol;
     txid: string;
 };
+
+type BaseTransactionNotificationPayload = Omit<TransactionNotificationPayload, 'formattedAmount'>;
+
 type SentTransactionNotification = {
     type: 'tx-sent';
     token?: TokenInfo;
@@ -64,15 +67,15 @@ type ClaimedTransactionNotification = {
 
 type YieldSupplyTransactionNotification = {
     type: 'tx-yield-supply';
-} & TransactionNotificationPayload;
+} & BaseTransactionNotificationPayload;
 
 type YieldWithdrawTransactionNotification = {
     type: 'tx-yield-withdraw';
-} & TransactionNotificationPayload;
+} & BaseTransactionNotificationPayload;
 
 type YieldClaimTransactionNotification = {
     type: 'tx-yield-claim';
-} & TransactionNotificationPayload;
+} & BaseTransactionNotificationPayload;
 
 export type ErrorToastPayload = {
     type:

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { commonQueryKeys, useQueryClient } from '@suite-common/react-query';
 import {
     type YieldFlowType,
     fetchAndUpdateAccountThunk,
@@ -21,13 +22,13 @@ const getPollIntervalMs = (blockTime: number | undefined): number => {
     if (!blockTime) return DEFAULT_PENDING_TX_POLL_INTERVAL_MS;
 
     return Math.max(
-        (blockTime / BLOCK_TIME_TO_POLL_INTERVAL_RATIO) * 60 * 1000,
+        (blockTime / BLOCK_TIME_TO_POLL_INTERVAL_RATIO) * 1000,
         MIN_PENDING_TX_POLL_INTERVAL_MS,
     );
 };
 
 type UseYieldPendingTransactionTrackingProps = {
-    account: Account;
+    account?: Account;
     flowType: YieldFlowType;
     flowKey: string;
 };
@@ -38,18 +39,22 @@ export const useYieldPendingTransactionTracking = ({
     flowKey,
 }: UseYieldPendingTransactionTrackingProps) => {
     const dispatch = useDispatch();
+    const queryClient = useQueryClient();
     const pendingTransaction = useSelector(
         state => selectStablecoinYieldSession(state, flowType, flowKey).action.pendingTransaction,
     );
     const trackedPendingTransaction = useSelector(state =>
-        pendingTransaction
+        account && pendingTransaction
             ? selectTransactionByAccountKeyAndTxid(state, account.key, pendingTransaction.txid)
             : null,
     );
-    const feeInfo = useSelector(state => selectConvertedNetworkFeeInfo(state, account.symbol));
+    const feeInfo = useSelector(state =>
+        account ? selectConvertedNetworkFeeInfo(state, account.symbol) : null,
+    );
     const pollIntervalMs = getPollIntervalMs(feeInfo?.blockTime);
 
     const isCurrentlyPending =
+        !!account &&
         !!pendingTransaction &&
         (!trackedPendingTransaction || isPending(trackedPendingTransaction));
 
@@ -63,7 +68,7 @@ export const useYieldPendingTransactionTracking = ({
         }, pollIntervalMs);
 
         return () => clearInterval(interval);
-    }, [account.key, dispatch, isCurrentlyPending, pollIntervalMs]);
+    }, [account, dispatch, isCurrentlyPending, pollIntervalMs]);
 
     useEffect(() => {
         if (!pendingTransaction || !trackedPendingTransaction) {
@@ -82,6 +87,7 @@ export const useYieldPendingTransactionTracking = ({
 
         if (pendingTransaction.type === 'revoke' || pendingTransaction.type === 'revoke-only') {
             dispatch(stablecoinYieldActions.revokeSuccess({ flowType, flowKey }));
+            dispatch(stablecoinYieldActions.invalidateAllowance({ flowType, flowKey }));
 
             return;
         }
@@ -94,6 +100,7 @@ export const useYieldPendingTransactionTracking = ({
                     amount: pendingTransaction.amount,
                 }),
             );
+            dispatch(stablecoinYieldActions.invalidateAllowance({ flowType, flowKey }));
 
             return;
         }
@@ -107,9 +114,13 @@ export const useYieldPendingTransactionTracking = ({
                 }),
             );
 
+            if (flowType === 'claim') {
+                queryClient.refetchQueries({ queryKey: commonQueryKeys.merkleRewards() });
+            }
+
             return;
         }
 
         dispatch(stablecoinYieldActions.resetSession({ flowType, flowKey }));
-    }, [flowKey, flowType, pendingTransaction, dispatch, trackedPendingTransaction]);
+    }, [flowKey, flowType, pendingTransaction, dispatch, trackedPendingTransaction, queryClient]);
 };

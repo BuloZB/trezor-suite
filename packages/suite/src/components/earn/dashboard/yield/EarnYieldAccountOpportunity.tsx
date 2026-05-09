@@ -120,7 +120,7 @@ export const EarnYieldAccountOpportunity = ({ opportunity }: EarnYieldAccountOpp
             payload: {
                 action: 'continue',
                 from: 'earn-dashboard',
-                to: 'supply-in-a-nutshell-modal',
+                to: 'deposit-in-a-nutshell-modal',
                 networkSymbol: opportunity.account.symbol,
                 contractAddress: opportunity.vault.token.address,
             },
@@ -157,7 +157,7 @@ export const EarnYieldAccountOpportunity = ({ opportunity }: EarnYieldAccountOpp
             payload: {
                 action: 'continue',
                 from: 'earn-dashboard',
-                to: 'supply-form',
+                to: 'deposit-form',
                 networkSymbol: opportunity.account.symbol,
                 contractAddress: opportunity.vault.token.address,
             },
@@ -224,14 +224,7 @@ export const EarnYieldAccountOpportunity = ({ opportunity }: EarnYieldAccountOpp
                         symbol={opportunity.networkSymbol}
                         iconToken={opportunity.vault.token}
                         showAssetNetworkIcon
-                        subtitle={
-                            <Translation
-                                id="TR_EARN_VAULT_NAME"
-                                values={{
-                                    vaultName: opportunity.vault.outputToken?.name ?? '',
-                                }}
-                            />
-                        }
+                        subtitle={opportunity.vault.outputToken?.name ?? ''}
                         tokenBalance={{
                             value: opportunity.additionalSupplyAmount,
                             symbol: opportunity.suppliedSymbol,

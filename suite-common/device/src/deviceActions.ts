@@ -22,14 +22,12 @@ export const DEVICE_MODULE_PREFIX = '@suite/device';
 
 export type DeviceConnectActionPayload = {
     device: Device;
-    isAutoEjectEnabled: boolean;
 };
 
 export type DeviceStateActionPayload = {
     device: AcquiredDevice;
     state: DeviceState & { staticSessionId: StaticSessionId };
     useEmptyPassphrase: boolean;
-    isAutoEjectEnabled: boolean;
 };
 
 const connectDevice = createAction(DEVICE.CONNECT, (payload: DeviceConnectActionPayload) => ({
@@ -160,6 +158,11 @@ const setDeviceAuthenticityResult = createAction(
     }),
 );
 
+const setManualDeviceCheckSuccess = createAction(
+    `${DEVICE_MODULE_PREFIX}/setManualDeviceCheckSuccess`,
+    (payload: { deviceId: TrezorDevice['id'] }) => ({ payload }),
+);
+
 // Use in tests only! See deviceReducer for the property definition.
 const setSimulatedEntropyCheckFail = createAction(
     `${DEVICE_MODULE_PREFIX}/setSimulatedEntropyCheckFail`,
@@ -190,5 +193,6 @@ export const deviceActions = {
     setDiscovered,
     devicePushNotification,
     setDeviceAuthenticityResult,
+    setManualDeviceCheckSuccess,
     setSimulatedEntropyCheckFail,
 };

@@ -66,11 +66,13 @@ const PRODUCTION_SECURITY_HEADERS = {
         // Note that connect-src is a CSP policy that has nothing to do with the former TrezorConnect parameter of the same name
         'connect-src': ['data:', '*'],
         'upgrade-insecure-requests': true,
-        'script-src': ['self', 'unsafe-eval'],
+        'script-src': ['self'],
         'form-action': ['self'],
         'frame-ancestors': ['self'],
         'base-uri': ['none'],
-        'object-src': ['self'],
+        'object-src': ['none'],
+        // trezorsuite deeplinks are opened using iframes to avoid issues with navigation
+        'frame-src': ['self', 'trezorsuite://*'],
         'report-uri': SENTRY_REPORT_URL,
         'report-to': 'csp-endpoint',
     },

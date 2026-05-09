@@ -5,6 +5,7 @@ import {
     type Transaction,
     type TransactionMessage,
 } from '@solana/kit';
+import { getAddMemoInstruction } from '@solana-program/memo';
 
 import type { TokenAccount } from '@trezor/blockchain-link-types';
 import { solanaUtils as SolanaBlockchainLinkUtils } from '@trezor/blockchain-link-utils';
@@ -40,6 +41,17 @@ const loadSolanaTokenProgramLib = async (tokenProgramName: TokenProgramName) => 
 };
 
 export const SOLANA_BASE_FEE = 5000; // lamports
+
+const SOLANA_MEMO_MAX_BYTES = 566; // https://www.solana-program.com/docs/memo
+
+const validateMemo = (memo: string) => {
+    const byteLength = Buffer.from(memo, 'utf8').length;
+    if (byteLength > SOLANA_MEMO_MAX_BYTES) {
+        throw new Error(
+            `Memo exceeds maximum length of ${SOLANA_MEMO_MAX_BYTES} bytes (got ${byteLength})`,
+        );
+    }
+};
 
 export const getLamportsFromSol = (amountInSol: string) =>
     BigInt(new BigNumber(amountInSol).times(10 ** 9).toString());
@@ -125,6 +137,7 @@ export const buildTransferTransaction = async (
     blockhash: string,
     lastValidBlockHeight: number,
     priorityFees: PriorityFees,
+    memo?: string,
 ) => {
     const [
         // @solana/kit
@@ -162,7 +175,17 @@ export const buildTransferTransaction = async (
         }),
         messageWithLifetime,
     );
-    const messageWithFees = await addPriorityFees(messageWithTransfer, priorityFees);
+    let messageWithFees: CompilableTransactionMessage = await addPriorityFees(
+        messageWithTransfer,
+        priorityFees,
+    );
+    if (memo) {
+        validateMemo(memo);
+        messageWithFees = appendTransactionMessageInstruction(
+            getAddMemoInstruction({ memo }),
+            messageWithFees,
+        );
+    }
 
     return await createTransactionShim(messageWithFees);
 };
@@ -296,6 +319,7 @@ export const buildTokenTransferTransaction = async (
     lastValidBlockHeight: number,
     priorityFees: PriorityFees,
     tokenProgramName: TokenProgramName,
+    memo?: string,
 ): Promise<TokenTransferTxWithDestinationAddress> => {
     const {
         address,
@@ -383,7 +407,13 @@ export const buildTokenTransferTransaction = async (
     // Step 6: Add the token transfer instruction(s) to the transaction
     message = appendTransactionMessageInstructions(await Promise.all(instructionPromises), message);
 
-    // Step 7: Return the transaction
+    // Step 7: Append memo instruction if provided
+    if (memo) {
+        validateMemo(memo);
+        message = appendTransactionMessageInstruction(getAddMemoInstruction({ memo }), message);
+    }
+
+    // Step 8: Return the transaction
     return {
         transaction: await createTransactionShim(message),
         destinationAddress: finalReceiverAddress,

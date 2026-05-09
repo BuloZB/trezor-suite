@@ -18,7 +18,7 @@ import {
     selectDeviceAccounts,
 } from '@suite-common/wallet-core';
 import { type Account, type SelectedAccountStatus } from '@suite-common/wallet-types';
-import addressValidator from '@trezor/address-validator';
+import { getCurrencies } from '@trezor/address-validator';
 import { exhaustive } from '@trezor/type-utils';
 
 import { groupTradingExchangeQuotesProjection } from './utils/groupTradingExchangeQuotesProjection';
@@ -36,7 +36,6 @@ import {
 } from '../types';
 import {
     cryptoIdToNetwork,
-    getBestRatedQuote,
     getTradingQuotesByPaymentMethod,
     isBuyTrade,
     isExchangeProvider,
@@ -334,9 +333,6 @@ export const selectTradingSellIsFromRedirect = (state: TradingRootState) =>
 export const selectTradingBuySelectedQuote = (state: TradingRootState) =>
     state.wallet.trading.buy.selectedQuote;
 
-export const selectTradingBuyPreselectedQuote = (state: TradingRootState) =>
-    state.wallet.trading.buy.preselectedQuote;
-
 export const selectTradingExchangeSelectedQuote = (state: TradingRootState) =>
     state.wallet.trading.exchange.selectedQuote;
 
@@ -348,9 +344,6 @@ export const selectTradingExchangeActiveQuote = (state: TradingRootState) =>
 
 export const selectTradingSellSelectedQuote = (state: TradingRootState) =>
     state.wallet.trading.sell.selectedQuote;
-
-export const selectTradingSellPreselectedQuote = (state: TradingRootState) =>
-    state.wallet.trading.sell.preselectedQuote;
 
 export const selectTradingPaymentMethods = (state: TradingRootState) =>
     state.wallet.trading.info.paymentMethods;
@@ -472,9 +465,7 @@ const getFilteredCryptoIds = (
         return [];
     }
 
-    const supportedAddressValidatorSymbols = new Set(
-        addressValidator.getCurrencies().map(c => c.symbol),
-    );
+    const supportedAddressValidatorSymbols = new Set(getCurrencies().map(c => c.symbol));
 
     const uniqueSupportedCryptoIds = [...new Set(supportedCryptoIds).values()];
 
@@ -668,11 +659,6 @@ export const selectValidTradingBuyQuotes = createMemoizedSelector(
     },
 );
 
-export const selectTradingBuyBestQuote = createMemoizedSelector(
-    [selectValidTradingBuyQuotes],
-    quotes => getBestRatedQuote(quotes, 'buy'),
-);
-
 export const selectValidTradingSellQuotes = createMemoizedSelector(
     [selectTradingSellQuotes],
     quotes => {
@@ -680,11 +666,6 @@ export const selectValidTradingSellQuotes = createMemoizedSelector(
 
         return quotes.filter(item => item.rate && item.rate !== 0);
     },
-);
-
-export const selectTradingSellBestQuote = createMemoizedSelector(
-    [selectValidTradingSellQuotes],
-    quotes => getBestRatedQuote(quotes, 'sell'),
 );
 
 export const selectTradingBuyAccountKey = (state: TradingRootState) =>
