@@ -13,6 +13,7 @@ import type {
     UiRequestButtonData,
     UiRequestConfirmation,
 } from '@trezor/connect-common';
+import { isStaticSessionId } from '@trezor/device-utils';
 import type { Capability } from '@trezor/protobuf/src/definitions';
 import { isNotUndefined, versionUtils } from '@trezor/utils';
 
@@ -21,11 +22,6 @@ import type { Device } from '../device/Device';
 import type { UiPromiseCreator } from '../events/ui-promise';
 
 export { DEFAULT_FIRMWARE_RANGE };
-// TODO: drop this re-export and migrate the ~50 internal `packages/connect/src/api/**`
-// imports to pull `MethodPermission` / `MethodInfo` directly from `@trezor/connect-common`.
-// Kept here as a transitional shim to keep this PR focused on the public-surface change;
-// the cleanup will follow up alongside the deep-import ESLint guardrail (#27376).
-export type { MethodInfo, MethodPermission };
 
 export type Payload<M> = Extract<CallMethodPayload, { method: M }> & { override?: boolean };
 export type MethodReturnType<M extends CallMethodPayload['method']> = CallMethodResponse<M>;
@@ -46,25 +42,14 @@ export type MethodMessage<Name extends CallMethodPayload['method']> = {
 };
 
 function validateStaticSessionId(input: unknown): StaticSessionId {
-    if (typeof input !== 'string')
+    if (!isStaticSessionId(input)) {
         throw ERRORS.TypedError(
             'Method_InvalidParameter',
             'DeviceState: invalid staticSessionId: ' + input,
         );
-    const [firstTestnetAddress, rest] = input.split('@');
-    const [deviceId, instance] = rest.split(':');
-    if (
-        typeof firstTestnetAddress === 'string' &&
-        typeof deviceId === 'string' &&
-        typeof instance === 'string' &&
-        Number.parseInt(instance) >= 0
-    ) {
-        return input as StaticSessionId;
     }
-    throw ERRORS.TypedError(
-        'Method_InvalidParameter',
-        'DeviceState: invalid staticSessionId: ' + input,
-    );
+
+    return input;
 }
 
 // validate expected state from method parameter.
