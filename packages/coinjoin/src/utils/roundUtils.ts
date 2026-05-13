@@ -92,7 +92,7 @@ export const scheduleDelay = (
 };
 
 // NOTE: deadlines are not accurate. phase may change earlier
-// accept CoinjoinRound or modified coordinator Round (see estimatePhaseDeadline below)
+// accept CoinjoinRound or modified coordinator Round
 type PartialCoinjoinRound = {
     Phase: RoundPhase;
     InputRegistrationEnd: string;
@@ -151,30 +151,6 @@ export const getCoinjoinRoundDeadlines = (round: PartialCoinjoinRound) => {
                 roundDeadline: now,
             };
     }
-};
-
-export const estimatePhaseDeadline = (round: Round) => {
-    const roundParameters = getRoundParameters(round);
-    if (!roundParameters) return 0;
-
-    const { phaseDeadline } = getCoinjoinRoundDeadlines({
-        ...round,
-        RoundParameters: roundParameters,
-    });
-
-    return phaseDeadline;
-};
-
-export const findNearestDeadline = (rounds: Round[]) => {
-    const now = Date.now();
-    const deadlines = rounds.map(r => {
-        const phaseDeadline = estimatePhaseDeadline(r);
-        const timeLeft = phaseDeadline ? new Date(phaseDeadline).getTime() - now : 0;
-
-        return timeLeft > 0 ? timeLeft : now;
-    });
-
-    return Math.min(...deadlines);
 };
 
 // get relevant round data from the most recent round

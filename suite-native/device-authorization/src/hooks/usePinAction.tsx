@@ -57,7 +57,7 @@ export const usePinAction = ({ type, onSuccess, onError }: PinActionProps) => {
         (messageKey: TxKeyPath) => {
             showToast({
                 icon: 'check',
-                variant: 'success',
+                intent: 'brand',
                 message: <Translation id={messageKey} />,
             });
         },
@@ -115,6 +115,8 @@ export const usePinAction = ({ type, onSuccess, onError }: PinActionProps) => {
                 errorCode === 'Failure_PinCancelled' ||
                 errorCode === 'Method_Interrupted'
             ) {
+                // false positive by the eslint rule (it's a normal recursion pattern)
+                // eslint-disable-next-line react-hooks/immutability
                 handleError(canceledMessageKey, handlePinAction);
             } else if (errorCode === 'Failure_PinInvalid') {
                 handleError(

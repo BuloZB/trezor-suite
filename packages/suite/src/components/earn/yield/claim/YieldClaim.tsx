@@ -18,7 +18,7 @@ import { Banner, Button, Card, Column, Text } from '@trezor/components';
 import { BigNumber } from '@trezor/utils';
 
 import { setConnectionModal, setConnectionMode } from 'src/actions/device/deviceSlice';
-import { claimMerkleRewardsThunk } from 'src/actions/wallet/stablecoinYieldSigningThunks';
+import { claimMerkleRewardsThunk } from 'src/actions/wallet/stablecoin-yield';
 import { ContextMessage } from 'src/components/wallet/WalletLayout/AccountBanners/ContextMessage';
 import { useDispatch, useSelector } from 'src/hooks/suite';
 import { useMessageSystemYield } from 'src/hooks/suite/useMessageSystemYield';
@@ -41,7 +41,7 @@ export const YieldClaim = ({ account }: YieldClaimProps) => {
     const { device } = useDevice();
     const flowKey = account?.key ?? '';
     const hasReportedSuccessRef = useRef(false);
-    const { isDisabled, content } = useMessageSystemYield('claim');
+    const { isDisabled, content, variant } = useMessageSystemYield('claim');
 
     const yieldTxReview = useSelector(selectStablecoinYieldTxReview);
     const claimSession = useSelector(state =>
@@ -188,7 +188,7 @@ export const YieldClaim = ({ account }: YieldClaimProps) => {
                 </Text>
 
                 {isDisabled ? (
-                    <YieldDisabledBanner type="claim" content={content} />
+                    <YieldDisabledBanner type="claim" content={content} variant={variant} />
                 ) : (
                     <>
                         <Card>

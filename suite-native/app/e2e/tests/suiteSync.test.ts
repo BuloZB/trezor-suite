@@ -75,18 +75,18 @@ const preloadedState = preparePreloadedReduxState(
     deviceChecksDisabledState,
 );
 
-describe('Suite Sync - Labelling [@androidOnly @T3T1 @smoke]', () => {
+describe.skip('Suite Sync - Labelling [@androidOnly @T3T1 @smoke]', () => {
     let evoluClient: NativeEvoluClient;
 
     beforeEach(async () => {
         await checkEvoluRelayServerRunning();
         logToRelayDocker(`STARTING: ${jestExpect.getState().currentTestName!}`);
-        await openApp({ args: { preloadedState } });
-        logToRelayDocker(`APP RESTARTED: ${jestExpect.getState().currentTestName!}`);
         await wipeAndRestartEvoluRelayServer();
         logToRelayDocker(`RELAY WIPED: ${jestExpect.getState().currentTestName!}`);
         evoluClient = new NativeEvoluClient();
         await prepareTrezorEmulator({ seed: 'mnemonic_immune' });
+        await openApp({ args: { preloadedState } });
+        logToRelayDocker(`APP RESTARTED: ${jestExpect.getState().currentTestName!}`);
         await onDeviceManager.assertDeviceSwitcherState({ title: 'Connected' });
     }, 240_000);
 

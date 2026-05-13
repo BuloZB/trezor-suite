@@ -84,7 +84,6 @@ export type EarnStackParamList = {
 };
 
 export type YieldFlowParams = {
-    yieldId: string;
     accountKey: AccountKey;
     tokenContract: TokenAddress;
 };
@@ -217,6 +216,7 @@ export type DeviceOnboardingStackParamList = {
     [DeviceOnboardingStackRoutes.WalletBackupRecap]: undefined;
     [DeviceOnboardingStackRoutes.WalletRecoveryRecap]: undefined;
     [DeviceOnboardingStackRoutes.CreatePin]: undefined;
+    [DeviceOnboardingStackRoutes.Congratulations]: undefined;
 };
 
 export type AccountsImportStackParamList = {
@@ -400,6 +400,7 @@ export type RootStackParamList = {
     [RootStackRoutes.AccountSettings]: { accountKey: AccountKey };
     [RootStackRoutes.TransactionDetailStack]: NavigatorScreenParams<TransactionDetailStackParamList>;
     [RootStackRoutes.DevUtils]: undefined;
+    [RootStackRoutes.AccountAssets]: { accountKey: AccountKey };
     [RootStackRoutes.AccountDetail]: AccountDetailParams;
     [RootStackRoutes.StakingDetail]: { accountKey: AccountKey };
     [RootStackRoutes.StakingManagement]: { accountKey: AccountKey };
@@ -471,7 +472,7 @@ export type TransactionDetailStackParamList = {
     };
 };
 
-export type ConfirmingScreenFlowType = 'approve' | 'revoke';
+export type ConfirmingScreenFlowType = 'approve' | 'revoke' | 'revoke-and-approve';
 export type ExchangeFlowType = 'swap' | ConfirmingScreenFlowType;
 
 export type TradingStackParamList = {
@@ -509,9 +510,6 @@ export type TradingStackParamList = {
 };
 
 export type StellarManageTokenStackParamList = {
-    [StellarManageTokenStackRoutes.TokenSelection]: {
-        accountKey: AccountKey;
-    };
     [StellarManageTokenStackRoutes.ManualTokenInput]: {
         accountKey: AccountKey;
     };

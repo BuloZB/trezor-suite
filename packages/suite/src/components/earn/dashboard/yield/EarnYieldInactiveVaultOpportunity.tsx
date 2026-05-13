@@ -2,8 +2,12 @@ import { useDevice } from '@suite/device';
 import { Translation } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { getNetwork } from '@suite-common/wallet-config';
-import { selectHasRunningDiscovery } from '@suite-common/wallet-core';
-import { Button, Table } from '@trezor/components';
+import {
+    selectEnabledNetworks,
+    selectHasRunningDiscovery,
+    startOrRestartDiscoveryThunk,
+} from '@suite-common/wallet-core';
+import { Button, TOOLTIP_DELAY_NORMAL, Table, Tooltip } from '@trezor/components';
 
 import { useDispatch, useSelector } from 'src/hooks/suite';
 
@@ -20,11 +24,26 @@ export const EarnYieldInactiveVaultOpportunity = ({
 }: EarnYieldInactiveVaultOpportunityProps) => {
     const dispatch = useDispatch();
     const { device } = useDevice();
+    const enabledNetworks = useSelector(selectEnabledNetworks);
     const isDiscoveryRunning = useSelector(selectHasRunningDiscovery);
+    const isNetworkEnabled = enabledNetworks.includes(opportunity.networkSymbol);
+    const isDiscoveringThisNetwork = isDiscoveryRunning && isNetworkEnabled;
     const { name } = getNetwork(opportunity.networkSymbol);
 
-    const openAddAccountModal = () => {
+    const isDeviceDisconnected = !device || !device.connected;
+    const isButtonDisabled = isDeviceDisconnected || isDiscoveryRunning;
+    const tooltipMessage = isDeviceDisconnected ? (
+        <Translation id="TR_TO_ADD_NEW_ACCOUNT_PLEASE_CONNECT" />
+    ) : undefined;
+
+    const handleActivate = () => {
         if (!device) {
+            return;
+        }
+
+        if (isNetworkEnabled) {
+            dispatch(startOrRestartDiscoveryThunk());
+
             return;
         }
 
@@ -62,12 +81,26 @@ export const EarnYieldInactiveVaultOpportunity = ({
             <Table.Cell colSpan={2} />
 
             <Table.Cell align="end">
-                <Button size="small" onClick={openAddAccountModal} isDisabled={isDiscoveryRunning}>
-                    <Translation
-                        id="TR_EARN_STAKING_DASHBOARD_ACTIVATE"
-                        values={{ networkName: name }}
-                    />
-                </Button>
+                <Tooltip
+                    isActive={!!tooltipMessage}
+                    tooltipMaxWidth={200}
+                    content={tooltipMessage}
+                    placement="top"
+                    cursor="not-allowed"
+                    delayShow={TOOLTIP_DELAY_NORMAL}
+                >
+                    <Button
+                        size="small"
+                        onClick={handleActivate}
+                        isDisabled={isButtonDisabled}
+                        isLoading={isDiscoveringThisNetwork}
+                    >
+                        <Translation
+                            id="TR_EARN_STAKING_DASHBOARD_ACTIVATE"
+                            values={{ networkName: name }}
+                        />
+                    </Button>
+                </Tooltip>
             </Table.Cell>
         </Table.Row>
     );

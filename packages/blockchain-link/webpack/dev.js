@@ -51,10 +51,6 @@ module.exports = {
     resolve: {
         modules: [SRC, 'node_modules'],
         extensions: ['.ts', '.js'],
-        fallback: {
-            crypto: require.resolve('crypto-browserify'),
-            stream: require.resolve('stream-browserify'),
-        },
     },
     performance: {
         hints: false,

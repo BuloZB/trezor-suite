@@ -1,3 +1,4 @@
+export * from './Accordion/AccordionContent';
 export * from './Accordion/AccordionList';
 export * from './BaseAmountInputs';
 export * from './InlineAlertBox/InlineAlertBox';
@@ -83,6 +84,7 @@ export * from './Sheet/hooks/useBottomSheetModal';
 export * from './AnimatedDoubleView/AnimatedDoubleView';
 export * from './AnimatedDoubleView/AnimatedDoubleInput';
 export * from './Pressable';
+export * from './useTapGesture';
 export * from './SegmentedControl';
 export * from './ProgressBar';
 

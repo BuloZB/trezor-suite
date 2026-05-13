@@ -10,7 +10,7 @@ import {
 import { type PrecomposedTransactionFinal } from '@suite-common/wallet-types';
 
 import { signAndPushSendFormTransactionThunk } from 'src/actions/wallet/send/sendFormThunks';
-import { cancelSignYieldTx } from 'src/actions/wallet/stablecoinYieldSigningThunks';
+import { cancelSignYieldTx } from 'src/actions/wallet/stablecoin-yield';
 import {
     cancelSignTx as cancelSignStakingTx,
     signTransaction,
@@ -61,8 +61,6 @@ export const TransactionReviewModal = ({ type, decision }: TransactionReviewModa
     };
 
     const handleSendTx = async () => {
-        dispatch(sendFormActions.discardTransaction());
-
         await dispatch(
             signAndPushSendFormTransactionThunk({
                 formState: send.precomposedForm!,
@@ -70,6 +68,8 @@ export const TransactionReviewModal = ({ type, decision }: TransactionReviewModa
                 selectedAccount: selectedAccount.account,
             }),
         );
+
+        dispatch(sendFormActions.discardTransaction());
     };
 
     const handleStakeTx = async () => {

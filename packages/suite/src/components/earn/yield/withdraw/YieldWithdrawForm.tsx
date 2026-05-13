@@ -22,14 +22,18 @@ export const YieldWithdrawForm = () => {
         receiptToken,
         maxAmount,
         completedAmount,
-        completedReceiptAmount,
         errorMessage,
         pendingTransaction,
         actionNetworkFeeWarning,
         isAmountEmpty,
         isAmountTooHigh,
         isSubmittingAction,
+        inputTokenSymbol,
+        otherUnitTokenSymbol,
+        canToggleWithdrawUnit,
+        withdrawInputUnit,
         setAmountInput,
+        toggleWithdrawInputUnit,
         submitAction,
         openPendingTransaction,
         flow,
@@ -90,12 +94,8 @@ export const YieldWithdrawForm = () => {
             <Column gap={24} width="100%" maxWidth={500}>
                 {flow.currentStep === 'complete' ? (
                     <YieldFlowCompleteWithdraw
-                        input={{
-                            token: receiptToken,
-                            amount: completedReceiptAmount,
-                        }}
-                        output={{
-                            token,
+                        value={{
+                            token: withdrawInputUnit === 'shares' ? receiptToken : token,
                             amount: completedAmount,
                         }}
                     />
@@ -114,9 +114,12 @@ export const YieldWithdrawForm = () => {
 
                         <YieldActionStep
                             flowType="withdraw"
-                            token={token}
+                            token={withdrawInputUnit === 'shares' ? receiptToken : token}
                             summaryValue={
-                                <FormattedCryptoAmount value={maxAmount} symbol={token.symbol} />
+                                <FormattedCryptoAmount
+                                    value={maxAmount}
+                                    symbol={inputTokenSymbol}
+                                />
                             }
                             warning={
                                 <YieldActionStepWarning isInsufficientFunds={isAmountTooHigh} />
@@ -131,6 +134,14 @@ export const YieldWithdrawForm = () => {
                             isDisabled={isAmountEmpty || isAmountTooHigh || isSubmittingAction}
                             isPending={isSubmittingAction}
                             pendingTransaction={withdrawPendingTransaction}
+                            unitToggle={
+                                canToggleWithdrawUnit
+                                    ? {
+                                          otherTokenSymbol: otherUnitTokenSymbol,
+                                          onClick: toggleWithdrawInputUnit,
+                                      }
+                                    : undefined
+                            }
                             onMaxClick={() => setAmountInput(maxAmount)}
                             onSubmit={handleOnWithdraw}
                             onPendingTxClick={openPendingTransaction}

@@ -32,8 +32,6 @@ export const addMessage = (id: string): Deferred<any> => {
     return deferred;
 };
 
-export const hasMessage = (id: string) => !!messages[id];
-
 export const deleteMessage = (id: string) => {
     delete messages[id];
 };
@@ -41,8 +39,6 @@ export const deleteMessage = (id: string) => {
 export const setAppInit = (deferred: Deferred<void> | undefined) => {
     appInit = deferred;
 };
-
-export const getAppInit = () => appInit;
 
 /**
  * Register the shared IPC handlers for connect-popup/response and connect-popup/ready.

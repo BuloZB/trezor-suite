@@ -84,6 +84,10 @@ export const messages = defineMessages({
         description: 'Used as a variable for device name',
         id: 'TR_ANY_TREZOR',
     },
+    TR_FILTER: {
+        defaultMessage: 'Filter',
+        id: 'TR_FILTER',
+    },
     TR_HIDE_SCAM_TRANSACTIONS_TOOLTIP: {
         defaultMessage: 'Hide suspicious transactions for a cleaner view.',
         id: 'TR_HIDE_SCAM_TRANSACTIONS_TOOLTIP',
@@ -1176,20 +1180,6 @@ export const messages = defineMessages({
     TR_TRADING_DEX_TOOLTIP: {
         id: 'TR_TRADING_DEX_TOOLTIP',
         defaultMessage: 'Decentralized exchange',
-        dynamic: true,
-    },
-    TR_TRADING_FEATURED_OFFERS_HEADING: {
-        defaultMessage: 'Featured offers',
-        id: 'TR_TRADING_FEATURED_OFFERS_HEADING',
-    },
-    TR_TRADING_FEATURED_OFFER_PAYMENT_METHOD_BUY_LABEL: {
-        defaultMessage: 'Payment:',
-        id: 'TR_TRADING_FEATURED_OFFER_PAYMENT_METHOD_BUY_LABEL',
-        dynamic: true,
-    },
-    TR_TRADING_FEATURED_OFFER_PAYMENT_METHOD_SELL_LABEL: {
-        defaultMessage: 'Payout method:',
-        id: 'TR_TRADING_FEATURED_OFFER_PAYMENT_METHOD_SELL_LABEL',
         dynamic: true,
     },
     TR_TRADING_NO_METHODS_AVAILABLE: {
@@ -2836,15 +2826,15 @@ export const messages = defineMessages({
         id: 'TR_INCLUDING_TOKENS_AND_STAKING',
     },
     TR_BALANCE_EXCLUDES_TOKENS: {
-        defaultMessage: "Token amounts aren't included in the balance.",
+        defaultMessage: "Token amounts aren't included.",
         id: 'TR_BALANCE_EXCLUDES_TOKENS',
     },
     TR_BALANCE_EXCLUDES_STAKING: {
-        defaultMessage: "Staked amounts aren't included in the balance.",
+        defaultMessage: "Staked amounts aren't included.",
         id: 'TR_BALANCE_EXCLUDES_STAKING',
     },
     TR_BALANCE_EXCLUDES_TOKENS_AND_STAKING: {
-        defaultMessage: "Token and staked amounts aren't included in the balance.",
+        defaultMessage: "Token and staked amounts aren't included.",
         id: 'TR_BALANCE_EXCLUDES_TOKENS_AND_STAKING',
     },
     TR_NETWORK_TITLE: {
@@ -7280,7 +7270,7 @@ export const messages = defineMessages({
     },
     TR_RANGE: {
         id: 'TR_RANGE',
-        defaultMessage: 'range',
+        defaultMessage: 'Range',
     },
     TR_BUMP_FEE: {
         id: 'TR_BUMP_FEE',
@@ -9591,6 +9581,10 @@ export const messages = defineMessages({
         id: 'TR_EARN_YIELD_WITHDRAW',
         defaultMessage: 'Withdraw',
     },
+    TR_EARN_YIELD_REDEEM: {
+        id: 'TR_EARN_YIELD_REDEEM',
+        defaultMessage: 'Redeem',
+    },
     TR_EARN_YIELD_DASHBOARD_SUPPLY_NOW: {
         id: 'TR_EARN_YIELD_DASHBOARD_SUPPLY_NOW',
         defaultMessage: 'Deposit now',
@@ -9622,6 +9616,10 @@ export const messages = defineMessages({
     TR_EARN_YIELD_AMOUNT_TO_WITHDRAW: {
         id: 'TR_EARN_YIELD_AMOUNT_TO_WITHDRAW',
         defaultMessage: 'Withdrawal amount',
+    },
+    TR_EARN_YIELD_ENTER_AMOUNT_IN_TOKEN: {
+        id: 'TR_EARN_YIELD_ENTER_AMOUNT_IN_TOKEN',
+        defaultMessage: 'Enter amount in {tokenSymbol}',
     },
     TR_EARN_YIELD_APPROVED_AMOUNT: {
         id: 'TR_EARN_YIELD_APPROVED_AMOUNT',
@@ -9746,15 +9744,27 @@ export const messages = defineMessages({
     },
     TR_EARN_YIELD_REVIEW_WITHDRAW_TITLE: {
         id: 'TR_EARN_YIELD_REVIEW_WITHDRAW_TITLE',
-        defaultMessage: 'Redeem',
+        defaultMessage: 'Withdraw',
     },
     TR_EARN_YIELD_REVIEW_WITHDRAW_DESCRIPTION: {
         id: 'TR_EARN_YIELD_REVIEW_WITHDRAW_DESCRIPTION',
+        defaultMessage: 'Review details to withdraw from vault.',
+    },
+    TR_EARN_YIELD_REVIEW_REDEEM_TITLE: {
+        id: 'TR_EARN_YIELD_REVIEW_REDEEM_TITLE',
+        defaultMessage: 'Redeem',
+    },
+    TR_EARN_YIELD_REVIEW_REDEEM_DESCRIPTION: {
+        id: 'TR_EARN_YIELD_REVIEW_REDEEM_DESCRIPTION',
         defaultMessage: 'Review details to redeem from vault.',
     },
     TR_EARN_YIELD_DEPOSIT_TO: {
         id: 'TR_EARN_YIELD_DEPOSIT_TO',
         defaultMessage: 'Deposit to',
+    },
+    TR_EARN_YIELD_WITHDRAW_FROM: {
+        id: 'TR_EARN_YIELD_WITHDRAW_FROM',
+        defaultMessage: 'Withdraw from',
     },
     TR_EARN_YIELD_REDEEM_FROM: {
         id: 'TR_EARN_YIELD_REDEEM_FROM',
@@ -9770,6 +9780,10 @@ export const messages = defineMessages({
     },
     TR_EARN_YIELD_REVIEW_WITHDRAW_AMOUNT: {
         id: 'TR_EARN_YIELD_REVIEW_WITHDRAW_AMOUNT',
+        defaultMessage: 'Withdraw amount',
+    },
+    TR_EARN_YIELD_REVIEW_REDEEM_AMOUNT: {
+        id: 'TR_EARN_YIELD_REVIEW_REDEEM_AMOUNT',
         defaultMessage: 'Redeem amount',
     },
     TR_EARN_DASHBOARD_ACTIVE: {

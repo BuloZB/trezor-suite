@@ -1,11 +1,10 @@
 import { useCallback, useMemo } from 'react';
 
-import { useBottomSheetModal as useBottomSheetModalContext } from '@gorhom/bottom-sheet';
 import { useFocusEffect } from '@react-navigation/native';
 import { FlashList } from '@shopify/flash-list';
 
 import { events } from '@suite-native/analytics';
-import { ListItemSkeleton, TitleHeader, VStack } from '@suite-native/atoms';
+import { ListItemSkeleton, TitleHeader, VStack, useBottomSheetModal } from '@suite-native/atoms';
 import { DeviceManagerScreenHeader } from '@suite-native/device-manager';
 import { Translation } from '@suite-native/intl';
 import { Screen } from '@suite-native/navigation';
@@ -14,12 +13,13 @@ import { useAnalytics } from '@suite-native/services';
 import { ChooseStakingAccountBottomSheet } from '../components/ChooseStakingAccountBottomSheet';
 import { EarnItemInfoModal } from '../components/EarnItemInfoModal';
 import { EarnPortfolioTrackerGuard } from '../components/EarnPortfolioTrackerGuard';
+import { EarnPoweredByProvider } from '../components/EarnPoweredByProvider';
 import { EarnPromoListHeader } from '../components/EarnPromoListHeader';
 import { EarnPromoListRow } from '../components/EarnPromoListRow';
 import { EarnScreenListHeader } from '../components/EarnScreenListHeader';
 import { EnableNetworkForStakingBottomSheet } from '../components/EnableNetworkForStakingBottomSheet';
 import { useStablecoinYieldListData } from '../hooks/useStablecoinYieldListData';
-import { useStakingListData } from '../hooks/useStakingListData';
+import { EVERSTAKE_PROVIDER_LIST_ITEM, useStakingListData } from '../hooks/useStakingListData';
 import { useStakingPromoNavigation } from '../hooks/useStakingPromoNavigation';
 import { type EarnPromoItem, type EarnPromoListDataItem } from '../types';
 
@@ -29,17 +29,24 @@ const getEarnListItemType = (item: EarnPromoListDataItem) =>
 const getEarnListItemKey = (item: EarnPromoListDataItem) =>
     typeof item === 'string' ? item : item.id;
 
+const isSectionBoundaryItem = (item: EarnPromoListDataItem | undefined) =>
+    item === undefined || typeof item === 'string' || item.type === 'provider';
+
 const EarnScreenContent = () => {
     const analytics = useAnalytics();
-    const { dismissAll } = useBottomSheetModalContext();
+    const { bottomSheetRef: stablecoinYieldBottomSheetRef, openModal: openStablecoinYieldModal } =
+        useBottomSheetModal();
 
     const {
         promoListData: stakingPromoItems,
         activeItems: stakingActiveItems,
         accountStakedWithFiveBinaries,
     } = useStakingListData();
-    const { promoListData: stablecoinYieldPromoItems, activeItems: stablecoinYieldActiveItems } =
-        useStablecoinYieldListData();
+    const {
+        promoListData: stablecoinYieldPromoItems,
+        activeItems: stablecoinYieldActiveItems,
+        isLoading: isYieldLoading,
+    } = useStablecoinYieldListData();
 
     const {
         handleStakingPromoPress,
@@ -56,7 +63,11 @@ const EarnScreenContent = () => {
     } = useStakingPromoNavigation();
 
     const earnListData = useMemo(
-        (): EarnPromoListDataItem[] => [...stakingPromoItems, ...stablecoinYieldPromoItems],
+        (): EarnPromoListDataItem[] => [
+            ...stakingPromoItems,
+            ...(stakingPromoItems.length > 0 ? [EVERSTAKE_PROVIDER_LIST_ITEM] : []),
+            ...stablecoinYieldPromoItems,
+        ],
         [stablecoinYieldPromoItems, stakingPromoItems],
     );
 
@@ -68,16 +79,12 @@ const EarnScreenContent = () => {
 
     const handlePromoItemPress = useCallback(
         (item: EarnPromoItem) => {
-            dismissAll();
-
             if (item.type === 'stablecoin-yield') {
-                if (!item.accountKey || !item.contractAddress) {
-                    return;
-                }
-
                 analytics.report({
                     type: events.earnStablecoinYieldTilePressedEvent.name,
                 });
+
+                openStablecoinYieldModal();
 
                 return;
             }
@@ -88,7 +95,7 @@ const EarnScreenContent = () => {
 
             handleStakingPromoPress(item);
         },
-        [analytics, dismissAll, handleStakingPromoPress],
+        [analytics, handleStakingPromoPress, openStablecoinYieldModal],
     );
 
     const renderItem = useCallback(
@@ -97,8 +104,12 @@ const EarnScreenContent = () => {
                 return <EarnPromoListHeader item={item} />;
             }
 
+            if (item.type === 'provider') {
+                return <EarnPoweredByProvider />;
+            }
+
             const nextItem = earnListData[index + 1];
-            const isLastInSection = nextItem === undefined || typeof nextItem === 'string';
+            const isLastInSection = isSectionBoundaryItem(nextItem);
 
             if (item.type === 'skeleton-loader') {
                 return <ListItemSkeleton />;
@@ -130,6 +141,7 @@ const EarnScreenContent = () => {
                     getItemType={getEarnListItemType}
                     ListHeaderComponent={
                         <EarnScreenListHeader
+                            isStablecoinYieldLoading={isYieldLoading}
                             cardanoStakingAccountKey={accountStakedWithFiveBinaries?.key}
                             stakingActiveItems={stakingActiveItems}
                             stablecoinYieldActiveItems={stablecoinYieldActiveItems}
@@ -140,6 +152,7 @@ const EarnScreenContent = () => {
                 />
 
                 <EarnItemInfoModal ref={infoSheetRef} type="staking" />
+                <EarnItemInfoModal ref={stablecoinYieldBottomSheetRef} type="stablecoin-yield" />
                 <ChooseStakingAccountBottomSheet
                     ref={chooseAccountSheetRef}
                     accounts={chosenAccounts}

@@ -1,4 +1,4 @@
-import { BackupType } from '@suite-common/suite-types';
+import type { BackupType } from '@suite-common/suite-types';
 import { Model, TrezorUserEnvLink } from '@trezor/trezor-user-env-link';
 
 import {
@@ -205,6 +205,14 @@ class DeviceOnboardingActions {
         await TrezorUserEnvLink.pressYes(); // start backup flow
         await TrezorUserEnvLink.pressYes(); // press Continue
         await TrezorUserEnvLink.pressNo(); // reject backup flow early, so pending resetDevice settles
+    }
+
+    async waitForCongratulationsScreen() {
+        await waitForVisible(by.id('@screen/Congratulations'));
+    }
+
+    async dismissCongratulationsScreen() {
+        await element(by.id('@deviceOnboarding/CongratulationsScreen/continueButton')).tap();
     }
 }
 
