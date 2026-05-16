@@ -11,7 +11,7 @@ import {
 import { DeviceModelInternal, getNarrowedDeviceModelInternal } from '@trezor/device-utils';
 import { exhaustive } from '@trezor/type-utils';
 import * as URLS from '@trezor/urls';
-import { hasProp, isArrayMember } from '@trezor/utils';
+import { hasProp, isArrayMember, unique } from '@trezor/utils';
 
 export const deviceStatuses = [
     'acquired',
@@ -262,11 +262,7 @@ export const getSelectedDevice = (
         }
 
         // special case we need to use after wipe device (which changes device_id)
-        if (d.instance === instance && d.path.length > 0 && d.path === device.path) {
-            return true;
-        }
-
-        return false;
+        return d.instance === instance && d.path.length > 0 && d.path === device.path;
     });
 };
 
@@ -453,7 +449,7 @@ export const getFirstDeviceInstance = (
         .sort(options.sortingFn);
 
 export const getPhysicalDeviceUniqueIds = (devices: TrezorDevice[]) =>
-    [...new Set(devices.map(d => d.id))].filter(id => id) as string[];
+    unique(devices.map(d => d.id).filter((id): id is string => !!id));
 
 export const getPhysicalDeviceCount = (devices: TrezorDevice[]) =>
     getPhysicalDeviceUniqueIds(devices).length;

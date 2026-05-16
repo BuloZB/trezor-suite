@@ -6,17 +6,15 @@ import util from 'node:util';
 import path from 'node:path';
 import semver from 'semver';
 
-import { getNpmRemoteGreatestVersion } from './helpers';
+import { getNpmRemoteGreatestVersion, getTrezorPackageDir } from './helpers';
 
 const readFile = util.promisify(fs.readFile);
-
-const ROOT = path.join(import.meta.dirname, '..', '..');
 
 const nonReleaseDependencies: string[] = [];
 
 const checkNonReleasedDependencies = async (packageName: string) => {
     const rawPackageJSON = await readFile(
-        path.join(ROOT, 'packages', packageName, 'package.json'),
+        path.join(getTrezorPackageDir(packageName), 'package.json'),
         'utf-8',
     );
 
@@ -30,7 +28,7 @@ const checkNonReleasedDependencies = async (packageName: string) => {
     const remoteGreatestVersion = await getNpmRemoteGreatestVersion(`@trezor/${packageName}`);
 
     // If local version is greatest than the greatest one in NPM we add it to the release.
-    if (semver.gt(localVersion, remoteGreatestVersion as string)) {
+    if (!remoteGreatestVersion || semver.gt(localVersion, remoteGreatestVersion as string)) {
         const index = nonReleaseDependencies.indexOf(packageName);
         if (index > -1) {
             nonReleaseDependencies.splice(index, 1);

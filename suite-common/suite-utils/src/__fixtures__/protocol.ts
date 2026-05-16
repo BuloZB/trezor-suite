@@ -107,7 +107,7 @@ export const parseErc681TransferUri: ParseErc681TransferUriFixture[] = [
             contractAddress: '0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7',
             recipientAddress: '0x8e23ee67d1332ad560396262c48ffbb01f93d052',
             tokenAmount: '1000000',
-            chainId: 1,
+            networkSymbol: 'eth',
         },
     },
     {
@@ -117,7 +117,36 @@ export const parseErc681TransferUri: ParseErc681TransferUriFixture[] = [
             contractAddress: '0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7',
             recipientAddress: '0x8e23ee67d1332ad560396262c48ffbb01f93d052',
             tokenAmount: '500000',
-            chainId: 137,
+            networkSymbol: 'pol',
         },
+    },
+    {
+        description: 'should parse ERC-681 URI with @chainId suffix - receiving ETH, no token',
+        uri: 'ethereum:0x8e23ee67d1332ad560396262c48ffbb01f93d052@8453',
+        result: {
+            recipientAddress: '0x8e23ee67d1332ad560396262c48ffbb01f93d052',
+            networkSymbol: 'base',
+        },
+    },
+    {
+        description:
+            'should parse ERC-681 URI with @chainId suffix - receiving ETH, no token (double slash)',
+        uri: 'ethereum://0x8e23ee67d1332ad560396262c48ffbb01f93d052@8453',
+        result: {
+            recipientAddress: '0x8e23ee67d1332ad560396262c48ffbb01f93d052',
+            networkSymbol: 'base',
+        },
+    },
+    {
+        description: 'should parse ERC-681 URI - plain ETH mainnet',
+        uri: 'ethereum://0x8e23ee67d1332ad560396262c48ffbb01f93d052',
+        result: {
+            recipientAddress: '0x8e23ee67d1332ad560396262c48ffbb01f93d052',
+        },
+    },
+    {
+        description: 'should return null for ERC-681 URI with unsupported @chainId',
+        uri: 'ethereum:0x8e23ee67d1332ad560396262c48ffbb01f93d052@99999',
+        result: null,
     },
 ];

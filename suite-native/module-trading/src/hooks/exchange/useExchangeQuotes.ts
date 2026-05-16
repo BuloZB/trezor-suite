@@ -21,24 +21,26 @@ import { exchangeActions, selectExchangeQuotes } from '@suite-native/trading-sta
 import { type AbortablePromise, type ExchangeFormType } from '@suite-native/trading-types';
 import { type Analytics } from '@trezor/analytics-uploader';
 import { useDebounce } from '@trezor/react-utils';
+import { noop } from '@trezor/utils';
 
 import { tradingExchangeFormToTradingExchangeFormProps } from '../../utils/exchange/quotesUtils';
+import { getReceiveAccountAddressText } from '../../utils/general/receiveAccountUtils';
 import { useQuotesInvalidator } from '../general/useQuotesInvalidator';
 
 type ShouldFetchExchangeQuotesRef = {
     sendAsset: string | undefined;
     receiveAsset: string | undefined;
     sendCryptoAmount: string | undefined;
-    accountDescriptor: string | undefined;
+    sendAccountDescriptor: string | undefined;
+    receiveAccountAddress: string | undefined;
 };
-
-const noop = () => {};
 
 const defaultState = {
     sendAsset: undefined,
     receiveAsset: undefined,
     sendCryptoAmount: undefined,
-    accountDescriptor: undefined,
+    sendAccountDescriptor: undefined,
+    receiveAccountAddress: undefined,
 } as const;
 
 const useShouldFetchExchangeQuotes = (
@@ -57,21 +59,25 @@ const useShouldFetchExchangeQuotes = (
         };
     }
 
-    const [sendAsset, receiveAsset, sendCryptoAmount, sendAccount] = watch([
+    const [sendAsset, receiveAsset, sendCryptoAmount, sendAccount, receiveAccount] = watch([
         'sendAsset',
         'receiveAsset',
         'sendCryptoAmount',
         'sendAccount',
+        'receiveAccount',
     ]);
 
     const isFetchAllowed =
         !!sendAsset && !!receiveAsset && !!sendCryptoAmount && parseFloat(sendCryptoAmount) > 0;
 
+    const receiveAccountAddress = getReceiveAccountAddressText(receiveAccount);
+
     if (
         sendAsset?.cryptoId === prevState.current.sendAsset &&
         receiveAsset?.cryptoId === prevState.current.receiveAsset &&
         sendCryptoAmount === prevState.current.sendCryptoAmount &&
-        sendAccount?.descriptor === prevState.current.accountDescriptor
+        sendAccount?.descriptor === prevState.current.sendAccountDescriptor &&
+        receiveAccountAddress === prevState.current.receiveAccountAddress
     ) {
         return {
             isFetchAllowed,
@@ -83,7 +89,8 @@ const useShouldFetchExchangeQuotes = (
         sendAsset: sendAsset?.cryptoId,
         receiveAsset: receiveAsset?.cryptoId,
         sendCryptoAmount,
-        accountDescriptor: sendAccount?.descriptor,
+        sendAccountDescriptor: sendAccount?.descriptor,
+        receiveAccountAddress,
     };
 
     return {

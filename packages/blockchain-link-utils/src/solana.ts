@@ -1,17 +1,25 @@
-import { type SolanaTokenAccountInfo } from '@trezor/blockchain-link-types';
-import {
-    type StakeType,
-    type Target,
-    type TokenDetailByMint,
-    type TokenInfo,
-    type TokenStandard,
-    type TokenTransfer,
-    type Transaction,
+import type {
+    StakeType,
+    Target,
+    TokenDetailByMint,
+    TokenInfo,
+    TokenStandard,
+    TokenTransfer,
+    Transaction,
 } from '@trezor/blockchain-link-types/src';
-import { isCodesignBuild } from '@trezor/env-utils';
-import { arrayPartition } from '@trezor/utils';
-import { BigNumber } from '@trezor/utils/src/bigNumber';
-
+import {
+    ASSOCIATED_TOKEN_PROGRAM_PUBLIC_KEY,
+    COMPUTE_BUDGET_PROGRAM_ID,
+    MEMO_PROGRAM_PUBLIC_KEY,
+    MEMO_PROGRAM_PUBLIC_KEY_V1,
+    SERUM_ASSET_OWNER_PHANTOM_DEPLOYMENT_PROGRAM_ID,
+    SERUM_ASSET_OWNER_PROGRAM_ID,
+    STAKE_PROGRAM_PUBLIC_KEY,
+    SYSTEM_PROGRAM_PUBLIC_KEY,
+    WSOL_MINT,
+    tokenProgramNames,
+    tokenProgramsInfo,
+} from '@trezor/coins-solana/constants';
 import type {
     AccountInfo,
     Address,
@@ -19,47 +27,18 @@ import type {
     ParsedInstruction,
     ParsedTransactionWithMeta,
     PartiallyDecodedInstruction,
+    SolanaTokenAccountInfo,
     SolanaValidParsedTxWithMeta,
-} from './solana-types';
+    TokenProgramName,
+} from '@trezor/coins-solana/types';
+import { isCodesignBuild } from '@trezor/env-utils';
+import { arrayPartition, isArrayMember } from '@trezor/utils';
+import { BigNumber } from '@trezor/utils/src/bigNumber';
 
 export type ApiTokenAccount = {
     account: AccountInfo<ParsedAccountData>;
     pubkey: Address;
 };
-
-// Docs regarding solana programs: https://spl.solana.com/
-// Token program docs: https://spl.solana.com/token
-export const TOKEN_PROGRAM_PUBLIC_KEY = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
-// Token 2022 program docs: https://spl.solana.com/token-2022
-export const TOKEN_2022_PROGRAM_PUBLIC_KEY = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
-// Associated token program docs: https://spl.solana.com/associated-token-account
-export const ASSOCIATED_TOKEN_PROGRAM_PUBLIC_KEY = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
-// System program docs: https://docs.solana.com/developing/runtime-facilities/programs#system-program
-export const SYSTEM_PROGRAM_PUBLIC_KEY = '11111111111111111111111111111111';
-// WSOL transfers are denoted as transfers of SOL as well as WSOL, so we use this to filter out SOL values
-// when parsing tx effects.
-export const WSOL_MINT = 'So11111111111111111111111111111111111111112';
-export const STAKE_PROGRAM_PUBLIC_KEY = 'Stake11111111111111111111111111111111111111';
-export const COMPUTE_BUDGET_PROGRAM_ID = 'ComputeBudget111111111111111111111111111111';
-export const SERUM_ASSET_OWNER_PROGRAM_ID = '4MNPdKu9wFMvEeZBMt3Eipfs5ovVWTJb31pEXDJAAxX5';
-export const SERUM_ASSET_OWNER_PHANTOM_DEPLOYMENT_PROGRAM_ID =
-    'DeJBGdMFa1uynnnKiwrVioatTuHmNLpyFKnmB5kaFdzQ';
-export const MEMO_PROGRAM_PUBLIC_KEY = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
-export const MEMO_PROGRAM_PUBLIC_KEY_V1 = 'Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo';
-
-const tokenProgramNames = ['spl-token', 'spl-token-2022'] as const;
-export type TokenProgramName = (typeof tokenProgramNames)[number];
-
-export const tokenProgramsInfo = {
-    'spl-token': {
-        publicKey: TOKEN_PROGRAM_PUBLIC_KEY,
-        tokenStandard: 'SPL',
-    },
-    'spl-token-2022': {
-        publicKey: TOKEN_2022_PROGRAM_PUBLIC_KEY,
-        tokenStandard: 'SPL-2022',
-    },
-} as const satisfies Record<TokenProgramName, { publicKey: string; tokenStandard: TokenStandard }>;
 
 export const getTokenMetadata = async (): Promise<TokenDetailByMint> => {
     const env = isCodesignBuild() ? 'stable' : 'develop';
@@ -92,7 +71,7 @@ export const getTokenNameAndSymbol = (mint: string, tokenDetailByMint: TokenDeta
 };
 
 const isTokenProgramName = (programName: string): programName is TokenProgramName =>
-    tokenProgramNames.some(name => name === programName);
+    isArrayMember(programName, tokenProgramNames);
 
 export const tokenStandardToTokenProgramName = (standard: TokenStandard): TokenProgramName => {
     const tokenProgram = Object.entries(tokenProgramsInfo).find(

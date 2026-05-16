@@ -9,6 +9,7 @@
     "references": [
         { "path": "../blockchain-link-types" },
         { "path": "../blockchain-link-utils" },
+        { "path": "../../coins/coins-solana" },
         { "path": "../env-utils" },
         { "path": "../utils" },
         { "path": "../utxo-lib" },

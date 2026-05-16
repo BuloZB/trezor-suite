@@ -1,6 +1,6 @@
 // note: at the moment, there is something in the root of @trezor/connect-common that pulls entire PROTO runtime, thus
 // these targeted imports
-import { POPUP } from '@trezor/connect-common/src/events';
+import { CORE_CALL_CANCEL, POPUP } from '@trezor/connect-common/src/events';
 import { factory } from '@trezor/connect-common/src/factory';
 import { type ConnectDynamicSettings } from '@trezor/connect-common/src/impl/dynamic';
 import { TrezorConnectDynamic } from '@trezor/connect-common/src/impl/dynamic';
@@ -34,6 +34,8 @@ const initProxyChannel = () => {
         type: string;
         method: keyof typeof TrezorConnect;
         settings: ConnectDynamicSettings;
+        reason?: string;
+        // We need `error` field for backward compatibility, for connect10 with older clients.
         error?: string;
     }>({
         name: 'trezor-connect-proxy',
@@ -51,10 +53,15 @@ const initProxyChannel = () => {
     channel.on('message', message => {
         const { id, payload, type } = message;
 
-        // Handle cancel/close before the payload guard — cancel messages
-        // may carry no meaningful payload.
+        // Handle cancel before the payload guard — cancel messages may
+        // carry no meaningful payload.
         if (type === POPUP.CLOSED) {
             TrezorConnect.cancel(payload?.error);
+
+            return;
+        }
+        if (type === CORE_CALL_CANCEL) {
+            TrezorConnect.cancel(payload?.reason);
 
             return;
         }

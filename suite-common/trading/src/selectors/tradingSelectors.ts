@@ -20,8 +20,13 @@ import {
 import { type Account, type SelectedAccountStatus } from '@suite-common/wallet-types';
 import { getCurrencies } from '@trezor/address-validator';
 import { exhaustive } from '@trezor/type-utils';
+import { unique } from '@trezor/utils';
 
-import { groupTradingExchangeQuotesProjection } from './utils/groupTradingExchangeQuotesProjection';
+import {
+    EMPTY_GROUPED_TRADING_EXCHANGE_QUOTES,
+    type GroupedTradingExchangeQuotes,
+    groupTradingExchangeQuotesProjection,
+} from './utils/groupTradingExchangeQuotesProjection';
 import { bestQuotePerPaymentMethodProjection } from './utils/quotePerPaymentMethodProjection';
 import { type BuyInfo, type TradingBuyState } from '../reducers/buyReducer';
 import { type ExchangeInfo, type TradingExchangeState } from '../reducers/exchangeReducer';
@@ -48,6 +53,8 @@ import {
     getTradingPlatformsInfoByCryptoId,
     getTradingSymbolAndContractAddressByCryptoId,
 } from '../utils/infoUtils';
+
+export { EMPTY_GROUPED_TRADING_EXCHANGE_QUOTES, type GroupedTradingExchangeQuotes };
 
 type SelectedAccountRootState = {
     wallet: {
@@ -467,7 +474,7 @@ const getFilteredCryptoIds = (
 
     const supportedAddressValidatorSymbols = new Set(getCurrencies().map(c => c.symbol));
 
-    const uniqueSupportedCryptoIds = [...new Set(supportedCryptoIds).values()];
+    const uniqueSupportedCryptoIds = unique(supportedCryptoIds);
 
     return uniqueSupportedCryptoIds
         .filter(cryptoId => !!coins[cryptoId])

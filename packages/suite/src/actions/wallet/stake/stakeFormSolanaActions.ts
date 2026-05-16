@@ -1,5 +1,3 @@
-import { address } from '@solana/kit';
-
 import { asTypedDesktopAnalytics, events } from '@suite/analytics';
 import { selectSelectedDevice } from '@suite-common/device';
 import { type ExtraDependencies } from '@suite-common/redux-utils';
@@ -7,24 +5,8 @@ import {
     calculate,
     composeStakingTransaction,
 } from '@suite-common/staking/src/actions/stakeFormActions';
-import {
-    prepareClaimSolTx,
-    prepareStakeSolTx,
-    prepareUnstakeSolTx,
-} from '@suite-common/staking-solana';
-import {
-    type EstimatedFee,
-    type PrepareStakeSolTxResponse,
-    type SolanaTxMeta,
-} from '@suite-common/staking-solana-types';
 import { notificationsActions } from '@suite-common/toast-notifications';
 import { type NetworkSymbol } from '@suite-common/wallet-config';
-import {
-    MIN_SOL_AMOUNT_FOR_STAKING,
-    MIN_SOL_BALANCE_FOR_STAKING,
-    MIN_SOL_FOR_WITHDRAWALS,
-    SOL_STAKING_OPERATION_FEE,
-} from '@suite-common/wallet-constants';
 import { selectAddressDisplayType } from '@suite-common/wallet-core';
 import {
     type Account,
@@ -40,8 +22,22 @@ import {
 } from '@suite-common/wallet-types';
 import { networkAmountToSmallestUnit } from '@suite-common/wallet-utils';
 import { type BlockbookFee as Fee } from '@trezor/blockchain-link-types';
+import {
+    MIN_SOL_AMOUNT_FOR_STAKING,
+    MIN_SOL_BALANCE_FOR_STAKING,
+    MIN_SOL_FOR_WITHDRAWALS,
+    SOL_STAKING_OPERATION_FEE,
+    supportedSolanaNetworkSymbols,
+} from '@trezor/coins-solana/constants';
+import solana from '@trezor/coins-solana/runtime';
+import type {
+    EstimatedFee,
+    PrepareStakeSolTxResponse,
+    SolanaTxMeta,
+} from '@trezor/coins-solana/types';
 import TrezorConnect, { type FeeLevel } from '@trezor/connect';
-import { BigNumber } from '@trezor/utils';
+import { getSuiteVersion } from '@trezor/env-utils';
+import { BigNumber, isArrayMember } from '@trezor/utils';
 
 import { type Dispatch, type GetState } from 'src/types/suite';
 
@@ -99,16 +95,33 @@ const getTransactionData = async (
 
     const { account } = selectedAccount;
 
+    if (!isArrayMember(account.symbol, supportedSolanaNetworkSymbols)) {
+        return;
+    }
+
     const selectedBlockchain = blockchain[account.symbol];
+
+    const {
+        selectSolanaConnection,
+        selectSolanaValidator,
+        prepareStakeSolTx,
+        prepareUnstakeSolTx,
+        prepareClaimSolTx,
+    } = await solana();
+
+    const connection = selectSolanaConnection(
+        selectedBlockchain.url,
+        `Trezor Suite ${getSuiteVersion()}`,
+    );
+    const validator = selectSolanaValidator(account.symbol);
 
     let txData;
     if (stakeType === 'stake') {
         txData = await prepareStakeSolTx({
             from: account.descriptor,
-            path: account.path,
             amount: formValues.outputs[0].amount,
-            symbol: account.symbol,
-            selectedBlockchain,
+            connection,
+            validator,
             estimatedFee,
         });
     }
@@ -116,10 +129,9 @@ const getTransactionData = async (
     if (stakeType === 'unstake') {
         txData = await prepareUnstakeSolTx({
             from: account.descriptor,
-            path: account.path,
             amount: formValues.outputs[0].amount,
-            symbol: account.symbol,
-            selectedBlockchain,
+            connection,
+            validator,
             estimatedFee,
         });
     }
@@ -127,9 +139,7 @@ const getTransactionData = async (
     if (stakeType === 'claim') {
         txData = await prepareClaimSolTx({
             from: account.descriptor,
-            path: account.path,
-            symbol: account.symbol,
-            selectedBlockchain,
+            connection,
             estimatedFee,
         });
     }
@@ -147,7 +157,7 @@ async function estimateFee(
         coin: account.symbol,
         request: {
             specific: {
-                data: txData.tx.txShim.serialize(),
+                data: txData.txShim.serialize(),
                 newAccountProgramName: 'staking',
             },
         },
@@ -304,7 +314,7 @@ export const signTransaction =
                 useEmptyPassphrase: device.useEmptyPassphrase,
             },
             path: account.path,
-            serializedTx: txData.tx.txShim.serializeMessage(),
+            serializedTx: txData.txShim.serializeMessage(),
             chunkify: addressDisplayType === AddressDisplayOptions.CHUNKED,
         });
 
@@ -334,7 +344,9 @@ export const signTransaction =
             return signedTx;
         }
 
-        txData.tx.txShim.addSignature(address(account.descriptor), signedTx.payload.signature);
+        const { address } = await solana();
 
-        return txData.tx.txShim.serialize();
+        txData.txShim.addSignature(address(account.descriptor), signedTx.payload.signature);
+
+        return txData.txShim.serialize();
     };

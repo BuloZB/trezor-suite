@@ -6,7 +6,6 @@ import {
     calculate,
     composeStakingTransaction,
 } from '@suite-common/staking/src/actions/stakeFormActions';
-import { type EstimatedFee } from '@suite-common/staking-solana-types';
 import { notificationsActions } from '@suite-common/toast-notifications';
 import { type NetworkSymbol } from '@suite-common/wallet-config';
 import {
@@ -44,6 +43,7 @@ import {
     subunitsToUnits,
     validateCardanoDrep,
 } from '@suite-common/wallet-utils';
+import type { EstimatedFee } from '@trezor/coins-solana/types'; // TODO should be Cardano instead?
 import TrezorConnect, { type FeeLevel, PROTO } from '@trezor/connect';
 import { BigNumber } from '@trezor/utils';
 

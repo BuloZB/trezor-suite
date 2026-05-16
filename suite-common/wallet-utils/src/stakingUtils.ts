@@ -14,7 +14,6 @@ import {
     CARDANO_STAKING_REGISTRATION_DEPOSIT,
     MAX_CARDANO_AMOUNT_FOR_STAKING,
     MAX_ETH_AMOUNT_FOR_STAKING,
-    MAX_SOL_AMOUNT_FOR_STAKING,
     MIN_CARDANO_AMOUNT_FOR_STAKING,
     MIN_CARDANO_BALANCE_FOR_STAKING,
     MIN_CARDANO_FOR_WITHDRAWALS,
@@ -22,11 +21,6 @@ import {
     MIN_ETH_BALANCE_FOR_FEE_BUFFER,
     MIN_ETH_BALANCE_FOR_STAKING,
     MIN_ETH_FOR_WITHDRAWALS,
-    MIN_SOL_AMOUNT_FOR_STAKING,
-    MIN_SOL_BALANCE_FOR_FEE_BUFFER,
-    MIN_SOL_BALANCE_FOR_STAKING,
-    MIN_SOL_FOR_WITHDRAWALS,
-    SOLANA_EPOCH_DAYS,
     UNSTAKING_ETH_PERIOD,
 } from '@suite-common/wallet-constants';
 import {
@@ -36,6 +30,14 @@ import {
     type StakingPoolExtended,
     type WalletAccountTransaction,
 } from '@suite-common/wallet-types';
+import {
+    MAX_SOL_AMOUNT_FOR_STAKING,
+    MIN_SOL_AMOUNT_FOR_STAKING,
+    MIN_SOL_BALANCE_FOR_FEE_BUFFER,
+    MIN_SOL_BALANCE_FOR_STAKING,
+    MIN_SOL_FOR_WITHDRAWALS,
+    SOLANA_EPOCH_DAYS,
+} from '@trezor/coins-solana/constants';
 import { exhaustive } from '@trezor/type-utils';
 import { BigNumber } from '@trezor/utils';
 

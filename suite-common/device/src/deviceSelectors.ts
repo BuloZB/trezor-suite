@@ -59,6 +59,11 @@ export const selectDevicesCount = (state: DeviceRootState) => state.device?.devi
 
 export const selectSelectedDevice = (state: DeviceRootState) => state.device.selectedDevice;
 
+export const selectIsAnyDeviceSelected = createMemoizedSelector(
+    [selectSelectedDevice],
+    device => !!device,
+);
+
 export const selectPersistentDeviceData = (state: DeviceRootState) =>
     state.device.persistentDeviceData;
 
@@ -590,11 +595,6 @@ export const selectDeviceUpdateFirmwareVersion = (state: DeviceRootState) => {
 
 export const selectFirmwareChangelog = (state: DeviceRootState) => {
     const device = selectSelectedDevice(state);
-    const isBitcoinOnlyFirmware = selectHasBitcoinOnlyFirmware(state);
-
-    if (isBitcoinOnlyFirmware) {
-        return device?.firmwareReleaseConfigInfo?.release.changelog;
-    }
 
     return device?.firmwareReleaseConfigInfo?.release.changelog;
 };

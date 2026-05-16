@@ -3,7 +3,6 @@ import { isRejected } from '@reduxjs/toolkit';
 
 import { selectSelectedDevice } from '@suite-common/device';
 import { type ActionsFromAsyncThunk, createThunk } from '@suite-common/redux-utils';
-import { UINT256_MAX } from '@suite-common/suite-constants';
 import { notificationsActions } from '@suite-common/toast-notifications';
 import { type NetworkSymbol, getNetwork } from '@suite-common/wallet-config';
 import {
@@ -30,7 +29,9 @@ import {
     getPendingAccount,
     hasNetworkFeatures,
     isCardanoTx,
+    isEvmApprovalTx,
     isExchangeTradingForm,
+    isMaxAllowance,
     subunitsToUnits,
     tryGetAccountIdentity,
 } from '@suite-common/wallet-utils';
@@ -362,7 +363,7 @@ export const pushSendFormTransactionThunk = createThunk<
             const { txid } = pushTxResponse.payload;
 
             if (evmApprovalData && token) {
-                const isInfiniteApproval = new BigNumber(evmApprovalData.amount).eq(UINT256_MAX);
+                const isInfiniteApproval = isMaxAllowance(evmApprovalData.amount);
                 const amount = subunitsToUnits({
                     value: asAmountSubunit(new BigNumber(evmApprovalData.amount)),
                     decimals: token.decimals,
@@ -690,7 +691,19 @@ export const enhancePrecomposedTransactionThunk = createThunk<
             return precomposedTransaction;
         };
 
-        const enhancedPrecomposedTransaction = createRbfEnhancedTransaction();
+        let enhancedPrecomposedTransaction = createRbfEnhancedTransaction();
+
+        // Contract calldata (e.g. DEX swap) must not carry `token` on the precomposed object:
+        // signing uses prepareEthereumTransaction, which would replace calldata with an ERC-20
+        // transfer if `token` is set.
+        if (
+            selectedAccount.networkType === 'ethereum' &&
+            formValues.transactionData &&
+            !isEvmApprovalTx(formValues.transactionData)
+        ) {
+            enhancedPrecomposedTransaction = cloneObject(enhancedPrecomposedTransaction);
+            delete (enhancedPrecomposedTransaction as { token?: unknown }).token;
+        }
 
         let isTokenKnown;
         if (

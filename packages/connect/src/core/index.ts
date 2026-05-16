@@ -3,10 +3,12 @@ import EventEmitter from 'events';
 
 import {
     CORE_CALL,
+    CORE_CALL_CANCEL,
     CORE_EVENT,
     DEVICE,
     POPUP,
     RESPONSE_EVENT,
+    UI_EVENT,
     UI_REQUEST,
     UI_RESPONSE,
     createDeviceMessage,
@@ -23,6 +25,7 @@ import type {
     TransportInfo,
 } from '@trezor/connect-common';
 import { ERRORS } from '@trezor/connect-common/src/constants';
+import type { TrezorError } from '@trezor/connect-common/src/constants/errors';
 import { parseLocalFirmwares } from '@trezor/connect-common/src/data/connectSettings';
 import {
     type LogWriter,
@@ -52,6 +55,21 @@ import { createUiPromiseManager } from '../utils/uiPromiseManager';
 const _log = initLog('Core');
 
 type CoreContext = ReturnType<Core['getCoreContext']>;
+
+const createSendCoreMessageWithCallId =
+    (sendCoreMessage: CoreContext['sendCoreMessage'], callId?: string) =>
+    (message: CoreEventMessage) => {
+        const isUiRequestMessage = message.event === UI_EVENT && message.type.startsWith('ui-');
+        const hasCallId = 'callId' in message && Boolean(message.callId);
+
+        if (callId && isUiRequestMessage && !hasCallId) {
+            sendCoreMessage({ ...message, callId } as CoreEventMessage);
+
+            return;
+        }
+
+        sendCoreMessage(message);
+    };
 
 /**
  * Find device by device path. Returned device may be unacquired.
@@ -114,7 +132,7 @@ const inner = async (context: CoreContext, method: AbstractMethod<any>, device: 
                     {
                         view: 'no-backup',
                     },
-                    uiPromise.requestId,
+                    { requestId: uiPromise.requestId },
                 ),
             );
 
@@ -208,29 +226,38 @@ const onCall = async (context: CoreContext, message: CoreCallMessage) => {
         const response = method.getMethodInfo();
 
         if (message.payload.__precomposed) {
-            response.precomposed = method.payloadToPrecomposed();
+            response.precomposed = await method.payloadToPrecomposed();
         }
         sendCoreMessage(createResponseMessage(method.responseID, true, response));
 
         return Promise.resolve();
     }
 
+    const sendCoreMessageWithCallId = createSendCoreMessageWithCallId(
+        sendCoreMessage,
+        method.callId,
+    );
+    const methodContext: CoreContext = {
+        ...context,
+        sendCoreMessage: sendCoreMessageWithCallId,
+    };
+
     // this method is not using the device, there is no need to acquire
     if (!method.useDevice) {
         try {
             const response = await method.run({
-                sendCoreMessage,
+                sendCoreMessage: sendCoreMessageWithCallId,
                 createUiPromise: uiPromises.create,
             });
-            sendCoreMessage(createResponseMessage(method.responseID, true, response));
+            sendCoreMessageWithCallId(createResponseMessage(method.responseID, true, response));
         } catch (error) {
-            sendCoreMessage(createResponseMessage(method.responseID, false, { error }));
+            sendCoreMessageWithCallId(createResponseMessage(method.responseID, false, { error }));
         }
 
         return Promise.resolve();
     }
 
-    return await onCallDevice(context, message, method);
+    return await onCallDevice(methodContext, message, method);
 };
 
 const onCallDevice = async (
@@ -462,7 +489,7 @@ const onDevicePinHandler =
             createUiMessage(
                 UI_REQUEST.REQUEST_PIN,
                 { device: device.toMessageObject(), type },
-                uiPromise.requestId,
+                { requestId: uiPromise.requestId },
             ),
         );
         // wait for pin
@@ -491,7 +518,7 @@ const onDeviceWordHandler =
             createUiMessage(
                 UI_REQUEST.REQUEST_WORD,
                 { device: device.toMessageObject(), type },
-                uiPromise.requestId,
+                { requestId: uiPromise.requestId },
             ),
         );
         // wait for word
@@ -521,7 +548,7 @@ const onDevicePassphraseHandler =
             createUiMessage(
                 UI_REQUEST.REQUEST_PASSPHRASE,
                 { device: device.toMessageObject() },
-                uiPromise.requestId,
+                { requestId: uiPromise.requestId },
             ),
         );
         // wait for passphrase
@@ -567,7 +594,7 @@ const onThpPairingHandler =
                     device: device.toMessageObject(),
                     ...payload,
                 },
-                uiPromise.requestId,
+                { requestId: uiPromise.requestId },
             ),
         );
         // wait for response
@@ -640,17 +667,12 @@ const registerDeviceEvents =
         device.on(DEVICE.THP_PAIRING_STATUS_CHANGED, onThpPhaseChangedHandler(device, context));
     };
 
-/**
- * Handle popup closed by user.
- * @returns {void}
- * @memberof Core
- */
-const onPopupClosed = (context: CoreContext, customErrorMessage?: string) => {
+// Shared cancel/interrupt routine. The caller decides which TrezorError to use,
+// which determines whether the consumer sees Method_Interrupted (popup closed)
+// or Method_Cancel (explicit cancel() call).
+const abortRunningCall = (context: CoreContext, error: TrezorError) => {
     const { uiPromises, deviceList, callMethods, resetWaitForFirstMethod, sendCoreMessage } =
         context;
-    const error = customErrorMessage
-        ? ERRORS.TypedError('Method_Cancel', customErrorMessage)
-        : ERRORS.TypedError('Method_Interrupted');
     // Device was already acquired. Try to interrupt running action which will throw error from onCall try/catch block
     if (deviceList.isConnected() && deviceList.getDeviceCount() > 0) {
         deviceList.getAllDevices().forEach(d => {
@@ -672,6 +694,16 @@ const onPopupClosed = (context: CoreContext, customErrorMessage?: string) => {
         uiPromises.rejectAll(error);
     }
     cleanup(context);
+};
+
+// Handle genuine popup window close (always produces Method_Interrupted)
+const onPopupClosed = (context: CoreContext) => {
+    abortRunningCall(context, ERRORS.TypedError('Method_Interrupted'));
+};
+
+// Handle an explicit cancel() call (always produces Method_Cancel)
+const onCallCancel = (context: CoreContext, reason?: string) => {
+    abortRunningCall(context, ERRORS.TypedError('Method_Cancel', reason));
 };
 
 const initDeviceList = (context: CoreContext) => {
@@ -768,10 +800,11 @@ export class Core extends EventEmitter {
 
         switch (message.type) {
             case POPUP.CLOSED:
-                onPopupClosed(
-                    this.getCoreContext(),
-                    message.payload ? message.payload.error : null,
-                );
+                onPopupClosed(this.getCoreContext());
+                break;
+
+            case CORE_CALL_CANCEL:
+                onCallCancel(this.getCoreContext(), message.payload?.reason);
                 break;
 
             case TRANSPORT.DISABLE_WEBUSB: {
@@ -836,11 +869,15 @@ export class Core extends EventEmitter {
                     assertDeviceListConnected(this.deviceList);
 
                     const coreContext = this.getCoreContext();
+                    const sendCoreMessageWithCallId = createSendCoreMessageWithCallId(
+                        this.sendCoreMessage.bind(this),
+                        message.payload.callId,
+                    );
                     onCallFirmwareUpdate({
                         params: message.payload,
                         context: {
                             deviceList: this.deviceList,
-                            postMessage: this.sendCoreMessage.bind(this),
+                            postMessage: sendCoreMessageWithCallId,
                             selectDevice: path => selectDevice(coreContext, { path }),
                             log: _log,
                             abortSignal: this.abortController.signal,

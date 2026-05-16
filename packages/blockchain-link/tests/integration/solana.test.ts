@@ -1,7 +1,8 @@
 import type { AccountInfoParams } from '@trezor/blockchain-link-types';
+import type { SolanaAPI } from '@trezor/coins-solana/types';
 
 import { BlockchainLink } from '../../src';
-import SolanaWorker, { SolanaAPI } from '../../src/workers/solana';
+import SolanaWorker from '../../src/workers/solana';
 
 const id = 79;
 const descriptor = '2MLmmoKgCrxVEzMeGatnjdABYS5RXsQSNikcWrmnvQna';

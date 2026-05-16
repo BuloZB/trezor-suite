@@ -20,12 +20,10 @@
         {
             "path": "../../packages/blockchain-link-types"
         },
+        { "path": "../../coins/coins-solana" },
         { "path": "../../packages/connect" },
         {
             "path": "../../packages/connect-common"
-        },
-        {
-            "path": "../../packages/connect-plugin-ethereum"
         },
         { "path": "../../packages/env-utils" },
         { "path": "../../packages/react-utils" },

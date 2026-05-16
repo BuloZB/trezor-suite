@@ -6,19 +6,18 @@ import {
     tradingActions,
     tradingExchangeActions,
 } from '@suite-common/trading';
-import { type AccountKey } from '@suite-common/wallet-types';
 import { events } from '@suite-native/analytics';
 import { type TestStore, act, renderHookWithStoreProvider } from '@suite-native/test-utils-store';
 import {
+    btc1NormalAccount,
     btcAsset,
+    eth1NormalAccount,
     ethAsset,
     exchangeQuotes,
-    getBtcAccount,
-    getEthAccount,
     getInitializedTradingState,
     usdtAsset,
 } from '@suite-native/trading-fixtures';
-import { type ExchangeFormValues } from '@suite-native/trading-types';
+import { type ExchangeFormValues, type ReceiveAccount } from '@suite-native/trading-types';
 import { PROTO } from '@trezor/connect';
 
 import { createTradingLightStore } from '../../../__tests__/tradingTestUtils';
@@ -64,7 +63,7 @@ describe('useExchangeQuotes', () => {
             overrides: {
                 wallet: {
                     trading: getInitializedTradingState(),
-                    accounts: [getBtcAccount(), getEthAccount()],
+                    accounts: [btc1NormalAccount, eth1NormalAccount],
                     settings: {
                         bitcoinAmountUnit,
                     },
@@ -234,11 +233,13 @@ describe('useExchangeQuotes', () => {
     it.each<[keyof ExchangeFormValues, ExchangeFormValues[keyof ExchangeFormValues]]>([
         ['receiveAsset', usdtAsset],
         ['sendCryptoAmount', '0.2'],
+        ['sendAccount', btc1NormalAccount],
         [
-            'sendAccount',
-            getBtcAccount(
-                'btc-account-2' as AccountKey, // Todo: create properly via `createAccountKey()`
-            ),
+            'receiveAccount',
+            {
+                account: btc1NormalAccount,
+                address: btc1NormalAccount.addresses!.unused[0],
+            } satisfies ReceiveAccount,
         ],
     ])('should refetch quotes on %s value change', async (field, value) => {
         const store = getInitializedStore();
@@ -260,6 +261,34 @@ describe('useExchangeQuotes', () => {
         });
 
         expect(dispatchSpy).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'handleRequestThunkMock',
+            }),
+        );
+    });
+
+    it('should not re-fetch quotes for BTC when address is not selected', async () => {
+        const store = getInitializedStore();
+        const dispatchSpy = jest.spyOn(store, 'dispatch');
+        const { result } = renderUseExchangeQuotes(store);
+        const { form } = result.current;
+
+        await act(async () => {
+            form.setValue('sendAsset', btcAsset);
+            form.setValue('receiveAsset', ethAsset);
+            form.setValue('sendCryptoAmount', '1');
+            await Promise.resolve();
+        });
+
+        dispatchSpy.mockClear();
+
+        act(() => {
+            form.setValue('receiveAccount', {
+                account: btc1NormalAccount,
+            });
+        });
+
+        expect(dispatchSpy).not.toHaveBeenCalledWith(
             expect.objectContaining({
                 type: 'handleRequestThunkMock',
             }),
@@ -359,6 +388,53 @@ describe('useExchangeQuotes', () => {
             type: 'tradingExchange/clearQuotesAndQuotesRequest',
         });
         expect(store.getState().wallet.trading.exchange.quotes).toEqual([]);
+    });
+
+    it('should fill send and receive account when querying quotes if available', async () => {
+        const ethAccount = eth1NormalAccount;
+        const btcAccount = btc1NormalAccount;
+        const store = getInitializedStore();
+
+        const dispatchSpy = jest.spyOn(store, 'dispatch');
+        const { result } = renderUseExchangeQuotes(store);
+        const { form } = result.current;
+
+        const receiveAccount: ReceiveAccount = {
+            account: btcAccount,
+            address: {
+                address: 'btc-receive-address',
+                path: "m/44'/0'/0'/0/0",
+                transfers: 0,
+                balance: '0',
+                sent: '0',
+                received: '0',
+            },
+        };
+
+        await act(async () => {
+            form.setValue('sendAsset', ethAsset);
+            form.setValue('receiveAsset', btcAsset);
+            form.setValue('sendCryptoAmount', '1');
+            form.setValue('receiveAccount', receiveAccount);
+            form.setValue('sendAccount', ethAccount);
+            await Promise.resolve();
+        });
+
+        expect(dispatchSpy).toHaveBeenCalledWith({
+            type: 'handleRequestThunkMock',
+            payload: {
+                formValues: {
+                    outputs: [{ amount: '1' }],
+                    sendCryptoSelect: { id: 'ethereum' as CryptoId },
+                    receiveCryptoSelect: { id: 'bitcoin' as CryptoId },
+                    fromAddress: ethAccount.descriptor,
+                    receiveAddress: 'btc-receive-address',
+                } satisfies MinimalExchangeFormProps,
+                network: expect.objectContaining({ tradeCryptoId: 'ethereum' }),
+                composeRequestCallback: expect.anything(),
+                shouldSendInSats: false,
+            },
+        });
     });
 
     describe('analytics', () => {

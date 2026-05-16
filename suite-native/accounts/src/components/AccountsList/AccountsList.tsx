@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { A } from '@mobily/ts-belt';
 import { atom, useSetAtom } from 'jotai';
 
+import { type NetworkSymbol } from '@suite-common/wallet-config';
 import { type Account } from '@suite-common/wallet-types';
 import { Card, VStack } from '@suite-native/atoms';
 import { typedObjectEntries } from '@trezor/utils';
@@ -17,26 +18,31 @@ import { type OnSelectAccount } from '../../types';
 import { TokenSelectBottomSheet } from '../TokenSelectBottomSheet';
 import { AccountsListItem } from './AccountsListItem';
 
+const DEFAULT_NETWORK_FILTER: NetworkSymbol[] = [];
+
 type AccountsListProps = {
     onSelectAccount: OnSelectAccount;
-    filterValue?: string;
+    searchValue?: string;
     hideTokensIntoModal?: boolean;
     isStakingPressable?: boolean;
-    isSendFilterEnabled?: boolean;
+    isSendFlow?: boolean;
+    networkFilter?: NetworkSymbol[];
 };
 
 export const AccountsList = ({
     onSelectAccount,
-    filterValue = '',
+    searchValue = '',
     hideTokensIntoModal = false,
     isStakingPressable = false,
-    isSendFilterEnabled = false,
+    isSendFlow = false,
+    networkFilter = DEFAULT_NETWORK_FILTER,
 }: AccountsListProps) => {
     const groupedAccounts = useSelector((state: NativeAccountsRootState) =>
         selectFilteredDeviceAccountsGroupedByNetworkAccountType(
             state,
-            filterValue,
-            isSendFilterEnabled,
+            searchValue,
+            isSendFlow,
+            networkFilter,
         ),
     );
     const groups = useMemo(() => typedObjectEntries(groupedAccounts), [groupedAccounts]);
@@ -57,7 +63,7 @@ export const AccountsList = ({
     );
 
     if (A.isEmpty(groups))
-        return <AccountsListEmptyPlaceholder isFilterEmpty={!filterValue?.length} />;
+        return <AccountsListEmptyPlaceholder isFilterEmpty={!searchValue?.length} />;
 
     return (
         <>

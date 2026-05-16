@@ -5,7 +5,6 @@ import { useDevice } from '@suite/device';
 import { type TranslationKey } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { type EarnParams } from '@suite/router';
-import { getNetworkDisplaySymbol } from '@suite-common/wallet-config';
 import {
     type YieldActionFlowType,
     type YieldAllowanceStatus,
@@ -19,14 +18,12 @@ import {
     handleYieldApproveCancelThunk,
     handleYieldApproveSuccessTxidThunk,
     initYieldAllowanceThunk,
-    selectRawNetworkFeeInfo,
     selectStablecoinYieldSession,
     stablecoinYieldActions,
     submitYieldApproveThunk,
     submitYieldRevokeThunk,
 } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
-import { getConvertedOrDefaultFeeInfo } from '@suite-common/wallet-utils';
 import type { BulletListItemState } from '@trezor/components';
 import { useCurrentRef } from '@trezor/react-utils';
 
@@ -41,12 +38,9 @@ import { useResolvedYieldFlowData } from './useResolvedYieldFlowData';
 import { useYieldPendingTransactionTracking } from './useYieldPendingTransactionTracking';
 import {
     type YieldApprovalAction,
-    type YieldNetworkFeeWarning,
     getBulletListItemStates,
     getYieldApprovalAction,
-    getYieldEstimatedContractCallFee,
     getYieldModifyAmountInput,
-    getYieldNetworkFeeWarning,
     isAmountGreaterThan,
 } from '../yieldFlowUtils';
 
@@ -87,10 +81,9 @@ export type UseYieldFlowResult = {
     allowanceStatus: YieldAllowanceStatus;
     approvalAction: YieldApprovalAction;
     canRevokeAllowance: boolean;
-    approvalNetworkFeeWarning: YieldNetworkFeeWarning | null;
-    actionNetworkFeeWarning: YieldNetworkFeeWarning | null;
     isAmountEmpty: boolean;
     isAmountTooHigh: boolean;
+    isAmountInvalidDecimals: boolean;
     isApprovalInsufficient: boolean;
     isSubmittingApprove: boolean;
     isSubmittingAction: boolean;
@@ -125,6 +118,7 @@ export const useYieldFlow = ({
     const dispatch = useDispatch();
     const { device } = useDevice();
     const methods = useForm<YieldFlowFormValues>({
+        mode: 'onChange',
         defaultValues: {
             amountInput: '',
             withdrawInputUnit: 'asset',
@@ -138,15 +132,6 @@ export const useYieldFlow = ({
             account,
             routeParams,
         });
-    const rawFeeInfo = useSelector(state => selectRawNetworkFeeInfo(state, account.symbol));
-    const feeInfo = useMemo(
-        () =>
-            getConvertedOrDefaultFeeInfo({
-                networkType: account.networkType,
-                feeInfo: rawFeeInfo,
-            }),
-        [account.networkType, rawFeeInfo],
-    );
     const allowanceFlowDataRef = useCurrentRef({ account, vault, token, receiptToken });
 
     const session = useSelector(state => selectStablecoinYieldSession(state, flowType, flowKey));
@@ -155,14 +140,17 @@ export const useYieldFlow = ({
     const isSharesInput = flowType === 'withdraw' && withdrawInputUnit === 'shares';
     const canToggleWithdrawUnit = flowType === 'withdraw' && !!token && !!receiptToken;
 
-    const getWithdrawMaxAmount = () => {
+    const getMaxAmount = () => {
+        if (flowType === 'deposit') {
+            return token?.balance ?? '';
+        }
         if (isSharesInput) {
             return suppliedSharesAmount;
         }
 
         return suppliedAmount;
     };
-    const maxAmount = flowType === 'deposit' ? (token?.balance ?? '') : getWithdrawMaxAmount();
+    const maxAmount = getMaxAmount();
 
     const inputTokenSymbol = isSharesInput ? (receiptToken?.symbol ?? '') : (token?.symbol ?? '');
     const otherUnitTokenSymbol = isSharesInput
@@ -253,8 +241,15 @@ export const useYieldFlow = ({
 
         if (prevStep !== null && prevStep !== nextStep) {
             if (prevStep === 'approve' && nextStep === 'action') {
+                const actionAmount = session.action.amount ?? '';
+                const cappedAmount = isAmountGreaterThan({
+                    amount: actionAmount,
+                    threshold: maxAmount,
+                })
+                    ? maxAmount
+                    : actionAmount;
                 methodsRef.current.reset({
-                    amountInput: session.action.amount ?? '',
+                    amountInput: cappedAmount,
                     withdrawInputUnit: methodsRef.current.getValues('withdrawInputUnit'),
                 });
             }
@@ -522,6 +517,7 @@ export const useYieldFlow = ({
     const allowanceAmount = session.approval.allowanceAmount ?? '0';
     const canRevokeAllowance = isAmountGreaterThan({ amount: allowanceAmount, threshold: '0' });
     const isAmountTooHigh = isAmountGreaterThan({ amount: liveAmount, threshold: maxAmount });
+    const isAmountInvalidDecimals = !!methods.formState.errors.amountInput;
     const isApprovalInsufficient =
         !session.approval.isModifyMode &&
         session.approval.allowanceStatus === 'loaded' &&
@@ -529,35 +525,6 @@ export const useYieldFlow = ({
             amount: liveAmount,
             threshold: session.approval.allowanceAmount ?? undefined,
         });
-    const networkFeeWarning = useMemo(() => {
-        if (account.networkType !== 'ethereum') {
-            return {
-                approvalNetworkFeeWarning: null,
-                actionNetworkFeeWarning: null,
-            };
-        }
-
-        const networkDisplaySymbol = getNetworkDisplaySymbol(account.symbol);
-        const estimatedContractCallFee = getYieldEstimatedContractCallFee(feeInfo);
-
-        if (!estimatedContractCallFee) {
-            return {
-                approvalNetworkFeeWarning: null,
-                actionNetworkFeeWarning: null,
-            };
-        }
-
-        const warning = getYieldNetworkFeeWarning({
-            availableBalance: account.availableBalance,
-            requiredFee: estimatedContractCallFee,
-            networkDisplaySymbol,
-        });
-
-        return {
-            approvalNetworkFeeWarning: flowType === 'deposit' ? warning : null,
-            actionNetworkFeeWarning: warning,
-        };
-    }, [account.availableBalance, account.networkType, account.symbol, feeInfo, flowType]);
 
     return {
         account,
@@ -584,14 +551,12 @@ export const useYieldFlow = ({
         allowanceStatus: session.approval.allowanceStatus,
         approvalAction,
         canRevokeAllowance,
-        approvalNetworkFeeWarning: networkFeeWarning.approvalNetworkFeeWarning,
-        actionNetworkFeeWarning: networkFeeWarning.actionNetworkFeeWarning,
         isAmountEmpty,
         isAmountTooHigh,
+        isAmountInvalidDecimals,
         isApprovalInsufficient,
         isSubmittingApprove:
             session.approval.isSubmitting ||
-            session.approval.isPending ||
             session.approval.isInitializingAllowance ||
             session.approval.modalState !== null,
         isSubmittingAction: session.action.isSubmitting,

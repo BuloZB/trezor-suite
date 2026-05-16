@@ -8,6 +8,7 @@ import {
     exec,
     commit,
     comment,
+    getTrezorPackageDir,
 } from './helpers';
 
 const readFile = promisify(fs.readFile);
@@ -119,8 +120,11 @@ const updateConnectChangelog = async (
 
 const bumpConnect = async () => {
     try {
+        // connect-plugin-ethereum is deprecated in 10.x (its hashing logic was
+        // inlined into @trezor/connect). The 10.x release is a stub and the
+        // package source is frozen — no need to auto-bump it on every connect
+        // release. Keep it removed from this list unless the stub itself changes.
         const mainPackages = [
-            'connect-plugin-ethereum',
             'connect-plugin-stellar',
             'connect-webextension',
             'connect-mobile',
@@ -151,7 +155,7 @@ const bumpConnect = async () => {
         console.log('allUniquePackagesToUpdate', allUniquePackagesToUpdate);
 
         for (const packageName of allUniquePackagesToUpdate) {
-            const PACKAGE_PATH = path.join(ROOT, 'packages', packageName);
+            const PACKAGE_PATH = getTrezorPackageDir(packageName);
             const PACKAGE_JSON_PATH = path.join(PACKAGE_PATH, 'package.json');
 
             // This uses dependency version-bump-prompt.
@@ -197,7 +201,7 @@ const bumpConnect = async () => {
             });
         }
 
-        const CONNECT_PACKAGE_PATH = path.join(ROOT, 'packages', 'connect');
+        const CONNECT_PACKAGE_PATH = getTrezorPackageDir('connect');
         const CONNECT_PACKAGE_JSON_PATH = path.join(CONNECT_PACKAGE_PATH, 'package.json');
         const CONNECT_CHANGELOG_PATH = path.join(CONNECT_PACKAGE_PATH, 'CHANGELOG.md');
 

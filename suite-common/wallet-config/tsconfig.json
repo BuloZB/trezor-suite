@@ -4,6 +4,7 @@
     "references": [
         { "path": "../earn-stablecoin-api" },
         { "path": "../wallet-constants" },
+        { "path": "../../coins/coins-solana" },
         { "path": "../../packages/device-utils" },
         { "path": "../../packages/type-utils" },
         { "path": "../../packages/utils" }

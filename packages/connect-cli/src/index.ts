@@ -133,6 +133,16 @@ const runTestCase = async (device: Device) => {
         case 'apply-settings':
             result = await TrezorConnect.applySettings({ device, ...params });
             break;
+        case 'ping-device':
+            // NOTE:
+            // firmware _PROTOBUF_BUFFER_SIZE = const(8704)
+            // T1B1 firmware Ping.message max_size:256
+            result = await TrezorConnect.pingDevice({
+                device,
+                message: 'a'.repeat(8000),
+                // button_protection: true,
+            });
+            break;
         default:
             result = await TrezorConnect.getAddress({ device, path: "m/44'/0'/0'/0/0", ...params });
     }
@@ -153,6 +163,7 @@ const run = async () => {
     console.log('Running @trezor/connect CLI with args', args);
 
     TrezorConnect.on('DEVICE_EVENT', async event => {
+        console.info('DEVICE_EVENT', event);
         if (event.type === 'device-connect_unacquired' || event.type === 'device-connect') {
             if (testIsRunning) {
                 return;
@@ -203,7 +214,7 @@ const run = async () => {
     });
 
     TrezorConnect.on('UI_EVENT', async event => {
-        console.warn('UI_EVENT', event.type);
+        console.info('UI_EVENT', event);
 
         if (event.type === 'ui-request_confirmation') {
             return TrezorConnect.uiResponse({

@@ -56,6 +56,7 @@
         {
             "path": "../../packages/blockchain-link-types"
         },
+        { "path": "../../coins/coins-solana" },
         { "path": "../../packages/connect-web" },
         { "path": "../../packages/e2e-utils" },
         { "path": "../../packages/eslint" },

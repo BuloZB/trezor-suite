@@ -1,5 +1,5 @@
 import { Translation } from '@suite/intl';
-import { SOLANA_EPOCH_DAYS } from '@suite-common/wallet-constants';
+import { SOLANA_EPOCH_DAYS } from '@trezor/coins-solana/constants';
 
 import { AccountExceptionLayout } from 'src/components/wallet';
 

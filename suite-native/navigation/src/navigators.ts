@@ -55,6 +55,8 @@ type AddCoinFlowParams = RequireAllOrNone<
 >;
 
 export type CloseActionType = 'back' | 'close';
+export type AccountAssetsTab = 'tokens' | 'defi' | 'hidden' | 'inactive';
+export type AccountAssetsFlow = 'assets' | 'send';
 export type DeviceSuspicionCause =
     | 'deviceLooksDifferent'
     | 'firmwareAlreadyInstalled'
@@ -76,7 +78,7 @@ type AccountDetailParams = {
 } & AddCoinFlowParams;
 
 export type AccountsStackParamList = {
-    [AccountsStackRoutes.Accounts]: undefined;
+    [AccountsStackRoutes.Accounts]: { networksFilter?: NetworkSymbol[] } | undefined;
 };
 
 export type EarnStackParamList = {
@@ -400,7 +402,11 @@ export type RootStackParamList = {
     [RootStackRoutes.AccountSettings]: { accountKey: AccountKey };
     [RootStackRoutes.TransactionDetailStack]: NavigatorScreenParams<TransactionDetailStackParamList>;
     [RootStackRoutes.DevUtils]: undefined;
-    [RootStackRoutes.AccountAssets]: { accountKey: AccountKey };
+    [RootStackRoutes.AccountAssets]: {
+        accountKey: AccountKey;
+        tab?: AccountAssetsTab;
+        flowType?: AccountAssetsFlow;
+    };
     [RootStackRoutes.AccountDetail]: AccountDetailParams;
     [RootStackRoutes.StakingDetail]: { accountKey: AccountKey };
     [RootStackRoutes.StakingManagement]: { accountKey: AccountKey };
@@ -456,6 +462,36 @@ export type RootStackParamList = {
     [RootStackRoutes.PassphraseStack]: NavigatorScreenParams<PassphraseStackParamList>;
     [RootStackRoutes.StellarManageTokenStack]: NavigatorScreenParams<StellarManageTokenStackParamList>;
     [RootStackRoutes.FeatureFeedbackModal]: { feature: ExperimentalFeature };
+    [RootStackRoutes.TradingExchangePreview]: {
+        isApproved?: boolean;
+    };
+    [RootStackRoutes.TradingExchangeApproval]: {
+        shouldIncreaseLimit?: boolean;
+        isRevoked?: boolean;
+    };
+    [RootStackRoutes.TradingExchangeRevoke]: {
+        shouldIncreaseLimit?: boolean;
+    };
+    [RootStackRoutes.TradingSellPreview]: undefined;
+    [RootStackRoutes.TradingSellOutputsReview]: {
+        accountKey: AccountKey;
+        tokenContract?: TokenAddress;
+        orderId: string;
+    };
+    [RootStackRoutes.TradingExchangeOutputsReview]: {
+        accountKey: AccountKey;
+        tokenContract?: TokenAddress;
+        orderId: string;
+        flowType: ExchangeFlowType;
+    };
+    [RootStackRoutes.TradingConfirming]: {
+        flowType: ConfirmingScreenFlowType;
+    };
+    [RootStackRoutes.ReceiveAccounts]: {
+        symbol: NetworkSymbol;
+        tradingType: Exclude<TradingType, 'sell'>;
+    };
+    [RootStackRoutes.TradingHistory]: undefined;
 };
 
 export type TransactionDetailStackParamList = {
@@ -477,36 +513,6 @@ export type ExchangeFlowType = 'swap' | ConfirmingScreenFlowType;
 
 export type TradingStackParamList = {
     [TradingStackRoutes.Trading]: { tradingType?: TradingType };
-    [TradingStackRoutes.ReceiveAccounts]: {
-        symbol: NetworkSymbol;
-        tradingType: Exclude<TradingType, 'sell'>;
-    };
-    [TradingStackRoutes.TradingHistory]: undefined;
-    [TradingStackRoutes.TradingExchangePreview]: {
-        isApproved?: boolean;
-    };
-    [TradingStackRoutes.TradingExchangeApproval]: {
-        shouldIncreaseLimit?: boolean;
-        isRevoked?: boolean;
-    };
-    [TradingStackRoutes.TradingExchangeRevoke]: {
-        shouldIncreaseLimit?: boolean;
-    };
-    [TradingStackRoutes.TradingSellPreview]: undefined;
-    [TradingStackRoutes.TradingSellOutputsReview]: {
-        accountKey: AccountKey;
-        tokenContract?: TokenAddress;
-        orderId: string;
-    };
-    [TradingStackRoutes.TradingExchangeOutputsReview]: {
-        accountKey: AccountKey;
-        tokenContract?: TokenAddress;
-        orderId: string;
-        flowType: ExchangeFlowType;
-    };
-    [TradingStackRoutes.TradingConfirming]: {
-        flowType: ConfirmingScreenFlowType;
-    };
 };
 
 export type StellarManageTokenStackParamList = {

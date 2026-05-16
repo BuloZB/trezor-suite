@@ -1,13 +1,13 @@
 {
     "name": "@trezor/blockchain-link-utils",
     "version": "10.0.0-alpha.1",
+    "type": "module",
     "license": "See LICENSE.md in repo root",
     "sideEffects": false,
     "main": "src/index.ts",
     "publishConfig": {
         "main": "./libESM/index.mjs",
         "types": "./libESM/index.d.mts",
-        "type": "module",
         "exports": {
             ".": {
                 "types": "./libESM/index.d.mts",
@@ -30,15 +30,12 @@
     "dependencies": {
         "@noble/hashes": "^2.0.1",
         "@stellar/stellar-sdk": "14.5.0",
+        "@trezor/coins-solana": "workspace:*",
         "@trezor/env-utils": "workspace:*",
         "@trezor/utils": "workspace:*",
         "xrpl": "4.6.0"
     },
     "devDependencies": {
-        "@solana/addresses": "^2.3.0",
-        "@solana/keys": "^2.3.0",
-        "@solana/rpc-api": "^2.3.0",
-        "@solana/rpc-types": "^2.3.0",
         "@trezor/blockchain-link-types": "workspace:*",
         "@trezor/eslint": "workspace:*",
         "@trezor/type-utils": "workspace:*"

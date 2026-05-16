@@ -29,7 +29,7 @@ import {
     createAccountKey,
 } from '@suite-common/wallet-types';
 import type { BaseCurrencyCode } from '@trezor/blockchain-link-types';
-import { solanaUtils } from '@trezor/blockchain-link-utils';
+import { SYSTEM_PROGRAM_PUBLIC_KEY } from '@trezor/coins-solana/constants';
 import TrezorConnect, {
     type AccountAddress,
     type AccountAddresses,
@@ -51,8 +51,6 @@ import { getFiatRateKey } from './fiatRatesUtils';
 import { getAccountTotalStakingBalance } from './stakingUtils';
 import { shouldUppercaseTokenSymbol } from './tokenUtils';
 import { isRbfBumpFeeTransaction } from './transactionUtils';
-
-const { SYSTEM_PROGRAM_PUBLIC_KEY } = solanaUtils;
 
 export const isUtxoBased = (account: Account) =>
     account.networkType === 'bitcoin' || account.networkType === 'cardano';
@@ -92,8 +90,7 @@ export const getFirstFreshAddress = (
 
     const unrevealed = unused.filter(
         a =>
-            !receiveAddresses.find(r => r.path === a.path) &&
-            !pendingAddresses.find(p => p === a.address),
+            !receiveAddresses.find(r => r.path === a.path) && !pendingAddresses.includes(a.address),
     );
 
     // const addressLabel = utxoBasedAccount ? 'RECEIVE_ADDRESS_FRESH' : 'RECEIVE_ADDRESS';
@@ -879,8 +876,7 @@ export const accountSearchFn = (
         token.symbol?.toLowerCase().includes(searchString) ||
         token.contract.toLowerCase().includes(searchString);
 
-    const tokenMatch =
-        tokensMatch && !!account.tokens && !!account.tokens.filter(filterTokens).length;
+    const tokenMatch = tokensMatch && !!account.tokens?.some(filterTokens);
 
     return (
         accountNumberMatch ||

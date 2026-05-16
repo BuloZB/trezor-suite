@@ -1,5 +1,3 @@
-import type { ExchangeTrade } from 'invity-api';
-
 import {
     selectGroupedTradingExchangeQuotes,
     selectTradingExchangeBuyCryptoIds,
@@ -89,30 +87,9 @@ export const selectExchangeBuyTradeableAssets = createTradingWithFeatureFlagsMem
 export const selectExchangeQuotes = (state: TradingRootState) =>
     state.wallet.trading.exchange.quotes;
 
-export const selectGroupedExchangeQuotes = createTradingWithFeatureFlagsMemoizedSelector(
-    [
-        selectGroupedTradingExchangeQuotes as unknown as (
-            state: TradingRootState,
-        ) => ReturnType<typeof selectGroupedTradingExchangeQuotes>,
-        (state: TradingWithFeatureFlagsRootState) =>
-            selectIsFeatureFlagEnabled(state, FeatureFlag.AreTradingExchangeDexesEnabled),
-    ],
-    (groupedQuotes, areTradingExchangeDexesEnabled) => {
-        if (!groupedQuotes) {
-            return { fixed: [], float: [], dex: [] as ExchangeTrade[] };
-        }
-
-        if (areTradingExchangeDexesEnabled) {
-            return groupedQuotes;
-        }
-
-        return {
-            fixed: groupedQuotes.fixed,
-            float: groupedQuotes.float,
-            dex: [] as ExchangeTrade[],
-        };
-    },
-);
+export const selectGroupedExchangeQuotes = selectGroupedTradingExchangeQuotes as unknown as (
+    state: TradingRootState,
+) => ReturnType<typeof selectGroupedTradingExchangeQuotes>;
 
 export const selectExchangeAmountLimits = (state: TradingRootState) =>
     selectTradingExchange(state).amountLimits;

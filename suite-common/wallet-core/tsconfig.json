@@ -35,6 +35,7 @@
         {
             "path": "../../packages/blockchain-link-utils"
         },
+        { "path": "../../coins/coins-solana" },
         { "path": "../../packages/connect" },
         {
             "path": "../../packages/connect-common"

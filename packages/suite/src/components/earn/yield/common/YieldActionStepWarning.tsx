@@ -1,21 +1,32 @@
 import { Translation } from '@suite/intl';
 import { Banner, Button, Column, Text } from '@trezor/components';
 
-import { type YieldNetworkFeeWarning } from '../yieldFlowUtils';
-
 type YieldActionStepWarningProps = {
     isInsufficientFunds?: boolean;
     isApprovalInsufficient?: boolean;
-    networkFeeWarning?: YieldNetworkFeeWarning | null;
+    isApproveOverBalance?: boolean;
     onModifyApproval?: () => void;
 };
 
 export const YieldActionStepWarning = ({
     isInsufficientFunds = false,
     isApprovalInsufficient = false,
-    networkFeeWarning,
+    isApproveOverBalance = false,
     onModifyApproval,
 }: YieldActionStepWarningProps) => {
+    if (isApproveOverBalance) {
+        return (
+            <Banner
+                intent="info"
+                description={
+                    <Text>
+                        <Translation id="TR_APPROVE_OVER_BALANCE" />
+                    </Text>
+                }
+            />
+        );
+    }
+
     if (isApprovalInsufficient) {
         return (
             <Banner
@@ -44,36 +55,6 @@ export const YieldActionStepWarning = ({
                     <Text>
                         <Translation id="AMOUNT_IS_NOT_ENOUGH" />
                     </Text>
-                }
-            />
-        );
-    }
-
-    if (networkFeeWarning) {
-        return (
-            <Banner
-                intent="warning"
-                icon="warning"
-                description={
-                    <Column gap={4}>
-                        <Text>
-                            <Translation
-                                id="TR_EARN_YIELD_NETWORK_FEE_WARNING_TITLE"
-                                values={{
-                                    amount: networkFeeWarning.availableAmount,
-                                    networkDisplaySymbol: networkFeeWarning.networkDisplaySymbol,
-                                }}
-                            />
-                        </Text>
-                        <Text>
-                            <Translation
-                                id="TR_EARN_YIELD_NETWORK_FEE_WARNING_DESCRIPTION"
-                                values={{
-                                    networkDisplaySymbol: networkFeeWarning.networkDisplaySymbol,
-                                }}
-                            />
-                        </Text>
-                    </Column>
                 }
             />
         );

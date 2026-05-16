@@ -1,10 +1,14 @@
+import { useCallback } from 'react';
 import { useSelector } from 'react-redux';
 
-import { type RouteProp, useRoute } from '@react-navigation/native';
+import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { type SuiteSyncDataRootState, selectSuiteSyncAccountLabel } from '@suite-common/suite-sync';
 import {
     type AccountsRootState,
+    type FiatRatesRootState,
+    type WalletSettingsRootState,
     selectAccountByKey,
     selectAccountNetworkSymbol,
     selectFormattedAccountType,
@@ -13,12 +17,11 @@ import { type AccountKey, type TokenAddress } from '@suite-common/wallet-types';
 import { parseAccountKey, parseDeviceStaticSessionId } from '@suite-common/wallet-utils';
 import { Badge, Box, HStack, Text, VStack } from '@suite-native/atoms';
 import { CryptoIconWithNetwork } from '@suite-native/icons';
-import {
-    type RootStackParamList,
-    type RootStackRoutes,
-    ScreenHeader,
-} from '@suite-native/navigation';
+import { type RootStackParamList, RootStackRoutes, ScreenHeader } from '@suite-native/navigation';
 import { type TokensRootState, selectAccountTokenInfo } from '@suite-native/tokens';
+
+import { selectAssetTabOfAccountToken } from '../selectors';
+import { TokenScreenHeaderSettings } from './TokenScreenHeaderSettings';
 
 type TokenAccountDetailScreenHeaderProps = {
     accountKey: AccountKey;
@@ -52,6 +55,28 @@ export const TokenAccountDetailScreenHeader = ({
     );
     const route = useRoute<RouteProp<RootStackParamList, RootStackRoutes.AccountDetail>>();
     const { closeActionType } = route.params;
+
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+    const tokenTab = useSelector(
+        (state: TokensRootState & FiatRatesRootState & WalletSettingsRootState) =>
+            selectAssetTabOfAccountToken(state, accountKey, tokenContract),
+    );
+
+    const handleGoBack = useCallback(() => {
+        const isAccountAssetsInStack = navigation
+            .getState()
+            .routes.some(stackRoute => stackRoute.name === RootStackRoutes.AccountAssets);
+
+        if (isAccountAssetsInStack) {
+            navigation.popTo(RootStackRoutes.AccountAssets, {
+                accountKey,
+                tab: tokenTab,
+            });
+        } else {
+            navigation.goBack();
+        }
+    }, [navigation, accountKey, tokenTab]);
 
     if (!symbol) {
         return null;
@@ -90,7 +115,11 @@ export const TokenAccountDetailScreenHeader = ({
                     </HStack>
                 </Box>
             }
+            rightIcon={
+                <TokenScreenHeaderSettings accountKey={accountKey} tokenContract={tokenContract} />
+            }
             closeActionType={closeActionType}
+            closeAction={handleGoBack}
         />
     );
 };

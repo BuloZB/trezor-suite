@@ -1,6 +1,7 @@
 {
     "name": "@trezor/connect-common",
     "version": "10.0.0-alpha.1",
+    "type": "module",
     "author": "Trezor <info@trezor.io>",
     "homepage": "https://github.com/trezor/trezor-suite/tree/develop/packages/connect-common",
     "keywords": [
@@ -24,7 +25,6 @@
     "publishConfig": {
         "main": "./libESM/index.mjs",
         "types": "./libESM/index.d.mts",
-        "type": "module",
         "exports": {
             ".": {
                 "types": "./libESM/index.d.mts",
@@ -58,7 +58,6 @@
         "lint:js": "yarn g:eslint '**/*.{ts,tsx,js}'"
     },
     "dependencies": {
-        "@trezor/device-authenticity": "workspace:^",
         "@trezor/device-utils": "workspace:*",
         "@trezor/protobuf": "workspace:*",
         "@trezor/protocol": "workspace:^",
@@ -73,6 +72,7 @@
         "@fivebinaries/coin-selection": "3.0.0",
         "@trezor/blockchain-link": "workspace:^",
         "@trezor/blockchain-link-types": "workspace:^",
+        "@trezor/device-authenticity": "workspace:^",
         "@trezor/transport": "workspace:*",
         "@trezor/utxo-lib": "workspace:*",
         "@types/chrome": "^0.1.40",

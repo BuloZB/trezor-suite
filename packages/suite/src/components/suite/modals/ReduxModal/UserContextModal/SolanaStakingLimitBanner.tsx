@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import { Translation } from '@suite/intl';
-import { MAX_DEACTIVATE_ACCOUNTS_WITH_SPLIT, claim, unstake } from '@suite-common/staking-solana';
 import { getDisplaySymbol } from '@suite-common/wallet-config';
 import { WALLET_SDK_SOURCE } from '@suite-common/wallet-constants';
 import { selectBlockchainState } from '@suite-common/wallet-core';
@@ -12,8 +11,10 @@ import {
     getOutputTxAmount,
     getSolanaStakingAccountsByStatus,
 } from '@suite-common/wallet-utils';
-import { StakeState } from '@trezor/blockchain-link-types';
+import { MAX_DEACTIVATE_ACCOUNTS_WITH_SPLIT, StakeState } from '@trezor/coins-solana/constants';
+import solana from '@trezor/coins-solana/runtime';
 import { Banner } from '@trezor/components';
+import { getSuiteVersion } from '@trezor/env-utils';
 import { BigNumber } from '@trezor/utils';
 
 interface SolanaStakingLimitBannerProps {
@@ -35,19 +36,26 @@ export const SolanaStakingLimitBanner = ({
     const selectedBlockchain = blockchain[account.symbol];
 
     useEffect(() => {
-        if (account.networkType !== 'solana') return;
+        if (account.networkType !== 'solana') {
+            return;
+        }
 
         const outputTxAmount = getOutputTxAmount(composedLevels);
         if (!outputTxAmount || !selectedBlockchain?.url) return;
 
         const estimateTx = async () => {
+            const { selectSolanaConnection, unstake, claim } = await solana();
+            const connection = selectSolanaConnection(
+                selectedBlockchain.url,
+                `Trezor Suite ${getSuiteVersion()}`,
+            );
+
             if (type === 'unstake') {
                 const { unstakeAmount } = await unstake({
-                    network: account.symbol,
+                    connection,
                     sender: account.descriptor,
                     lamports: BigInt(outputTxAmount),
                     source: WALLET_SDK_SOURCE,
-                    url: selectedBlockchain.url,
                 });
                 const estimatedAmount = unstakeAmount.toString();
                 setEstimatedAmount(estimatedAmount);
@@ -60,9 +68,8 @@ export const SolanaStakingLimitBanner = ({
 
             if (type === 'claim') {
                 const { totalClaimAmount } = await claim({
-                    network: account.symbol,
+                    connection,
                     sender: account.descriptor,
-                    url: selectedBlockchain.url,
                 });
 
                 const estimatedAmount = totalClaimAmount.toString();

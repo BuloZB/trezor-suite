@@ -1,6 +1,7 @@
 {
     "name": "@trezor/blockchain-link",
     "version": "10.0.0-alpha.1",
+    "type": "module",
     "author": "Trezor <info@trezor.io>",
     "homepage": "https://github.com/trezor/trezor-suite/tree/develop/packages/blockchain-link",
     "description": "High-level javascript interface for blockchain communication",
@@ -34,7 +35,6 @@
     "publishConfig": {
         "main": "./libESM/index.mjs",
         "types": "./libESM/index.d.mts",
-        "type": "module",
         "exports": {
             ".": {
                 "types": "./libESM/index.d.mts",
@@ -58,8 +58,8 @@
         "build:workers": "yarn g:rimraf build && yarn build:workers-web && yarn build:workers-module",
         "build:workers-web": "webpack --config ./webpack/workers.web.js",
         "build:workers-module": "webpack --config ./webpack/workers.module.js",
-        "test:unit": "yarn g:jest -c jest.config.unit.js",
-        "test:integration": "yarn g:jest -c jest.config.integration.js",
+        "test:unit": "yarn g:jest -c jest.config.unit.cjs",
+        "test:integration": "yarn g:jest -c jest.config.integration.cjs",
         "type-check": "yarn g:tsc --build tsconfig.json",
         "depcheck": "yarn g:depcheck",
         "lint:js": "yarn g:eslint '**/*.{ts,tsx,js}'"
@@ -75,15 +75,10 @@
         "webpack": "5.106.2"
     },
     "dependencies": {
-        "@solana-program/compute-budget": "^0.8.0",
-        "@solana-program/stake": "^0.2.1",
-        "@solana-program/token": "^0.5.1",
-        "@solana-program/token-2022": "^0.4.2",
-        "@solana/kit": "^2.3.0",
-        "@solana/rpc-types": "^2.3.0",
         "@stellar/stellar-sdk": "14.5.0",
         "@trezor/blockchain-link-types": "workspace:*",
         "@trezor/blockchain-link-utils": "workspace:*",
+        "@trezor/coins-solana": "workspace:*",
         "@trezor/env-utils": "workspace:*",
         "@trezor/utils": "workspace:*",
         "@trezor/utxo-lib": "workspace:*",

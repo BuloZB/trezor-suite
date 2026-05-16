@@ -35,10 +35,9 @@ export const YieldSupplyForm = () => {
         allowanceStatus,
         approvalAction,
         canRevokeAllowance,
-        approvalNetworkFeeWarning,
-        actionNetworkFeeWarning,
         isAmountEmpty,
         isAmountTooHigh,
+        isAmountInvalidDecimals,
         isApprovalInsufficient,
         isSubmittingApprove,
         isSubmittingAction,
@@ -219,22 +218,17 @@ export const YieldSupplyForm = () => {
                                         approvalAction={approvalAction}
                                         canRevokeAllowance={canRevokeAllowance}
                                         warning={
-                                            isAmountTooHigh ? (
+                                            !isAmountInvalidDecimals && isAmountTooHigh ? (
                                                 <YieldActionStepWarning
-                                                    isInsufficientFunds={isAmountTooHigh}
-                                                />
-                                            ) : undefined
-                                        }
-                                        networkFeeWarning={
-                                            approveStepState === 'active' &&
-                                            approvalNetworkFeeWarning ? (
-                                                <YieldActionStepWarning
-                                                    networkFeeWarning={approvalNetworkFeeWarning}
+                                                    isApproveOverBalance={isAmountTooHigh}
                                                 />
                                             ) : undefined
                                         }
                                         isDisabled={
-                                            isAmountEmpty || isAmountTooHigh || isSubmittingApprove
+                                            isAmountEmpty ||
+                                            isAmountInvalidDecimals ||
+                                            isSubmittingApprove ||
+                                            !!approvalPendingTransaction
                                         }
                                         isLoading={isSubmittingApprove}
                                         pendingApproveTransaction={approvalPendingTransaction}
@@ -260,24 +254,23 @@ export const YieldSupplyForm = () => {
                                                 />
                                             }
                                             warning={
-                                                <YieldActionStepWarning
-                                                    isInsufficientFunds={isAmountTooHigh}
-                                                    isApprovalInsufficient={isApprovalInsufficient}
-                                                    onModifyApproval={enterModifyApproval}
-                                                />
-                                            }
-                                            networkFeeWarning={
-                                                actionNetworkFeeWarning ? (
+                                                !isAmountInvalidDecimals ? (
                                                     <YieldActionStepWarning
-                                                        networkFeeWarning={actionNetworkFeeWarning}
+                                                        isInsufficientFunds={isAmountTooHigh}
+                                                        isApprovalInsufficient={
+                                                            isApprovalInsufficient
+                                                        }
+                                                        onModifyApproval={enterModifyApproval}
                                                     />
                                                 ) : undefined
                                             }
                                             isDisabled={
                                                 isAmountEmpty ||
                                                 isAmountTooHigh ||
+                                                isAmountInvalidDecimals ||
                                                 isApprovalInsufficient ||
-                                                isSubmittingAction
+                                                isSubmittingAction ||
+                                                !!supplyPendingTransaction
                                             }
                                             isPending={isSubmittingAction}
                                             pendingTransaction={supplyPendingTransaction}

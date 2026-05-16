@@ -1,6 +1,7 @@
 {
     "name": "@trezor/connect",
     "version": "10.0.0-alpha.1",
+    "type": "module",
     "author": "Trezor <info@trezor.io>",
     "homepage": "https://github.com/trezor/trezor-suite/tree/develop/packages/connect",
     "description": "High-level javascript interface for Trezor hardware wallet.",
@@ -34,7 +35,6 @@
     "publishConfig": {
         "main": "./libESM/index.mjs",
         "types": "./libESM/index.d.mts",
-        "type": "module",
         "exports": {
             ".": {
                 "types": "./libESM/index.d.mts",
@@ -86,17 +86,11 @@
         "@ethereumjs/tx": "^10.1.1",
         "@fivebinaries/coin-selection": "3.0.0",
         "@noble/hashes": "^2.0.1",
-        "@scure/base": "^1.2.6",
+        "@scure/base": "^2.0.0",
         "@scure/bip39": "^1.5.1",
-        "@solana-program/compute-budget": "^0.8.0",
-        "@solana-program/memo": "^0.7.0",
-        "@solana-program/system": "^0.7.0",
-        "@solana-program/token": "^0.5.1",
-        "@solana-program/token-2022": "^0.4.2",
-        "@solana/kit": "^2.3.0",
         "@trezor/blockchain-link": "workspace:*",
         "@trezor/blockchain-link-types": "workspace:*",
-        "@trezor/blockchain-link-utils": "workspace:*",
+        "@trezor/coins-solana": "workspace:*",
         "@trezor/connect-common": "workspace:*",
         "@trezor/connect-data": "workspace:*",
         "@trezor/crypto-utils": "workspace:*",
@@ -111,7 +105,8 @@
         "@trezor/utxo-lib": "workspace:*",
         "cbor": "^10.0.12",
         "cross-fetch": "^4.1.0",
-        "jws": "^4.0.1"
+        "jws": "^4.0.1",
+        "viem": "^2.48.1"
     },
     "devDependencies": {
         "@babel/preset-typescript": "^7.28.5",

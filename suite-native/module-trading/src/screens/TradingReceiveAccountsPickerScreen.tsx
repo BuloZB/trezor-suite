@@ -3,17 +3,14 @@ import { useSelector } from 'react-redux';
 
 import { type RouteProp, useRoute } from '@react-navigation/native';
 
+import { AccountTypeDecisionBottomSheet, useAddCoinAccount } from '@suite-native/add-coin-account';
 import { Translation } from '@suite-native/intl';
 import {
-    AccountTypeDecisionBottomSheet,
-    useAddCoinAccount,
-} from '@suite-native/module-add-accounts';
-import {
     type AddCoinFlowType,
+    type RootStackParamList,
+    type RootStackRoutes,
     Screen,
     ScreenHeader,
-    type TradingStackParamList,
-    type TradingStackRoutes,
 } from '@suite-native/navigation';
 import {
     selectBuySelectedReceiveAccount,
@@ -26,7 +23,7 @@ import { type ReceiveAccountsListMode } from '../hooks/general/useReceiveAccount
 export const TradingReceiveAccountsPickerScreen = () => {
     const {
         params: { symbol, tradingType },
-    } = useRoute<RouteProp<TradingStackParamList, TradingStackRoutes.ReceiveAccounts>>();
+    } = useRoute<RouteProp<RootStackParamList, RootStackRoutes.ReceiveAccounts>>();
 
     const accountSelector =
         tradingType === 'buy'

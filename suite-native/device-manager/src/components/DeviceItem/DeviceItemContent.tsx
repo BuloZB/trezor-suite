@@ -1,5 +1,4 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 
 import {
     type DeviceRootState,
@@ -10,7 +9,7 @@ import {
 } from '@suite-common/device';
 import { useSelectorDeepComparison } from '@suite-common/redux-utils';
 import { type TrezorDevice } from '@suite-common/suite-types';
-import { selectHasOnlyEmptyPortfolioTracker } from '@suite-common/wallet-core';
+import { getDeviceInternalModel } from '@suite-common/suite-utils';
 import { ACCESSIBILITY_FONTSIZE_MULTIPLIER, Box, HStack } from '@suite-native/atoms';
 import { selectShouldFactoryResetBeVisible } from '@suite-native/device';
 import { Translation, useTranslate } from '@suite-native/intl';
@@ -28,7 +27,7 @@ const DEVICE_SWITCHER_ITEM_CONTENT_HEIGHT_LARGE = 56;
 export type DeviceItemContentVariant = 'simple' | 'walletDetail';
 
 export type DeviceItemContentProps = {
-    deviceState: TrezorDevice['state'] | undefined;
+    deviceState?: TrezorDevice['state'];
     headerTextVariant?: NativeTypographyStyle;
     variant?: DeviceItemContentVariant;
     isCompact?: boolean;
@@ -62,37 +61,24 @@ export const DeviceItemContent = React.memo(
     }: DeviceItemContentProps) => {
         const { translate } = useTranslate();
         const { applyStyle } = useNativeStyles();
-        const shouldFactoryResetBeVisible = useSelector(selectShouldFactoryResetBeVisible);
-        const selectedDevice = useSelector(selectSelectedDevice);
 
         const device = useSelectorDeepComparison((state: DeviceRootState) => {
             // select only what is needed to avoid unnecessary rerenders
-            const d = selectDeviceByState(state, deviceState);
-
-            if (!d && shouldFactoryResetBeVisible)
-                return {
-                    id: 'bootloader_device',
-                    name: selectedDevice?.name,
-                    label: selectedDevice?.label,
-                    walletNumber: 1,
-                    isConnected: true,
-                    isDeviceInBootloaderMode: true,
-                    useEmptyPassphrase: selectedDevice?.useEmptyPassphrase,
-                };
+            const d = selectDeviceByState(state, deviceState) ?? selectSelectedDevice(state);
 
             if (!d) return null;
 
             return {
                 id: d.id,
                 name: d.name,
+                model: getDeviceInternalModel(d),
                 isConnected: d.connected,
                 label: selectDeviceLabelOrNameById(state, d.id),
                 walletNumber: d.walletNumber,
-                isDeviceInBootloaderMode: false,
+                isDeviceInBootloaderMode: !state && selectShouldFactoryResetBeVisible(state),
                 useEmptyPassphrase: d.useEmptyPassphrase,
             };
         });
-        const hasOnlyEmptyPortfolioTracker = useSelector(selectHasOnlyEmptyPortfolioTracker);
 
         const isPortfolioTrackerDevice = device?.id === PORTFOLIO_TRACKER_DEVICE_ID;
 
@@ -122,7 +108,7 @@ export const DeviceItemContent = React.memo(
                         : DEVICE_SWITCHER_ITEM_CONTENT_HEIGHT_LARGE,
                 })}
             >
-                <DeviceItemIcon deviceId={hasOnlyEmptyPortfolioTracker ? undefined : device.id} />
+                <DeviceItemIcon deviceId={device.id} deviceModel={device.model} />
                 <Box style={applyStyle(itemStyle, { isCompact })}>
                     {variant === 'simple' ? (
                         <SimpleDeviceItemContent

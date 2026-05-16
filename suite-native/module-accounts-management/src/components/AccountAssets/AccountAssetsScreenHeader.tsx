@@ -5,16 +5,19 @@ import { type AccountKey } from '@suite-common/wallet-types';
 import { type NativeAccountsRootState, selectAccountFiatBalance } from '@suite-native/accounts';
 import { HStack, Text, VStack } from '@suite-native/atoms';
 import { BaseCurrencyAmountFormatter } from '@suite-native/formatters';
-import { CryptoIconWithNetwork } from '@suite-native/icons';
+import { CryptoIcon } from '@suite-native/icons';
 import { AccountLabel } from '@suite-native/labeling';
 import { ScreenHeader } from '@suite-native/navigation';
 
-type Props = { accountKey: AccountKey };
+import { type AccountAssetsFlow } from './types';
 
-const AccountAssetsScreenHeaderContent = ({ accountKey }: Props) => {
+type Props = { accountKey: AccountKey; flowType?: AccountAssetsFlow };
+
+const AccountAssetsScreenHeaderContent = ({ accountKey }: Omit<Props, 'flowType'>) => {
     const account = useSelector((state: AccountsRootState) =>
         selectAccountByKey(state, accountKey),
     );
+
     const fiatBalance = useSelector((state: NativeAccountsRootState) =>
         selectAccountFiatBalance(state, accountKey),
     );
@@ -23,7 +26,7 @@ const AccountAssetsScreenHeaderContent = ({ accountKey }: Props) => {
 
     return (
         <HStack alignItems="center" spacing="sp8">
-            <CryptoIconWithNetwork symbol={account.symbol} size="small" />
+            <CryptoIcon symbol={account.symbol} size="small" />
             <VStack spacing={0} alignItems="flex-start">
                 <Text variant="body-md-strong" adjustsFontSizeToFit numberOfLines={1}>
                     <AccountLabel account={account} />
@@ -38,9 +41,9 @@ const AccountAssetsScreenHeaderContent = ({ accountKey }: Props) => {
     );
 };
 
-export const AccountAssetsScreenHeader = ({ accountKey }: Props) => (
+export const AccountAssetsScreenHeader = ({ accountKey, flowType }: Props) => (
     <ScreenHeader
         customContent={<AccountAssetsScreenHeaderContent accountKey={accountKey} />}
-        closeActionType="close"
+        closeActionType={flowType === 'send' ? 'back' : 'close'}
     />
 );

@@ -1,7 +1,7 @@
 export const HELP = `@trezor/connect CLI arguments:
 
   Transport options (default: usb)
-    --usb | --bridge | --udp | --bluetooth
+    yarn workspace @trezor/connect-cli [usb | bridge | udp | bluetooth]
 
   TrezorConnect logs (default: disabled)
     --debug                                   Enable TrezorConnect logs
@@ -56,8 +56,9 @@ const parseArgv = () => {
         if (arg.startsWith('--')) {
             const key = arg.slice(2);
             if (key.includes('=')) {
-                const [k, v] = key.split('=');
-                add(k, v.toLowerCase());
+                const [k, ...rest] = key.split('=');
+                const v = rest.join('=');
+                add(k, k === 'params' ? v : v.toLowerCase());
             } else if (add(key, argv[i + 1])) i++;
         } else if (arg.startsWith('-') && arg.length === 2) {
             if (add(arg[1], argv[i + 1])) i++;

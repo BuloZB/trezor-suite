@@ -30,6 +30,7 @@
         { "path": "../alerts" },
         { "path": "../analytics" },
         { "path": "../atoms" },
+        { "path": "../clipboard" },
         { "path": "../feature-feedback" },
         { "path": "../formatters" },
         { "path": "../forms" },
@@ -47,6 +48,7 @@
             "path": "../../packages/styles-native"
         },
         { "path": "../../packages/theme" },
+        { "path": "../../packages/type-utils" },
         { "path": "../../packages/utils" },
         {
             "path": "../../suite-common/test-utils"

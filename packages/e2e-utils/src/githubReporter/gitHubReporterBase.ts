@@ -1,6 +1,6 @@
 import type { Octokit } from '@octokit/rest';
 
-import { scheduleAction } from '@trezor/utils';
+import { getWeakRandomInt, resolveAfter, scheduleAction, unique } from '@trezor/utils';
 
 import { type TestReportProviderBase } from './annotationBase';
 import { GitHubProject } from './gitHubProject';
@@ -94,7 +94,7 @@ abstract class GitHubReporterBase implements LoggingFunctions {
 
     protected logInstructionsForRerun(): void {
         const failedCount = this.failedTestFilenames.length;
-        const uniqueFailedFilenames = [...new Set(this.failedTestFilenames)];
+        const uniqueFailedFilenames = unique(this.failedTestFilenames);
 
         this.logError(LOG_VISUAL_SEPARATOR);
         this.logError(`GITHUB REPORTER SUMMARY: ~${failedCount} test(s) failed to report`);
@@ -378,10 +378,10 @@ abstract class GitHubReporterBase implements LoggingFunctions {
 
         for (const operationSystem of report.osMatrix) {
             const issueNodeId = await scheduleAction(async () => {
-                // Random delay between 1-5 seconds to distribute load on GitHub API
+                // Random delay between 1000–4999ms to distribute load on GitHub API
                 // Without it we often hit "Your attempt to move this item created a temporary conflict. Please try again"
-                const randomDelay = Math.floor(Math.random() * 4000) + 1000; // 1000-5000ms
-                await new Promise(resolve => setTimeout(resolve, randomDelay));
+                const randomDelay = getWeakRandomInt(1000, 5000); // 1000-4999ms
+                await resolveAfter(randomDelay);
                 this.log(
                     `Creating GitHub draft issue for test "(OS ${operationSystem}) ${report.testTitle}"...`,
                 );

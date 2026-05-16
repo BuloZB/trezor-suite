@@ -10,6 +10,7 @@
     },
     "workspaces": {
         "packages": [
+            "coins/*",
             "packages/*",
             "packages/connect-examples/*",
             "suite-native/*",
@@ -20,7 +21,7 @@
     },
     "scripts": {
         "_______ Hooks _______": "Yarn hooks.",
-        "postinstall": "yarn run patch-package && husky",
+        "postinstall": "husky",
         "_______ Library Scripts #####": "Some libraries have their own build scripts.",
         "build:libs": "yarn nx run-many --skip-nx-cache --target=build:lib",
         "build:essential": "yarn message-system-sign-config & yarn workspace @trezor/suite-data build:lib & yarn workspace @trezor/transport-bridge build:lib",
@@ -124,7 +125,8 @@
         "@types/react": "19.2.14",
         "expo-modules-core": "~55.0.13",
         "react-dom": "19.2.4",
-        "react-test-renderer": "19.2.4"
+        "react-test-renderer": "19.2.4",
+        "expo-modules-core@npm:55.0.13": "patch:expo-modules-core@npm%3A55.0.13#~/.yarn/patches/expo-modules-core-npm-55.0.13-8534d47103.patch"
     },
     "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.2",
@@ -151,7 +153,6 @@
         "jest-expo": "~55.0.9",
         "node-gyp": "12.2.0",
         "nx": "^22.7.0",
-        "patch-package": "8.0.1",
         "prettier": "^3.8.3",
         "rimraf": "^6.1.2",
         "ts-node": "^10.9.2",

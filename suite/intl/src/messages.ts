@@ -169,6 +169,10 @@ export const messages = defineMessages({
         defaultMessage: 'Standard wallet',
         id: 'TR_ADD_WALLET',
     },
+    TR_PASSPHRASE_WALLET_NEEDS_ENABLED_NETWORK: {
+        defaultMessage: 'Activate at least one coin before adding a passphrase wallet.',
+        id: 'TR_PASSPHRASE_WALLET_NEEDS_ENABLED_NETWORK',
+    },
     TR_RECIPIENT_ADDRESS: {
         defaultMessage: 'Recipient address',
         description: 'Used as label for send address input',
@@ -231,11 +235,6 @@ export const messages = defineMessages({
         id: 'TR_EXCHANGE_FLOAT_OFFERS_INFO',
         defaultMessage:
             'Floating-rate offers may result in slight changes to the final amount due to market fluctuations, but they’re typically higher, so you could receive more crypto.',
-    },
-    TR_EXCHANGE_FEES_INFO: {
-        id: 'TR_EXCHANGE_FEES_INFO',
-        defaultMessage:
-            'All fees included. Estimated transaction fee: {feeAmount} ({feeAmountFiat}).',
     },
     TR_TRADING_DISABLED_DEFAULT: {
         defaultMessage: '{type} is currently disabled.',
@@ -643,30 +642,6 @@ export const messages = defineMessages({
         id: 'TR_TRADING_EXCHANGE_DEX_OFFERS_HEADING_TOOLTIP',
         dynamic: true,
     },
-    TR_TRADING_EXCHANGE_COMPARATOR_FILTER_KYC_ALL: {
-        defaultMessage: 'All KYC options',
-        id: 'TR_TRADING_EXCHANGE_COMPARATOR_FILTER_KYC_ALL',
-    },
-    TR_TRADING_EXCHANGE_COMPARATOR_FILTER_NO_KYC: {
-        defaultMessage: 'KYC is never required',
-        id: 'TR_TRADING_EXCHANGE_COMPARATOR_FILTER_NO_KYC',
-    },
-    TR_TRADING_EXCHANGE_COMPARATOR_FILTER_RATE_ALL: {
-        defaultMessage: 'All CEX & DEX offers',
-        id: 'TR_TRADING_EXCHANGE_COMPARATOR_FILTER_RATE_ALL',
-    },
-    TR_TRADING_EXCHANGE_COMPARATOR_FILTER_RATE_FIXED_CEX: {
-        defaultMessage: 'Fixed-rate CEX',
-        id: 'TR_TRADING_EXCHANGE_COMPARATOR_FILTER_RATE_FIXED_CEX',
-    },
-    TR_TRADING_EXCHANGE_COMPARATOR_FILTER_RATE_FLOATING_CEX: {
-        defaultMessage: 'Floating-rate CEX',
-        id: 'TR_TRADING_EXCHANGE_COMPARATOR_FILTER_RATE_FLOATING_CEX',
-    },
-    TR_TRADING_EXCHANGE_COMPARATOR_FILTER_RATE_DEX: {
-        defaultMessage: 'DEX',
-        id: 'TR_TRADING_EXCHANGE_COMPARATOR_FILTER_RATE_DEX',
-    },
     TR_TRADING_EXCHANGE_SIGN_BANNER_TITLE: {
         defaultMessage: 'You’re swapping with {provider}',
         id: 'TR_TRADING_EXCHANGE_SIGN_BANNER_TITLE',
@@ -712,10 +687,6 @@ export const messages = defineMessages({
         defaultMessage: 'Security first with your Trezor',
         id: 'TR_SELL_MODAL_SECURITY_HEADER',
         dynamic: true,
-    },
-    TR_SELL_REGISTER: {
-        id: 'TR_SELL_REGISTER',
-        defaultMessage: 'Register',
     },
     TR_SELL_BANK_ACCOUNT_STEP: {
         defaultMessage: 'Bank account',
@@ -863,10 +834,6 @@ export const messages = defineMessages({
         defaultMessage: 'Approved',
         id: 'TR_BUY_STATUS_SUCCESS',
     },
-    TR_LOGIN_PROCEED: {
-        id: 'TR_LOGIN_PROCEED',
-        defaultMessage: 'Proceed',
-    },
     TR_BUY_BUY: {
         defaultMessage: 'Buy',
         id: 'TR_BUY_BUY',
@@ -964,10 +931,6 @@ export const messages = defineMessages({
     TR_BUY_DETAIL_WAITING_FOR_USER_GATE: {
         defaultMessage: "Go to the provider's website",
         id: 'TR_BUY_DETAIL_WAITING_FOR_USER_GATE',
-    },
-    TR_TRADING_OFFERS_EMPTY: {
-        defaultMessage: 'Select your from/to assets and amount to search for your best offer.',
-        id: 'TR_TRADING_OFFERS_EMPTY',
     },
     TR_BUY_SELL_OFFERS_EMPTY: {
         defaultMessage: 'Select your assets and amount to search for your best offer.',
@@ -1127,14 +1090,6 @@ export const messages = defineMessages({
     TR_TRADING_TRADE_FEE: {
         defaultMessage: 'Trade fee',
         id: 'TR_TRADING_TRADE_FEE',
-    },
-    TR_TRADING_OFFERS_REFRESH: {
-        defaultMessage: 'Offers refresh in',
-        id: 'TR_TRADING_OFFERS_REFRESH',
-    },
-    TR_TRADING_OFFERS_SELECT: {
-        defaultMessage: 'Select',
-        id: 'TR_TRADING_OFFERS_SELECT',
     },
     TR_TRADING_POPULAR_CURRENCIES: {
         defaultMessage: 'Popular currencies',
@@ -2993,12 +2948,8 @@ export const messages = defineMessages({
         id: 'TR_RECEIVE',
     },
     TR_RECEIVE_DESCRIPTION: {
-        defaultMessage: 'Learn how to <a>select the right network</a> to receive your tokens',
-        id: 'TR_RECEIVE_DESCRIPTION',
-    },
-    TR_SWAP_TO_NETWORK_DESCRIPTION: {
         defaultMessage: 'Learn how to <a>choose the right network</a> to receive your tokens',
-        id: 'TR_SWAP_TO_NETWORK_DESCRIPTION',
+        id: 'TR_RECEIVE_DESCRIPTION',
     },
     TR_RECEIVE_SEARCH: {
         defaultMessage: 'Search account',
@@ -3379,6 +3330,10 @@ export const messages = defineMessages({
         defaultMessage:
             'Suite Sync storage is full. New labels will be saved locally on this computer, but not synced to your other devices.',
         id: 'TR_SUITE_SYNC_OUT_OF_QUOTA_BANNER_DESCRIPTION',
+    },
+    TR_SUITE_SYNC_ERROR_QUOTA_MANAGER_COMMUNICATION_FAILED: {
+        id: 'TR_SUITE_SYNC_ERROR_QUOTA_MANAGER_COMMUNICATION_FAILED',
+        defaultMessage: 'Failed to communicate with storage quota manager.',
     },
     TR_TAKE_ME_BACK_TO_WALLET: {
         defaultMessage: 'Take me back to Suite',
@@ -5834,6 +5789,10 @@ export const messages = defineMessages({
         id: 'TR_MY_ASSETS',
         defaultMessage: 'My assets',
     },
+    TR_MY_ASSETS_CHANGE_VIEW: {
+        defaultMessage: 'Change view',
+        id: 'TR_MY_ASSETS_CHANGE_VIEW',
+    },
     TR_ON: {
         id: 'TR_ON',
         defaultMessage: 'on',
@@ -5873,10 +5832,6 @@ export const messages = defineMessages({
     TR_BALANCE: {
         id: 'TR_BALANCE',
         defaultMessage: 'Balance',
-    },
-    TR_MY_PORTFOLIO: {
-        id: 'TR_MY_PORTFOLIO',
-        defaultMessage: 'Portfolio',
     },
     TR_REWARD: {
         id: 'TR_REWARD',
@@ -7518,18 +7473,6 @@ export const messages = defineMessages({
     TR_BYTES: {
         id: 'TR_BYTES',
         defaultMessage: 'bytes',
-    },
-    TR_GRAPH_LINEAR: {
-        id: 'TR_GRAPH_LINEAR',
-        defaultMessage: 'Linear',
-    },
-    TR_GRAPH_LOGARITHMIC: {
-        id: 'TR_GRAPH_LOGARITHMIC',
-        defaultMessage: 'Logarithmic',
-    },
-    TR_GRAPH_VIEW: {
-        id: 'TR_GRAPH_VIEW',
-        defaultMessage: 'Graph view',
     },
     TR_DATE_DAY_LONG: {
         id: 'TR_DATE_DAY_LONG',
@@ -9573,6 +9516,10 @@ export const messages = defineMessages({
         id: 'TR_EARN_YIELD_DASHBOARD_SUPPLY_MORE',
         defaultMessage: 'Deposit more',
     },
+    TR_EARN_YIELD_MAXIMUM_DEPOSITED: {
+        id: 'TR_EARN_YIELD_MAXIMUM_DEPOSITED',
+        defaultMessage: 'Maximum deposited',
+    },
     TR_EARN_YIELD_DASHBOARD_WITHDRAW: {
         id: 'TR_EARN_YIELD_DASHBOARD_WITHDRAW',
         defaultMessage: 'Withdraw',
@@ -9624,15 +9571,6 @@ export const messages = defineMessages({
     TR_EARN_YIELD_APPROVED_AMOUNT: {
         id: 'TR_EARN_YIELD_APPROVED_AMOUNT',
         defaultMessage: 'Approved amount',
-    },
-    TR_EARN_YIELD_NETWORK_FEE_WARNING_TITLE: {
-        id: 'TR_EARN_YIELD_NETWORK_FEE_WARNING_TITLE',
-        defaultMessage: 'You only have {amount} {networkDisplaySymbol} available.',
-    },
-    TR_EARN_YIELD_NETWORK_FEE_WARNING_DESCRIPTION: {
-        id: 'TR_EARN_YIELD_NETWORK_FEE_WARNING_DESCRIPTION',
-        defaultMessage:
-            'This balance may not cover network fees. Consider adding more {networkDisplaySymbol} before you continue.',
     },
     TR_EARN_YIELD_SUPPLY_COMPLETE: {
         id: 'TR_EARN_YIELD_SUPPLY_COMPLETE',
@@ -9706,6 +9644,11 @@ export const messages = defineMessages({
         id: 'TR_EARN_YIELD_APPROVAL_TOO_LOW',
         defaultMessage: 'Approval is too low. Change approval or lower amount.',
     },
+    TR_APPROVE_OVER_BALANCE: {
+        id: 'TR_APPROVE_OVER_BALANCE',
+        defaultMessage:
+            'You can approve more than your current balance, reuse it later, and revoke it anytime.',
+    },
     TR_EARN_YIELD_MODIFY_APPROVAL: {
         id: 'TR_EARN_YIELD_MODIFY_APPROVAL',
         defaultMessage: 'Change approval',
@@ -9729,6 +9672,15 @@ export const messages = defineMessages({
     TR_EARN_YIELD_ERROR_GENERIC: {
         id: 'TR_EARN_YIELD_ERROR_GENERIC',
         defaultMessage: 'Something went wrong. Try again.',
+    },
+    TR_EARN_YIELD_LOAD_ERROR_TITLE: {
+        id: 'TR_EARN_YIELD_LOAD_ERROR_TITLE',
+        defaultMessage: 'Unable to load yield opportunities',
+    },
+    TR_EARN_YIELD_LOAD_ERROR_DESCRIPTION: {
+        id: 'TR_EARN_YIELD_LOAD_ERROR_DESCRIPTION',
+        defaultMessage:
+            'This may be due to a network or connectivity issue. Check your connection or try again later.',
     },
     TR_EARN_YIELD_ERROR_TRANSACTION_FAILED: {
         id: 'TR_EARN_YIELD_ERROR_TRANSACTION_FAILED',
@@ -10699,6 +10651,10 @@ export const messages = defineMessages({
     TR_SWITCH_DEVICE_EJECT_CONFIRMATION_CANCEL_BUTTON: {
         id: 'TR_SWITCH_DEVICE_EJECT_CONFIRMATION_CANCEL_BUTTON',
         defaultMessage: 'Cancel',
+    },
+    TR_SWITCH_DEVICE_EJECT_TOOLTIP: {
+        id: 'TR_SWITCH_DEVICE_EJECT_TOOLTIP',
+        defaultMessage: 'Eject wallet',
     },
     TR_DO_NOT_SHOW_AGAIN: {
         id: 'TR_DO_NOT_SHOW_AGAIN',

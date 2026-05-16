@@ -2,6 +2,8 @@ import { WebSocketServer } from 'ws';
 
 import {
     CORE_CALL,
+    CORE_CALL_CANCEL,
+    type CoreCallCancelMessage,
     type CoreCallMessage,
     type Manifest,
     POPUP,
@@ -27,6 +29,7 @@ type IncomingMessage =
     | (CoreCallMessage & { id: string })
     | (PopupHandshake & { id: string })
     | (PopupClosedMessage & { id: string })
+    | (CoreCallCancelMessage & { id: string })
     | { type: 'ping'; id: string };
 
 const validateIncomingMessage = (message: any): message is IncomingMessage => {
@@ -47,6 +50,11 @@ const validateIncomingMessage = (message: any): message is IncomingMessage => {
         return true;
     }
 
+    if (message.type === CORE_CALL_CANCEL) {
+        return true;
+    }
+
+    // We need to handle `POPUP.CLOSED` for backward compatibility, for connect10 with older clients.
     if (message.type === POPUP.CLOSED) {
         return true;
     }
@@ -140,6 +148,10 @@ export const exposeConnectWs = ({
             } else if (message.type === POPUP.CLOSED) {
                 mainWindowProxy.getInstance()?.webContents.send('connect-popup/cancel', {
                     error: message.payload?.error,
+                });
+            } else if (message.type === CORE_CALL_CANCEL) {
+                mainWindowProxy.getInstance()?.webContents.send('connect-popup/cancel', {
+                    error: message.payload?.reason,
                 });
             } else if (message.type === CORE_CALL) {
                 if (!processOnPort) {

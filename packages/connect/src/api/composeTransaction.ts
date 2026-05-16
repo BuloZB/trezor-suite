@@ -19,6 +19,7 @@ import {
 import { BigNumber } from '@trezor/utils/src/bigNumber';
 import { promiseAllSequence } from '@trezor/utils/src/promiseAllSequence';
 import { resolveAfter } from '@trezor/utils/src/resolveAfter';
+import { unique } from '@trezor/utils/src/unique';
 import type { ComposeOutput, TransactionInputOutputSortingStrategy } from '@trezor/utxo-lib';
 
 import { initBlockchain, isBackendSupported } from '../backend/BlockchainLink';
@@ -262,7 +263,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
         context.sendCoreMessage(
             createUiMessage(UI_REQUEST.SELECT_ACCOUNT, {
                 type: 'complete',
-                accountTypes: [...new Set(accounts.map(a => a.type))],
+                accountTypes: unique(accounts.map(a => a.type)),
                 coinInfo,
                 accounts,
             }),
@@ -294,7 +295,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
                         accountTypes: discovery.types.map(t => t.type),
                         accounts: discovery.accounts,
                     },
-                    dfd.requestId,
+                    { requestId: dfd.requestId },
                 ),
             );
             const uiResp = await dfd.promise;
@@ -322,7 +323,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
                         coinInfo,
                         accounts,
                     },
-                    dfd.requestId,
+                    { requestId: dfd.requestId },
                 ),
             );
         });
@@ -334,7 +335,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
                         type: 'end',
                         coinInfo,
                     },
-                    dfd.requestId,
+                    { requestId: dfd.requestId },
                 ),
             );
         });
@@ -355,7 +356,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
                     accountTypes: discovery.types.map(t => t.type),
                     coinInfo,
                 },
-                dfd.requestId,
+                { requestId: dfd.requestId },
             ),
         );
 
@@ -436,7 +437,7 @@ export default class ComposeTransaction extends AbstractMethod<'composeTransacti
                             feeLevels: composer.getFeeLevelList(),
                             coinInfo: this.params.coinInfo,
                         },
-                        resp.requestId,
+                        { requestId: resp.requestId },
                     ),
                 );
 

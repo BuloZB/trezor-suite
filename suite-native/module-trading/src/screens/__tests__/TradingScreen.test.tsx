@@ -46,6 +46,10 @@ jest.mock('../../hooks/exchange/useExchangeData', () => ({
     }),
 }));
 
+jest.mock('../../components/concierge/ConciergeAlert', () => ({
+    ConciergeAlert: () => null,
+}));
+
 const overridesWithEnabledBuy: PreloadedStatePartial<TradingTestPreloadedState> = {
     featureFlags: createTradingFeatureFlags({
         [FeatureFlag.IsTradingBuyEnabled]: true,
@@ -57,11 +61,13 @@ const overridesWithDisabledTrading: PreloadedStatePartial<TradingTestPreloadedSt
         [FeatureFlag.IsTradingBuyEnabled]: false,
         [FeatureFlag.IsTradingExchangeEnabled]: false,
         [FeatureFlag.IsTradingSellEnabled]: false,
+        [FeatureFlag.IsTradingConciergeEnabled]: false,
     }),
     messageSystem: mockMessageSystemStateWithFeatureFlags({
         'trading.buy': false,
         'trading.exchange': false,
         'trading.sell': false,
+        'trading.concierge': false,
     }),
 };
 

@@ -43,6 +43,7 @@ import {
     selectIsAmountInputActive,
     selectIsTradingBlacklisted,
     selectIsTradingBuyEnabled,
+    selectIsTradingConciergeEnabled,
     selectIsTradingEnabled,
     selectIsTradingExchangeEnabled,
     selectIsTradingSellEnabled,
@@ -77,6 +78,7 @@ const getPreloadedState = ({
     buy,
     sell,
     exchange,
+    concierge,
     blacklist,
     residence,
     countryCode,
@@ -84,6 +86,7 @@ const getPreloadedState = ({
     buy?: boolean;
     sell?: boolean;
     exchange?: boolean;
+    concierge?: boolean;
     blacklist?: boolean;
     residence?: boolean;
     countryCode?: TradingCountryCode | undefined;
@@ -105,6 +108,12 @@ const getPreloadedState = ({
         features.push({
             domain: 'trading.exchange',
             flag: exchange,
+        });
+    }
+    if (concierge !== undefined) {
+        features.push({
+            domain: 'trading.concierge',
+            flag: concierge,
         });
     }
     if (blacklist !== undefined) {
@@ -232,6 +241,24 @@ describe('commonSelectors', () => {
         });
     });
 
+    describe('selectIsTradingConciergeEnabled', () => {
+        it('should correctly select that concierge is enabled if remote feature is enabled', () => {
+            expect(selectIsTradingConciergeEnabled(getPreloadedState({ concierge: true }))).toBe(
+                true,
+            );
+        });
+
+        it('should correctly select that concierge is disabled if remote feature is disabled', () => {
+            expect(selectIsTradingConciergeEnabled(getPreloadedState({ concierge: false }))).toBe(
+                false,
+            );
+        });
+
+        it('should correctly select that concierge is enabled if remote feature is not set', () => {
+            expect(selectIsTradingConciergeEnabled(getPreloadedState({}))).toBe(true);
+        });
+    });
+
     describe('selectIsTradingEnabled', () => {
         describe('when residence check is disabled', () => {
             it('should correctly select that trading is enabled if one of remote features is enabled', () => {
@@ -242,10 +269,15 @@ describe('commonSelectors', () => {
                 expect(selectIsTradingEnabled(getPreloadedState({}))).toBe(true);
             });
 
-            it('should correctly select that trading is not enabled when buy, exchange and sell are disabled', () => {
+            it('should correctly select that trading is not enabled when buy, exchange, sell and concierge are disabled', () => {
                 expect(
                     selectIsTradingEnabled(
-                        getPreloadedState({ buy: false, exchange: false, sell: false }),
+                        getPreloadedState({
+                            buy: false,
+                            exchange: false,
+                            sell: false,
+                            concierge: false,
+                        }),
                     ),
                 ).toBe(false);
             });
@@ -320,9 +352,15 @@ describe('commonSelectors', () => {
 
     describe('selectEnabledTradingTypes', () => {
         it.each([
-            [{ buy: true, exchange: true, sell: true }, ['buy', 'exchange', 'sell']],
-            [{ buy: false, exchange: true, sell: true }, ['exchange', 'sell']],
-            [{ buy: false, exchange: false, sell: false }, []],
+            [
+                { buy: true, exchange: true, sell: true, concierge: true },
+                ['buy', 'exchange', 'sell', 'concierge'],
+            ],
+            [
+                { buy: false, exchange: true, sell: true, concierge: true },
+                ['exchange', 'sell', 'concierge'],
+            ],
+            [{ buy: false, exchange: false, sell: false, concierge: false }, []],
         ])(
             'should return order array of allowed tradingTypes, case %#',
             (flags, expectedReturn) => {

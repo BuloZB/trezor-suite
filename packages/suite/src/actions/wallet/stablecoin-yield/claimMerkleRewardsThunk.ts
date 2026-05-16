@@ -1,4 +1,4 @@
-import { fromWei, hexToNumberString, numberToHex } from 'web3-utils';
+import { fromWei, hexToNumberString } from 'web3-utils';
 
 import { closeModal, openDeferredModal, preserveModal } from '@suite/modal';
 import { Calldata, asEvmAddress } from '@suite-common/calldata';
@@ -31,7 +31,7 @@ import { getAccountIdentity, sanitizeHex } from '@suite-common/wallet-utils';
 import TrezorConnect, { type StaticSessionId } from '@trezor/connect';
 import { BigNumber } from '@trezor/utils';
 
-import type { MerkleRewardWithFiat } from 'src/components/earn/dashboard/yield/hooks/useMerkleRewards';
+import type { YieldAccountsRewards } from 'src/components/earn/yield/claim/hooks';
 
 type BuildClaimReviewStateParams = {
     data: EvmHexString;
@@ -170,7 +170,7 @@ async function getEstimatedFee({
 type ClaimMerkleRewardsParams = {
     account: Account;
     flowKey: string;
-    rewards: MerkleRewardWithFiat[];
+    rewards: YieldAccountsRewards[number]['rewards'];
 };
 
 export const claimMerkleRewardsThunk = createThunk(
@@ -298,7 +298,7 @@ export const claimMerkleRewardsThunk = createThunk(
                         to: unsignedClaimTx.to,
                         chainId: unsignedClaimTx.chainId,
                         value: '0x0',
-                        nonce: numberToHex(unsignedClaimTx.nonce),
+                        nonce: unsignedClaimTx.nonce,
                         data: sanitizeHex(unsignedClaimTx.data),
                         gasLimit: parsedSelectedFee.gasLimit,
                         ...(parsedSelectedFee.type === 'eip1559'

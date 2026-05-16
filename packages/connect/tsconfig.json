@@ -12,7 +12,7 @@
     "references": [
         { "path": "../blockchain-link" },
         { "path": "../blockchain-link-types" },
-        { "path": "../blockchain-link-utils" },
+        { "path": "../../coins/coins-solana" },
         { "path": "../connect-common" },
         { "path": "../connect-data" },
         { "path": "../crypto-utils" },
