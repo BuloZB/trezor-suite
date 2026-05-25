@@ -1,12 +1,10 @@
-import { useEffect } from 'react';
-
-import { events } from '@suite/analytics';
-import { Translation, useTranslation } from '@suite/intl';
+import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { Translation } from '@suite/intl';
+import { useServices } from '@suite-common/dependency-injection';
 import { splitYieldPendingTransaction } from '@suite-common/wallet-core';
 import { Banner, BulletList, Button, Column, Row, Text } from '@trezor/components';
 
 import { FormattedCryptoAmount } from 'src/components/suite/FormattedCryptoAmount';
-import { useAnalytics } from 'src/support/useAnalytics';
 
 import { useYieldSupplyContext } from './useYieldSupplyContext';
 import { YieldActionStep } from '../common/YieldActionStep';
@@ -16,8 +14,7 @@ import { YieldApproveStep } from '../common/YieldApproveStep';
 import { YieldFlowCompleteSupply } from '../common/YieldFlowCompleteSupply';
 
 export const YieldSupplyForm = () => {
-    const analytics = useAnalytics();
-    const { translationString } = useTranslation();
+    const { analytics } = useServices<DesktopAnalyticsDep>();
 
     const {
         account,
@@ -49,6 +46,7 @@ export const YieldSupplyForm = () => {
         handleApproveModalCancel,
         handleApproveSuccessTxid,
         openPendingTransaction,
+        retryInitAllowance,
         flow,
     } = useYieldSupplyContext();
 
@@ -61,45 +59,14 @@ export const YieldSupplyForm = () => {
     const { approvalPendingTransaction, actionPendingTransaction: supplyPendingTransaction } =
         splitYieldPendingTransaction(pendingTransaction, 'deposit');
 
-    // trigger success analytics event
-    useEffect(() => {
-        if (flow.currentStep === 'complete') {
-            analytics.report({
-                type: events.yieldSupplyEvent.name,
-                payload: {
-                    type: 'success',
-                    action: 'continue',
-                    networkSymbol: token.networkSymbol,
-                    contractAddress: token.contractAddress ?? undefined,
-                },
-            });
-        }
-    }, [flow.currentStep, analytics, token.networkSymbol, token.contractAddress]);
-
-    // trigger error analytics event
-    useEffect(() => {
-        if (errorMessage) {
-            analytics.report({
-                type: events.yieldSupplyEvent.name,
-                payload: {
-                    type: 'error',
-                    action: 'continue',
-                    networkSymbol: token.networkSymbol,
-                    contractAddress: token.contractAddress ?? undefined,
-                    errorMessage: translationString(errorMessage),
-                },
-            });
-        }
-    }, [analytics, errorMessage, token.networkSymbol, token.contractAddress, translationString]);
-
     const handleOnApprovalSubmit = () => {
         analytics.report({
-            type: events.yieldSupplyEvent.name,
+            type: events.yieldDepositEvent.name,
             payload: {
                 type: approvalAction === 'revoke' ? 'revoke' : 'approve',
                 action: 'continue',
                 networkSymbol: token.networkSymbol,
-                contractAddress: token.contractAddress ?? undefined,
+                vaultId: vault.id,
             },
         });
 
@@ -108,12 +75,12 @@ export const YieldSupplyForm = () => {
 
     const handleOnRevoke = () => {
         analytics.report({
-            type: events.yieldSupplyEvent.name,
+            type: events.yieldDepositEvent.name,
             payload: {
                 type: 'revoke',
                 action: 'continue',
                 networkSymbol: token.networkSymbol,
-                contractAddress: token.contractAddress ?? undefined,
+                vaultId: vault.id,
             },
         });
 
@@ -122,12 +89,12 @@ export const YieldSupplyForm = () => {
 
     const handleOnModify = () => {
         analytics.report({
-            type: events.yieldSupplyEvent.name,
+            type: events.yieldDepositEvent.name,
             payload: {
-                type: 'modify',
+                type: 'modify-allowance',
                 action: 'continue',
                 networkSymbol: token.networkSymbol,
-                contractAddress: token.contractAddress ?? undefined,
+                vaultId: vault.id,
             },
         });
 
@@ -136,16 +103,42 @@ export const YieldSupplyForm = () => {
 
     const handleOnSupply = () => {
         analytics.report({
-            type: events.yieldSupplyEvent.name,
+            type: events.yieldDepositEvent.name,
             payload: {
-                type: 'supply',
+                type: 'deposit',
                 action: 'continue',
                 networkSymbol: token.networkSymbol,
-                contractAddress: token.contractAddress ?? undefined,
+                vaultId: vault.id,
             },
         });
 
         submitAction();
+    };
+
+    const handleMaxClick = () => {
+        analytics.report({
+            type: events.yieldInteractionEvent.name,
+            payload: {
+                element: 'deposit-max',
+                networkSymbol: token.networkSymbol,
+                vaultId: vault.id,
+            },
+        });
+
+        setAmountInput(maxAmount);
+    };
+
+    const handleRetryAllowance = () => {
+        analytics.report({
+            type: events.yieldInteractionEvent.name,
+            payload: {
+                element: 'allowance-retry',
+                networkSymbol: token.networkSymbol,
+                vaultId: vault.id,
+            },
+        });
+
+        retryInitAllowance();
     };
 
     return (
@@ -176,6 +169,21 @@ export const YieldSupplyForm = () => {
                                 <Banner
                                     intent="warning"
                                     description={<Translation id={errorMessage} />}
+                                />
+                            )}
+
+                            {allowanceStatus === 'error' && (
+                                <Banner
+                                    icon
+                                    intent="warning"
+                                    description={
+                                        <Translation id="TR_EARN_YIELD_ALLOWANCE_FETCH_FAILED" />
+                                    }
+                                    rightContent={
+                                        <Banner.Button onClick={handleRetryAllowance}>
+                                            <Translation id="TR_RETRY" />
+                                        </Banner.Button>
+                                    }
                                 />
                             )}
 
@@ -232,7 +240,7 @@ export const YieldSupplyForm = () => {
                                         }
                                         isLoading={isSubmittingApprove}
                                         pendingApproveTransaction={approvalPendingTransaction}
-                                        onMaxClick={() => setAmountInput(maxAmount)}
+                                        onMaxClick={handleMaxClick}
                                         onApprovalSubmit={handleOnApprovalSubmit}
                                         onRevoke={handleOnRevoke}
                                         onPendingTxClick={openPendingTransaction}
@@ -260,7 +268,7 @@ export const YieldSupplyForm = () => {
                                                         isApprovalInsufficient={
                                                             isApprovalInsufficient
                                                         }
-                                                        onModifyApproval={enterModifyApproval}
+                                                        onModifyApproval={handleOnModify}
                                                     />
                                                 ) : undefined
                                             }
@@ -274,7 +282,7 @@ export const YieldSupplyForm = () => {
                                             }
                                             isPending={isSubmittingAction}
                                             pendingTransaction={supplyPendingTransaction}
-                                            onMaxClick={() => setAmountInput(maxAmount)}
+                                            onMaxClick={handleMaxClick}
                                             onSubmit={handleOnSupply}
                                             onPendingTxClick={openPendingTransaction}
                                         />
@@ -295,6 +303,7 @@ export const YieldSupplyForm = () => {
                 <YieldApproveModal
                     {...approveModalState}
                     account={account}
+                    vaultId={vault.id}
                     onCancel={handleApproveModalCancel}
                     onSuccess={handleApproveSuccessTxid}
                 />

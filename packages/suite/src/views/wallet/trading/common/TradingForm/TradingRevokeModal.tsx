@@ -2,14 +2,15 @@ import { useCallback, useMemo } from 'react';
 
 import { type CryptoId } from 'invity-api';
 
-import { events } from '@suite/analytics';
-import { getEvmApprovalTxData } from '@suite-common/wallet-utils';
+import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { Calldata } from '@suite-common/calldata';
+import { useServices } from '@suite-common/dependency-injection';
 
 import { RevokeModal } from 'src/components/suite/modals/ReduxModal/UserContextModal/AllowanceModals/RevokeModal';
 import { useAllowanceContext } from 'src/hooks/wallet/allowance';
+import { useModalLastValidParams } from 'src/hooks/wallet/trading/form/useModalLastValidParams';
 import { useTradingFormContext } from 'src/hooks/wallet/trading/form/useTradingCommonForm';
 import { useTradingExchangeCryptoAndProviderInfo } from 'src/hooks/wallet/trading/form/useTradingExchangeCryptoAndProviderInfo';
-import { useAnalytics } from 'src/support/useAnalytics';
 import {
     getProvidersInfoProps,
     isTradingExchangeContext,
@@ -22,7 +23,7 @@ interface TradingRevokeModalProps {
 export const TradingRevokeModal = ({ cryptoId }: TradingRevokeModalProps) => {
     const { state } = useAllowanceContext();
     const context = useTradingFormContext();
-    const analytics = useAnalytics();
+    const { analytics } = useServices<DesktopAnalyticsDep>();
     const getCryptoInfo = useTradingExchangeCryptoAndProviderInfo();
 
     const handleCancel = useCallback(async () => {
@@ -66,19 +67,16 @@ export const TradingRevokeModal = ({ cryptoId }: TradingRevokeModalProps) => {
         const provider = exchange ? providersInfo?.[exchange] : null;
 
         const dexTxData = context.selectedQuote?.dexTx?.data;
-        const approvalData = getEvmApprovalTxData(dexTxData);
+        const approvalData = Calldata.evm.erc20.approve.decode(dexTxData);
         const spender = approvalData?.spender ?? null;
 
         const preapprovedAmount = context.selectedQuote?.preapprovedStringAmount;
 
-        return {
-            provider,
-            spender,
-            preapprovedAmount,
-        };
+        return provider && spender ? { provider, spender, preapprovedAmount } : null;
     }, [context]);
 
-    const { provider, spender, preapprovedAmount } = revokeParams || {};
+    const { provider, spender, preapprovedAmount } =
+        useModalLastValidParams(revokeParams, state.isRevokeModalOpen) ?? {};
 
     if (!state.isRevokeModalOpen || !provider || !spender) return null;
 

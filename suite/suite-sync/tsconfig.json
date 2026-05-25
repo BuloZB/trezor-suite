@@ -6,9 +6,18 @@
         {
             "path": "../../suite-common/delegated-identity-key-types"
         },
+        {
+            "path": "../../suite-common/dependency-injection"
+        },
         { "path": "../../suite-common/device" },
         {
+            "path": "../../suite-common/message-system"
+        },
+        {
             "path": "../../suite-common/platform-encryption"
+        },
+        {
+            "path": "../../suite-common/redux-utils"
         },
         {
             "path": "../../suite-common/suite-sync"
@@ -35,6 +44,7 @@
             "path": "../../suite-common/wallet-utils"
         },
         { "path": "../analytics" },
+        { "path": "../firmware-upgrade" },
         { "path": "../intl" },
         { "path": "../../packages/components" },
         { "path": "../../packages/connect" },
@@ -42,6 +52,8 @@
             "path": "../../packages/product-components"
         },
         { "path": "../../packages/theme" },
-        { "path": "../../packages/type-utils" }
+        { "path": "../../packages/type-utils" },
+        { "path": "../../packages/utils" },
+        { "path": "../../packages/requirements" }
     ]
 }

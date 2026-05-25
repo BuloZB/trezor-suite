@@ -16,8 +16,11 @@
         "@hookform/resolvers": "^5.2.2",
         "@reduxjs/toolkit": "2.11.2",
         "@suite-common/delegated-identity-key-types": "workspace:*",
+        "@suite-common/dependency-injection": "workspace:*",
         "@suite-common/device": "workspace:*",
+        "@suite-common/message-system": "workspace:*",
         "@suite-common/platform-encryption": "workspace:*",
+        "@suite-common/redux-utils": "workspace:*",
         "@suite-common/suite-sync": "workspace:*",
         "@suite-common/suite-sync-evolu": "workspace:*",
         "@suite-common/suite-sync-quota-manager": "workspace:*",
@@ -27,14 +30,19 @@
         "@suite-common/toast-notifications": "workspace:*",
         "@suite-common/wallet-utils": "workspace:*",
         "@suite/analytics": "workspace:*",
+        "@suite/firmware-upgrade": "workspace:*",
         "@suite/intl": "workspace:*",
         "@trezor/components": "workspace:*",
         "@trezor/connect": "workspace:*",
         "@trezor/product-components": "workspace:*",
         "@trezor/theme": "workspace:*",
         "@trezor/type-utils": "workspace:*",
+        "@trezor/utils": "workspace:*",
         "react": "19.2.4",
         "react-hook-form": "^7.71.2",
         "react-redux": "9.2.0"
+    },
+    "devDependencies": {
+        "@trezor/requirements": "workspace:*"
     }
 }

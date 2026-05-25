@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { type UseFormReturn, useForm } from 'react-hook-form';
 
+import { type DesktopAnalyticsDep, events } from '@suite/analytics';
 import { useDevice } from '@suite/device';
 import { type TranslationKey } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { type EarnParams } from '@suite/router';
+import { useServices } from '@suite-common/dependency-injection';
 import {
     type YieldActionFlowType,
     type YieldAllowanceStatus,
@@ -96,6 +98,7 @@ export type UseYieldFlowResult = {
     handleApproveModalCancel: () => Promise<void>;
     handleApproveSuccessTxid: (txid: string) => void;
     openPendingTransaction: (txid: string) => void;
+    retryInitAllowance: () => void;
     methods: UseFormReturn<YieldFlowFormValues>;
     flow: UseYieldFlowStepsResult;
 };
@@ -116,6 +119,7 @@ export const useYieldFlow = ({
     flowType,
 }: UseYieldFlowProps): UseYieldFlowResult => {
     const dispatch = useDispatch();
+    const { analytics } = useServices<DesktopAnalyticsDep>();
     const { device } = useDevice();
     const methods = useForm<YieldFlowFormValues>({
         mode: 'onChange',
@@ -135,6 +139,7 @@ export const useYieldFlow = ({
     const allowanceFlowDataRef = useCurrentRef({ account, vault, token, receiptToken });
 
     const session = useSelector(state => selectStablecoinYieldSession(state, flowType, flowKey));
+    const sessionRef = useCurrentRef(session);
 
     const withdrawInputUnit = methods.watch('withdrawInputUnit');
     const isSharesInput = flowType === 'withdraw' && withdrawInputUnit === 'shares';
@@ -186,8 +191,8 @@ export const useYieldFlow = ({
         [flowKey],
     );
 
-    useEffect(() => {
-        if (flowType !== 'deposit' || allowanceStatus !== 'idle') {
+    const runInitAllowance = useCallback(() => {
+        if (flowType !== 'deposit') {
             return;
         }
 
@@ -206,30 +211,37 @@ export const useYieldFlow = ({
         );
 
         initAllowancePromiseRef.current = promise;
-        void promise.finally(() => {
-            if (initAllowancePromiseRef.current === promise) {
-                initAllowancePromiseRef.current = null;
-            }
-        });
-    }, [
-        account.descriptor,
-        account.key,
-        account.symbol,
-        allowanceFlowDataRef,
-        allowanceStatus,
-        dispatch,
-        flowKey,
-        flowType,
-        receiptToken?.contractAddress,
-        token?.contractAddress,
-        token?.decimals,
-        vault?.id,
-    ]);
+        void promise
+            .unwrap()
+            .catch(() => {
+                analytics.report({
+                    type: events.yieldInteractionEvent.name,
+                    payload: {
+                        element: 'allowance-error-banner',
+                        networkSymbol: token.networkSymbol,
+                        vaultId: vault.id,
+                    },
+                });
+            })
+            .finally(() => {
+                if (initAllowancePromiseRef.current === promise) {
+                    initAllowancePromiseRef.current = null;
+                }
+            });
+    }, [allowanceFlowDataRef, analytics, dispatch, flowKey, flowType]);
+
+    useEffect(() => {
+        if (allowanceStatus !== 'idle') {
+            return;
+        }
+        runInitAllowance();
+    }, [allowanceStatus, runInitAllowance]);
 
     useYieldPendingTransactionTracking({
         account,
         flowType,
         flowKey,
+        vaultId: vault?.id,
     });
 
     // Sync form value on step transitions driven by Redux (e.g. completeApproval, enterModifyMode from thunk)
@@ -287,6 +299,19 @@ export const useYieldFlow = ({
 
     const openPendingTransaction = useCallback(
         (txid: string) => {
+            const pendingTxType = sessionRef.current.action.pendingTransaction?.type;
+            if (pendingTxType) {
+                analytics.report({
+                    type: events.yieldInteractionEvent.name,
+                    payload: {
+                        element: 'pending-tx-open',
+                        value: pendingTxType,
+                        networkSymbol: account.symbol,
+                        vaultId: vault?.id,
+                    },
+                });
+            }
+
             dispatch(
                 openModal({
                     type: 'transaction-detail',
@@ -298,7 +323,7 @@ export const useYieldFlow = ({
                 }),
             );
         },
-        [account, dispatch],
+        [account, analytics, dispatch, vault?.id, sessionRef],
     );
 
     const enterModifyApproval = useCallback(() => {
@@ -331,6 +356,7 @@ export const useYieldFlow = ({
 
         methodsRef.current.setValue('withdrawInputUnit', nextUnit);
         methodsRef.current.setValue('amountInput', '');
+        methodsRef.current.clearErrors('amountInput');
     }, [flowType, methodsRef, receiptToken, token]);
 
     const submitApprove = useCallback(() => {
@@ -569,6 +595,7 @@ export const useYieldFlow = ({
         handleApproveModalCancel,
         handleApproveSuccessTxid,
         openPendingTransaction,
+        retryInitAllowance: runInitAllowance,
         methods,
         flow,
     };

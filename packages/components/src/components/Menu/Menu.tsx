@@ -38,7 +38,7 @@ const MenuList = styled.ul`
 
 export type DropdownMenuItemProps = {
     label: React.ReactNode;
-    onClick?: () => any | Promise<any>;
+    onClick?: () => unknown | Promise<unknown>;
     icon?: IconName;
     iconRight?: IconName;
     isDisabled?: boolean;
@@ -111,7 +111,7 @@ export const Menu = forwardRef<HTMLUListElement, MenuProps>(
         // handle selecting an item
         useEffect(() => {
             const handleKeyDown = (e: KeyboardEvent) => {
-                if (!visibleItems || !visibleItems.length || focusedItemIndex === null) {
+                if (!visibleItems?.length || focusedItemIndex === null) {
                     return;
                 }
 

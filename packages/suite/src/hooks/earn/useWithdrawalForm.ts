@@ -23,7 +23,7 @@ import {
     getStakingDataForNetwork,
     toFiatCurrency,
 } from '@suite-common/wallet-utils';
-import { BigNumber, isChanged } from '@trezor/utils';
+import { BigNumber, isChanged, throwError } from '@trezor/utils';
 
 import { signTransaction } from 'src/actions/wallet/stakeActions';
 import { useDispatch, useSelector } from 'src/hooks/suite';
@@ -272,7 +272,7 @@ export const useWithdrawalForm = ({ account }: UseWithdrawalFormProps): Withdraw
     const signTx = useCallback(async () => {
         const values = getValues();
         const composedTx = composedLevels ? composedLevels[selectedFee] : undefined;
-        if (composedTx && composedTx.type === 'final') {
+        if (composedTx?.type === 'final') {
             const result = await dispatch(
                 signTransaction(values, composedTx as PrecomposedTransactionFinal),
             );
@@ -310,9 +310,6 @@ export const useWithdrawalForm = ({ account }: UseWithdrawalFormProps): Withdraw
     };
 };
 
-export const useWithdrawalFormContext = () => {
-    const ctx = useContext(WithdrawalFormContext);
-    if (ctx === null) throw Error('useWithdrawalFormContext used without Context');
-
-    return ctx;
-};
+export const useWithdrawalFormContext = () =>
+    useContext(WithdrawalFormContext) ??
+    throwError('useWithdrawalFormContext used without Context');

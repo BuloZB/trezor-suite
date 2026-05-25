@@ -2,6 +2,9 @@
     "extends": "../../tsconfig.base.json",
     "compilerOptions": { "outDir": "libDev" },
     "references": [
+        {
+            "path": "../../suite-common/dependency-injection"
+        },
         { "path": "../../suite-common/device" },
         {
             "path": "../../suite-common/formatters"
@@ -19,6 +22,7 @@
             "path": "../../suite-common/wallet-utils"
         },
         { "path": "../accounts" },
+        { "path": "../address" },
         { "path": "../alerts" },
         { "path": "../analytics" },
         { "path": "../atoms" },
@@ -29,12 +33,9 @@
         { "path": "../icons" },
         { "path": "../in-app-rating" },
         { "path": "../intl" },
-        { "path": "../labeling" },
         { "path": "../link" },
         { "path": "../module-device-onboarding" },
         { "path": "../navigation" },
-        { "path": "../qr-code" },
-        { "path": "../services" },
         { "path": "../toasts" },
         { "path": "../tokens" },
         { "path": "../../packages/connect" },

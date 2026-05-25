@@ -94,7 +94,7 @@ export const prepareTxPlan = async (
     cardanoPools: AdaPools['pools'],
     votingDelegation?: VotingDelegationOption,
 ) => {
-    if (!account || account.networkType !== 'cardano') return;
+    if (account?.networkType !== 'cardano') return;
 
     const changeAddress = getUnusedChangeAddress(account);
     const stakingPath = getStakingPath(account);
@@ -304,15 +304,10 @@ export const signTransaction =
     async (dispatch: Dispatch, getState: GetState, extra: ExtraDependencies) => {
         const { selectedAccount, stake } = getState().wallet;
         const cardanoPools = selectCardanoPoolsInfo(getState());
-        if (!selectedAccount || !selectedAccount.account) return;
+        if (!selectedAccount?.account) return;
 
         const device = selectSelectedDevice(getState());
-        if (
-            selectedAccount.status !== 'loaded' ||
-            !device ||
-            !transactionInfo ||
-            transactionInfo.type !== 'final'
-        ) {
+        if (selectedAccount.status !== 'loaded' || !device || transactionInfo?.type !== 'final') {
             return;
         }
 

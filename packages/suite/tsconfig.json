@@ -153,6 +153,7 @@
         {
             "path": "../../suite-common/walletconnect"
         },
+        { "path": "../../suite/address" },
         { "path": "../../suite/analytics" },
         { "path": "../../suite/backup" },
         { "path": "../../suite/desktop-update" },
@@ -170,6 +171,7 @@
             "path": "../../suite/idb-migration-utils"
         },
         { "path": "../../suite/intl" },
+        { "path": "../../suite/labeling" },
         { "path": "../../suite/locks" },
         { "path": "../../suite/metadata" },
         {
@@ -179,12 +181,6 @@
         { "path": "../../suite/nfc" },
         {
             "path": "../../suite/onboarding-components"
-        },
-        {
-            "path": "../../suite/platform-encryption-electron"
-        },
-        {
-            "path": "../../suite/platform-encryption-webauthn"
         },
         { "path": "../../suite/recovery" },
         { "path": "../../suite/router" },

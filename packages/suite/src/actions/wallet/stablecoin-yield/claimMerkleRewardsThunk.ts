@@ -1,5 +1,6 @@
-import { fromWei, hexToNumberString } from 'web3-utils';
+import { fromWei, hexToNumberString, numberToHex } from 'web3-utils';
 
+import { asTypedDesktopAnalytics, events } from '@suite/analytics';
 import { closeModal, openDeferredModal, preserveModal } from '@suite/modal';
 import { Calldata, asEvmAddress } from '@suite-common/calldata';
 import { selectSelectedDevice } from '@suite-common/device';
@@ -16,6 +17,7 @@ import { ETH_CONTRACT_CALL_BACKUP_GAS_LIMIT } from '@suite-common/wallet-constan
 import {
     STABLECOIN_YIELD_PREFIX,
     selectAddressDisplayType,
+    selectIsMevProtectionEnabled,
     stablecoinYieldActions,
     synchronizeSentTransactionThunk,
 } from '@suite-common/wallet-core';
@@ -27,7 +29,7 @@ import {
     type FormState,
     type PrecomposedTransactionFinal,
 } from '@suite-common/wallet-types';
-import { getAccountIdentity, sanitizeHex } from '@suite-common/wallet-utils';
+import { getAccountIdentity, getMevProtectedTxData, sanitizeHex } from '@suite-common/wallet-utils';
 import TrezorConnect, { type StaticSessionId } from '@trezor/connect';
 import { BigNumber } from '@trezor/utils';
 
@@ -175,7 +177,10 @@ type ClaimMerkleRewardsParams = {
 
 export const claimMerkleRewardsThunk = createThunk(
     `${STABLECOIN_YIELD_PREFIX}/thunk/claimMerkleRewards`,
-    async ({ account, flowKey, rewards }: ClaimMerkleRewardsParams, { dispatch, getState }) => {
+    async (
+        { account, flowKey, rewards }: ClaimMerkleRewardsParams,
+        { dispatch, getState, extra },
+    ) => {
         const device = selectSelectedDevice(getState());
         const addressDisplayType = selectAddressDisplayType(getState());
 
@@ -209,7 +214,7 @@ export const claimMerkleRewardsThunk = createThunk(
 
         try {
             const sender = asEvmAddress(account.descriptor);
-            const claimResult = Calldata.evm.distributor.claim(
+            const claimResult = Calldata.evm.distributor.claim.encode(
                 {
                     users: rewards.map(() => sender),
                     tokens: rewards.map(reward => asEvmAddress(reward.token.address)),
@@ -259,6 +264,16 @@ export const claimMerkleRewardsThunk = createThunk(
                 }),
             );
 
+            asTypedDesktopAnalytics(extra.services.analytics).report({
+                type: events.yieldClaimEvent.name,
+                payload: {
+                    type: 'simulation-modal',
+                    action: userAcceptedTxSimulation?.value === false ? 'cancel' : 'continue',
+                    networkSymbol: account.symbol,
+                    rewardCount: rewards.length,
+                },
+            });
+
             if (userAcceptedTxSimulation?.value === false) {
                 return;
             }
@@ -298,7 +313,7 @@ export const claimMerkleRewardsThunk = createThunk(
                         to: unsignedClaimTx.to,
                         chainId: unsignedClaimTx.chainId,
                         value: '0x0',
-                        nonce: unsignedClaimTx.nonce,
+                        nonce: numberToHex(unsignedClaimTx.nonce),
                         data: sanitizeHex(unsignedClaimTx.data),
                         gasLimit: parsedSelectedFee.gasLimit,
                         ...(parsedSelectedFee.type === 'eip1559'
@@ -312,6 +327,8 @@ export const claimMerkleRewardsThunk = createThunk(
                     },
                     chunkify: addressDisplayType === AddressDisplayOptions.CHUNKED,
                 });
+
+                userAcceptedTxSimulation?.resolve();
 
                 if (!signingResponse.success) {
                     dispatch(closeModal());
@@ -335,8 +352,13 @@ export const claimMerkleRewardsThunk = createThunk(
                     return null;
                 }
 
+                const isMevProtectionEnabled = selectIsMevProtectionEnabled(getState());
                 const pushResponse = await TrezorConnect.pushTransaction({
-                    tx: signingResponse.payload.serializedTx,
+                    tx: getMevProtectedTxData(
+                        account.symbol,
+                        signingResponse.payload.serializedTx,
+                        isMevProtectionEnabled,
+                    ),
                     coin: account.symbol,
                     identity: getAccountIdentity(account),
                 });
@@ -386,6 +408,16 @@ export const claimMerkleRewardsThunk = createThunk(
             }
         } catch (error) {
             console.error(error);
+            asTypedDesktopAnalytics(extra.services.analytics).report({
+                type: events.yieldClaimEvent.name,
+                payload: {
+                    type: 'error',
+                    action: 'continue',
+                    networkSymbol: account.symbol,
+                    rewardCount: rewards.length,
+                    errorMessage: 'submit-failed',
+                },
+            });
         } finally {
             dispatch(stablecoinYieldActions.finishSubmittingAction({ flowType: 'claim', flowKey }));
         }

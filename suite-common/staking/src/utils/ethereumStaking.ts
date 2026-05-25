@@ -31,7 +31,7 @@ import TrezorConnect, {
 } from '@trezor/connect';
 import { type BlockchainEstimatedFee } from '@trezor/connect-common/src/types/api/blockchainEstimateFee';
 import { type Ok, type PartialRecord } from '@trezor/type-utils';
-import { BigNumber } from '@trezor/utils';
+import { BigNumber, throwError } from '@trezor/utils';
 
 import {
     ETH_NETWORK_ADDRESSES,
@@ -68,7 +68,10 @@ const verifyCalldata = (label: string, result: { isValid: boolean; issues: Verif
 };
 
 export const buildStakeData = () => {
-    const data = encodeCalldata('stake', Calldata.evm.everstake.stake({ source: STAKE_SOURCE }));
+    const data = encodeCalldata(
+        'stake',
+        Calldata.evm.everstake.stake.encode({ source: STAKE_SOURCE }),
+    );
     verifyCalldata('stake', Verifier.evm.everstake.stake(data, { source: STAKE_SOURCE_BIGINT }));
 
     return data;
@@ -77,7 +80,7 @@ export const buildStakeData = () => {
 export const buildUnstakeData = (amountWei: string, interchanges: number) => {
     const data = encodeCalldata(
         'unstake',
-        Calldata.evm.everstake.unstake({
+        Calldata.evm.everstake.unstake.encode({
             value: new BigNumber(amountWei),
             allowedInterchangeNum: new BigNumber(interchanges),
             source: STAKE_SOURCE,
@@ -98,7 +101,7 @@ export const buildUnstakeData = (amountWei: string, interchanges: number) => {
 export const buildClaimWithdrawRequestData = () => {
     const data = encodeCalldata(
         'claimWithdrawRequest',
-        Calldata.evm.everstake.claimWithdrawRequest({}),
+        Calldata.evm.everstake.claimWithdrawRequest.encode({}),
     );
     verifyCalldata('claimWithdrawRequest', Verifier.evm.everstake.claimWithdrawRequest(data, {}));
 
@@ -173,11 +176,9 @@ export const stake = async ({
     }
 
     try {
-        const ethAddresses = getEthNetworkAddresses(symbol);
-        if (!ethAddresses) {
-            throw new Error(`Unsupported staking network symbol: ${symbol}`);
-        }
-        const { addressContractPool } = ethAddresses;
+        const { addressContractPool } =
+            getEthNetworkAddresses(symbol) ??
+            throwError(`Unsupported staking network symbol: ${symbol}`);
         const data = buildStakeData();
 
         // gasLimit calculation based on address, amount and data size
@@ -249,11 +250,9 @@ export const unstake = async ({
         }
 
         const amountWei = toWei(amount, 'ether');
-        const ethAddresses = getEthNetworkAddresses(symbol);
-        if (!ethAddresses) {
-            throw new Error(`Unsupported staking network symbol: ${symbol}`);
-        }
-        const { addressContractPool } = ethAddresses;
+        const { addressContractPool } =
+            getEthNetworkAddresses(symbol) ??
+            throwError(`Unsupported staking network symbol: ${symbol}`);
         const data = buildUnstakeData(amountWei, interchanges);
 
         // gasLimit calculation based on address, amount and data size
@@ -316,11 +315,9 @@ export const claimWithdrawRequest = async ({
         }
         if (!readyForClaim.eq(requested)) throw new Error('Unstake request not filled yet');
 
-        const ethAddresses = getEthNetworkAddresses(symbol);
-        if (!ethAddresses) {
-            throw new Error(`Unsupported staking network symbol: ${symbol}`);
-        }
-        const { addressContractAccounting } = ethAddresses;
+        const { addressContractAccounting } =
+            getEthNetworkAddresses(symbol) ??
+            throwError(`Unsupported staking network symbol: ${symbol}`);
         const data = buildClaimWithdrawRequestData();
 
         // gasLimit calculation based on address, amount and data size
@@ -631,7 +628,6 @@ export const getDaysToAddToPool = (
     validatorsQueue?: EthValidatorsQueue | null,
 ) => {
     if (
-        !validatorsQueue ||
         validatorsQueue?.addingDelay === undefined ||
         validatorsQueue?.activationTime === undefined
     ) {
@@ -673,7 +669,6 @@ export const getDaysToUnstake = (
 
 export const getDaysToAddToPoolInitial = (validatorsQueue?: EthValidatorsQueue | null) => {
     if (
-        !validatorsQueue ||
         validatorsQueue?.addingDelay === undefined ||
         validatorsQueue?.activationTime === undefined
     ) {

@@ -1,8 +1,14 @@
 import { type ReactNode } from 'react';
 
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
-import { isAccountTabRoute, resolveEffectiveBackgroundRouteName, selectRoute } from '@suite/router';
+import {
+    type SuiteRouterHistoryDep,
+    isAccountTabRoute,
+    resolveEffectiveBackgroundRouteName,
+    selectRoute,
+} from '@suite/router';
+import { useServices } from '@suite-common/dependency-injection';
 import { selectAccounts } from '@suite-common/wallet-core';
 import { Row } from '@trezor/components';
 import { spacingsPx, zIndices } from '@trezor/theme';
@@ -10,7 +16,6 @@ import { spacingsPx, zIndices } from '@trezor/theme';
 import { HEADER_HEIGHT } from 'src/constants/suite/layout';
 import { useSelector } from 'src/hooks/suite';
 import { selectSelectedAccountKey } from 'src/reducers/wallet/selectedAccountReducer';
-import { useSuiteServices } from 'src/support/SuiteServicesProvider';
 
 import { GlobalSendReceive } from './GlobalSendReceive/GlobalSendReceive';
 import { HeaderActions } from './HeaderActions';
@@ -18,7 +23,7 @@ import { HeaderDropdown } from './HeaderDropdown';
 import { PageName } from './PageNames/PageName';
 import { TradeActions } from './TradeActions';
 
-const Container = styled.div`
+const Container = styled.div<{ $expandable?: boolean }>`
     position: sticky;
     top: 0;
     display: flex;
@@ -26,13 +31,18 @@ const Container = styled.div`
     justify-content: space-between;
     width: 100%;
     gap: ${spacingsPx.xs};
-    height: ${HEADER_HEIGHT};
     min-height: ${HEADER_HEIGHT};
     padding: ${spacingsPx.xs} ${spacingsPx.md};
     background: ${({ theme }) => theme.surfaceFillPage};
     border-bottom: 1px solid ${({ theme }) => theme.borderNeutral};
-    overflow: hidden;
     z-index: ${zIndices.pageHeader};
+
+    ${({ $expandable }) =>
+        !$expandable &&
+        css`
+            height: ${HEADER_HEIGHT};
+            overflow: hidden;
+        `}
 `;
 
 const PageHeaderIndex = () => {
@@ -51,12 +61,13 @@ const PageHeaderIndex = () => {
 
 interface PageHeaderProps {
     children?: ReactNode;
+    expandable?: boolean;
 }
 
-export const PageHeader = ({ children }: PageHeaderProps) => {
+export const PageHeader = ({ children, expandable }: PageHeaderProps) => {
     const selectedAccountKey = useSelector(selectSelectedAccountKey);
     const route = useSelector(selectRoute);
-    const { suiteRouterHistory } = useSuiteServices();
+    const { suiteRouterHistory } = useServices<SuiteRouterHistoryDep>();
     const effectiveRouteName = resolveEffectiveBackgroundRouteName(
         route,
         suiteRouterHistory.getLocation(),
@@ -67,7 +78,7 @@ export const PageHeader = ({ children }: PageHeaderProps) => {
     const isTradeSection = !!effectiveRouteName?.includes('wallet-trading');
 
     if (isTradeSection || children != null) {
-        return <Container>{children}</Container>;
+        return <Container $expandable={expandable}>{children}</Container>;
     }
 
     return (

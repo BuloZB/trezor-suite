@@ -3,6 +3,9 @@
     "compilerOptions": { "outDir": "libDev" },
     "include": [".", "**/*.json"],
     "references": [
+        {
+            "path": "../../suite-common/dependency-injection"
+        },
         { "path": "../../suite-common/device" },
         {
             "path": "../../suite-common/earn-stablecoin-api"
@@ -56,11 +59,9 @@
         { "path": "../helpers" },
         { "path": "../icons" },
         { "path": "../intl" },
-        { "path": "../labeling" },
         { "path": "../link" },
         { "path": "../message-system" },
         { "path": "../navigation" },
-        { "path": "../services" },
         { "path": "../settings" },
         { "path": "../staking" },
         { "path": "../test-utils" },

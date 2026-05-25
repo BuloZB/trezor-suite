@@ -1,9 +1,8 @@
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 
 import { type TradingType } from '@suite-common/trading';
 import { type Account } from '@suite-common/wallet-types';
-import { Translation } from '@suite-native/intl';
 import { BottomSheetSectionList } from '@suite-native/trading-atoms';
 import {
     type CombinedSelectorsRootState,
@@ -14,14 +13,16 @@ import { type MyAssetRow, type TradeableAsset } from '@suite-native/trading-type
 import { MyAssetListEmptyComponent } from './MyAssetListEmptyComponent';
 import { MyAssetListItem, type MyAssetListItemProps } from './MyAssetListItem';
 import { MyAssetListSectionHeader } from './MyAssetListSectionHeader';
-import { SimpleSheetHeader } from '../SimpleSheetHeader';
+import { MyAssetSheetHeader } from './MyAssetSheetHeader';
 import { MyAssetsDisabledListItem } from './MyAssetsDisabledListItem';
+import { useMyAssetsFilteredData } from '../../../hooks/general/useMyAssetsFilteredData';
 
 export type MyAssetSheetProps = {
     tradingType: TradingType;
     isVisible: boolean;
     onClose: (shouldHideKeyboard?: boolean) => void;
     onAssetSelect: MyAssetListItemProps['onPress'];
+    testID?: string;
 };
 
 const keyExtractor = (asset: MyAssetRow, sectionData: Account) =>
@@ -39,7 +40,7 @@ const renderItem = (
     );
 
 export const MyAssetSheet = memo(
-    ({ tradingType, isVisible, onClose, onAssetSelect }: MyAssetSheetProps) => {
+    ({ tradingType, isVisible, onClose, onAssetSelect, testID }: MyAssetSheetProps) => {
         const onAssetSelectCallback = (asset: TradeableAsset, account: Account) => {
             onAssetSelect(asset, account);
             onClose(false);
@@ -49,11 +50,27 @@ export const MyAssetSheet = memo(
             selectAccountsWithTokensToSellSectionCondensedListByTradingType(state, tradingType),
         );
 
-        const renderHandle = () => (
-            <SimpleSheetHeader
-                onClose={onClose}
-                title={<Translation id="moduleTrading.myAssetSheet.title" />}
-            />
+        const {
+            filteredSections,
+            setFilterValue,
+            setFilterSymbol,
+            availableNetworks,
+            filterValue,
+        } = useMyAssetsFilteredData(myAssets);
+
+        const headerTestID = testID ? `${testID}/header` : undefined;
+
+        const renderHandle = useCallback(
+            () => (
+                <MyAssetSheetHeader
+                    onClose={onClose}
+                    onFilterChange={setFilterValue}
+                    onSelectedNetworkFilter={setFilterSymbol}
+                    availableNetworks={availableNetworks}
+                    testID={headerTestID}
+                />
+            ),
+            [onClose, setFilterValue, setFilterSymbol, availableNetworks, headerTestID],
         );
 
         return (
@@ -62,11 +79,11 @@ export const MyAssetSheet = memo(
                 onClose={onClose}
                 ListEmptyComponent={<MyAssetListEmptyComponent />}
                 handleComponent={renderHandle}
-                data={myAssets}
+                data={filteredSections}
                 keyExtractor={keyExtractor}
                 renderItem={(asset, config) => renderItem(asset, config, onAssetSelectCallback)}
                 renderSectionHeader={(_label, config) => {
-                    const sectionIndex = myAssets.findIndex(
+                    const sectionIndex = filteredSections.findIndex(
                         section => section.sectionData.key === config.sectionData.key,
                     );
 
@@ -77,6 +94,7 @@ export const MyAssetSheet = memo(
                         />
                     );
                 }}
+                flashListKey={filterValue}
             />
         );
     },

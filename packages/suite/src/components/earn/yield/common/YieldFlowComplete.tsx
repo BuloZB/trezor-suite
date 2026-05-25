@@ -1,20 +1,22 @@
 import { type ReactNode } from 'react';
 
-import { events } from '@suite/analytics';
+import { type DesktopAnalyticsDep, events } from '@suite/analytics';
 import { Translation, useTranslation } from '@suite/intl';
 import { goto } from '@suite/router';
+import { useServices } from '@suite-common/dependency-injection';
 import { type Rating, buildUserFeedbackData, sendFeedbackAction } from '@suite-common/feedback';
 import { Button, Card, Column, Divider, Icon, IconCircle, Row, Text } from '@trezor/components';
 import { FeedbackCard } from '@trezor/product-components';
 
 import { useDispatch } from 'src/hooks/suite';
-import { useAnalytics } from 'src/support/useAnalytics';
+import { useLayoutSize } from 'src/hooks/suite/useLayoutSize';
 
 type YieldFlowCompleteProps = {
     type: 'deposit' | 'withdraw' | 'claim';
     heading: ReactNode;
     description: ReactNode;
     showFeedback?: boolean;
+    vaultId?: string;
     children: ReactNode;
 };
 
@@ -23,11 +25,13 @@ export const YieldFlowComplete = ({
     heading,
     description,
     showFeedback,
+    vaultId,
     children,
 }: YieldFlowCompleteProps) => {
     const dispatch = useDispatch();
-    const analytics = useAnalytics();
+    const { analytics } = useServices<DesktopAnalyticsDep>();
     const { translationString } = useTranslation();
+    const { isBelowMobile } = useLayoutSize();
 
     const handleBackToOverview = () => {
         analytics.report({
@@ -36,6 +40,7 @@ export const YieldFlowComplete = ({
                 action: 'continue',
                 from: `${type}-form`,
                 to: 'earn-dashboard',
+                vaultId,
             },
         });
 
@@ -43,6 +48,15 @@ export const YieldFlowComplete = ({
     };
 
     const handleFeedbackSubmit = (rating: Rating, description: string) => {
+        analytics.report({
+            type: events.yieldInteractionEvent.name,
+            payload: {
+                element: 'feedback-submit',
+                value: rating,
+                vaultId,
+            },
+        });
+
         dispatch(
             sendFeedbackAction({
                 type: 'SUGGESTION',
@@ -59,7 +73,7 @@ export const YieldFlowComplete = ({
 
     return (
         <Column gap={16}>
-            <IconCircle name="check" intent="brand" size={96} />
+            <IconCircle name="check" intent="brand" size={isBelowMobile ? 64 : 96} />
 
             <Column gap={4}>
                 <Text typographyStyle="headline-md">{heading}</Text>

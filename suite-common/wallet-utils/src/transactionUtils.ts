@@ -1,6 +1,7 @@
 import { addDays, startOfMonth } from 'date-fns';
 import { fromWei, toWei } from 'web3-utils';
 
+import { Calldata } from '@suite-common/calldata';
 import { type SignOperator } from '@suite-common/suite-types';
 import { type NetworkType, getNetworkType } from '@suite-common/wallet-config';
 import {
@@ -32,7 +33,7 @@ import { BigNumber, arrayPartition, typedObjectKeys } from '@trezor/utils';
 
 import { convertAmountSubunitsToUnits, formatNetworkAmount } from './amountUtils';
 import { isCardanoStakingTx } from './cardanoStakingUtils';
-import { getEvmApprovalTxData, getEvmTransactionTextSignature } from './ethUtils';
+import { getEvmTransactionTextSignature } from './ethUtils';
 import { isStakeTypeTx } from './ethereumStakingUtils';
 import { toFiatCurrency } from './fiatConverterUtils';
 import { getFiatRateKey, roundTimestampToNearestPastHour } from './fiatRatesUtils';
@@ -336,7 +337,7 @@ export const sumTransactionsFiat = (
 };
 
 export const findTransaction = (txid: string, transactions: WalletAccountTransaction[]) =>
-    transactions.find(t => t && t.txid === txid);
+    transactions.find(t => t?.txid === txid);
 
 export const findTransactions = (
     txid: string,
@@ -726,27 +727,40 @@ const getEthereumRbfParams = (
         }
         case 'approve':
         case 'revoke': {
-            const approvalData = getEvmApprovalTxData(data);
+            const approvalData = Calldata.evm.erc20.approve.decode(data);
+            const amount = approvalData?.amount.toString() ?? '0';
 
             const token = account.tokens?.find(t => t.contract === toAddress);
 
             output = {
                 address: toAddress,
                 token: toAddress, // approval is send to token address
-                amount: approvalData?.amount || '0',
-                formattedAmount: convertAmountSubunitsToUnits(
-                    approvalData?.amount || '0',
-                    token?.decimals || 0,
-                ),
+                amount,
+                formattedAmount: convertAmountSubunitsToUnits(amount, token?.decimals || 0),
             };
             break;
         }
-        default:
-            output = {
-                address: toAddress,
-                amount: vout[0].value!,
-                formattedAmount: formatNetworkAmount(vout[0].value!, account.symbol),
-            };
+        default: {
+            // Token-moving contract calls report value=0 in vout; pull the amount from tokens[0].
+            const tokenTransfer = tx.tokens?.[0];
+            if (tokenTransfer) {
+                output = {
+                    address: toAddress,
+                    token: tokenTransfer.contract,
+                    amount: tokenTransfer.amount,
+                    formattedAmount: convertAmountSubunitsToUnits(
+                        tokenTransfer.amount,
+                        tokenTransfer.decimals,
+                    ),
+                };
+            } else {
+                output = {
+                    address: toAddress,
+                    amount: vout[0].value!,
+                    formattedAmount: formatNetworkAmount(vout[0].value!, account.symbol),
+                };
+            }
+        }
     }
 
     return {

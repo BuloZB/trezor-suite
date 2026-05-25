@@ -32,6 +32,7 @@ inputs:
       - crypto-utils
       - device-utils
       - device-authenticity
+      - coins-solana
       - connect
       - connect-web
       - connect-webextension
@@ -55,9 +56,15 @@ runs:
         node-version-file: ".nvmrc"
         cache: yarn
 
+    - name: Install Socket Firewall
+      uses: SocketDev/action@2d3f25590c6ed6ba11a9a14c064d962a3a04698f # v1.3.1
+      with:
+        mode: firewall-free
+        job-summary: errors
+
     - name: Install dependencies
       shell: bash
-      run: yarn install --immutable
+      run: sfw --silent yarn install --immutable
 
     - name: Check version
       shell: bash
@@ -66,6 +73,10 @@ runs:
     - name: Publish to NPM
       shell: bash
       run: |
-        cd ./packages/${{ inputs.packageName }}
+        if [[ "${{ inputs.packageName }}" == coins-* ]]; then
+          cd ./coins/${{ inputs.packageName }}
+        else
+          cd ./packages/${{ inputs.packageName }}
+        fi
         yarn build:lib
         yarn npm publish --tag ${{ inputs.deploymentType }} --access public

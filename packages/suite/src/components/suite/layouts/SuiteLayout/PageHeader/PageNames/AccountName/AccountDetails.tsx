@@ -4,6 +4,7 @@ import { motion, useAnimation } from 'framer-motion';
 import styled from 'styled-components';
 
 import { useTranslation } from '@suite/intl';
+import { Labeling } from '@suite/labeling';
 import { selectIsLegacyLabelingVisible, selectLabelingDataForAccount } from '@suite/metadata';
 import { selectIsSuiteSyncEnabled, selectSuiteSyncAccountLabel } from '@suite-common/suite-sync';
 import { useDisplayBaseCurrency } from '@suite-common/wallet-core';
@@ -16,7 +17,6 @@ import { AccountTypeBadge } from 'src/components/suite/AccountTypeBadge';
 import { AmountUnitSwitchWrapper } from 'src/components/suite/AmountUnitSwitchWrapper';
 import { BaseCurrencyValue } from 'src/components/suite/BaseCurrencyValue';
 import { FormattedCryptoAmount } from 'src/components/suite/FormattedCryptoAmount';
-import { Labeling } from 'src/components/suite/labeling';
 import { useDefaultAccountLabel, useSelector } from 'src/hooks/suite';
 import { useIsContentBelowBreakpoint } from 'src/support/suite/ContentFlex';
 

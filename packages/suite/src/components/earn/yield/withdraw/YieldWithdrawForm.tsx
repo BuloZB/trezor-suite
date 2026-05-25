@@ -1,12 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
-import { events } from '@suite/analytics';
-import { Translation, useTranslation } from '@suite/intl';
+import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { Translation } from '@suite/intl';
+import { useServices } from '@suite-common/dependency-injection';
 import { splitYieldPendingTransaction } from '@suite-common/wallet-core';
 import { Banner, Column, Text } from '@trezor/components';
 
 import { FormattedCryptoAmount } from 'src/components/suite/FormattedCryptoAmount';
-import { useAnalytics } from 'src/support/useAnalytics';
 
 import { useYieldWithdrawContext } from './useYieldWithdrawContext';
 import { YieldActionStep } from '../common/YieldActionStep';
@@ -14,10 +14,10 @@ import { YieldActionStepWarning } from '../common/YieldActionStepWarning';
 import { YieldFlowCompleteWithdraw } from '../common/YieldFlowCompleteWithdraw';
 
 export const YieldWithdrawForm = () => {
-    const analytics = useAnalytics();
-    const { translationString } = useTranslation();
+    const { analytics } = useServices<DesktopAnalyticsDep>();
 
     const {
+        vault,
         token,
         receiptToken,
         maxAmount,
@@ -44,37 +44,6 @@ export const YieldWithdrawForm = () => {
         'withdraw',
     );
 
-    // trigger success analytics event
-    useEffect(() => {
-        if (flow.currentStep === 'complete') {
-            analytics.report({
-                type: events.yieldWithdrawEvent.name,
-                payload: {
-                    type: 'success',
-                    action: 'continue',
-                    networkSymbol: token.networkSymbol,
-                    contractAddress: token.contractAddress ?? undefined,
-                },
-            });
-        }
-    }, [flow.currentStep, analytics, token.networkSymbol, token.contractAddress]);
-
-    // trigger error analytics event
-    useEffect(() => {
-        if (errorMessage) {
-            analytics.report({
-                type: events.yieldWithdrawEvent.name,
-                payload: {
-                    type: 'error',
-                    action: 'continue',
-                    networkSymbol: token.networkSymbol,
-                    contractAddress: token.contractAddress ?? undefined,
-                    errorMessage: translationString(errorMessage),
-                },
-            });
-        }
-    }, [analytics, errorMessage, token.networkSymbol, token.contractAddress, translationString]);
-
     const handleOnWithdraw = () => {
         analytics.report({
             type: events.yieldWithdrawEvent.name,
@@ -82,11 +51,62 @@ export const YieldWithdrawForm = () => {
                 type: 'withdraw',
                 action: 'continue',
                 networkSymbol: token.networkSymbol,
-                contractAddress: token.contractAddress ?? undefined,
+                vaultId: vault.id,
             },
         });
 
         submitAction();
+    };
+
+    const handleToggleWithdrawInputUnit = () => {
+        const nextUnit = withdrawInputUnit === 'shares' ? 'asset' : 'shares';
+
+        analytics.report({
+            type: events.yieldInteractionEvent.name,
+            payload: {
+                element: 'withdraw-unit-toggle',
+                value: nextUnit,
+                networkSymbol: token.networkSymbol,
+                vaultId: vault.id,
+            },
+        });
+
+        toggleWithdrawInputUnit();
+    };
+
+    // Fire once per form mount when the user first hits the insufficient-funds banner
+    // (no actionable button on this banner, so impression is the only signal available).
+    const hasFiredInsufficientFundsRef = useRef(false);
+    const showsInsufficientFunds = !isAmountInvalidDecimals && isAmountTooHigh;
+
+    useEffect(() => {
+        if (!showsInsufficientFunds || hasFiredInsufficientFundsRef.current) {
+            return;
+        }
+        hasFiredInsufficientFundsRef.current = true;
+
+        analytics.report({
+            type: events.yieldInteractionEvent.name,
+            payload: {
+                element: 'insufficient-funds-banner',
+                networkSymbol: token.networkSymbol,
+                vaultId: vault.id,
+            },
+        });
+    }, [showsInsufficientFunds, analytics, token.networkSymbol, vault.id]);
+
+    const handleMaxClick = () => {
+        analytics.report({
+            type: events.yieldInteractionEvent.name,
+            payload: {
+                element: 'withdraw-max',
+                value: withdrawInputUnit,
+                networkSymbol: token.networkSymbol,
+                vaultId: vault.id,
+            },
+        });
+
+        setAmountInput(maxAmount);
     };
 
     return (
@@ -98,6 +118,7 @@ export const YieldWithdrawForm = () => {
                             token: withdrawInputUnit === 'shares' ? receiptToken : token,
                             amount: completedAmount,
                         }}
+                        vaultId={vault.id}
                     />
                 ) : (
                     <>
@@ -139,11 +160,11 @@ export const YieldWithdrawForm = () => {
                                 canToggleWithdrawUnit
                                     ? {
                                           otherTokenSymbol: otherUnitTokenSymbol,
-                                          onClick: toggleWithdrawInputUnit,
+                                          onClick: handleToggleWithdrawInputUnit,
                                       }
                                     : undefined
                             }
-                            onMaxClick={() => setAmountInput(maxAmount)}
+                            onMaxClick={handleMaxClick}
                             onSubmit={handleOnWithdraw}
                             onPendingTxClick={openPendingTransaction}
                         />

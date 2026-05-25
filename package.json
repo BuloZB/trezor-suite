@@ -163,21 +163,66 @@
         "version-bump-prompt": "^6.1.0"
     },
     "dependenciesMeta": {
+        "@bufbuild/buf": {
+            "built": true
+        },
+        "@parcel/watcher": {
+            "built": true
+        },
+        "@playwright/browser-chromium": {
+            "built": true
+        },
+        "@playwright/browser-firefox": {
+            "built": true
+        },
+        "@playwright/browser-webkit": {
+            "built": true
+        },
         "@shopify/react-native-skia": {
+            "built": true
+        },
+        "@swc/core": {
+            "built": true
+        },
+        "bcrypto": {
             "built": true
         },
         "better-sqlite3": {
             "built": true
         },
-        "core-js-pure": {
-            "built": false
+        "blake-hash": {
+            "built": true
+        },
+        "detox": {
+            "built": true
         },
         "electron": {
             "built": true
         },
+        "esbuild": {
+            "built": true
+        },
+        "msgpackr-extract": {
+            "built": true
+        },
+        "nx": {
+            "built": true
+        },
+        "sharp": {
+            "built": true
+        },
         "trezor-suite": {
+            "built": true
+        },
+        "ttf2woff2": {
+            "built": true
+        },
+        "unrs-resolver": {
+            "built": true
+        },
+        "usb": {
             "built": true
         }
     },
-    "packageManager": "yarn@4.12.0"
+    "packageManager": "yarn@4.14.1"
 }

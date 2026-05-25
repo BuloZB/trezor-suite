@@ -4,6 +4,8 @@ import { asAmountSubunit } from '@suite-common/wallet-utils';
 import TrezorConnect from '@trezor/connect';
 import { BigNumber } from '@trezor/utils';
 
+const ALLOWANCE_FETCH_TIMEOUT_MS = 15_000;
+
 type FetchAllowanceParams = {
     owner: string;
     spender: string;
@@ -17,18 +19,26 @@ export const fetchAllowance = async ({
     tokenContractAddress,
     coin,
 }: FetchAllowanceParams) => {
-    const allowanceCalldata = Calldata.evm.erc20.allowance({ owner, spender });
+    const allowanceCalldata = Calldata.evm.erc20.allowance.encode({ owner, spender });
 
     if (!allowanceCalldata.data) {
         throw new Error('Allowance calldata could not be built.');
     }
 
-    const response = await TrezorConnect.blockchainEvmRpcCall({
-        coin,
-        from: owner,
-        to: tokenContractAddress,
-        data: allowanceCalldata.data,
-    });
+    const response = await Promise.race([
+        TrezorConnect.blockchainEvmRpcCall({
+            coin,
+            from: owner,
+            to: tokenContractAddress,
+            data: allowanceCalldata.data,
+        }),
+        new Promise<never>((_, reject) =>
+            setTimeout(
+                () => reject(new Error('Allowance fetch timed out')),
+                ALLOWANCE_FETCH_TIMEOUT_MS,
+            ),
+        ),
+    ]);
 
     if (!response.success) {
         throw new Error(response.error.message);

@@ -1,6 +1,7 @@
 import { G } from '@mobily/ts-belt';
 import { isRejected } from '@reduxjs/toolkit';
 
+import { Calldata } from '@suite-common/calldata';
 import { selectSelectedDevice } from '@suite-common/device';
 import { type ActionsFromAsyncThunk, createThunk } from '@suite-common/redux-utils';
 import { notificationsActions } from '@suite-common/toast-notifications';
@@ -24,12 +25,13 @@ import {
     formatNetworkAmount,
     getAccountDecimals,
     getAreSatoshisUsed,
-    getEvmApprovalTxData,
+    getEvmTransactionTextSignature,
     getMevProtectedTxData,
     getPendingAccount,
     hasNetworkFeatures,
     isCardanoTx,
-    isEvmApprovalTx,
+    isEvmApprovalTxByTextSignature,
+    isEvmYieldTxByTextSignature,
     isExchangeTradingForm,
     isMaxAllowance,
     subunitsToUnits,
@@ -357,21 +359,22 @@ export const pushSendFormTransactionThunk = createThunk<
             : '0';
 
         const areSatoshisUsed = getAreSatoshisUsed(bitcoinAmountUnit, selectedAccount);
-        const evmApprovalData = getEvmApprovalTxData(precomposedForm?.transactionData);
+        const evmApprovalData = Calldata.evm.erc20.approve.decode(precomposedForm?.transactionData);
 
         if (pushTxResponse.success) {
             const { txid } = pushTxResponse.payload;
 
             if (evmApprovalData && token) {
-                const isInfiniteApproval = isMaxAllowance(evmApprovalData.amount);
+                const amountString = evmApprovalData.amount.toString();
+                const isInfiniteApproval = isMaxAllowance(amountString);
                 const amount = subunitsToUnits({
-                    value: asAmountSubunit(new BigNumber(evmApprovalData.amount)),
+                    value: asAmountSubunit(new BigNumber(amountString)),
                     decimals: token.decimals,
                 }).toString();
 
                 dispatch(
                     notificationsActions.addToast({
-                        type: evmApprovalData.type === 'approve' ? 'tx-approved' : 'tx-revoked',
+                        type: evmApprovalData.amount === 0n ? 'tx-revoked' : 'tx-approved',
                         isInfiniteApproval,
                         formattedAmount: amount,
                         token,
@@ -538,7 +541,7 @@ export const signTransactionThunk = createThunk<
     ) => {
         const device = selectSelectedDevice(getState());
 
-        if (!device || !precomposedTransaction || precomposedTransaction.type !== 'final')
+        if (!device || precomposedTransaction?.type !== 'final')
             return rejectWithValue({
                 error: 'sign-transaction-failed',
                 message: 'Invalid input data.',
@@ -696,10 +699,12 @@ export const enhancePrecomposedTransactionThunk = createThunk<
         // Contract calldata (e.g. DEX swap) must not carry `token` on the precomposed object:
         // signing uses prepareEthereumTransaction, which would replace calldata with an ERC-20
         // transfer if `token` is set.
+        const sig = getEvmTransactionTextSignature(formValues.transactionData);
         if (
             selectedAccount.networkType === 'ethereum' &&
             formValues.transactionData &&
-            !isEvmApprovalTx(formValues.transactionData)
+            !isEvmApprovalTxByTextSignature(sig) &&
+            !isEvmYieldTxByTextSignature(sig)
         ) {
             enhancedPrecomposedTransaction = cloneObject(enhancedPrecomposedTransaction);
             delete (enhancedPrecomposedTransaction as { token?: unknown }).token;

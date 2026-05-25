@@ -1,18 +1,18 @@
 import { MODAL_CONTEXT_DEVICE, type MODAL_CONTEXT_NONE } from '@suite/modal';
 import { closeModalApp } from '@suite/router';
+import {
+    TurnOnSuiteSyncModals,
+    selectShowEnableSuiteSyncModal,
+    updateShowEnableSuiteSyncModal,
+} from '@suite/suite-sync';
 import { selectSelectedDevice } from '@suite-common/device';
 import { UI_REQUEST } from '@trezor/connect';
 
-import {
-    selectShowEnableSuiteSyncModal,
-    updateShowEnableSuiteSyncModal,
-} from 'src/actions/suiteSync/suiteSyncSlice';
 import { ThpGlobalModalManager } from 'src/components/connection/thp/ThpGlobalModalManager';
 import { useDispatch, usePreferredModal, useSelector } from 'src/hooks/suite';
 import type { AppState, ForegroundAppRoute } from 'src/types/suite';
 import { SwitchDevice } from 'src/views/suite/SwitchDevice/SwitchDevice';
 
-import { TurnOnSuiteSyncModals } from '../../labeling/TurnOnSuiteSync/TurnOnSuiteSyncModals';
 import { ConfirmPassphraseBeforeAction } from '../../modals/ReduxModal/DeviceContextModal/ConfirmPassphraseBeforeAction';
 import { PassphraseModal } from '../../modals/ReduxModal/DeviceContextModal/PassphraseModal';
 import { PassphraseOnDeviceModal } from '../../modals/ReduxModal/DeviceContextModal/PassphraseOnDeviceModal';

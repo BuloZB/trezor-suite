@@ -1,5 +1,6 @@
-import { events } from '@suite/analytics';
+import { type DesktopAnalyticsDep, events } from '@suite/analytics';
 import { Translation } from '@suite/intl';
+import { useServices } from '@suite-common/dependency-injection';
 import { RewardDtoYieldSource } from '@suite-common/earn-stablecoin-api';
 import {
     EarnFlow,
@@ -7,17 +8,17 @@ import {
     type EarnProvider,
     type EarnYieldContext,
 } from '@suite-common/suite-types/src/staking';
+import { type YieldFlowType } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
 import { getApyPercent, isStakingNetworkType } from '@suite-common/wallet-utils';
 import { Divider } from '@trezor/components';
-
-import { useAnalytics } from 'src/support/useAnalytics';
 
 import { EarnInANutshellModalLayout } from './components/EarnInANutshellModalLayout';
 import {
     type EarnInANutshellProcess,
     EarnInANutshellProcesses,
 } from './components/EarnInANutshellProcesses';
+import { YieldClaimingInfo } from './components/YieldClaimingInfo';
 import { YieldEarnInANutshellHighlights } from './components/YieldEarnInANutshellHighlights';
 import { YieldSupplyingInfo } from './components/YieldSupplyingInfo';
 import { YieldWithdrawingInfo } from './components/YieldWithdrawingInfo';
@@ -38,7 +39,7 @@ export const YieldEarnInANutshellModal = ({
     actionType,
     yieldContext,
 }: YieldEarnInANutshellModalProps) => {
-    const analytics = useAnalytics();
+    const { analytics } = useServices<DesktopAnalyticsDep>();
 
     const { handleAction, onCancelClick, vault } = useEarnInANutshell({
         flow: EarnFlow.Yield,
@@ -61,18 +62,50 @@ export const YieldEarnInANutshellModal = ({
 
     const processes: EarnInANutshellProcess[] = [
         {
+            processType: 'deposit',
             heading: <Translation id="TR_EARN_SUPPLYING_PROCESS" />,
-            badge: <Translation id="TR_TX_FEE" />,
+            badge: <Translation id="TR_TX_FEE_COUNT" values={{ count: 2 }} />,
             content: (
-                <YieldSupplyingInfo apy={yieldApy} vault={vault} networkSymbol={account.symbol} />
+                <YieldSupplyingInfo
+                    apy={yieldApy}
+                    vault={vault}
+                    networkSymbol={account.symbol}
+                    supplySymbol={supplySymbol}
+                    vaultSymbol={vaultSymbol}
+                />
             ),
         },
         {
+            processType: 'withdraw',
             heading: <Translation id="TR_EARN_WITHDRAWING_PROCESS" />,
-            badge: <Translation id="TR_TX_FEE" />,
+            badge: <Translation id="TR_TX_FEE_COUNT" values={{ count: 1 }} />,
             content: <YieldWithdrawingInfo supplySymbol={supplySymbol} />,
         },
+        ...(rewardsSymbols !== undefined && rewardsSymbols.length > 0
+            ? [
+                  {
+                      processType: 'claim' as const,
+                      heading: <Translation id="TR_EARN_CLAIMING_PROCESS" />,
+                      badge: <Translation id="TR_TX_FEE_COUNT" values={{ count: 1 }} />,
+                      content: <YieldClaimingInfo rewardsSymbols={rewardsSymbols} />,
+                  },
+              ]
+            : []),
     ];
+
+    const handleProcessToggle = (processType: YieldFlowType, isOpen: boolean) => {
+        if (!isOpen) return;
+
+        analytics.report({
+            type: events.yieldInteractionEvent.name,
+            payload: {
+                element: 'in-a-nutshell-process-tab',
+                value: processType,
+                networkSymbol: account.symbol,
+                vaultId: vault?.id,
+            },
+        });
+    };
 
     const handleOnAction = () => {
         analytics.report({
@@ -82,7 +115,7 @@ export const YieldEarnInANutshellModal = ({
                 from: 'deposit-in-a-nutshell-modal',
                 to: 'deposit-morpho-modal',
                 networkSymbol: account.symbol,
-                contractAddress: vault?.token.address,
+                vaultId: vault?.id,
             },
         });
 
@@ -97,7 +130,7 @@ export const YieldEarnInANutshellModal = ({
                 from: 'deposit-in-a-nutshell-modal',
                 to: 'deposit-in-a-nutshell-modal',
                 networkSymbol: account.symbol,
-                contractAddress: vault?.token.address,
+                vaultId: vault?.id,
             },
         });
 
@@ -117,7 +150,7 @@ export const YieldEarnInANutshellModal = ({
                 rewardsSymbols={rewardsSymbols}
             />
             <Divider margin={{ top: 24, bottom: 16 }} />
-            <EarnInANutshellProcesses items={processes} />
+            <EarnInANutshellProcesses items={processes} onItemToggle={handleProcessToggle} />
         </EarnInANutshellModalLayout>
     );
 };

@@ -57,10 +57,6 @@ export {
     type DiscoverAccountsProgress,
     CARDANO_DERIVATIONS,
 } from './api/discoverAccounts';
-export {
-    type GetAccountDescriptorResponse,
-    GetAccountDescriptorParams,
-} from './api/getAccountDescriptor';
 export { type FirmwareUpdateResponse } from './api/firmwareUpdate';
 export { type UpdateConnectSettings } from './api/updateConnectSettings';
 export { GetOwnershipId } from './api/getOwnershipId';
@@ -79,5 +75,6 @@ export type {
     AccountBalanceHistory as BlockchainAccountBalanceHistory,
 } from '@trezor/blockchain-link';
 
-export { ThpPairingMethod } from '@trezor/protocol';
+// direct targeted import, we need to avoid protocol barrel file (#27772)
+export { ThpPairingMethod } from '@trezor/protocol/src/protocol-thp/messages';
 export type { MessagesSchema as PROTO } from '@trezor/protobuf';

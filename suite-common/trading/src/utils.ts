@@ -239,7 +239,7 @@ export const getDefaultCountrySubdivision = (
 
 export const filterQuotesAccordingTags = <T extends TradingTradeBuySellType>(
     quotes: TradingTradeBuySellMapProps[T][],
-) => quotes.filter(q => !q.tags || !q.tags.includes('alternativeCurrency'));
+) => quotes.filter(q => !q.tags?.includes('alternativeCurrency'));
 
 // fill orderId for all, paymentId for sell and buy, quoteId for exchange
 export const addIdsToQuotes = <T extends TradingType>(
@@ -340,7 +340,7 @@ export const getTradingFormState = ({
 
             const networkData = cryptoIdToNetworkAndContractAddress(trade.cryptoCurrency);
 
-            if (!networkData || !networkData.network) {
+            if (!networkData?.network) {
                 return defaultState;
             }
 

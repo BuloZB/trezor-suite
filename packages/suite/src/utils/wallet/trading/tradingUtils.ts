@@ -1,13 +1,18 @@
 import { type ExtendedMessageDescriptor } from '@suite/intl';
 import type { TradingTradeType, TradingType } from '@suite-common/trading';
 import { type Network, type NetworkSymbol, getNetworkType } from '@suite-common/wallet-config';
-import { type PrecomposedLevels, type PrecomposedLevelsCardano } from '@suite-common/wallet-types';
+import {
+    type Output,
+    type PrecomposedLevels,
+    type PrecomposedLevelsCardano,
+    type TokenAddress,
+} from '@suite-common/wallet-types';
 import { asAmountSubunit, substituteBip43Path, subunitsToUnits } from '@suite-common/wallet-utils';
 import TrezorConnect, { type FeeLevel, type TokenInfo } from '@trezor/connect';
 import { exhaustive } from '@trezor/type-utils';
 import { BigNumber } from '@trezor/utils';
 
-import { type Route, type TrezorDevice } from 'src/types/suite';
+import { type TrezorDevice } from 'src/types/suite';
 import {
     type TradingGetAmountLabelsProps,
     type TradingGetAmountLabelsReturnProps,
@@ -197,29 +202,13 @@ export const resolveAddressAndToken = <A extends Pick<Account, 'symbol' | 'descr
     return { address: '', token: tokenContractAddress ?? null };
 };
 
-export const getTradeTypeByRoute = (
-    routeName: Route['name'] | undefined,
-): TradingType | undefined => {
-    if (routeName?.startsWith('wallet-trading-buy')) {
-        return 'buy';
-    }
-
-    if (routeName?.startsWith('wallet-trading-sell')) {
-        return 'sell';
-    }
-
-    if (routeName?.startsWith('wallet-trading-exchange')) {
-        return 'exchange';
-    }
-};
-
 interface GetTradeProviderProps {
     trade: TradingTradeType | undefined;
     providerInfo: TradingGetProvidersInfoProps;
 }
 
 export const getTradeProvider = ({ trade, providerInfo }: GetTradeProviderProps) => {
-    if (!trade || !trade.exchange) return undefined;
+    if (!trade?.exchange) return undefined;
 
     return providerInfo?.[trade.exchange];
 };
@@ -250,4 +239,13 @@ export const getFeeInUnits = ({
     }).toString();
 
     return feeInUnits;
+};
+
+export const getTradingFirstOutput = (outputs: Output[] | undefined) => {
+    const firstOutput = outputs?.[0];
+    const amount = firstOutput?.amount ?? '';
+    const token = firstOutput?.token ?? null;
+    const tokenAddress = token as TokenAddress | null;
+
+    return { amount, token, tokenAddress };
 };

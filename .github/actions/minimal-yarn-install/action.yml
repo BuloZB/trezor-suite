@@ -23,17 +23,18 @@ runs:
         restore-keys: |
           yarn-cache-folder-
 
-    - name: Modify .yarnrc.yml to disable scripts
-      shell: bash
-      run: |
-        echo -e "\nenableScripts: false" >> .yarnrc.yml
-
     # We don't need to run in hardened mode because it's enough to run hardened install only in "Setup and Cache Dependencies" step
     - name: Modify .yarnrc.yml to disable hardened mode
       shell: bash
       run: |
         echo -e "\nenableHardenedMode: false" >> .yarnrc.yml
 
+    - name: Install Socket Firewall
+      uses: SocketDev/action@2d3f25590c6ed6ba11a9a14c064d962a3a04698f # v1.3.1
+      with:
+        mode: firewall-free
+        job-summary: errors
+
     - name: Install dependencies using Yarn
       shell: bash
-      run: yarn --immutable
+      run: sfw --silent yarn --immutable

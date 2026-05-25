@@ -5,7 +5,6 @@ import { type AccountKey } from '@suite-common/wallet-types';
 import { events } from '@suite-native/analytics';
 import { getTranslation } from '@suite-native/intl';
 import { type RootStackParamList, type RootStackRoutes } from '@suite-native/navigation';
-import { useAnalytics } from '@suite-native/services';
 import {
     type TestStore,
     renderWithStoreProvider,
@@ -44,15 +43,6 @@ jest.mock('@react-navigation/native', () => ({
         }) as RouteProp<RootStackParamList, RootStackRoutes.TradingExchangePreview>,
 }));
 
-jest.mock('@suite-native/services', () => {
-    const original = jest.requireActual('@suite-native/services');
-
-    return {
-        ...original,
-        useAnalytics: jest.fn(),
-    };
-});
-
 let mockIsDeviceConnected = true;
 jest.mock('@suite-common/device', () => ({
     ...jest.requireActual('@suite-common/device'),
@@ -63,10 +53,12 @@ const mockConfirmTrade = jest.fn().mockResolvedValue(Promise.resolve());
 const mockFetchFeesAndCompose = jest.fn();
 const mockSignAndSendTransaction = jest.fn();
 const mockResolveConsent = jest.fn();
+const mockAbortConfirmTrade = jest.fn();
 let mockTxnErrorString: string | null = null;
 
 jest.mock('../../hooks/exchange/useExchangeFlow', () => ({
     useExchangeFlow: () => ({
+        abortConfirmTrade: mockAbortConfirmTrade,
         confirmTrade: mockConfirmTrade,
         fetchFeesAndCompose: mockFetchFeesAndCompose,
         signAndSendTransaction: mockSignAndSendTransaction,
@@ -135,17 +127,19 @@ describe('TradingExchangePreviewScreen', () => {
     ) => {
         const testStore = customStore ?? store;
         const reportMock = jest.fn();
+        const services = {
+            analytics: {
+                report: reportMock,
+            },
+        };
         jest.clearAllMocks();
-        (useAnalytics as jest.Mock).mockReturnValue({
-            report: reportMock,
-        });
 
         const result = renderWithStoreProvider(
             <TradingExchangePreviewScreen
                 navigation={createNavigationProps()}
                 route={createRouteProps(isApproved)}
             />,
-            { store: testStore },
+            { services, store: testStore },
         );
 
         ({ unmount } = result);
@@ -306,6 +300,29 @@ describe('TradingExchangePreviewScreen', () => {
                 action: 'visit',
             }),
         });
+    });
+
+    it('should abort confirm trade on unmount', () => {
+        const { result } = renderTradingExchangePreviewScreen();
+
+        expect(mockAbortConfirmTrade).not.toHaveBeenCalled();
+
+        result.unmount();
+        unmount = undefined;
+
+        expect(mockAbortConfirmTrade).toHaveBeenCalledTimes(1);
+    });
+
+    it('should clear trading state on unmount', () => {
+        const { result } = renderTradingExchangePreviewScreen();
+
+        expect(store.getState().wallet.trading.exchange.selectedQuote).toBeDefined();
+
+        result.unmount();
+        unmount = undefined;
+
+        expect(store.getState().wallet.trading.exchange.selectedQuote).toBeUndefined();
+        expect(store.getState().wallet.trading.sell.selectedQuote).toBeUndefined();
     });
 
     it('should report to analytics on Continue press', async () => {

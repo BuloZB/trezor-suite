@@ -2,6 +2,9 @@
     "extends": "../../tsconfig.base.json",
     "compilerOptions": { "outDir": "libDev" },
     "references": [
+        {
+            "path": "../../suite-common/dependency-injection"
+        },
         { "path": "../../suite-common/device" },
         {
             "path": "../../suite-common/formatters"
@@ -37,6 +40,7 @@
             "path": "../../suite-common/wallet-utils"
         },
         { "path": "../accounts" },
+        { "path": "../address" },
         { "path": "../alerts" },
         { "path": "../analytics" },
         { "path": "../atoms" },
@@ -52,9 +56,9 @@
         { "path": "../navigation" },
         { "path": "../qr-code" },
         { "path": "../send" },
-        { "path": "../services" },
         { "path": "../tokens" },
         { "path": "../transaction-management" },
+        { "path": "../transactions" },
         {
             "path": "../../packages/blockchain-link-types"
         },
@@ -64,7 +68,9 @@
             "path": "../../packages/styles-native"
         },
         { "path": "../../packages/theme" },
-        { "path": "../../packages/transport" },
+        {
+            "path": "../../packages/transport-common"
+        },
         { "path": "../../packages/urls" },
         { "path": "../../packages/utils" },
         { "path": "../test-utils" },

@@ -243,7 +243,7 @@ class CommonDB<TDBStructure> {
         const tx = db.transaction(store);
         if (indexName) {
             const index = tx.store.index(indexName);
-            if (filters && filters.key !== undefined) {
+            if (filters?.key !== undefined) {
                 if (filters.offset !== undefined || filters.count !== undefined) {
                     // cursor with keyrange for given accountId (covers all timestamps)
                     let cursor = await index.openCursor(
@@ -273,7 +273,7 @@ class CommonDB<TDBStructure> {
                 return index.getAll(keyRange);
             }
 
-            if (filters && filters.reverse) {
+            if (filters?.reverse) {
                 // get items in reverse order
                 let cursor = await index.openCursor(undefined, 'prev');
                 const items = [];

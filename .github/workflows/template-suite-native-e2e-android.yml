@@ -72,11 +72,15 @@ jobs:
           key: node_modules-${{ hashFiles('yarn.lock') }}
           restore-keys: node_modules-
 
+      - name: Install Socket Firewall
+        uses: SocketDev/action@2d3f25590c6ed6ba11a9a14c064d962a3a04698f # v1.3.1
+        with:
+          mode: firewall-free
+          job-summary: errors
       - name: Install Yarn dependencies
         run: |
-          echo -e "\nenableScripts: false" >> .yarnrc.yml
           echo -e "\nenableHardenedMode: false" >> .yarnrc.yml
-          yarn install
+          sfw --silent yarn install
 
       # Detox runtime may indirectly import the built config, and that would crash if message-system is not built
       - name: Sign message system config
@@ -162,8 +166,11 @@ jobs:
           LOG_DIR="suite-native/app/artifacts"
           docker cp trezor-user-env.unix:/trezor-user-env/logs/debugging.log "$LOG_DIR/trezor-user-env-debugging.log" || true
           docker cp trezor-user-env.unix:/trezor-user-env/logs/emulator_bridge.log "$LOG_DIR/tenv-emulator-bridge-debugging.log" || true
+          docker cp trezor-user-env.unix:/trezor-user-env/logs/tropic_model.log "$LOG_DIR/trezor-user-env-tropic_model.log" || true
           docker cp trezor-user-env.unix:/trezor-user-env/docker/version.txt "$LOG_DIR/trezor-user-env-version.txt" || true
           docker logs trezor-user-env-regtest > "$LOG_DIR/electrum-regtest.txt" || true
+          docker logs docker-quota-db-1 > quota-db.log 2>&1 || true
+          docker logs docker-suite-sync-1 > suite-sync.log 2>&1 || true
 
       - name: "Store test artifacts"
         if: ${{ !cancelled() }}

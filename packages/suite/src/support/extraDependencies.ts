@@ -15,8 +15,6 @@ import {
     createMetadataMigrationCompositionRoot,
 } from '@suite/metadata-migration';
 import { closeModal, openModal } from '@suite/modal';
-import { createElectronPlatformEncryption } from '@suite/platform-encryption-electron';
-import { createWebauthnPlatformEncryption } from '@suite/platform-encryption-webauthn';
 import {
     type HistoryDep,
     type SuiteRouterHistoryDep,
@@ -29,12 +27,13 @@ import {
     selectInvityServerEnvironment,
     selectLanguage,
 } from '@suite/settings';
-import { createSuiteSyncDesktopCompositionRoot } from '@suite/suite-sync';
+import { createSuiteSyncDesktopCompositionRoot, suiteSyncErrorHandler } from '@suite/suite-sync';
 import { createBip329CompositionRoot } from '@suite-common/bip329';
 import { delegatedIdentityKeyCompositionRoot } from '@suite-common/delegated-identity-key';
 import { toGetter } from '@suite-common/dependency-injection';
 import { type DeviceReducerState } from '@suite-common/device';
 import { FW_HASH_CHECK_DEFAULT_TIMEOUTS } from '@suite-common/firmware-authenticity';
+import { type PlatformEncryptionDep } from '@suite-common/platform-encryption';
 import {
     type CommonServices,
     type ConnectInitSettings,
@@ -65,7 +64,6 @@ import { createAccountKey } from '@suite-common/wallet-types';
 import { buildHistoricRatesFromStorage } from '@suite-common/wallet-utils';
 import TrezorConnect, { type StaticSessionId } from '@trezor/connect';
 import { isDesktop } from '@trezor/env-utils';
-import { desktopApi } from '@trezor/suite-desktop-api';
 
 import { type StorageLoadAction } from 'src/actions/suite/storageActions';
 import { selectIsWindowVisible } from 'src/reducers/suite/windowReducer';
@@ -73,7 +71,6 @@ import { reportSecurityCheck } from 'src/utils/suite/sentry';
 import { fixLoadedCoinjoinAccount } from 'src/utils/wallet/coinjoinUtils';
 
 import { forgetBluetoothDeviceThunk } from '../actions/bluetooth/bluetoothEraseBondsThunk';
-import { suiteSyncErrorHandler } from '../components/suite/labeling/suiteSyncErrorHandler';
 import type { BioAuthState } from '../reducers/bioAuth';
 import { type AppState, type TrezorDevice } from '../types/suite';
 
@@ -95,7 +92,7 @@ export type StoreAPIDep = {
     dispatch: (_: any) => any;
 };
 
-export type SuiteAppDeps = StoreAPIDep & HistoryDep;
+export type SuiteAppDeps = StoreAPIDep & HistoryDep & PlatformEncryptionDep;
 
 export type SuiteServices = CommonServices &
     DesktopAnalyticsDep &
@@ -103,14 +100,10 @@ export type SuiteServices = CommonServices &
     SuiteRouterHistoryDep;
 
 export const createSuiteServicesCompositionRoot = (deps: SuiteAppDeps): SuiteServices => {
-    const platformEncryption = isDesktop()
-        ? createElectronPlatformEncryption({ desktopApi })
-        : createWebauthnPlatformEncryption();
-
     const { ensureDelegatedIdentityKey } = delegatedIdentityKeyCompositionRoot({
         dispatch: deps.dispatch,
         getState: deps.getState,
-        platformEncryption,
+        platformEncryption: deps.platformEncryption,
         trezorConnect: TrezorConnect,
     });
 
@@ -119,7 +112,7 @@ export const createSuiteServicesCompositionRoot = (deps: SuiteAppDeps): SuiteSer
     const suiteSync = createSuiteSyncDesktopCompositionRoot({
         dispatch: deps.dispatch,
         getState: deps.getState,
-        platformEncryption,
+        platformEncryption: deps.platformEncryption,
         trezorConnect: TrezorConnect,
         ensureDelegatedIdentityKey,
         analytics,
@@ -157,7 +150,7 @@ export const createSuiteServicesCompositionRoot = (deps: SuiteAppDeps): SuiteSer
         bip329,
         migrateLegacyLabelsToSuiteSync,
         ensureDelegatedIdentityKey,
-        platformEncryption,
+        platformEncryption: deps.platformEncryption,
         analytics,
         suiteRouterHistory: createSuiteRouterHistory({
             history: deps.history,

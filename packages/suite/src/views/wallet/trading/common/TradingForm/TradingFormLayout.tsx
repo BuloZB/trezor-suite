@@ -11,7 +11,7 @@ import { useSelector } from 'src/hooks/suite';
 import { useTradingDeviceDisconnected } from 'src/hooks/wallet/trading/form/common/useTradingDeviceDisconnected';
 import { ContentFlex } from 'src/support/suite/ContentFlex';
 import { ConnectDeviceGenericPromo } from 'src/views/wallet/receive/components/ConnectDevicePromo';
-import { TradingFormOffer } from 'src/views/wallet/trading/common/TradingForm/TradingFormOffer';
+import { TradingFormOffer } from 'src/views/wallet/trading/common/TradingForm/TradingFormOffer/TradingFormOffer';
 
 import { ReceiveAddressModalControlsProvider } from '../TradingSelectedOffer/TradingReceiveAddress/useReceiveAddressModalControls';
 

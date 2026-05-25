@@ -17,9 +17,11 @@ import {
     ensureHexPrefix,
     findAccountsByAddress,
     findTransactions,
+    getEvmTransactionTextSignature,
     getPendingAccount,
     getRbfParams,
     isEip1559,
+    isEvmYieldTxByTextSignature,
     isRbfBumpFeeTransaction,
     isTrezorConnectBackendType,
     replaceEthereumSpecific,
@@ -286,6 +288,8 @@ const buildFakePendingEvmTx = ({
             multiTokenValues: token.multiTokenValues,
         };
 
+        const voutAddress = precomposedForm?.transactionData ? toAddress : token.contract;
+
         return {
             ...common,
             amount: '0',
@@ -297,7 +301,7 @@ const buildFakePendingEvmTx = ({
                     {
                         value: '0',
                         n: 0,
-                        addresses: [token.contract],
+                        addresses: [voutAddress],
                         isAddress: true,
                     },
                 ],
@@ -365,13 +369,16 @@ export const addFakePendingEvmTxThunk = createThunk(
         const FAKE_TX_TTL_SECONDS = 15 * 60; // keep fake tx for 15 minutes
         const deadline = FAKE_TX_TTL_SECONDS / rawFeeInfo!.blockTime;
 
+        const sig = getEvmTransactionTextSignature(precomposedForm.transactionData);
+        const transfersToken =
+            !precomposedForm.transactionData ||
+            sig === 'transfer' ||
+            isEvmYieldTxByTextSignature(sig);
+
         const fakeTx = buildFakePendingEvmTx({
             precomposedTransaction,
             precomposedForm,
-            token:
-                precomposedTransaction.token && !precomposedForm.transactionData
-                    ? precomposedTransaction.token
-                    : undefined,
+            token: transfersToken ? precomposedTransaction.token : undefined,
             txid,
             account,
             nonce,
@@ -491,7 +498,7 @@ export const fetchTransactionsPageThunk = createThunk(
             throw new Error(`Account not found: ${accountKey}`);
         }
 
-        if (result && result.success) {
+        if (result?.success) {
             const updateAction = accountsActions.updateAccount(currentAccount, result.payload);
             const updatedAccount = updateAction.payload;
             const updatedTransactions = result.payload.history.transactions || [];

@@ -1,11 +1,13 @@
 import { type ReactNode } from 'react';
 
-import { events } from '@suite/analytics';
+import { Address, copyAddressToClipboard, showCopyAddressModal } from '@suite/address';
+import { type DesktopAnalyticsDep, events } from '@suite/analytics';
 import { useDevice } from '@suite/device';
 import { selectIsCopyAddressModalShown, selectIsUnhideTokenModalShown } from '@suite/flags';
 import { Translation } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { goto } from '@suite/router';
+import { useServices } from '@suite-common/dependency-injection';
 import { selectSelectedDevice } from '@suite-common/device';
 import { type YieldDto } from '@suite-common/earn-stablecoin-api';
 import {
@@ -44,14 +46,11 @@ import {
 } from '@trezor/components';
 
 import { SUITE } from 'src/actions/suite/constants';
-import { copyAddressToClipboard, showCopyAddressModal } from 'src/actions/suite/copyAddressActions';
 import { setSendFormPrefill } from 'src/actions/suite/suiteActions';
 import { showAddress } from 'src/actions/wallet/receiveActions';
 import { getEarnRouteParams } from 'src/components/earn/utils/getEarnRouteParams';
-import { Address } from 'src/components/suite';
 import { useDispatch, useExternalLink, useLayoutSize, useSelector } from 'src/hooks/suite';
 import { selectIsDeviceCompromised } from 'src/selectors/suite/suiteAuthenticityChecksSelectors';
-import { useAnalytics } from 'src/support/useAnalytics';
 import { getTokenAddressTranslationId } from 'src/utils/wallet/tokenUtils';
 
 import type { TokensTableType } from './types';
@@ -78,7 +77,7 @@ const TokenRowBasicActions = ({
     setShowDeactivateModal,
 }: TokenRowBasicActionsProps) => {
     const dispatch = useDispatch();
-    const analytics = useAnalytics();
+    const { analytics } = useServices<DesktopAnalyticsDep>();
     const device = useSelector(selectSelectedDevice);
     const { isLocked } = useDevice();
     const { isBelowTablet } = useLayoutSize();
@@ -114,8 +113,8 @@ const TokenRowBasicActions = ({
                 getContractAddressForNetworkSymbol(account.symbol, token.contract),
     );
 
-    const isSupplyButtonDisabled = !availableVault || !availableVault.status.enter;
-    const isWithdrawButtonDisabled = !availableVault || !availableVault.status.exit;
+    const isSupplyButtonDisabled = !availableVault?.status.enter;
+    const isWithdrawButtonDisabled = !availableVault?.status.exit;
 
     if (!unusedAddress || !device) return null;
 
@@ -142,7 +141,7 @@ const TokenRowBasicActions = ({
                 from: 'account-defi-tokens',
                 to: 'deposit-form',
                 networkSymbol: account.symbol,
-                contractAddress,
+                vaultId: yieldId,
             },
         });
 
@@ -171,7 +170,7 @@ const TokenRowBasicActions = ({
                 from: 'account-defi-tokens',
                 to: 'withdraw-form',
                 networkSymbol: account.symbol,
-                contractAddress,
+                vaultId: yieldId,
             },
         });
 

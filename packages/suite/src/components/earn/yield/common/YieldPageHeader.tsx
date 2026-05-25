@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 
-import { events } from '@suite/analytics';
-import { Translation } from '@suite/intl';
+import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { Translation, type TranslationKey, useTranslation } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { type EarnParams, goto } from '@suite/router';
+import { useServices } from '@suite-common/dependency-injection';
 import { useAllYieldOpportunities } from '@suite-common/earn-stablecoin-api';
 import {
     type EarnAnalyticsStep,
@@ -17,17 +18,25 @@ import { AssetLogo } from '@trezor/product-components';
 import { AccountLabel } from 'src/components/suite';
 import { PageHeader } from 'src/components/suite/layouts/SuiteLayout';
 import { useDispatch } from 'src/hooks/suite';
-import { useAnalytics } from 'src/support/useAnalytics';
+import { useLayoutSize } from 'src/hooks/suite/useLayoutSize';
 
 interface YieldPageHeaderProps {
     analyticsStep: Extract<EarnAnalyticsStep, 'yield-supply' | 'yield-withdraw'>;
+    fallbackTitleId: TranslationKey;
     account?: Account;
     routeParams?: EarnParams;
 }
 
-export const YieldPageHeader = ({ analyticsStep, account, routeParams }: YieldPageHeaderProps) => {
+export const YieldPageHeader = ({
+    analyticsStep,
+    fallbackTitleId,
+    account,
+    routeParams,
+}: YieldPageHeaderProps) => {
     const dispatch = useDispatch();
-    const analytics = useAnalytics();
+    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { translationString } = useTranslation();
+    const { isBelowMobile } = useLayoutSize();
     const { data: yieldOpportunities, isSuccess } = useAllYieldOpportunities();
     const vault = useMemo(
         () =>
@@ -54,6 +63,7 @@ export const YieldPageHeader = ({ analyticsStep, account, routeParams }: YieldPa
                 })(),
                 to: 'earn-dashboard',
                 networkSymbol: account?.symbol,
+                vaultId: routeParams?.yieldId,
             },
         });
 
@@ -64,6 +74,16 @@ export const YieldPageHeader = ({ analyticsStep, account, routeParams }: YieldPa
         if (!account || !routeParams) {
             return;
         }
+
+        analytics.report({
+            type: events.yieldInteractionEvent.name,
+            payload: {
+                element: 'how-it-works',
+                value: analyticsStep,
+                networkSymbol: account.symbol,
+                vaultId: routeParams.yieldId,
+            },
+        });
 
         dispatch(
             openModal({
@@ -82,7 +102,7 @@ export const YieldPageHeader = ({ analyticsStep, account, routeParams }: YieldPa
     };
 
     return (
-        <PageHeader>
+        <PageHeader expandable>
             <Row width="100%" gap={16} alignItems="center">
                 <IconButton
                     icon="caretLeft"
@@ -93,7 +113,7 @@ export const YieldPageHeader = ({ analyticsStep, account, routeParams }: YieldPa
                     data-testid="@account-subpage/back"
                 />
 
-                {vaultName ? (
+                {account && vaultName ? (
                     <Row alignItems="center" gap={12} overflow="hidden">
                         {networkSymbol && (
                             <AssetLogo
@@ -106,34 +126,49 @@ export const YieldPageHeader = ({ analyticsStep, account, routeParams }: YieldPa
                             />
                         )}
                         <Column gap={2} overflow="hidden">
-                            <Text typographyStyle="body-md-strong" ellipsisLineCount={1}>
+                            <Text
+                                typographyStyle="body-md-strong"
+                                ellipsisLineCount={isBelowMobile ? 0 : 1}
+                            >
                                 {vaultName}
                             </Text>
-                            {account && (
-                                <AccountLabel
-                                    account={account}
-                                    intent="neutral"
-                                    priority="secondary"
-                                    typographyStyle="body-sm"
-                                />
-                            )}
+                            <AccountLabel
+                                account={account}
+                                showAccountTypeBadge
+                                accountTypeBadgeSize="small"
+                                intent="neutral"
+                                priority="secondary"
+                                typographyStyle="body-sm"
+                            />
                         </Column>
                     </Row>
                 ) : (
                     <Text typographyStyle="body-md-strong">
-                        <Translation id="TR_EARN" />
+                        <Translation id={fallbackTitleId} />
                     </Text>
                 )}
 
                 <Box margin={{ left: 'auto' }}>
-                    <Button
-                        intent="neutral"
-                        priority="secondary"
-                        onClick={onHowItWorksClick}
-                        isDisabled={!account || !routeParams}
-                    >
-                        <Translation id="TR_EARN_HOW_IT_WORKS" />
-                    </Button>
+                    {isBelowMobile ? (
+                        <IconButton
+                            icon="info"
+                            intent="neutral"
+                            priority="secondary"
+                            size="large"
+                            aria-label={translationString('TR_EARN_HOW_IT_WORKS')}
+                            onClick={onHowItWorksClick}
+                            isDisabled={!account || !routeParams}
+                        />
+                    ) : (
+                        <Button
+                            intent="neutral"
+                            priority="secondary"
+                            onClick={onHowItWorksClick}
+                            isDisabled={!account || !routeParams}
+                        >
+                            <Translation id="TR_EARN_HOW_IT_WORKS" />
+                        </Button>
+                    )}
                 </Box>
             </Row>
         </PageHeader>

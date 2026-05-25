@@ -25,7 +25,7 @@ describe('TradeableAssetFilterTabs', () => {
     const renderComponent = (onSelectedNetworkFilter = jest.fn()) =>
         renderWithStoreProvider(
             <TradeableAssetFilterTabs
-                visible={true}
+                isVisible={true}
                 animationDuration={300}
                 onSelectedNetworkFilter={onSelectedNetworkFilter}
             />,
@@ -42,7 +42,7 @@ describe('TradeableAssetFilterTabs', () => {
     it('should not render anything when visible is false', () => {
         const { queryByText } = renderWithStoreProvider(
             <TradeableAssetFilterTabs
-                visible={false}
+                isVisible={false}
                 animationDuration={300}
                 onSelectedNetworkFilter={jest.fn()}
             />,
@@ -69,5 +69,20 @@ describe('TradeableAssetFilterTabs', () => {
         fireEvent.press(getByText('Bitcoin'));
 
         expect(onSelectedNetworkFilter).toHaveBeenCalledWith('btc');
+    });
+
+    it('should call onSelectedNetworkFilter with undefined when hidden', () => {
+        const onSelectedNetworkFilter = jest.fn();
+        const { rerender } = renderComponent(onSelectedNetworkFilter);
+
+        rerender(
+            <TradeableAssetFilterTabs
+                isVisible={false}
+                animationDuration={300}
+                onSelectedNetworkFilter={onSelectedNetworkFilter}
+            />,
+        );
+
+        expect(onSelectedNetworkFilter).toHaveBeenCalledWith(undefined);
     });
 });

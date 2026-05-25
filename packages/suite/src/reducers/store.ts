@@ -14,9 +14,11 @@ import { backupMiddleware, backupReducer } from '@suite/backup';
 import { MODAL_OPEN_USER_CONTEXT } from '@suite/modal';
 import { recoveryReducer } from '@suite/recovery';
 import { type HistoryDep } from '@suite/router';
+import { suiteSyncSlice } from '@suite/suite-sync';
 import { prepareFirmwareReducer } from '@suite-common/firmware';
 import { geolocationReducer } from '@suite-common/geolocation';
 import { addLog } from '@suite-common/logger';
+import { type PlatformEncryptionDep } from '@suite-common/platform-encryption';
 import {
     type ExtraDependencies,
     castExtraStore,
@@ -29,7 +31,6 @@ import { accountsActions } from '@suite-common/wallet-core';
 import { isCodesignBuild } from '@trezor/env-utils';
 import { mergeDeepObject } from '@trezor/utils';
 
-import { suiteSyncSlice } from 'src/actions/suiteSync/suiteSyncSlice';
 import { suiteSyncQuotaManagerSlice } from 'src/actions/suiteSyncQuotaManager/suiteSyncQuotaManagerSlice';
 import onboardingMiddlewares from 'src/middlewares/onboarding';
 import { getSuiteMiddleware } from 'src/middlewares/suite';
@@ -127,7 +128,7 @@ type RootReducerShape = typeof rootReducer;
 export type PreloadedState = Partial<AppState>;
 type InferredAction = Parameters<RootReducerShape>[1];
 
-export type SuiteStoreDeps = HistoryDep;
+export type SuiteStoreDeps = HistoryDep & PlatformEncryptionDep;
 
 export const initStore = (
     deps: SuiteStoreDeps,
@@ -155,6 +156,7 @@ export const initStore = (
             getState: api.getState,
             dispatch: api.dispatch,
             history: deps.history,
+            platformEncryption: deps.platformEncryption,
         }),
     });
 

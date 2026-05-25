@@ -1,7 +1,9 @@
 import {
+    TurnOnSuiteSyncModals,
     selectShowEnableSuiteSyncModal,
     updateShowEnableSuiteSyncModal,
-} from 'src/actions/suiteSync/suiteSyncSlice';
+} from '@suite/suite-sync';
+
 import { ConnectionGlobalModalManager } from 'src/components/connection/ConnectionGlobalModalManager';
 import { ThpGlobalModalManager } from 'src/components/connection/thp/ThpGlobalModalManager';
 import { useDispatch, useSelector } from 'src/hooks/suite';
@@ -9,7 +11,6 @@ import { usePreferredModal } from 'src/hooks/suite/usePreferredModal';
 
 import { ForegroundAppModal } from './ForegroundAppModal';
 import { WipedBleDeviceNeedsManualOsRemovalModalManager } from '../../bluetooth/WipedBleDeviceNeedsManualOsRemovalModalManager';
-import { TurnOnSuiteSyncModals } from '../../labeling/TurnOnSuiteSync/TurnOnSuiteSyncModals';
 import { ReduxModal } from '../ReduxModal/ReduxModal';
 
 type ModalParams = ReturnType<typeof usePreferredModal>;

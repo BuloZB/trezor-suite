@@ -2,6 +2,9 @@
     "extends": "../../tsconfig.base.json",
     "compilerOptions": { "outDir": "libDev" },
     "references": [
+        {
+            "path": "../../suite-common/dependency-injection"
+        },
         { "path": "../../suite-common/device" },
         { "path": "../../suite-common/feedback" },
         { "path": "../../suite-common/graph" },
@@ -16,6 +19,9 @@
         },
         {
             "path": "../../suite-common/suite-sync-quota-manager"
+        },
+        {
+            "path": "../../suite-common/suite-sync-types"
         },
         {
             "path": "../../suite-common/wallet-config"
@@ -42,11 +48,10 @@
         { "path": "../firmware" },
         { "path": "../graph" },
         { "path": "../intl" },
-        { "path": "../labeling" },
         { "path": "../link" },
         { "path": "../navigation" },
-        { "path": "../services" },
         { "path": "../settings" },
+        { "path": "../suite-sync" },
         { "path": "../toasts" },
         { "path": "../../packages/device-utils" },
         {

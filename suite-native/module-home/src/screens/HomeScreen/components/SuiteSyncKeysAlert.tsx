@@ -3,10 +3,11 @@ import { useSelector } from 'react-redux';
 
 import { useNavigation } from '@react-navigation/native';
 
+import { useServices } from '@suite-common/dependency-injection';
 import { selectDeviceStaticSessionId, selectIsDeviceConnected } from '@suite-common/device';
+import { type SuiteSyncDep } from '@suite-common/suite-sync-types';
 import { AnimatedFullAlertBox } from '@suite-native/atoms';
 import { Translation } from '@suite-native/intl';
-import { useSuiteSyncErrorHandler } from '@suite-native/labeling';
 import {
     type AuthorizeDeviceStackParamList,
     AuthorizeDeviceStackRoutes,
@@ -14,7 +15,7 @@ import {
     RootStackRoutes,
     type StackToStackCompositeNavigationProps,
 } from '@suite-native/navigation';
-import { useNativeServices } from '@suite-native/services';
+import { useSuiteSyncErrorHandler } from '@suite-native/suite-sync';
 
 import { selectShouldDisplaySuiteSyncAlert } from '../homescreenSelectors';
 
@@ -25,7 +26,7 @@ type NavigationProp = StackToStackCompositeNavigationProps<
 >;
 
 export const SuiteSyncKeysAlert = () => {
-    const { suiteSync } = useNativeServices();
+    const { suiteSync } = useServices<SuiteSyncDep>();
 
     const isDeviceConnected = useSelector(selectIsDeviceConnected);
     const shouldDisplaySuiteSyncAlert = useSelector(selectShouldDisplaySuiteSyncAlert);

@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { useDebounce } from 'react-use';
 
 import type { DexApprovalType, ExchangeTrade } from 'invity-api';
 
-import { events } from '@suite/analytics';
+import { type DesktopAnalyticsDep, events } from '@suite/analytics';
 import { type TranslationKey, useTranslation } from '@suite/intl';
 import { goto } from '@suite/router';
 import { selectHasExperimentalFeature } from '@suite/settings';
+import { useServices } from '@suite-common/dependency-injection';
 import { Feature, selectIsFeatureEnabled } from '@suite-common/message-system';
 import { notificationsActions } from '@suite-common/toast-notifications';
 import {
@@ -48,7 +48,6 @@ import {
     ETHEREUM_ADJUST_GAS_LIMIT,
     fetchAndUpdateAccountThunk,
     updateFeeInfoThunk,
-    useFormDraft,
 } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
 import { useCurrentRef } from '@trezor/react-utils';
@@ -65,7 +64,6 @@ import { useTradingFiatValues } from 'src/hooks/wallet/trading/form/common/useTr
 import { useTradingFormActions } from 'src/hooks/wallet/trading/form/common/useTradingFormActions';
 import { useTradingExchangeFormDefaultValues } from 'src/hooks/wallet/trading/form/useTradingExchangeFormDefaultValues';
 import { useBitcoinAmountUnit } from 'src/hooks/wallet/useBitcoinAmountUnit';
-import { useAnalytics } from 'src/support/useAnalytics';
 import { type Dispatch } from 'src/types/suite';
 import { type UseTradingFormCommonProps } from 'src/types/trading/trading';
 import {
@@ -76,14 +74,13 @@ import { createQuoteLink } from 'src/utils/wallet/trading/exchangeUtils';
 
 import { useTradingAssetDecimals } from './common/useTradingAssetDecimals';
 import { useTradingInitializer } from './common/useTradingInitializer';
-import { useTradingPreviousRoute } from './common/useTradingPreviousRoute';
 import { useTradingFormAccount } from './useTradingFormAccount';
 import { useTradingReceiveAddress } from './useTradingReceiveAddress';
 
 export const useTradingExchangeForm = ({
     pageType = 'form',
 }: UseTradingFormCommonProps): TradingExchangeFormContextProps => {
-    const analytics = useAnalytics();
+    const { analytics } = useServices<DesktopAnalyticsDep>();
     const type = 'exchange';
     const isFormPage = pageType === 'form';
     const dispatch = useDispatch();
@@ -100,8 +97,6 @@ export const useTradingExchangeForm = ({
     const composedTransactionInfo = useSelector(selectTradingComposedTransactionInfo);
     const { selectedFee, composed } = composedTransactionInfo;
     const { account, tradingAccountKey: accountKey, cryptoId } = useTradingFormAccount(type);
-
-    const isPreviousRouteFromTradeSection = useTradingPreviousRoute(type);
 
     // used for disabling approve/revoke controls when
     // quotes are scheduled to refresh after changing swap form inputs
@@ -150,19 +145,9 @@ export const useTradingExchangeForm = ({
         cryptoId,
     );
 
-    const { draft, saveDraft, removeDraft } =
-        useFormDraft<TradingExchangeFormProps>('trading-exchange');
-    const isDraft = !!draft;
-
-    const getDraftUpdated = (): TradingExchangeFormProps | null => {
-        if (draft && isPreviousRouteFromTradeSection) return draft;
-
-        return null;
-    };
-    const draftUpdated = getDraftUpdated();
     const methods = useForm<TradingExchangeFormProps>({
         mode: 'onChange',
-        defaultValues: draftUpdated ?? defaultValues,
+        defaultValues,
     });
 
     const { reset, register, getValues, setValue, formState, control } = methods;
@@ -200,6 +185,8 @@ export const useTradingExchangeForm = ({
     const isAmountEmpty = output?.amount === '';
     const noProviders = Object.keys(exchangeInfo?.providerInfos ?? {}).length === 0;
     const isInitialDataLoading = !exchangeInfo?.providerInfos;
+    const shouldSkipInitialReset = !isFormPage;
+    const shouldResetOnInitialExchangeInfoLoad = useRef(isInitialDataLoading);
 
     const { getAssetDecimals } = useTradingAssetDecimals();
     const decimals = useMemo(
@@ -223,21 +210,15 @@ export const useTradingExchangeForm = ({
         setValue,
     });
 
-    const {
-        composedLevels,
-        feeInfo,
-        changeFeeLevel,
-        setComposedLevels,
-        composeRequest,
-        isComposing,
-    } = useTradingComposeTransaction<TradingExchangeFormProps>({
-        type: 'exchange',
-        account,
-        network,
-        values,
-        methods,
-        setShowReserveBanner,
-    });
+    const { composedLevels, feeInfo, changeFeeLevel, setComposedLevels, composeRequest } =
+        useTradingComposeTransaction<TradingExchangeFormProps>({
+            type: 'exchange',
+            account,
+            network,
+            values,
+            methods,
+            setShowReserveBanner,
+        });
 
     const isFormLoading = isInitialDataLoading || formState.isSubmitting || isLoading;
     const isFormInvalid = !(formIsValid && hasValues) || !isReceiveAddressFormValid;
@@ -608,7 +589,7 @@ export const useTradingExchangeForm = ({
 
         const quote = requiresApproval ? selectedQuote : dexQuotes[0];
 
-        if (!quote || !quote.dexTx) {
+        if (!quote?.dexTx) {
             setValue('transactionData', '');
             setValue(TRADING_FORM_OUTPUT_ADDRESS, '');
 
@@ -671,46 +652,24 @@ export const useTradingExchangeForm = ({
     // Subscribe to blocks for Solana, since they are not fetched globally
     useSolanaSubscribeBlocks(account);
 
-    useDebounce(
-        () => {
-            if (
-                formState.isDirty &&
-                !formState.isValidating &&
-                Object.keys(formState.errors).length === 0 &&
-                !isComposing
-            ) {
-                saveDraft(values);
-            }
-        },
-        200,
-        [
-            saveDraft,
-            values,
-            formState.errors,
-            formState.isDirty,
-            formState.isValidating,
-            isComposing,
-        ],
-    );
-
-    useEffect(() => {
-        if (!isPreviousRouteFromTradeSection) {
-            removeDraft();
-        }
-    }, [isPreviousRouteFromTradeSection, removeDraft]);
-
     // react-hook-form auto register custom form fields (without HTMLElement)
     useEffect(() => {
         register('options');
         register('setMaxOutputId');
     }, [register]);
 
-    // when draft doesn't exist, we need to bind actual default values - that happens when we've got exchangeInfo from Invity API server
+    // bind actual default values when we've got exchangeInfo from Invity API server
     useEffect(() => {
-        if (!isDraft && exchangeInfo && isInitialDataLoading) {
+        if (
+            !shouldSkipInitialReset &&
+            exchangeInfo &&
+            !isInitialDataLoading &&
+            shouldResetOnInitialExchangeInfoLoad.current
+        ) {
+            shouldResetOnInitialExchangeInfoLoad.current = false;
             reset(defaultValues);
         }
-    }, [reset, isDraft, exchangeInfo, defaultValues, isInitialDataLoading]);
+    }, [reset, exchangeInfo, defaultValues, isInitialDataLoading, shouldSkipInitialReset]);
 
     useEffect(() => {
         if (!quotesRequest && !isFormPage) {

@@ -13,6 +13,7 @@ import {
     type SelectedAccountLoaded,
 } from '@suite-common/wallet-types';
 import { getConvertedOrDefaultFeeInfo } from '@suite-common/wallet-utils';
+import { throwError } from '@trezor/utils';
 
 import { signTransaction } from 'src/actions/wallet/stakeActions';
 import { useDispatch, useSelector } from 'src/hooks/suite';
@@ -109,7 +110,7 @@ export const useChangeDelegateForm = ({
     const signTx = useCallback(async () => {
         const values = getValues();
         const composedTx = composedLevels ? composedLevels[selectedFee] : undefined;
-        if (composedTx && composedTx.type === 'final') {
+        if (composedTx?.type === 'final') {
             const result = await dispatch(
                 signTransaction(values, composedTx as PrecomposedTransactionFinal),
             );
@@ -139,9 +140,6 @@ export const useChangeDelegateForm = ({
     };
 };
 
-export const useChangeDelegateFormContext = () => {
-    const ctx = useContext(ChangeDelegateFormContext);
-    if (ctx === null) throw Error('useChangeDelegateFormContext used without Context');
-
-    return ctx;
-};
+export const useChangeDelegateFormContext = () =>
+    useContext(ChangeDelegateFormContext) ??
+    throwError('useChangeDelegateFormContext used without Context');

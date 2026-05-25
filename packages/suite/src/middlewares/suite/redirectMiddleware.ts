@@ -14,7 +14,7 @@ import { type Action, type AppState, type Dispatch, type TrezorDevice } from 'sr
 
 const handleDeviceRedirect = (dispatch: Dispatch, state: AppState, device?: TrezorDevice) => {
     // no device, no redirect
-    if (!device || !device.features) {
+    if (!device?.features) {
         return;
     }
 
@@ -31,11 +31,7 @@ const handleDeviceRedirect = (dispatch: Dispatch, state: AppState, device?: Trez
         dispatch(goto({ routeName: 'suite-start' }));
     }
     // firmware none (T2T1) or unknown (T1B1) indicates freshly unpacked device
-    if (
-        device.mode === 'bootloader' &&
-        device.features &&
-        device.features.firmware_present === false
-    ) {
+    if (device.mode === 'bootloader' && device.features?.firmware_present === false) {
         dispatch(goto({ routeName: 'suite-start' }));
     }
     // device firmware update required, redirect to "firmware update"

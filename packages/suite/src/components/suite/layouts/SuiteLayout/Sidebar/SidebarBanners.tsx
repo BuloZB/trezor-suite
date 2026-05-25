@@ -2,9 +2,8 @@ import { AnimatePresence } from 'framer-motion';
 
 import { UpdateNotificationBanner } from '@suite/desktop-update';
 import { FeedbackFormManager } from '@suite/feature-feedback';
+import { SuiteSyncPromoBanner } from '@suite/metadata-migration';
 import { Column, ElevationContext } from '@trezor/components';
-
-import { SuiteSyncPromoBanner } from 'src/components/suite/labeling/SuiteSyncPromoBanner';
 
 export const SidebarBanners = () => (
     <AnimatePresence>

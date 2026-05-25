@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import { useTranslation } from '@suite/intl';
+import { Labeling } from '@suite/labeling';
 import {
     selectIsLegacyLabelingVisible,
     selectLabelingDataForAccount,
@@ -31,7 +32,6 @@ import {
     AddressLabeling,
     BaseCurrencyValue,
     FormattedCryptoAmount,
-    Labeling,
     Sign,
 } from 'src/components/suite';
 import { useSelector } from 'src/hooks/suite';

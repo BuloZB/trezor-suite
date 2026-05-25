@@ -6,6 +6,12 @@ const legacyResults = [
     },
 ];
 
+// m/44'/1729'/0' showOnTrezor: FW renders the edpk… form, the same value
+// returned in `publicKey` / `displayablePublicKey`. deviceScreen is a stable
+// prefix that fits inside the smallest-screen capture.
+const showOnTrezorDisplayablePublicKey = 'edpkuxZ5W8c2jmcaGuCFZxRDSWxS7hp98zcwj2YpUZkJWs5F7UMuF6';
+const showOnTrezorDeviceScreen = showOnTrezorDisplayablePublicKey.slice(0, 39);
+
 export default {
     method: 'tezosGetPublicKey',
     setup: {
@@ -20,6 +26,7 @@ export default {
             },
             result: {
                 publicKey: 'edpkuxZ5W8c2jmcaGuCFZxRDSWxS7hp98zcwj2YpUZkJWs5F7UMuF6',
+                displayablePublicKey: 'edpkuxZ5W8c2jmcaGuCFZxRDSWxS7hp98zcwj2YpUZkJWs5F7UMuF6',
             },
         },
         {
@@ -30,6 +37,7 @@ export default {
             },
             result: {
                 publicKey: 'edpkuVKVFyqTnp4axajmxTnCcSHN7v1kRhVpBC25GEZQVT2ZzSpdJY',
+                displayablePublicKey: 'edpkuVKVFyqTnp4axajmxTnCcSHN7v1kRhVpBC25GEZQVT2ZzSpdJY',
             },
         },
         {
@@ -47,6 +55,19 @@ export default {
                 showOnTrezor: false,
             },
             result: false,
+        },
+        {
+            description: "m/44'/1729'/0' (showOnTrezor)",
+            params: {
+                path: "m/44'/1729'/0'",
+                showOnTrezor: true,
+            },
+            result: {
+                publicKey: showOnTrezorDisplayablePublicKey,
+                displayablePublicKey: showOnTrezorDisplayablePublicKey,
+            },
+            deviceScreen: showOnTrezorDeviceScreen,
+            deviceScreenSkip: ['1', '<2.7.0'],
         },
     ].map(fixture => ({ ...fixture, legacyResults })),
 } satisfies TestCase;

@@ -2,6 +2,7 @@ import '@suite-common/test-utils/src/globalOverrides';
 
 import { initialRunCompleted, prepareFlagsReducer } from '@suite/flags';
 import { suiteSettingsInitialState } from '@suite/settings';
+import { suiteSyncSlice } from '@suite/suite-sync';
 import { deviceActions, selectDevices, selectDevicesCount } from '@suite-common/device';
 import { asEncryptedHex } from '@suite-common/platform-encryption';
 import { setSuiteSyncOwner } from '@suite-common/suite-sync';
@@ -20,7 +21,6 @@ import { mockWalletAccount } from '@suite-common/wallet-types/mocks';
 import { getAccountIdentifier, getAccountTransactions } from '@suite-common/wallet-utils';
 
 import { deviceSlice } from 'src/actions/device/deviceSlice';
-import { suiteSyncSlice } from 'src/actions/suiteSync/suiteSyncSlice';
 import { suiteSyncQuotaManagerSlice } from 'src/actions/suiteSyncQuotaManager/suiteSyncQuotaManagerSlice';
 import { SETTINGS } from 'src/config/suite';
 import storageMiddleware from 'src/middlewares/wallet/storageMiddleware';
@@ -135,35 +135,35 @@ const getInitialState = (prevState?: Partial<PartialState>, action?: any) => ({
     ),
     wallet: {
         accounts: accountsReducer(
-            prevState && prevState.wallet ? prevState.wallet.accounts : undefined,
+            prevState?.wallet ? prevState.wallet.accounts : undefined,
             action || ({ type: 'foo' } as any),
         ),
         coinjoin: coinjoinReducer(
-            prevState && prevState.wallet ? prevState.wallet.coinjoin : undefined,
+            prevState?.wallet ? prevState.wallet.coinjoin : undefined,
             action || ({ type: 'foo' } as any),
         ),
         settings: walletSettingsReducer(
-            prevState && prevState.wallet ? prevState.wallet.settings : undefined,
+            prevState?.wallet ? prevState.wallet.settings : undefined,
             action || ({ type: 'foo' } as any),
         ),
         discovery: discoveryReducer(
-            prevState && prevState.wallet ? prevState.wallet.discovery : undefined,
+            prevState?.wallet ? prevState.wallet.discovery : undefined,
             action || ({ type: 'foo' } as any),
         ),
         send: sendFormReducer(
-            prevState && prevState.wallet ? prevState.wallet.send : undefined,
+            prevState?.wallet ? prevState.wallet.send : undefined,
             action || ({ type: 'foo' } as any),
         ),
         transactions: transactionsReducer(
-            prevState && prevState.wallet ? prevState.wallet.transactions : undefined,
+            prevState?.wallet ? prevState.wallet.transactions : undefined,
             action || ({ type: 'foo' } as any),
         ),
         fiat: fiatRatesReducer(
-            prevState && prevState.wallet ? prevState.wallet.fiat : undefined,
+            prevState?.wallet ? prevState.wallet.fiat : undefined,
             action || ({ type: 'foo' } as any),
         ),
         graph: graphReducer(
-            prevState && prevState.wallet ? prevState.wallet.graph : undefined,
+            prevState?.wallet ? prevState.wallet.graph : undefined,
             action || ({ type: 'foo' } as any),
         ),
         formDrafts: {},
