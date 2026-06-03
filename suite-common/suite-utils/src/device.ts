@@ -403,22 +403,23 @@ export const getDeviceInstances = (
  * * @param {TrezorDevice[]} devices
  * @returns {AcquiredDevice[][]}
  */
-export const getDeviceInstancesGroupedByDeviceId = (devices: TrezorDevice[]): AcquiredDevice[][] =>
+export const getDeviceInstancesGroupedByDeviceId = (devices: TrezorDevice[]): TrezorDevice[][] =>
     devices.reduce((deviceGroups, device) => {
         if (!isDeviceAcquired(device) || !device.id) {
-            return deviceGroups;
-        }
-        const existingGroupIndex = deviceGroups.findIndex(group => group[0].id === device.id);
-        if (existingGroupIndex === -1) {
-            // If the device ID is not yet in the accumulator, add a new group
-            const newGroup = getDeviceInstances(device, devices);
-            if (newGroup.length > 0) {
-                deviceGroups.push(newGroup);
+            deviceGroups.push([device]);
+        } else {
+            const existingGroupIndex = deviceGroups.findIndex(group => group[0]?.id === device.id);
+            if (existingGroupIndex === -1) {
+                // If the device ID is not yet in the accumulator, add a new group
+                const newGroup = getDeviceInstances(device, devices);
+                if (newGroup.length > 0) {
+                    deviceGroups.push(newGroup);
+                }
             }
         }
 
         return deviceGroups;
-    }, [] as AcquiredDevice[][]);
+    }, [] as TrezorDevice[][]);
 
 /**
  * Returns first available instance for each device sorted by priority
@@ -443,8 +444,13 @@ export const getFirstDeviceInstance = (
             const alreadyExists = result.find(r => r.features && dev.features && r.id === dev.id);
             if (alreadyExists) return result;
 
-            // base (np passphrase) or first passphrase instance
-            return result.concat(instances[0]);
+            // base (no passphrase) or first passphrase instance
+            const firstInstance = instances[0];
+            if (firstInstance) {
+                return result.concat(firstInstance);
+            }
+
+            return result;
         }, [] as TrezorDevice[])
         .sort(options.sortingFn);
 
@@ -456,11 +462,16 @@ export const getPhysicalDeviceCount = (devices: TrezorDevice[]) =>
 
 export const getSortedDevicesWithoutInstances = (
     devices: TrezorDevice[],
-    excludedDeviceId?: string | null,
+    excludedDeviceId: string | null,
 ) =>
     getDeviceInstancesGroupedByDeviceId(devices)
-        .flatMap(group => group[0])
-        .filter(d => d?.id !== excludedDeviceId && d?.id)
+        .flatMap(group => {
+            const first = group[0];
+            if (!first) return [];
+
+            return first;
+        })
+        .filter(d => d.id !== excludedDeviceId)
         .sort((a, b) => {
             if (!a.connected) return -1;
             if (!b.connected) return 1;

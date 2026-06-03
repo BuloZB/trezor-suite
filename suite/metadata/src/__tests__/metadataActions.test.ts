@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 
-import { prepareDeviceReducer } from '@suite-common/device';
+import { deviceActions, prepareDeviceReducer } from '@suite-common/device';
 import { configureMockStore, extraDependenciesCommonMock } from '@suite-common/test-utils';
+import { asWalletDescriptor } from '@suite-common/wallet';
 import { initialWalletSettingsState, prepareAccountsReducer } from '@suite-common/wallet-core';
 import TrezorConnect from '@trezor/connect';
 
@@ -111,6 +112,7 @@ const initStore = (state: State) => {
     store.subscribe(async () => {
         const actions = store.getActions();
         const action = actions[actions.length - 1];
+        if (!action) return;
 
         // hack: to prevent dependency
         if (action.type === '@modal/open-user-context') {
@@ -305,6 +307,35 @@ describe('Metadata Actions', () => {
             if (f.result) {
                 expect(store.getState()).toMatchObject(f.result);
             }
+        });
+    });
+
+    it('marks wallet as migrated after legacy labeling migration succeeds', () => {
+        const walletDescriptor = asWalletDescriptor('wallet-descriptor');
+        const store = initStore(getInitialState());
+
+        store.dispatch(metadataActions.setLegacyLabelsMigrationForWallet(walletDescriptor));
+
+        expect(store.getState().metadata.hasLegacyLabelsMigrated).toEqual({
+            [walletDescriptor]: true,
+        });
+    });
+
+    it('removes wallet migration flag after wallet is forgotten', () => {
+        const forgottenWalletDescriptor = asWalletDescriptor('1stTestnetAddress');
+        const otherWalletDescriptor = asWalletDescriptor('other-wallet');
+        const store = initStore(getInitialState());
+
+        store.dispatch(
+            metadataActions.setLegacyLabelsMigrationForWallet(forgottenWalletDescriptor),
+        );
+        store.dispatch(metadataActions.setLegacyLabelsMigrationForWallet(otherWalletDescriptor));
+        store.dispatch(
+            deviceActions.forgetDevice({ device: store.getState().device.selectedDevice }),
+        );
+
+        expect(store.getState().metadata.hasLegacyLabelsMigrated).toEqual({
+            [otherWalletDescriptor]: true,
         });
     });
 });

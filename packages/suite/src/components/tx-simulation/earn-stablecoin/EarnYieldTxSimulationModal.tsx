@@ -20,7 +20,10 @@ export function EarnYieldTxSimulationModal({
     decision,
     closeModal,
 }: EarnYieldTxSimulationModalProps) {
-    const parsedData = useMemo(() => composeStablecoinYieldTxSimulationAction(data), [data]);
+    const parsedData = useMemo(
+        () => composeStablecoinYieldTxSimulationAction(data, globalThis.location.origin),
+        [data],
+    );
     const account = useSelector(state =>
         parsedData ? selectAccountByKey(state, parsedData.accountKey) : null,
     );

@@ -12,6 +12,7 @@ export const ANALYTICS_ALLOWED_DOMAINS = [
     'firmware',
     'guide',
     'menu',
+    'onboarding',
     'passphrase',
     'promo',
     'receive',
@@ -26,7 +27,7 @@ export const ANALYTICS_ALLOWED_DOMAINS = [
 
 export type AnalyticsDomain = (typeof ANALYTICS_ALLOWED_DOMAINS)[number];
 
-export const ANALYTICS_EVENT_NAME_KEBAB_SEGMENT = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const ANALYTICS_EVENT_NAME_KEBAB_SEGMENT = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 const ALLOWED_DOMAINS_SET = new Set<string>(ANALYTICS_ALLOWED_DOMAINS);
 
@@ -44,7 +45,7 @@ export function validateAnalyticsEventName(value: string): ValidateEventNameErro
     }
 
     const parts = value.split('/');
-    const domain = parts[0];
+    const domain = parts[0] ?? '';
     const eventSegments = parts.slice(1);
 
     if (!ALLOWED_DOMAINS_SET.has(domain)) {

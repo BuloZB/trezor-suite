@@ -1,7 +1,7 @@
 {
     "version": 1,
-    "timestamp": "2026-05-13T12:00:00+00:00",
-    "sequence": 138,
+    "timestamp": "2026-06-02T00:00:00+00:00",
+    "sequence": 142,
     "actions": [
         {
             "conditions": [
@@ -308,6 +308,103 @@
                         "tr": "trezor.io/trezor-suite adresine git",
                         "pt": "Ir para trezor.io/trezor-suite",
                         "uk": "Перейти на trezor.io/trezor-suite"
+                    }
+                }
+            }
+        },
+        {
+            "conditions": [
+                {
+                    "settings": [
+                        {
+                            "sol": true
+                        }
+                    ],
+                    "environment": {
+                        "desktop": "*",
+                        "mobile": "*",
+                        "web": "*"
+                    },
+                    "devices": [
+                        {
+                            "model": "T2B1",
+                            "firmware": "<2.12.0",
+                            "bootloader": "*",
+                            "variant": "*",
+                            "firmwareRevision": "*",
+                            "vendor": "*"
+                        },
+                        {
+                            "model": "T3B1",
+                            "firmware": "<2.12.0",
+                            "bootloader": "*",
+                            "variant": "*",
+                            "firmwareRevision": "*",
+                            "vendor": "*"
+                        },
+                        {
+                            "model": "T2T1",
+                            "firmware": "<2.12.0",
+                            "bootloader": "*",
+                            "variant": "*",
+                            "firmwareRevision": "*",
+                            "vendor": "*"
+                        },
+                        {
+                            "model": "T3T1",
+                            "firmware": "<2.12.0",
+                            "bootloader": "*",
+                            "variant": "*",
+                            "firmwareRevision": "*",
+                            "vendor": "*"
+                        },
+                        {
+                            "model": "T3W1",
+                            "firmware": "<2.12.0",
+                            "bootloader": "*",
+                            "variant": "*",
+                            "firmwareRevision": "*",
+                            "vendor": "*"
+                        }
+                    ]
+                }
+            ],
+            "message": {
+                "id": "bbcfd635-6d5d-4bb6-95cf-6bc0cf37178b",
+                "priority": 97,
+                "dismissible": true,
+                "variant": "info",
+                "category": ["banner"],
+                "content": {
+                    "en": "Keep your Trezor secure and smooth — update firmware now for the latest features and enhancements.",
+                    "es": "Mantén tu Trezor seguro y funcionando sin problemas — actualiza el firmware ahora para obtener las últimas funciones y mejoras.",
+                    "cs": "Udržujte svůj Trezor bezpečný a plynulý — aktualizujte firmware nyní a získejte nejnovější funkce a vylepšení.",
+                    "ru": "Поддерживайте безопасность и стабильную работу вашего Trezor — обновите прошивку сейчас, чтобы получить новые функции и улучшения.",
+                    "ja": "Trezor を安全かつ快適に保ちましょう — 最新の機能と改善を利用するために、今すぐファームウェアを更新してください。",
+                    "hu": "Tartsa Trezorját biztonságosan és gördülékenyen — frissítse most a firmware-t a legújabb funkciókért és fejlesztésekért.",
+                    "it": "Mantieni il tuo Trezor sicuro e fluido — aggiorna ora il firmware per le ultime funzionalità e miglioramenti.",
+                    "fr": "Gardez votre Trezor sécurisé et fluide — mettez à jour le firmware maintenant pour profiter des dernières fonctionnalités et améliorations.",
+                    "de": "Halten Sie Ihr Trezor sicher und reibungslos — aktualisieren Sie jetzt die Firmware, um die neuesten Funktionen und Verbesserungen zu erhalten.",
+                    "tr": "Trezor'unuzu güvenli ve sorunsuz tutun — en son özellikler ve iyileştirmeler için firmware'i şimdi güncelleyin.",
+                    "pt": "Mantenha seu Trezor seguro e fluido — atualize o firmware agora para obter os recursos e melhorias mais recentes.",
+                    "uk": "Зберігайте свій Trezor безпечним і плавним — оновіть прошивку зараз, щоб отримати найновіші функції та вдосконалення."
+                },
+                "cta": {
+                    "action": "internal-link",
+                    "link": "firmware-index",
+                    "label": {
+                        "en": "Update firmware",
+                        "es": "Actualizar firmware",
+                        "cs": "Aktualizovat firmware",
+                        "ru": "Обновить прошивку",
+                        "ja": "ファームウェアを更新",
+                        "hu": "Firmware frissítése",
+                        "it": "Aggiorna firmware",
+                        "fr": "Mettre à jour le firmware",
+                        "de": "Firmware aktualisieren",
+                        "tr": "Cihaz yazılımını güncelle",
+                        "pt": "Atualizar firmware",
+                        "uk": "Оновити прошивку"
                     }
                 }
             }
@@ -1455,6 +1552,46 @@
             "conditions": [
                 {
                     "environment": {
+                        "desktop": ">=26.5.1",
+                        "mobile": "!",
+                        "web": "*"
+                    }
+                }
+            ],
+            "message": {
+                "id": "ab805171-6266-4618-be4f-a7c25d4c19ce",
+                "priority": 3,
+                "dismissible": true,
+                "variant": "info",
+                "category": "feature",
+                "content": {
+                    "en-GB": "Placehodler",
+                    "en": "Placehodler",
+                    "es": "Placehodler",
+                    "cs": "Placehodler",
+                    "de": "Placehodler",
+                    "fr": "Placehodler",
+                    "it": "Placehodler",
+                    "pt": "Placehodler",
+                    "tr": "Placehodler",
+                    "ru": "Placehodler",
+                    "ja": "Placehodler",
+                    "uk": "Placehodler",
+                    "hu": "Placehodler"
+                },
+                "feature": [
+                    {
+                        "domain": "dashboard.promoBanner",
+                        "visibleBanner": "stablecoin-yield",
+                        "flag": true
+                    }
+                ]
+            }
+        },
+        {
+            "conditions": [
+                {
+                    "environment": {
                         "desktop": "*",
                         "mobile": "!",
                         "web": "*"
@@ -1531,18 +1668,18 @@
                 }
             ],
             "message": {
-                "id": "8bb03b3f-ff8c-45a0-9bf7-02b17ceaa0fe",
+                "id": "4daf1d02-4315-4d89-b99d-b7fec8dc8fb0",
                 "priority": 1,
                 "dismissible": false,
                 "variant": "info",
                 "category": "feature",
                 "content": {
-                    "en": "New earn opportunities coming soon.",
-                    "es": "Pronto llegarán nuevas oportunidades para ganar.",
-                    "cs": "Nové možnosti výdělku již brzy.",
-                    "de": "Neue Möglichkeiten zum Verdienen kommen bald.",
-                    "fr": "De nouvelles opportunités de rendement arrivent bientôt.",
-                    "pt": "Novas oportunidades para ganhar em breve."
+                    "en": "Update Trezor Suite to access new earning opportunities.",
+                    "es": "Actualiza Trezor Suite para acceder a nuevas oportunidades de ganancias.",
+                    "cs": "Aktualizujte Trezor Suite pro přístup k novým příležitostem k výdělku.",
+                    "de": "Aktualisieren Sie Trezor Suite, um neue Verdienstmöglichkeiten zu nutzen.",
+                    "fr": "Mettez à jour Trezor Suite pour accéder à de nouvelles opportunités de gain.",
+                    "pt": "Atualize o Trezor Suite para acessar novas oportunidades de ganho."
                 },
                 "feature": [
                     {
@@ -1617,11 +1754,11 @@
                     },
                     {
                         "variant": "B",
-                        "percentage": 70
+                        "percentage": 100
                     },
                     {
                         "variant": "C",
-                        "percentage": 30
+                        "percentage": 0
                     }
                 ]
             }

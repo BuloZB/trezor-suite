@@ -1,15 +1,15 @@
+import { selectSelectedAccount } from '@suite/account';
 import { Translation } from '@suite/intl';
 import {
-    type SuiteRouterHistoryDep,
     isAccountTabRoute,
     resolveEffectiveBackgroundRouteName,
     selectRoute,
+    selectSuiteRouterHistoryDep,
 } from '@suite/router';
 import { useServices } from '@suite-common/dependency-injection';
 import { selectDeviceAccountForNetworkSymbolAndAccountTypeWithIndex } from '@suite-common/wallet-core';
 
 import { useSelector } from 'src/hooks/suite';
-import { selectSelectedAccount } from 'src/reducers/wallet/selectedAccountReducer';
 
 import { AccountName } from './AccountName/AccountName';
 import { AccountSubpageName } from './AccountName/AccountSubpageName';
@@ -18,7 +18,7 @@ import { SettingsName } from './SettingsName';
 
 export const PageName = () => {
     const route = useSelector(selectRoute);
-    const { suiteRouterHistory } = useServices<SuiteRouterHistoryDep>();
+    const { suiteRouterHistory } = useServices(selectSuiteRouterHistoryDep);
     const currentRoute = resolveEffectiveBackgroundRouteName(
         route,
         suiteRouterHistory.getLocation(),

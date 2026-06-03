@@ -130,6 +130,10 @@ class InvityAPI {
         this.serverEnvironment = serverEnvironment;
     }
 
+    private getSuiteTraceHeader() {
+        return createHash('sha256').update(this.getInvityAPIKey()).digest('hex');
+    }
+
     private getOptionAPIHeader() {
         if (isNative()) return 'X-SuiteN-Api';
         if (isDesktop()) return 'X-SuiteA-Api';
@@ -142,7 +146,7 @@ class InvityAPI {
         method = 'POST',
         apiHeaderValue?: string,
         signal?: SignalType,
-    ): any {
+    ): RequestInit {
         const apiHeader = this.getOptionAPIHeader();
 
         return {
@@ -150,6 +154,7 @@ class InvityAPI {
             mode: 'cors',
             headers: {
                 [apiHeader]: apiHeaderValue || this.getInvityAPIKey(),
+                'X-Trace-Id': this.getSuiteTraceHeader(),
                 'X-Suite-Version': getSuiteVersion(),
                 'X-Suite-Platform': getOsName(),
                 ...(method === 'POST' && {

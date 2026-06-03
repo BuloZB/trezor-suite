@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { useTranslation } from '@suite/intl';
+import { isOnionUrl } from '@suite/tor';
 import { useServices } from '@suite-common/dependency-injection';
 import { type BackendType, type NetworkSymbol, getNetwork } from '@suite-common/wallet-config';
 import { blockchainActions } from '@suite-common/wallet-core';
@@ -12,7 +13,6 @@ import TrezorConnect from '@trezor/connect';
 import { isUrlWithQuery } from '@trezor/utils';
 
 import { useDispatch, useSelector } from 'src/hooks/suite';
-import { isOnionUrl } from 'src/utils/suite/tor';
 
 export type BackendOption = BackendType | 'default';
 
@@ -110,7 +110,7 @@ const getStoredState = (
 });
 
 export const useBackendsForm = (symbol: NetworkSymbol) => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const backends = useSelector(state => state.wallet.blockchain[symbol].backends);
     const dispatch = useDispatch();
     const { translationString } = useTranslation();

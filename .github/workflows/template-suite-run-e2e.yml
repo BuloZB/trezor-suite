@@ -149,10 +149,11 @@ jobs:
         with:
           mode: firewall-free
           job-summary: errors
+          firewall-version: 1.11.0
       - name: Install PW Dependencies
         shell: bash
         run: |
-          sfw --silent yarn workspaces focus @trezor/suite-e2e ${{ inputs.workspace-dependencies }}
+          sfw yarn workspaces focus @trezor/suite-e2e ${{ inputs.workspace-dependencies }}
 
       - name: Install Playwright Browsers
         if: inputs.target == 'web' && steps.playwright-cache.outputs.cache-hit != 'true'

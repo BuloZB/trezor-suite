@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { useFocusEffect } from '@react-navigation/native';
 
 import {
-    selectTradingExchangeActiveQuote,
+    selectTradingExchangeSelectedQuote,
     tradingExchangeActions,
     useAllowanceTxTracking,
 } from '@suite-common/trading';
@@ -15,6 +15,7 @@ import {
     Screen,
     type StackProps,
 } from '@suite-native/navigation';
+import { useExchangeAnalyticsStepReport } from '@suite-native/trading-analytics';
 import { useTransactionStatusOverride } from '@suite-native/trading-debug';
 import { selectExchangeSelectedSendAccount } from '@suite-native/trading-state';
 import { useTransactionDetails } from '@suite-native/transaction-management';
@@ -41,9 +42,12 @@ export const TradingConfirmingScreen = ({
 
     const dispatch = useDispatch();
     const sendAccount = useSelector(selectExchangeSelectedSendAccount);
-    const activeQuote = useSelector(selectTradingExchangeActiveQuote);
+    const activeQuote = useSelector(selectTradingExchangeSelectedQuote);
     const accountKey = sendAccount?.key ?? null;
     const approvalSendTxHash = activeQuote?.approvalSendTxHash;
+    const reportToAnalytics = useExchangeAnalyticsStepReport(
+        flowType === 'approve' ? 'approval-confirming' : 'revoke-confirming',
+    );
 
     const { confirmApproval } = useApprovalFlow();
 
@@ -54,6 +58,13 @@ export const TradingConfirmingScreen = ({
         approvalTxid,
         setApprovalTxid,
     } = useAllowanceTxTracking({ accountKey });
+
+    const reportVisit = useEffectEvent(() => {
+        reportToAnalytics('visit');
+    });
+    useEffect(() => {
+        reportVisit();
+    }, []);
 
     useEffect(() => {
         if (approvalSendTxHash) {
@@ -81,11 +92,12 @@ export const TradingConfirmingScreen = ({
 
             if (isSingleBackPress) {
                 dispatch(tradingExchangeActions.saveSelectedQuote(undefined));
+                reportToAnalytics('cancel');
             }
         });
 
         return unsubscribe;
-    }, [dispatch, navigation]);
+    }, [dispatch, navigation, reportToAnalytics]);
 
     useFocusEffect(
         useCallback(() => {
@@ -96,14 +108,18 @@ export const TradingConfirmingScreen = ({
             const handleConfirmed = async () => {
                 switch (flowType) {
                     case 'approve': {
-                        let response = await confirmApproval(activeQuote);
+                        const response = await confirmApproval(activeQuote);
 
                         if (response?.status === 'APPROVAL_PENDING') {
                             // we know it was confirmed, so we can set the status to CONFIRM even if it came as APPROVAL_PENDING
                             // that is basically what api does (but it takes time)
                             // so we need to do it here to avoid the approval screen transition through useExchangeFlow
-                            response = { ...response, status: 'CONFIRM' };
-                            dispatch(tradingExchangeActions.saveSelectedQuote(response));
+                            dispatch(
+                                tradingExchangeActions.saveSelectedQuote({
+                                    ...response,
+                                    status: 'CONFIRM',
+                                }),
+                            );
                         }
 
                         if (!response) {
@@ -123,8 +139,20 @@ export const TradingConfirmingScreen = ({
 
                     case 'revoke-and-approve':
                         dispatch(sendFormActions.dispose());
-                        dispatch(tradingExchangeActions.saveSelectedQuote(undefined));
-                        // preselectedQuote is preserved in the store, so we can navigate to the approval screen with it
+                        // The post-revoke quote carries the revoke transaction's
+                        // approvalSendTxHash and approvalType: 'ZERO'. Strip them so the
+                        // next confirmApproval call requests a fresh approval rather than
+                        // re-using the revoke txid as the approval txid.
+                        if (activeQuote) {
+                            dispatch(
+                                tradingExchangeActions.saveSelectedQuote({
+                                    ...activeQuote,
+                                    approvalSendTxHash: undefined,
+                                    approvalType: undefined,
+                                    status: 'APPROVAL_REQ',
+                                }),
+                            );
+                        }
                         navigation.popToTop();
                         navigation.push(RootStackRoutes.TradingExchangeApproval, {
                             isRevoked: true,
@@ -134,19 +162,28 @@ export const TradingConfirmingScreen = ({
                     case 'revoke':
                         dispatch(sendFormActions.dispose());
                         dispatch(tradingExchangeActions.saveSelectedQuote(undefined));
-                        dispatch(tradingExchangeActions.savePreselectedQuote(undefined));
                         navigation.popToTop();
                         break;
 
                     default:
                         exhaustive(flowType);
                 }
+
+                reportToAnalytics('continue');
             };
 
             void handleConfirmed().catch(() => {
                 hasConfirmedRef.current = false;
             });
-        }, [isConfirmed, activeQuote, flowType, confirmApproval, dispatch, navigation]),
+        }, [
+            isConfirmed,
+            activeQuote,
+            flowType,
+            confirmApproval,
+            dispatch,
+            navigation,
+            reportToAnalytics,
+        ]),
     );
 
     return (

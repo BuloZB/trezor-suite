@@ -1,5 +1,6 @@
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { useDevice } from '@suite/device';
+import { LearnMoreButton } from '@suite/external-links';
 import { Translation } from '@suite/intl';
 import { Anchor, SettingsAnchor } from '@suite/router';
 import { useServices } from '@suite-common/dependency-injection';
@@ -8,7 +9,6 @@ import { ActionColumn, SectionItem, TextColumn } from '@trezor/product-component
 import { HELP_CENTER_PASSPHRASE_URL } from '@trezor/urls';
 
 import { applySettings } from 'src/actions/settings/deviceSettingsActions';
-import { LearnMoreButton } from 'src/components/suite/LearnMoreButton';
 import { useDispatch } from 'src/hooks/suite';
 
 interface PassphraseProps {
@@ -18,7 +18,7 @@ interface PassphraseProps {
 export const Passphrase = ({ isDeviceLocked }: PassphraseProps) => {
     const dispatch = useDispatch();
     const { device } = useDevice();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const passphraseProtection = !!device?.features?.passphrase_protection;
 
     const handleChange = () => {

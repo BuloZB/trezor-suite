@@ -1,6 +1,8 @@
+import { DEVICE_RENDERED_EVM_INDENT } from '../../support/common';
 import { expect, test } from '../../support/fixtures';
 
 const ETHEREUM_ADDRESS_3 = '0x574BbB36871bA6b78E27f4B4dCFb76eA0091880B';
+const DEVICE_ETHEREUM_ADDRESS_3 = `${DEVICE_RENDERED_EVM_INDENT}${ETHEREUM_ADDRESS_3}`;
 
 test.describe('Global receive and send', { tag: ['@T3T1', '@T3W1'] }, () => {
     test.use({ deviceSetup: { mnemonic: 'mnemonic_all' } });
@@ -19,8 +21,8 @@ test.describe('Global receive and send', { tag: ['@T3T1', '@T3W1'] }, () => {
 
         await test.step('Add ETH account', async () => {
             await tradingPage.assetPicker.globalAddAccountButton.click();
-            await page.getByTestId('@settings/wallet/network/eth').click();
-            await tradingPage.receiveAccount.findAccountButton.click();
+            await tradingPage.receiveAccount.addAccountModalNetworkButton('eth').click();
+            await page.discoveryShouldFinish();
         });
 
         await test.step('Filter and select account', async () => {
@@ -49,7 +51,7 @@ test.describe('Global receive and send', { tag: ['@T3T1', '@T3W1'] }, () => {
             }
             expect.soft(addressDisplayedInSuite.replace(/\s/g, '')).toEqual(ETHEREUM_ADDRESS_3);
             const addressDisplayedOnDevice = await devicePrompt.getAddressFromDisplay();
-            expect.soft(addressDisplayedOnDevice).toEqual(ETHEREUM_ADDRESS_3);
+            expect.soft(addressDisplayedOnDevice).toEqual(DEVICE_ETHEREUM_ADDRESS_3);
             await expect(walletPage.copyAddressButton).toBeEnabled();
         });
     });

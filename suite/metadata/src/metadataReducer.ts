@@ -18,8 +18,10 @@ import {
 } from '@suite-common/metadata-types';
 import { type AnyAction } from '@suite-common/redux-utils';
 import { type TrezorDevice } from '@suite-common/suite-types';
+import { type WalletDescriptor } from '@suite-common/wallet';
 import { type AccountsRootState, selectAccountByKey } from '@suite-common/wallet-core';
 import { type Account, type AccountKey } from '@suite-common/wallet-types';
+import { parseDeviceStaticSessionId } from '@suite-common/wallet-utils';
 import { type DeviceState, type StaticSessionId } from '@trezor/connect';
 
 import * as METADATA from './metadataConstants';
@@ -35,6 +37,7 @@ export const initialMetadataState: MetadataState = {
     enabled: false,
     initiating: false,
     providers: [],
+    hasLegacyLabelsMigrated: {},
     selectedProvider: {
         labels: '',
         passwords: '',
@@ -124,9 +127,16 @@ export const metadataReducer = (
                     delete draft.error?.[action.payload.deviceState];
                 }
                 break;
+            case METADATA.SET_LEGACY_LABELS_MIGRATION_FOR_WALLET:
+                draft.hasLegacyLabelsMigrated[action.payload.walletDescriptor] = true;
+                break;
             case deviceActions.forgetDevice.type:
                 if (action.payload.device.state?.staticSessionId) {
-                    delete draft.error?.[action.payload.device.state.staticSessionId];
+                    const { staticSessionId } = action.payload.device.state;
+                    const { walletDescriptor } = parseDeviceStaticSessionId(staticSessionId);
+
+                    delete draft.error?.[staticSessionId];
+                    delete draft.hasLegacyLabelsMigrated[walletDescriptor];
                 }
 
             // no default
@@ -149,9 +159,15 @@ export const selectIsMetadataProviderConnected = (state: MetadataRootState) =>
 
 /**
  * Select currently selected provider for metadata of type 'labels'
+ * @deprecated Legacy Labeling
  */
 export const selectSelectedProviderForLabels = (state: { metadata: MetadataState }) =>
     state.metadata.providers.find(p => p.clientId === state.metadata.selectedProvider.labels);
+
+export const selectHasLegacyLabelsMigrated = (
+    state: { metadata: MetadataState },
+    walletDescriptor: WalletDescriptor,
+) => state.metadata.hasLegacyLabelsMigrated[walletDescriptor] === true;
 
 /**
  * @deprecated Legacy Labeling
@@ -214,7 +230,7 @@ export const selectAccountLabelsLegacy = (state: {
                 return dict;
             }
             const data = provider.data[metadataKeys.fileName];
-            if ('accountLabel' in data) {
+            if (data && 'accountLabel' in data) {
                 dict[account.key] = data.accountLabel;
             }
 

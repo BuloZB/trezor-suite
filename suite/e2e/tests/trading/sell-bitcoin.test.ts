@@ -12,9 +12,9 @@ import { formatAddressWithNewlines } from '../../support/common';
 import { expect, test } from '../../support/fixtures';
 
 // Expected values based on our mocked responses
-const fiatAmount = sellQuotesBTC[0].fiatStringAmount;
-const cryptoAmount = sellQuotesBTC[0].cryptoStringAmount;
-const provider = getCompanyNameFromList(sellQuotesBTC[0].exchange, 'sellList');
+const fiatAmount = sellQuotesBTC[0]?.fiatStringAmount ?? '';
+const cryptoAmount = sellQuotesBTC[0]?.cryptoStringAmount ?? '';
+const provider = getCompanyNameFromList(sellQuotesBTC[0]?.exchange ?? '', 'sellList');
 const providerAddress = sellWatchBTC.destinationAddress;
 const providerPaymentId = sellWatchBTC.destinationPaymentExtraId;
 const formattedCryptoAmount = `${cryptoAmount} BTC`;
@@ -51,6 +51,14 @@ test.describe('Trading - Sell BTC', { tag: ['@webOnly', '@T3W1', '@T3T1'] }, () 
             await expect(tradingPage.quotes.bestOfferAmount).toHaveText(fiatAmount);
             await expect(tradingPage.quotes.provider).toHaveText(capitalizeFirstLetter(provider));
             await tradingPage.fees.expectBitcoinFeeCalculated();
+        });
+
+        await test.step('Confirm button shows provider name and KYC warning is visible', async () => {
+            await expect(tradingPage.sellBestOfferButton).toHaveTranslation('TR_TRADING_SELL_VIA', {
+                values: { providerName: provider },
+            });
+            await expect(tradingPage.sellBestOfferButton.locator('svg')).toBeVisible();
+            await expect(tradingPage.kycWarning).toBeVisible();
         });
 
         await test.step('Confirm sell', async () => {

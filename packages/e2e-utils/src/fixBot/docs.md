@@ -21,6 +21,9 @@ GitHub Actions: fix-tests.yml
   matrix: one job per fix task (parallel)
     each job: Fix Agent loop → writes fix-result.json + pr-description.md → push branch + gh pr create
   final job: Slack notification (reads GHA job outputs, no filesystem access needed)
+
+GHA: .github/workflows/test-suite-nightly-fix-agent.yml
+Source: packages/e2e-utils/src/fixBot
 ```
 
 The GitHub Actions workflow IS the orchestrator. No separate orchestration program needed.
@@ -33,10 +36,11 @@ After completing its work, the fix agent writes two files to the **worktree root
     ```json
     {
         "task_id": "fix-001",
-        "result": "pass | partial | fail",
+        "result": "pass | partial | fail | not_duplicated",
         "iterations": 2,
         "passed": ["web/T3W1/suite/e2e/tests/wallet/send.ts"],
-        "failed": []
+        "failed": [],
+        "pr_title": "Nightly fix 26-05-19 - send-button locator"
     }
     ```
 - **`pr-description.md`** — ready-to-post PR body, passed directly to `gh pr create --body-file`
@@ -60,7 +64,7 @@ Extends the existing `AGENT.md`. The existing Steps 1–6 stay as-is. The cluste
 | Value         | Meaning                                                     | Automatable       |
 | ------------- | ----------------------------------------------------------- | ----------------- |
 | `TEST_CODE`   | Only test files need to change                              | ✅                |
-| `LOCATOR_ADD` | Add/modify `data-testid` in product component + update test | ✅                |
+| `LOCATOR_ADD` | Add/modify `data-testid` in product component + update test | ✅                |
 | `PRODUCT_BUG` | Actual product logic needs fixing                           | ❌ human required |
 | `INFRA`       | CI/environment issue                                        | ❌ human required |
 
@@ -121,7 +125,7 @@ One Claude Code invocation per fix task. Receives a single fix task entry from `
 ### Loop
 
 ```
-Setup environment (dev server / build electron app / emulator)
+Setup environment (web preview server (pre-built static) / build electron app / emulator)
 Pre-flight run: playwright test <spec> for each validation
   → confirms failure is real
   → produces fresh local trace + screenshots
@@ -136,7 +140,7 @@ Loop:
 
 Fix constraints
 
-- May only change test files and `data-testid` attributes in product components
+- May only change test files and `data-testid` attributes in product components
 - Must run ALL validations listed in the fix task
 - A fix task is "done" when every validation passes or the iteration budget is exhausted
 
@@ -148,25 +152,63 @@ Fix constraints
 
 Every iteration commits locally. First iteration is a regular commit, subsequent ones are `--fixup`.
 
-- First commit: generic message, e.g. `test(e2e): fix send-button locator`
-- Subsequent iterations: `git commit --fixup HEAD` (no custom message, auto-generated)
+- First commit: generic message, e.g. `test(e2e): fix send-button locator` — save its SHA
+- Subsequent iterations: `git commit --fixup <SHA of the iteration-1 commit>` (no custom message, auto-generated)
 
-| Result    | Action                                           |
-| --------- | ------------------------------------------------ |
-| All pass  | Push branch, create PR ✅                        |
-| Some pass | Push branch, create PR ⚠️                        |
-| Zero pass | Written summary in job log — no branch pushed ❌ |
+| Result         | Action                                           |
+| -------------- | ------------------------------------------------ |
+| All pass       | Push branch, create PR ✅                        |
+| Some pass      | Push branch, create PR ⚠️                        |
+| Zero pass      | Written summary in job log — no branch pushed ❌ |
+| Not duplicated | Written summary in job log — no branch pushed 🔵 |
 
 ### Git strategy
 
-- One branch per fix task, name prepared by the analysis agent and included in `report.json` as `branch`: `fix/nightly-YYYY-MM-DD-<root-cause-slug>`
+- One branch and worktree per fix task, name prepared by the analysis agent and included in `report.json` as `branch`: `fix/nightly-YYYY-MM-DD-<root-cause-slug>`
 - PRs are created only when ≥1 validation passes
+- PR is assigned to the **QA and Test Automation** GitHub project (org project #78)
 
-### PR description structure
+### PR description
 
-## Nightly Fix — 2026-04-23
+The fix agent writes a per-task `pr-description.md` covering: root cause, fix applied, a validation status table (✅/❌ per platform/group/spec), the commit log, and any prompt gaps encountered. See `FIX_AGENT.md` Step 4 for the authoritative structure.
 
-✅ Fixed (3 tasks — 8 tests)
-⚠️ Partially fixed (1 task — 2/3 tests passing, see attempt log)
-❌ Failed to fix (1 task — see attempt log)
-🚫 Human required (2 tasks — PRODUCT_BUG, INFRA)
+### Excluded test directories
+
+Tests under `suite/e2e/tests/trading-live/` are excluded from analysis — omitted entirely, not placed in `skipped`.
+
+---
+
+## Known Problems
+
+### No cross-run state: redundant re-processing of known failures
+
+Each run of the system is fully stateless. There is no memory of what previous runs analyzed, attempted, or produced. This causes a class of problems when the same root causes recur across consecutive nightly runs.
+
+**Concrete scenario:**
+
+On Day 1, four root causes fail: A, B, C, D.
+
+- A is diagnosed as unfixable (`PRODUCT_BUG` or `INFRA`) and placed in `skipped`.
+- B, C, D are fixable. The fix agent succeeds on C and D, fails on B.
+- D's PR is merged immediately. C's PR remains open pending further review.
+- B produced no PR — the fix attempt exhausted its iteration budget without passing.
+
+On Day 2, the nightly run produces failures for A, B, C, and a new root cause E.
+
+- **A** is re-analyzed from scratch — traces fetched, code read, the same unfixable conclusion reached. All of that work was already done the day before.
+- **B** is re-analyzed from scratch and a new fix task is generated. The fixer starts over with no knowledge of what was attempted the previous day.
+- **C** already has an open PR. The system generates a new fix task for it anyway, and the fixer creates a competing branch targeting the same failing tests.
+- **E** is genuinely new and needs to be processed. ✅
+
+The result: tokens and CI time are spent re-diagnosing A, B, and C; a competing PR is created for C; and the system provides no signal distinguishing chronic failures from new ones.
+
+**What the system does not currently track between runs:**
+
+- Which root causes were already diagnosed as unfixable
+- Which root causes have an open fix PR
+- Which root causes were attempted but produced no PR (fix agent failed)
+- How many times a given root cause has been attempted without success
+
+### Failed fix attempts leave no readable audit trail
+
+When the fix agent exhausts its iteration budget without passing a single validation, no branch is pushed and no PR is created. The only record of what was attempted lives in the raw GHA job log, which is verbose, ephemeral, and not structured for human reading.

@@ -61,7 +61,13 @@ export type TradingNavigateFrom =
     | 'trade/sell'
     | 'trade/exchange'
     | 'trade/concierge';
-export type TradingExchangeAction = 'continue' | 'cancel' | 'retry' | 'visit' | 'revoke';
+export type TradingExchangeAction =
+    | 'continue'
+    | 'cancel'
+    | 'retry'
+    | 'visit'
+    | 'revoke'
+    | 'value_change';
 export type TradingExchangeStep =
     | 'exchange-form'
     | 'account-selection'
@@ -71,7 +77,11 @@ export type TradingExchangeStep =
     | 'transaction-preview'
     | 'fee-selection'
     | 'sign-and-send'
-    | 'webview';
+    | 'webview'
+    | 'approval-preview'
+    | 'revoke-preview'
+    | 'approval-confirming'
+    | 'revoke-confirming';
 
 export type TradingSellAction = 'continue' | 'cancel' | 'retry' | 'visit';
 export type TradingSellStep =

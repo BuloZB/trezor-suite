@@ -6,7 +6,6 @@ import {
 
 export * from './device';
 export type * from './firmware';
-export type * from './github';
 export type * from './guide';
 export type * from './messageSystem';
 export type * from './modal';
@@ -16,7 +15,6 @@ export type * from './sign';
 export type * from './thp';
 export * from './languages';
 
-export type Selector<TReturnValue> = (state: any) => TReturnValue;
 export type SuiteCompatibleAction<TPayload> = (
     payload: TPayload,
 ) => AnyAction | ActionCreatorWithPayload<TPayload> | ActionCreatorWithoutPayload;

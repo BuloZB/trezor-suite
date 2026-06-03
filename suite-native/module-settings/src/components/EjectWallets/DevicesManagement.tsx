@@ -17,6 +17,7 @@ export const DevicesManagement = () => {
             <AutoEjectSwitch />
             {deviceGroups.map(devices => {
                 const [firstDevice] = devices;
+                if (!firstDevice) return null;
 
                 if (!shouldDeviceBeRemembered({ device: firstDevice })) return null;
 
@@ -30,7 +31,7 @@ export const DevicesManagement = () => {
                             )}
                             <Box>
                                 <Text variant="body-md-strong" color="contentPrimary">
-                                    {firstDevice.features.label || firstDevice.name}
+                                    {firstDevice.features?.label ?? firstDevice.name}
                                 </Text>
                                 <HStack alignItems="center" spacing="sp8">
                                     <ConnectionDot isConnected={firstDevice.connected} />

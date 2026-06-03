@@ -1,9 +1,9 @@
 import { fromWei, toWei } from 'web3-utils';
 
-import { Calldata } from '@suite-common/calldata';
+import { Calldata, isEvmClearSigningTx } from '@suite-common/calldata';
 import { EVM_SPENDER_LABELS, KNOWN_VAULTS } from '@suite-common/suite-constants';
 import { type TrezorDevice } from '@suite-common/suite-types';
-import { networks } from '@suite-common/wallet-config';
+import { EARN_YIELD_CLAIM_PROVIDER, networks } from '@suite-common/wallet-config';
 import {
     type Account,
     type FormState,
@@ -12,14 +12,18 @@ import {
     type ReviewOutputState,
     type StakeFormState,
     type StakeType,
+    type YieldClaimReward,
 } from '@suite-common/wallet-types';
 import type { CardanoOutput } from '@trezor/connect';
 import { getFirmwareVersion } from '@trezor/device-utils';
-import { versionUtils } from '@trezor/utils';
+import { BigNumber, versionUtils } from '@trezor/utils';
 
 import { datetimeToLocktime } from './bitcoinUtils';
 import { getShortFingerprint, isCardanoTx } from './cardanoUtils';
-import { isApprovalFlowSupported as isApprovalSupported } from './deviceUtils';
+import {
+    isApprovalFlowSupported as isApprovalSupported,
+    isEvmClearSigningSupported as isEvmClearSigningSupportedByDevice,
+} from './deviceUtils';
 import {
     getEvmTransactionTextSignature,
     isEvmApprovalTx,
@@ -108,6 +112,49 @@ type ConstructOutputsParams = {
     decreaseOutputId: number | undefined;
     account: Account;
     precomposedForm: FormState | StakeFormState;
+    vaultName?: string;
+    availableRewards?: YieldClaimReward[];
+    swapSlippage?: string;
+    isClearSignedTradingSwap: boolean;
+};
+
+type IsClearSignedEvmTradingSwapTransactionParams = {
+    account: Account;
+    device: TrezorDevice;
+    precomposedTx: GeneralPrecomposedTransactionFinal;
+    transactionData?: string;
+    trading?: FormState['trading'];
+};
+
+const getClearSignedSwapRecipientName = (
+    precomposedTx: GeneralPrecomposedTransactionFinal,
+    fallback: string,
+): string => {
+    const routerAddress = precomposedTx.outputs.find(
+        o => 'address' in o && typeof o.address === 'string',
+    )?.address as string | undefined;
+
+    return (routerAddress && EVM_SPENDER_LABELS[routerAddress.toLowerCase()]) ?? fallback;
+};
+
+export const isClearSignedEvmTradingSwapTransaction = ({
+    account,
+    device,
+    precomposedTx,
+    transactionData,
+    trading,
+}: IsClearSignedEvmTradingSwapTransactionParams): boolean => {
+    if (!isExchangeTradingForm(trading)) return false;
+    if (!isEvmClearSigningSupportedByDevice(device)) return false;
+    if (isEvmApprovalTx(transactionData)) return false;
+    if (account.networkType !== 'ethereum' || !transactionData) return false;
+    const network = networks[account.symbol];
+    if (!('chainId' in network)) return false;
+    const to = precomposedTx.outputs.find(
+        o => 'address' in o && typeof o.address === 'string',
+    )?.address;
+
+    return isEvmClearSigningTx(network.chainId, to, transactionData);
 };
 
 const constructOldFlow = ({
@@ -115,12 +162,15 @@ const constructOldFlow = ({
     decreaseOutputId,
     account,
     precomposedForm,
+    isClearSignedTradingSwap,
 }: ConstructOutputsParams): ReviewOutput[] => {
     const outputs: ReviewOutput[] = [];
 
     const isCardano = isCardanoTx(account, precomposedTx);
     const isStellar = account.networkType === 'stellar';
     const { networkType } = account;
+    const evmTxType = getEvmTransactionTextSignature(precomposedForm.transactionData);
+    const isYieldOperation = isEvmYieldTxByTextSignature(evmTxType);
 
     const hasDestinationTag = 'destinationTag' in precomposedForm;
 
@@ -142,11 +192,15 @@ const constructOldFlow = ({
 
         // add decrease output confirmation step between txid and fee
         if (typeof decreaseOutputId === 'number') {
+            const { outputs: precomposedOutputs } = precomposedTx;
+            // @ts-expect-error: indexing with noUncheckedIndexedAccess
+            const decreasedOutput: (typeof precomposedOutputs)[number] =
+                precomposedOutputs[decreaseOutputId];
             outputs.splice(1, 0, {
                 type: 'reduce-output',
-                label: precomposedTx.outputs[decreaseOutputId].address!,
+                label: decreasedOutput.address!,
                 value: precomposedTx.feeDifference,
-                value2: precomposedTx.outputs[decreaseOutputId].amount.toString(),
+                value2: decreasedOutput.amount.toString(),
             });
         }
     } else if (isCardano) {
@@ -233,15 +287,14 @@ const constructOldFlow = ({
             });
     }
 
-    if (precomposedForm.tronDataAscii) {
-        outputs.push({ type: 'note', value: precomposedForm.tronDataAscii });
-    } else {
-        if (
-            precomposedForm.transactionData &&
-            (!precomposedTx.token || precomposedForm.yieldMetadata)
-        ) {
-            outputs.push({ type: 'data', value: precomposedForm.transactionData });
-        }
+    if (networkType === 'tron' && precomposedForm.destinationTag) {
+        outputs.push({ type: 'note', value: precomposedForm.destinationTag });
+    } else if (
+        precomposedForm.transactionData &&
+        (!precomposedTx.token || isYieldOperation) &&
+        !isClearSignedTradingSwap
+    ) {
+        outputs.push({ type: 'data', value: precomposedForm.transactionData });
     }
 
     // For bump fee we have to analyze tx data,
@@ -260,11 +313,7 @@ const constructOldFlow = ({
                 value: precomposedForm.destinationTag,
             });
         }
-    } else if (
-        (!isBumpFeeRbf || !precomposedTx.useNativeRbf) &&
-        !stakeType &&
-        !precomposedForm.yieldMetadata
-    ) {
+    } else if ((!isBumpFeeRbf || !precomposedTx.useNativeRbf) && !stakeType && !isYieldOperation) {
         outputs.push({ type: 'fee', value: precomposedTx.fee });
     }
 
@@ -276,13 +325,19 @@ const constructNewFlow = ({
     decreaseOutputId,
     account,
     precomposedForm,
+    vaultName,
+    availableRewards,
+    swapSlippage,
+    isClearSignedTradingSwap,
     isApprovalFlowSupported,
+    isEvmClearSigningSupported,
     isUpdatedEthereumSendFlow,
     isUpdatedStellarSendFlow,
 }: ConstructOutputsParams & {
     isUpdatedEthereumSendFlow: boolean;
     isUpdatedStellarSendFlow: boolean;
     isApprovalFlowSupported: boolean;
+    isEvmClearSigningSupported: boolean;
 }): ReviewOutput[] => {
     const outputs: ReviewOutput[] = [];
 
@@ -300,19 +355,30 @@ const constructNewFlow = ({
     const trading = precomposedForm?.trading;
 
     const evmTxType = getEvmTransactionTextSignature(precomposedForm.transactionData);
-    const isYieldOp = !!precomposedForm.yieldMetadata || isEvmYieldTxByTextSignature(evmTxType);
+    const isClaimOp = evmTxType === 'claim';
+    const isYieldOp = isEvmYieldTxByTextSignature(evmTxType);
+    const isEvmClaimClearSign = isUpdatedEthereumSendFlow && isEvmClearSigningSupported;
+
+    if (isClaimOp && isEvmClaimClearSign) {
+        outputs.push(
+            { type: 'data', value: EARN_YIELD_CLAIM_PROVIDER },
+            { type: 'rewards', rewards: availableRewards ?? [] },
+        );
+
+        return outputs;
+    }
 
     if (isYieldOp && isUpdatedEthereumSendFlow) {
         const fallbackAddress = precomposedTx.outputs.find(
             o => 'address' in o && typeof o.address === 'string',
         )?.address;
-        const vaultName =
-            precomposedForm.yieldMetadata?.vaultName ??
+        const resolvedVaultName =
+            vaultName ??
             (typeof fallbackAddress === 'string'
                 ? (KNOWN_VAULTS[fallbackAddress.toLowerCase()] ?? fallbackAddress)
                 : '');
 
-        outputs.push({ type: 'data', value: '' }, { type: 'address', value: vaultName });
+        outputs.push({ type: 'data', value: '' }, { type: 'address', value: resolvedVaultName });
 
         precomposedTx.outputs.forEach(o => {
             if ('address' in o && typeof o.address === 'string') {
@@ -352,18 +418,16 @@ const constructNewFlow = ({
         });
     }
 
-    if (precomposedForm.tronDataAscii) {
-        outputs.push({ type: 'note', value: precomposedForm.tronDataAscii });
-    } else {
-        if (
-            (precomposedForm.transactionData && !precomposedTx.token && !isEvmApproval) ||
+    if (isTron && precomposedForm.destinationTag) {
+        outputs.push({ type: 'note', value: precomposedForm.destinationTag });
+    } else if (
+        ((precomposedForm.transactionData && !precomposedTx.token && !isEvmApproval) ||
             (precomposedForm.transactionData && isEvmApproval && !isApprovalFlowSupported) ||
-            (precomposedForm.transactionData &&
-                precomposedForm.yieldMetadata &&
-                !isUpdatedEthereumSendFlow)
-        ) {
-            outputs.push({ type: 'data', value: precomposedForm.transactionData });
-        }
+            (precomposedForm.transactionData && isYieldOp && !isUpdatedEthereumSendFlow) ||
+            (precomposedForm.transactionData && isClaimOp && !isEvmClaimClearSign)) &&
+        !isClearSignedTradingSwap
+    ) {
+        outputs.push({ type: 'data', value: precomposedForm.transactionData });
     }
 
     const isRbf = isRbfBumpFeeTransaction(precomposedTx);
@@ -384,11 +448,15 @@ const constructNewFlow = ({
 
         // add decrease output confirmation step between txid and fee
         if (typeof decreaseOutputId === 'number') {
+            const { outputs: precomposedOutputs } = precomposedTx;
+            // @ts-expect-error: indexing with noUncheckedIndexedAccess
+            const decreasedOutput: (typeof precomposedOutputs)[number] =
+                precomposedOutputs[decreaseOutputId];
             outputs.splice(1, 0, {
                 type: 'reduce-output',
-                label: precomposedTx.outputs[decreaseOutputId].address!,
+                label: decreasedOutput.address!,
                 value: precomposedTx.feeDifference,
-                value2: precomposedTx.outputs[decreaseOutputId].amount.toString(),
+                value2: decreasedOutput.amount.toString(),
             });
         }
     } else if (isCardano) {
@@ -420,14 +488,39 @@ const constructNewFlow = ({
                 }
             }
         });
-    } else if (precomposedForm.trading?.isSlip24Active && isExchangeTradingForm(trading)) {
-        outputs.push({ type: 'recipient_name', value: trading.recipientName });
+    } else if (
+        (precomposedForm.trading?.isSlip24Active || isClearSignedTradingSwap) &&
+        isExchangeTradingForm(trading)
+    ) {
+        const recipientName = isClearSignedTradingSwap
+            ? getClearSignedSwapRecipientName(precomposedTx, trading.recipientName)
+            : trading.recipientName;
+
+        if (recipientName) {
+            outputs.push({ type: 'recipient_name', value: recipientName });
+        }
+        if (isClearSignedTradingSwap) {
+            outputs.push({ type: 'swap_intent', value: 'swap' });
+        }
+        // TODO: extract the receive amount directly from the actual transaction data
+        // instead of deriving it from the quote and slippage.
+        const receive =
+            isClearSignedTradingSwap && swapSlippage
+                ? {
+                      ...trading.receive,
+                      amount: new BigNumber(trading.receive.amount)
+                          .multipliedBy(new BigNumber(100).minus(swapSlippage))
+                          .dividedBy(100)
+                          .toString(),
+                  }
+                : trading.receive;
         outputs.push({
             type: 'traded_assets',
-            value: '', // placeholder
-            value2: '', // placeholder
+            value: '',
+            value2: '',
             send: trading.send,
-            receive: trading.receive,
+            receive,
+            receiveAddress: isClearSignedTradingSwap ? trading.receiveAddress : undefined,
         });
     } else {
         precomposedTx.outputs.forEach(o => {
@@ -544,7 +637,12 @@ const constructNewFlow = ({
     return outputs;
 };
 
-type ConstructTransactionReviewOutputsProps = ConstructOutputsParams & { device: TrezorDevice };
+type ConstructTransactionReviewOutputsProps = Omit<
+    ConstructOutputsParams,
+    'isClearSignedTradingSwap'
+> & {
+    device: TrezorDevice;
+};
 
 export const constructTransactionReviewOutputs = ({
     device,
@@ -559,24 +657,36 @@ export const constructTransactionReviewOutputs = ({
         device,
         params.account.networkType,
     ); // > 2.9.0 && isStellar
+    const isClearSignedTradingSwap = isClearSignedEvmTradingSwapTransaction({
+        account: params.account,
+        device,
+        precomposedTx: params.precomposedTx,
+        transactionData: params.precomposedForm.transactionData,
+        trading: params.precomposedForm.trading,
+    });
     if (!isUpdatedSendFlow) {
-        return constructOldFlow(params);
+        return constructOldFlow({ ...params, isClearSignedTradingSwap });
     }
 
     return constructNewFlow({
+        ...params,
+        isClearSignedTradingSwap,
         isUpdatedEthereumSendFlow,
         isApprovalFlowSupported: isApprovalSupported(device),
+        isEvmClearSigningSupported: isEvmClearSigningSupportedByDevice(device),
         isUpdatedStellarSendFlow,
-        ...params,
     });
 };
 
 export const constructTransactionReviewOutputsOptional = ({
     account,
+    availableRewards,
     decreaseOutputId,
     device,
     precomposedForm,
     precomposedTx,
+    vaultName,
+    swapSlippage,
 }: Partial<ConstructTransactionReviewOutputsProps>): ReviewOutput[] => {
     if (
         account === undefined ||
@@ -589,9 +699,12 @@ export const constructTransactionReviewOutputsOptional = ({
 
     return constructTransactionReviewOutputs({
         account,
+        availableRewards,
         decreaseOutputId,
         device,
         precomposedForm,
         precomposedTx,
+        vaultName,
+        swapSlippage,
     });
 };

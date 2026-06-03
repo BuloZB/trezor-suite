@@ -1,4 +1,4 @@
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
 import { selectLanguage } from '@suite/settings';
 import { useServices } from '@suite-common/dependency-injection';
@@ -10,7 +10,7 @@ import { useDispatch, useSelector } from 'src/hooks/suite';
 import { findAncestorNodes, getNodeTitle } from 'src/utils/suite/guide';
 
 export const HeaderBreadcrumb = () => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const language = useSelector(selectLanguage);
     const indexNode = useSelector(state => state.guide.indexNode);
     const currentNode = useSelector(state => state.guide.currentNode);
@@ -67,7 +67,7 @@ export const HeaderBreadcrumb = () => {
     const grandParentNode = parentNodes.pop();
 
     return (
-        <Row gap={4}>
+        <Row gap={4} maxWidth="calc(100% - 36px - 8px)" flexWrap="wrap">
             <TextButton
                 onClick={() => {
                     if (grandParentNode) {

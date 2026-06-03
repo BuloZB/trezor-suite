@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
 import { useServices } from '@suite-common/dependency-injection';
 import { splitYieldPendingTransaction } from '@suite-common/wallet-core';
@@ -12,16 +12,16 @@ import { useYieldWithdrawContext } from './useYieldWithdrawContext';
 import { YieldActionStep } from '../common/YieldActionStep';
 import { YieldActionStepWarning } from '../common/YieldActionStepWarning';
 import { YieldFlowCompleteWithdraw } from '../common/YieldFlowCompleteWithdraw';
+import { getApyBreakdown } from '../yieldFlowUtils';
 
 export const YieldWithdrawForm = () => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
 
     const {
         vault,
         token,
         receiptToken,
         maxAmount,
-        completedAmount,
         errorMessage,
         pendingTransaction,
         isAmountEmpty,
@@ -32,6 +32,8 @@ export const YieldWithdrawForm = () => {
         otherUnitTokenSymbol,
         canToggleWithdrawUnit,
         withdrawInputUnit,
+        completedInput,
+        completedOutput,
         setAmountInput,
         toggleWithdrawInputUnit,
         submitAction,
@@ -45,6 +47,7 @@ export const YieldWithdrawForm = () => {
     );
 
     const handleOnWithdraw = () => {
+        const apyBreakdown = getApyBreakdown(vault.rewardRate?.components);
         analytics.report({
             type: events.yieldWithdrawEvent.name,
             payload: {
@@ -52,6 +55,7 @@ export const YieldWithdrawForm = () => {
                 action: 'continue',
                 networkSymbol: token.networkSymbol,
                 vaultId: vault.id,
+                ...(apyBreakdown && { apyBreakdown }),
             },
         });
 
@@ -114,10 +118,8 @@ export const YieldWithdrawForm = () => {
             <Column gap={24} width="100%" maxWidth={500}>
                 {flow.currentStep === 'complete' ? (
                     <YieldFlowCompleteWithdraw
-                        value={{
-                            token: withdrawInputUnit === 'shares' ? receiptToken : token,
-                            amount: completedAmount,
-                        }}
+                        input={completedInput}
+                        output={completedOutput}
                         vaultId={vault.id}
                     />
                 ) : (

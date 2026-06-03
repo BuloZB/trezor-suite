@@ -26,6 +26,7 @@ const suiteSyncMock: SuiteSync = {
     ensureWalletSuiteSyncOn: () =>
         Promise.resolve(err({ type: 'SuiteSyncUnavailableOnDeviceError' })),
     ensureWalletSuiteSyncOnAsync: () => Promise.resolve(),
+    onWalletSuiteSyncOnEnsured: () => {},
     turnOffSuiteSyncForWallet: () => Promise.resolve(),
     turnOnSuiteSync: () => Promise.resolve(ok()),
     turnOffSuiteSync: () => Promise.resolve(),
@@ -91,7 +92,7 @@ export const extraDependenciesCommonMock: ExtraDependencies = {
                 `Save data: ${data} into file: ${fileName}. Implementation on phone not ready.`,
             ),
         connectInitSettings,
-        migrateSuiteSyncLabelsForRbfTransaction: (_: any) => Promise.resolve([[], []]),
+        migrateSuiteSyncLabelsForRbfTransaction: () => Promise.resolve([[], []]),
     },
     selectors: {
         selectTokenDefinitionsEnabledNetworks: notImplementedSelector(

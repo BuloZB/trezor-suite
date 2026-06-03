@@ -319,14 +319,15 @@ export const onBlockchainNotificationThunk = createThunk(
             return;
         }
 
-        const account = accounts[0];
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const account: (typeof accounts)[number] = accounts[0];
 
         // ripple worker sends two notifications for the same tx (pending + confirmed/rejected)
         // dispatch only recv notifications
         if (tx.type === 'recv' && !tx.blockHeight) {
             const accountDevice = findAccountDevice(account, selectDevices(getState()));
 
-            const token = tx.tokens?.length ? tx.tokens[0] : undefined;
+            const token = tx.tokens?.[0];
             const areSatoshisUsed = getAreSatoshisUsed(
                 selectBitcoinAmountUnit(getState()),
                 account,

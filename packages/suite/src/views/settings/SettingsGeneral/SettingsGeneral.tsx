@@ -1,7 +1,9 @@
 import { selectIsSettingsDesktopAppPromoBannerShown } from '@suite/flags';
 import { Translation } from '@suite/intl';
+import { LabelingSettings } from '@suite/labeling';
 import { selectIsLegacyLabelingVisible, selectSelectedProviderForLabels } from '@suite/metadata';
 import { selectHasExperimentalFeature } from '@suite/settings';
+import { selectTorState } from '@suite/tor';
 import { Context } from '@suite-common/message-system';
 import { selectIsMevProtectionSettingsVisible } from '@suite-common/mev';
 import { getNetwork } from '@suite-common/wallet-config';
@@ -12,11 +14,12 @@ import {
 } from '@suite-common/wallet-core';
 import { isDesktop, isLinux, isWeb } from '@trezor/env-utils';
 import { SettingsSection } from '@trezor/product-components';
+import { breakpoints } from '@trezor/theme';
 
 import { SettingsLayout } from 'src/components/settings/SettingsLayout';
 import { ContextMessage } from 'src/components/wallet/WalletLayout/AccountBanners/ContextMessage';
-import { useLayoutSize, useSelector } from 'src/hooks/suite';
-import { selectTorState } from 'src/selectors/suite/suiteSelectors';
+import { useSelector } from 'src/hooks/suite';
+import { useIsContentBelowBreakpoint } from 'src/support/suite/ContentFlex';
 import { TorStatus } from 'src/types/suite';
 
 import { AddressDisplay } from './AddressDisplay';
@@ -46,7 +49,6 @@ import { Tor } from './Tor';
 import { TorExternal } from './TorExternal';
 import { TorOnionLinks } from './TorOnionLinks';
 import { VersionWithUpdate } from './VersionWithUpdate';
-import { Labeling } from '../labeling/Labeling';
 
 export const SettingsGeneral = () => {
     const shouldShowSettingsDesktopAppPromoBanner = useSelector(
@@ -54,11 +56,12 @@ export const SettingsGeneral = () => {
     );
 
     const { isTorEnabled } = useSelector(selectTorState);
-    const torStatus = useSelector(state => state.suite.torStatus);
+    const torStatus = useSelector(state => state.tor.torStatus);
     const enabledNetworks = useSelector(selectEnabledNetworks);
     const desktopUpdate = useSelector(state => state.desktopUpdate);
     const isLegacyLabelingVisible = useSelector(selectIsLegacyLabelingVisible);
-    const { isBelowLaptop, isBelowTablet } = useLayoutSize();
+    const hasContentBelowTabletWidth = useIsContentBelowBreakpoint(breakpoints.tablet);
+    const hasContentBelowMobileWidth = useIsContentBelowBreakpoint(breakpoints.mobile);
 
     const hasBitcoinNetworks = enabledNetworks.some(symbol => {
         const networkFeatures = getNetwork(symbol).features;
@@ -86,12 +89,12 @@ export const SettingsGeneral = () => {
             <ContextMessage context={Context.getSettings('general')} />
 
             <div>
-                {isWeb() && !isBelowTablet && shouldShowSettingsDesktopAppPromoBanner && (
-                    <DesktopSuiteBanner />
-                )}
+                {isWeb() &&
+                    !hasContentBelowMobileWidth &&
+                    shouldShowSettingsDesktopAppPromoBanner && <DesktopSuiteBanner />}
 
                 <SettingsSection
-                    isBelowLaptop={isBelowLaptop}
+                    hasVerticalLayout={hasContentBelowTabletWidth}
                     title={<Translation id="TR_PRIVACY" />}
                     icon="lock"
                 >
@@ -110,7 +113,7 @@ export const SettingsGeneral = () => {
             </div>
 
             <SettingsSection
-                isBelowLaptop={isBelowLaptop}
+                hasVerticalLayout={hasContentBelowTabletWidth}
                 title={<Translation id="TR_LOCALIZATION" />}
                 icon="flag"
             >
@@ -120,11 +123,11 @@ export const SettingsGeneral = () => {
             </SettingsSection>
 
             <SettingsSection
-                isBelowLaptop={isBelowLaptop}
+                hasVerticalLayout={hasContentBelowTabletWidth}
                 title={<Translation id="TR_LABELING" />}
                 icon="tag"
             >
-                <Labeling />
+                <LabelingSettings />
                 {isLegacyLabelingVisible &&
                     (isProviderConnected ? (
                         <DisconnectLabelingProvider />
@@ -135,7 +138,7 @@ export const SettingsGeneral = () => {
             </SettingsSection>
 
             <SettingsSection
-                isBelowLaptop={isBelowLaptop}
+                hasVerticalLayout={hasContentBelowTabletWidth}
                 title={<Translation id="TR_APPLICATION" />}
                 icon="appWindow"
             >
@@ -152,7 +155,7 @@ export const SettingsGeneral = () => {
                 <SettingsSection
                     title={<Translation id="TR_SECURITY" />}
                     icon="shield"
-                    isBelowLaptop={isBelowLaptop}
+                    hasVerticalLayout={hasContentBelowTabletWidth}
                 >
                     {isMevProtectionSettingsVisible && <MevProtection />}
                     {isDustPhishingThresholdSettingsVisible && <DustPhishing />}
@@ -161,7 +164,7 @@ export const SettingsGeneral = () => {
 
             {isNetworkReserveSettingsVisible && (
                 <SettingsSection
-                    isBelowLaptop={isBelowLaptop}
+                    hasVerticalLayout={hasContentBelowTabletWidth}
                     title={<Translation id="TR_NETWORKS" />}
                     icon="graph"
                 >
@@ -171,7 +174,7 @@ export const SettingsGeneral = () => {
 
             {isDesktop() && (
                 <SettingsSection
-                    isBelowLaptop={isBelowLaptop}
+                    hasVerticalLayout={hasContentBelowTabletWidth}
                     title={<Translation id="TR_TREZOR_CONNECT" />}
                     icon="plugs"
                 >
@@ -181,7 +184,7 @@ export const SettingsGeneral = () => {
             )}
 
             <SettingsSection
-                isBelowLaptop={isBelowLaptop}
+                hasVerticalLayout={hasContentBelowTabletWidth}
                 title={<Translation id="TR_EXPERIMENTAL_FEATURES" />}
                 icon="atom"
             >
@@ -191,7 +194,7 @@ export const SettingsGeneral = () => {
 
             {mcpServerEnabled && isDesktop() && (
                 <SettingsSection
-                    isBelowLaptop={isBelowLaptop}
+                    hasVerticalLayout={hasContentBelowTabletWidth}
                     title={<Translation id="TR_EXPERIMENTAL_MCP_SERVER" />}
                     icon="plugs"
                 >

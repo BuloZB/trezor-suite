@@ -45,6 +45,7 @@ const OutputLabel = ({
                     );
 
                 case 'swap':
+                case 'sign-data':
                 case undefined:
                     return <Translation id="transactionManagement.review.outputs.addressLabel" />;
 
@@ -67,6 +68,7 @@ const OutputLabel = ({
                     );
 
                 case 'swap':
+                case 'sign-data':
                     return (
                         <Translation id="transactionManagement.review.outputs.swapContractLabel" />
                     );
@@ -115,6 +117,10 @@ export const ReviewOutputItem = ({
     tokenContract,
     flowType,
 }: ReviewOutputItemProps) => {
+    if (reviewOutput.type === 'rewards') {
+        return null;
+    }
+
     const { state, type, value, value2, token } = reviewOutput;
 
     const tradedSend = reviewOutput.type === 'traded_assets' ? reviewOutput.send : undefined;

@@ -3,7 +3,7 @@ import { useForm, useWatch } from 'react-hook-form';
 
 import type { DexApprovalType, ExchangeTrade } from 'invity-api';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { type TranslationKey, useTranslation } from '@suite/intl';
 import { goto } from '@suite/router';
 import { selectHasExperimentalFeature } from '@suite/settings';
@@ -80,7 +80,7 @@ import { useTradingReceiveAddress } from './useTradingReceiveAddress';
 export const useTradingExchangeForm = ({
     pageType = 'form',
 }: UseTradingFormCommonProps): TradingExchangeFormContextProps => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const type = 'exchange';
     const isFormPage = pageType === 'form';
     const dispatch = useDispatch();
@@ -237,6 +237,8 @@ export const useTradingExchangeForm = ({
         formValues: values,
         network,
         shouldSendInSats,
+        receiveAddress: tradingReceiveAddress.receiveAddress,
+        receiveAccountKey: tradingReceiveAddress.selectedAccount?.key,
         composeRequestCallback: () => {
             composeRequest(TRADING_FORM_OUTPUT_AMOUNT);
         },
@@ -259,6 +261,7 @@ export const useTradingExchangeForm = ({
         composedLevels,
         composedTransactionInfo,
         setShowReserveBanner,
+        receiveAddress: tradingReceiveAddress.receiveAddress,
     });
 
     const selectQuote = async (quote: ExchangeTrade) => {
@@ -619,14 +622,6 @@ export const useTradingExchangeForm = ({
 
         fetchFeesAndComposeRef.current();
     }, [transactionData, outputAddress, ethereumAdjustGasLimit, pageType, fetchFeesAndComposeRef]);
-
-    useEffect(() => {
-        setValueRef.current('receiveAddress', receiveAddress);
-    }, [receiveAddress, setValueRef]);
-
-    useEffect(() => {
-        setValueRef.current('extraField', extraField);
-    }, [extraField, setValueRef]);
 
     useEffect(() => {
         dispatch(tradingThunks.loadInitialDataThunk({ activeSection: type }));

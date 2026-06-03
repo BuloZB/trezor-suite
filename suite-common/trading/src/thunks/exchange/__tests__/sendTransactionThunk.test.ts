@@ -52,6 +52,7 @@ describe('sendTransactionThunk', () => {
 
     const getQuote = () => {
         const quoteNotTyped = MIN_MAX_QUOTES_OK[0];
+        if (!quoteNotTyped) throw new Error('Missing test fixture');
         const quote = {
             ...quoteNotTyped,
             send: quoteNotTyped.send as CryptoId,
@@ -171,7 +172,7 @@ describe('sendTransactionThunk', () => {
             createThunk(
                 '@trading-exchange/thunk/sendDexTransactionThunk',
                 (_, { rejectWithValue }) => rejectWithValue(rejectValue),
-            ) as any,
+            ),
         );
 
         const result = await store.dispatch(

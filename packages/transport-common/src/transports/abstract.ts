@@ -1,5 +1,6 @@
 import { type PROTOCOL_MALFORMED, type ThpState, type TransportProtocol } from '@trezor/protocol';
 import {
+    type Logger,
     type ScheduleActionParams,
     type ScheduledAction,
     TypedEmitter,
@@ -15,7 +16,6 @@ import type {
     AsyncResultWithTypedError,
     BridgeCommonErrors,
     Descriptor,
-    Logger,
     MessageResponse,
     PathPublic,
     ResultWithTypedError,
@@ -107,10 +107,6 @@ export abstract class AbstractTransport extends TypedEmitter<TransportEvents> {
         | 'BluetoothTransport' // implementation in @trezor/transport-bluetooth
         | 'NativeBluetoothTransport'; // implementation in @trezor/transport-native-bluetooth
 
-    /**
-     * transports with "external element" such as bridge can be outdated.
-     */
-    public isOutdated = false;
     /**
      * transports with "external element" such as bridge can have version.
      */

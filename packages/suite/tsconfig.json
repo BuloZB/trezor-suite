@@ -12,6 +12,7 @@
     },
     "include": [".", "e2e", "**/*.json"],
     "references": [
+        { "path": "../../suite-common/address" },
         {
             "path": "../../suite-common/analytics"
         },
@@ -135,6 +136,7 @@
         {
             "path": "../../suite-common/validators"
         },
+        { "path": "../../suite-common/wallet" },
         {
             "path": "../../suite-common/wallet-config"
         },
@@ -153,12 +155,17 @@
         {
             "path": "../../suite-common/walletconnect"
         },
+        { "path": "../../suite/account" },
         { "path": "../../suite/address" },
         { "path": "../../suite/analytics" },
+        {
+            "path": "../../suite/authenticity-checks"
+        },
         { "path": "../../suite/backup" },
         { "path": "../../suite/desktop-update" },
         { "path": "../../suite/device" },
         { "path": "../../suite/experimental" },
+        { "path": "../../suite/external-links" },
         {
             "path": "../../suite/feature-feedback"
         },
@@ -173,6 +180,7 @@
         { "path": "../../suite/intl" },
         { "path": "../../suite/labeling" },
         { "path": "../../suite/locks" },
+        { "path": "../../suite/macos" },
         { "path": "../../suite/metadata" },
         {
             "path": "../../suite/metadata-migration"
@@ -182,13 +190,16 @@
         {
             "path": "../../suite/onboarding-components"
         },
+        { "path": "../../suite/receive" },
         { "path": "../../suite/recovery" },
         { "path": "../../suite/router" },
         { "path": "../../suite/settings" },
         { "path": "../../suite/suite-sync" },
         { "path": "../../suite/thp" },
+        { "path": "../../suite/tor" },
         { "path": "../../suite/trading" },
         { "path": "../../suite/tx-simulation" },
+        { "path": "../../suite/wallet" },
         { "path": "../address-validator" },
         { "path": "../analytics-uploader" },
         { "path": "../asset-utils" },

@@ -1,4 +1,4 @@
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
 import { useServices } from '@suite-common/dependency-injection';
 import { splitYieldPendingTransaction } from '@suite-common/wallet-core';
@@ -12,9 +12,10 @@ import { YieldActionStepWarning } from '../common/YieldActionStepWarning';
 import { YieldApproveModal } from '../common/YieldApproveModal';
 import { YieldApproveStep } from '../common/YieldApproveStep';
 import { YieldFlowCompleteSupply } from '../common/YieldFlowCompleteSupply';
+import { getApyBreakdown } from '../yieldFlowUtils';
 
 export const YieldSupplyForm = () => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
 
     const {
         account,
@@ -102,6 +103,7 @@ export const YieldSupplyForm = () => {
     };
 
     const handleOnSupply = () => {
+        const apyBreakdown = getApyBreakdown(vault.rewardRate?.components);
         analytics.report({
             type: events.yieldDepositEvent.name,
             payload: {
@@ -109,6 +111,7 @@ export const YieldSupplyForm = () => {
                 action: 'continue',
                 networkSymbol: token.networkSymbol,
                 vaultId: vault.id,
+                ...(apyBreakdown && { apyBreakdown }),
             },
         });
 

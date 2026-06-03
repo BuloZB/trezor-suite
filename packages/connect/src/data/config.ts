@@ -150,14 +150,13 @@ export const config: Config = {
             },
         },
         {
-            capabilities: ['mcuDeviceAuthentication'],
+            capabilities: ['mcuDeviceAuthentication', 'authenticityProofChunk'],
             min: {
                 // devices that don't support 'authenticateDevice' don't have to be listed here
                 T2B1: '0',
                 T3B1: '0',
                 T3T1: '0',
-                // TODO update this, when it is clear which version will support it https://github.com/trezor/trezor-suite/issues/27486
-                T3W1: '0',
+                T3W1: '2.12.1',
             },
         },
         {
@@ -247,6 +246,18 @@ export const config: Config = {
             methods: ['telemetryGet'],
             min: { T1B1: '0', T2T1: '0', T2B1: '0', T3B1: '0', T3T1: '0', T3W1: '2.11.0' },
             comment: ['Supported since 2.11.0, only on T3W1'],
+        },
+        {
+            capabilities: ['evmClearSigning'],
+            min: {
+                T1B1: '0',
+                T2T1: '2.12.1',
+                T2B1: '2.12.1',
+                T3B1: '2.12.1',
+                T3T1: '2.12.1',
+                T3W1: '2.12.1',
+            },
+            comment: ['Ethereum clear signing for known contracts/function selectors since 2.12.1'],
         },
     ],
 };

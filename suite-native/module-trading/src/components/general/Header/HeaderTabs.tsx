@@ -3,7 +3,7 @@ import { FlatList } from 'react-native-gesture-handler';
 
 import { useServices } from '@suite-common/dependency-injection';
 import { type TradingTypeWithConcierge } from '@suite-common/trading';
-import { type NativeAnalyticsDep, events } from '@suite-native/analytics';
+import { events, selectNativeAnalyticsDep } from '@suite-native/analytics';
 import { HStack, IconButton, useBottomSheetModal } from '@suite-native/atoms';
 import { type IconName } from '@suite-native/icons';
 import { useTranslate } from '@suite-native/intl';
@@ -19,6 +19,12 @@ const useTabsData = () => {
     return useMemo(() => {
         const tabs = [
             {
+                key: 'exchange',
+                label: translate('moduleTrading.tradingScreen.tabs.exchange'),
+                icon: 'repeat',
+                testID: '@trading/exchange/header-tab',
+            },
+            {
                 key: 'buy',
                 label: translate('moduleTrading.tradingScreen.tabs.buy'),
                 icon: 'plus',
@@ -29,12 +35,6 @@ const useTabsData = () => {
                 label: translate('moduleTrading.tradingScreen.tabs.sell'),
                 icon: 'minus',
                 testID: '@trading/sell/header-tab',
-            },
-            {
-                key: 'exchange',
-                label: translate('moduleTrading.tradingScreen.tabs.exchange'),
-                icon: 'arrowsLeftRight',
-                testID: '@trading/exchange/header-tab',
             },
             {
                 key: 'concierge',
@@ -59,7 +59,7 @@ export const HeaderTabs = () => {
     const data = useTabsData();
     const { translate } = useTranslate();
     const { bottomSheetRef, openModal, closeModal } = useBottomSheetModal();
-    const { analytics } = useServices<NativeAnalyticsDep>();
+    const { analytics } = useServices(selectNativeAnalyticsDep);
 
     const activeTabIndex = useMemo(
         () => data.findIndex(tab => tab.key === activeTab),

@@ -1,7 +1,7 @@
 import { mockSuiteDevice } from '@suite-common/suite-types/mocks';
 import { type NetworkFeature } from '@suite-common/wallet-config';
 import { type Account, asAccountDescriptor, createAccountKey } from '@suite-common/wallet-types';
-import { mockWalletAccount } from '@suite-common/wallet-types/mocks';
+import { mockAccountToken, mockWalletAccount } from '@suite-common/wallet-types/mocks';
 
 import * as fixtures from '../__fixtures__/accountUtils';
 import {
@@ -10,7 +10,6 @@ import {
     findAccountDevice,
     getAccountIdentifier,
     getBip43Type,
-    getFirstFreshAddress,
     getNetworkAccountFeatures,
     getUtxoFromSignedTransaction,
     getUtxoOutpoint,
@@ -29,19 +28,6 @@ import {
 } from '../amountUtils';
 
 describe('account utils', () => {
-    fixtures.getFirstFreshAddress.forEach(f => {
-        it(`getFirstFreshAddress: ${f.description}`, () => {
-            const { account, receive, pendingAddresses, utxoBasedAccount } = f.params;
-            const freshAddress = getFirstFreshAddress(
-                account as Account,
-                receive,
-                pendingAddresses,
-                utxoBasedAccount,
-            );
-            expect(freshAddress).toMatchObject(f.result);
-        });
-    });
-
     fixtures.getUtxoFromSignedTransaction.forEach(f => {
         it(`getUtxoFromSignedTransaction: ${f.description}`, () => {
             // @ts-expect-error params are partial
@@ -217,6 +203,19 @@ describe('account utils', () => {
         expect(accountSearchFn(btcAcc, '#1', { accountLabel: 'Bitcoin #1' })).toBe(true);
     });
 
+    it('accountSearchFn empty tokens', () => {
+        const ethAcc = mockWalletAccount({
+            symbol: 'eth',
+            tokens: [
+                mockAccountToken({ balance: '0.000069', name: 'test' }),
+                mockAccountToken({ balance: '0.0', name: 'test2' }),
+            ],
+        });
+
+        expect(accountSearchFn(ethAcc, 'test', { accountLabel: '' })).toBe(true);
+        expect(accountSearchFn(ethAcc, 'test2', { accountLabel: '' })).toBe(false);
+    });
+
     it('getNetworkAccountFeatures', () => {
         const btcAcc = mockWalletAccount({ symbol: 'btc' });
         const btcTaprootAcc = mockWalletAccount({ symbol: 'btc', accountType: 'taproot' });
@@ -273,7 +272,16 @@ describe('account utils', () => {
 
     it('sortByBIP44AddressIndex', () => {
         const path = 'm/1234';
-        const [a, b, c, d, e, f] = ['a', 'b', 'c', 'd', 'e', 'f'].map((address, i) => ({
+        type Entry = { address: string; path: string };
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const [a, b, c, d, e, f]: [Entry, Entry, Entry, Entry, Entry, Entry] = [
+            'a',
+            'b',
+            'c',
+            'd',
+            'e',
+            'f',
+        ].map((address, i) => ({
             address,
             path: `${path}/${i}`,
         }));

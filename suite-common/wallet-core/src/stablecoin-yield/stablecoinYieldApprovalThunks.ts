@@ -42,6 +42,7 @@ export type YieldSessionDataAmountPayload = YieldSessionDataPayload & {
 
 type InitYieldAllowancePayload = YieldSessionDataPayload & {
     flowType: 'deposit';
+    shouldSkipApprovalStep?: boolean;
 };
 
 type SetYieldGenericErrorParams = YieldSessionPayload & {
@@ -267,7 +268,19 @@ export const submitYieldOpportunity = async ({
 export const handleYieldApproveSuccessTxidThunk = createThunk(
     `${YIELD_THUNK_PREFIX}/handleApproveSuccessTxid`,
     (
-        { flowType, flowKey, txid }: YieldSessionPayload & { txid: string },
+        {
+            fee,
+            flowType,
+            flowKey,
+            isAmountUnlimited,
+            submittedAt,
+            txid,
+        }: YieldSessionPayload & {
+            fee?: string;
+            isAmountUnlimited?: boolean;
+            submittedAt?: number;
+            txid: string;
+        },
         { dispatch, getState },
     ) => {
         const { approval } = selectStablecoinYieldSession(getState(), flowType, flowKey);
@@ -283,6 +296,9 @@ export const handleYieldApproveSuccessTxidThunk = createThunk(
                     type: approveTxType,
                     txid,
                     amount: approval.modalState?.amount ?? '',
+                    fee,
+                    submittedAt,
+                    isAmountUnlimited,
                 },
             }),
         );
@@ -300,7 +316,7 @@ export const handleYieldApproveCancelThunk = createThunk(
 
 export const initYieldAllowanceThunk = createThunk<void, InitYieldAllowancePayload, void>(
     `${YIELD_THUNK_PREFIX}/initAllowance`,
-    async ({ flowKey, flowType, flowData }, { dispatch }) => {
+    async ({ flowKey, flowType, flowData, shouldSkipApprovalStep = true }, { dispatch }) => {
         dispatch(stablecoinYieldActions.startInitializingAllowance({ flowType, flowKey }));
 
         try {
@@ -333,7 +349,7 @@ export const initYieldAllowanceThunk = createThunk<void, InitYieldAllowancePaylo
                 }),
             );
 
-            if (amount !== '0') {
+            if (shouldSkipApprovalStep && amount !== '0') {
                 dispatch(stablecoinYieldActions.skipApprovalStep({ flowType, flowKey }));
             }
         } catch (error) {

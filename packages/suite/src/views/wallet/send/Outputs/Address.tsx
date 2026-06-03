@@ -2,14 +2,21 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { checkAddressCheckSum, toChecksumAddress } from 'web3-utils';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { useDevice } from '@suite/device';
-import { Translation, useTranslation } from '@suite/intl';
+import { Translation, type TranslationKey, useTranslation } from '@suite/intl';
 import { Labeling } from '@suite/labeling';
 import { selectIsMetadataEnabled } from '@suite/metadata';
 import { openDeferredModal } from '@suite/modal';
 import { selectIsDebugModeActive } from '@suite/settings';
 import { selectDesktopSuiteSyncInteraction } from '@suite/suite-sync';
+import {
+    type AddressCorrection,
+    autocorrectAddress,
+    isAddressDeprecated,
+    isAddressValid,
+    isTaprootAddress,
+} from '@suite-common/address';
 import { useServices } from '@suite-common/dependency-injection';
 import { getNetworkSymbolForProtocol } from '@suite-common/suite-utils';
 import { notificationsActions } from '@suite-common/toast-notifications';
@@ -18,13 +25,7 @@ import type { Output } from '@suite-common/wallet-types';
 import {
     checkIsAddressNotUsedNotChecksummed,
     convertAmountSubunitsToUnits,
-    hasBitcoinCashAddressPrefix,
-    isAddressDeprecated,
-    isAddressValid,
-    isBech32AddressUppercase,
-    isBitcoinCashAddressUppercase,
     isProgramDerivedAccount,
-    isTaprootAddress,
 } from '@suite-common/wallet-utils';
 import { Icon, IconButton, Input, Link, Row, Text } from '@trezor/components';
 import TrezorConnect from '@trezor/connect';
@@ -48,6 +49,11 @@ import { getProtocolInfo } from 'src/utils/suite/protocol';
 import { captureSentryMessage } from 'src/utils/suite/sentry';
 
 import { DevSelfAddress } from './DevSelfAddress';
+
+const autocorrectTranslationKeys: Record<NonNullable<AddressCorrection>['type'], TranslationKey> = {
+    lowercase: 'TR_CONVERTED_TO_LOWERCASE',
+    bchPrefix: 'TR_ADDED_BITCOINCASH_PREFIX',
+};
 
 type AddressProps = {
     outputId: number;
@@ -77,7 +83,7 @@ export const Address = ({ output, outputId, outputsCount }: AddressProps) => {
         clearErrors,
     } = useSendFormContext();
     const { translationString } = useTranslation();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const { descriptor, networkType, symbol } = account;
     const inputName = `outputs.${outputId}.address` as const;
     // NOTE: compose errors are always associated with the amount.
@@ -106,15 +112,8 @@ export const Address = ({ output, outputId, outputsCount }: AddressProps) => {
 
     const [isExternalAddressCheckWarningDismissed, setIsExternalAddressCheckWarningDismissed] =
         useState(false);
-    const isExternalAddressCheckEnabled = [
-        'eth',
-        'tsep',
-        'thod',
-        'sol',
-        'dsol',
-        'trx',
-        'ttrx',
-    ].includes(symbol);
+
+    const isExternalAddressCheckEnabled = ['ethereum', 'solana', 'tron'].includes(networkType);
 
     useEffect(() => {
         setIsExternalAddressCheckWarningDismissed(false);
@@ -325,16 +324,13 @@ export const Address = ({ output, outputId, outputsCount }: AddressProps) => {
                     return translationString('TR_UNSUPPORTED_ADDRESS_FORMAT');
                 }
             },
-            // bech32 and CashAddr addresses are valid as uppercase but are not accepted by Trezor
-            uppercase: (value: string) => {
-                if (
-                    (networkType === 'bitcoin' && isBech32AddressUppercase(value)) ||
-                    (symbol === 'bch' && isBitcoinCashAddressUppercase(value))
-                ) {
-                    setValue(inputName, value.toLowerCase(), { shouldValidate: true });
+            addressCorrection: (value: string) => {
+                const correction = autocorrectAddress(value, symbol);
+                if (correction) {
+                    setValue(inputName, correction.corrected, { shouldValidate: true });
                     composeTransaction();
                     setAutocorrectMessageWithTimeout(
-                        translationString('TR_CONVERTED_TO_LOWERCASE'),
+                        translationString(autocorrectTranslationKeys[correction.type]),
                     );
 
                     return true;
@@ -353,19 +349,6 @@ export const Address = ({ output, outputId, outputsCount }: AddressProps) => {
                     device?.unavailableCapabilities?.taproot
                 ) {
                     return translationString('RECIPIENT_REQUIRES_UPDATE');
-                }
-            },
-            bchMissingPrefix: (value: string) => {
-                if (symbol === 'bch' && !hasBitcoinCashAddressPrefix(value)) {
-                    setValue(inputName, 'bitcoincash:' + value, {
-                        shouldValidate: true,
-                    });
-                    setAutocorrectMessageWithTimeout(
-                        translationString('TR_ADDED_BITCOINCASH_PREFIX'),
-                    );
-                    composeTransaction();
-
-                    return true;
                 }
             },
             evmChecks: async (address: string) => {
@@ -485,7 +468,7 @@ export const Address = ({ output, outputId, outputsCount }: AddressProps) => {
         }
 
         if (autocorrectMessage) {
-            return <Icon name="warningCircle" size={16} intent="warning" />;
+            return <Icon name="info" size={16} intent="info" />;
         }
 
         if (isAddressWithLabel) {
@@ -529,7 +512,6 @@ export const Address = ({ output, outputId, outputsCount }: AddressProps) => {
                                     txid: 'will-be-replaced',
                                     outputIndex: `${outputId}`,
                                     defaultValue: `${outputId}`,
-                                    value: label,
                                     networkSymbol: symbol,
                                     accountDescriptor: descriptor,
                                 }}
@@ -557,6 +539,7 @@ export const Address = ({ output, outputId, outputsCount }: AddressProps) => {
                                 // compose by first Output
                                 composeTransaction();
                             }}
+                            tooltip={{ content: <Translation id="TR_REMOVE" /> }}
                         />
                     )}
                 </Row>

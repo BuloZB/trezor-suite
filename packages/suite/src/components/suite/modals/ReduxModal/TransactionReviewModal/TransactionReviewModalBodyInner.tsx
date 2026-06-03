@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
 import { closeModal } from '@suite/modal';
 import { useServices } from '@suite-common/dependency-injection';
@@ -18,6 +18,7 @@ import {
     type GeneralPrecomposedTransactionFinal,
     type ReviewOutput,
     type StakeType,
+    type YieldClaimReward,
 } from '@suite-common/wallet-types';
 import {
     getStakeType,
@@ -80,6 +81,8 @@ export type TransactionReviewModalBodyInnerProps = {
     tryAgainSignTx: () => void;
     cancelSignTx: () => void;
     precomposedForm: FormState;
+    vaultName?: string;
+    availableRewards?: YieldClaimReward[];
     precomposedTx: GeneralPrecomposedTransactionFinal;
     isSending: boolean;
     setIsSending: (value: boolean) => void;
@@ -98,11 +101,13 @@ export const TransactionReviewModalBodyInner = ({
     isRbfConfirmedError,
     cancelSignTx,
     precomposedForm,
+    vaultName,
+    availableRewards,
     isSending,
     setIsSending,
     hasTxReviewExpired,
 }: TransactionReviewModalBodyInnerProps) => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const dispatch = useDispatch();
     const [areDetailsVisible, setAreDetailsVisible] = useState(false);
     const { symbol, networkType } = account;
@@ -294,6 +299,8 @@ export const TransactionReviewModalBodyInner = ({
                     account={account}
                     precomposedTx={precomposedTx}
                     precomposedForm={precomposedForm}
+                    vaultName={vaultName}
+                    availableRewards={availableRewards}
                     serializedTx={serializedTx}
                     isSending={isSending}
                     reviewStep={reviewStep}

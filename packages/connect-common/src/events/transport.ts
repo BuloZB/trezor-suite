@@ -13,7 +13,6 @@ export interface TransportInfo {
     apiType: Transport['apiType'];
     type: Transport['name'];
     version: string;
-    outdated: boolean;
 }
 
 export interface TransportError {
@@ -29,11 +28,6 @@ export type TransportEvent =
 export interface TransportSetTransports {
     type: typeof TRANSPORT.SET_TRANSPORTS;
     payload: Pick<ConnectSettings, 'transports'>;
-}
-
-export interface TransportDisableWebUSB {
-    type: typeof TRANSPORT.DISABLE_WEBUSB;
-    payload?: undefined;
 }
 
 export interface TransportRequestWebUSBDevice {

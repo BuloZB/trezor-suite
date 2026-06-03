@@ -175,10 +175,11 @@ describe('getTradingPaymentMethods', () => {
 
     it('should keep first quote amount for duplicate payment method', () => {
         const applePayMethod = paymentMethods.find(method => method.value === 'applePay');
+        const { MIN_MAX_QUOTES_OK } = BUY_FIXTURE;
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const minMaxQuote: (typeof MIN_MAX_QUOTES_OK)[number] = MIN_MAX_QUOTES_OK[1];
 
-        expect(applePayMethod?.receiveAmount).toBe(
-            BUY_FIXTURE.MIN_MAX_QUOTES_OK[1].receiveStringAmount,
-        );
+        expect(applePayMethod?.receiveAmount).toBe(minMaxQuote.receiveStringAmount);
     });
 });
 
@@ -708,6 +709,30 @@ describe('getTradingFormState', () => {
                     contractAddress: '0xreceive123',
                     amount: '100',
                 },
+            });
+        });
+
+        it('should propagate trade.receiveAddress', () => {
+            const trade = {
+                exchange: 'test-exchange',
+                receive: 'ethereum' as CryptoId,
+                receiveStringAmount: '1',
+                send: 'bitcoin' as CryptoId,
+                sendStringAmount: '0.025',
+                receiveAddress: '0x9eA3721B5Bf3b64b4418c38B603154d2D597FAE3',
+            } as ExchangeTrade;
+
+            const result = getTradingFormState({
+                activeSection,
+                trade,
+                providers: { 'test-exchange': mockProvider },
+                isSlip24Active: false,
+                sendAccountKey,
+                receiveAccountKey,
+            });
+
+            expect(result).toMatchObject({
+                receiveAddress: '0x9eA3721B5Bf3b64b4418c38B603154d2D597FAE3',
             });
         });
     });

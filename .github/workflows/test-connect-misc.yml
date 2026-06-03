@@ -76,8 +76,9 @@ jobs:
         with:
           mode: firewall-free
           job-summary: errors
+          firewall-version: 1.11.0
       - name: Install dependencies
-        run: sfw --silent yarn install
+        run: sfw yarn install
 
       - name: Pack packages
         run: yarn tsx ./scripts/ci/pack-packages.ts
@@ -111,5 +112,6 @@ jobs:
         with:
           mode: firewall-free
           job-summary: errors
-      - run: sfw --silent yarn install --immutable
+          firewall-version: 1.11.0
+      - run: sfw yarn install --immutable
       - run: yarn workspace @trezor/protobuf update:protobuf

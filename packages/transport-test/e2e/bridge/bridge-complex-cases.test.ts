@@ -1,17 +1,9 @@
 import { BridgeTransport } from '@trezor/transport';
 import { type Descriptor, type Session } from '@trezor/transport-common';
 
-import { controller as TrezorUserEnvLink, env } from './controller';
+import { controller as TrezorUserEnvLink } from './controller';
 import { descriptor as expectedDescriptor } from './expect';
 import { assertSuccess } from '../api/utils';
-
-const assertBridgeNotRunning = async () => {
-    await expect(
-        fetch('http://localhost:21325/', {
-            method: 'GET',
-        }),
-    ).rejects.toThrow('fetch failed');
-};
 
 // all scenarios that require restarting bridge.
 describe('restarting bridge', () => {
@@ -30,8 +22,13 @@ describe('restarting bridge', () => {
         assertSuccess(enumerateResult);
         descriptors = enumerateResult.payload;
 
+        const firstDescriptor = descriptors[0];
+        if (!firstDescriptor) {
+            throw new Error('Expected at least one descriptor');
+        }
+
         const acquireResult = await bridge.acquire({
-            input: { path: descriptors[0].path, previous: session },
+            input: { path: firstDescriptor.path, previous: session },
         });
         assertSuccess(acquireResult);
         session = acquireResult.payload;
@@ -43,7 +40,6 @@ describe('restarting bridge', () => {
         TrezorUserEnvLink.disconnect();
     });
 
-    // This scenario crashes the old bridge (2.0.33) on Mac. New bridge seems to be performing correctly
     // Note: for node-bridge this doesn't work for model One - model hangs on one of the device.reset calls and becomes unresponsive
     test('Bridge stops while device is acquired then starts again and client tries to force acquire device', async () => {
         await bridge.send({ session, name: 'GetFeatures', data: {} });
@@ -67,32 +63,29 @@ describe('restarting bridge', () => {
         });
         descriptors = enumerateResult.payload;
 
+        const currentDescriptor = descriptors[0];
+        if (!currentDescriptor) {
+            throw new Error('Expected at least one descriptor');
+        }
+
         // acquire hangs and once it is aborted by client, the bridge crashes
         await bridge.acquire({
             input: {
-                path: descriptors[0].path,
+                path: currentDescriptor.path,
                 // OK so not sending previous (or sending null (force)) is the key ingredient
                 // so maybe it is not about send at all? it looks like that only one send is enough to cause it
                 previous: null,
             },
         });
 
-        // old bridge is crashed and only if using HW, not emu.
-        if (!env.USE_NODE_BRIDGE && env.USE_HW) {
-            await assertBridgeNotRunning();
-
-            return;
-        } else {
-            // new bridge received some nice fixes and now we can continue
-            const enumerateResult2 = await bridge.enumerate();
-            expect(enumerateResult2).toMatchObject({
-                success: true,
-                payload: [
-                    {
-                        path: expect.any(String),
-                    },
-                ],
-            });
-        }
+        const enumerateResult2 = await bridge.enumerate();
+        expect(enumerateResult2).toMatchObject({
+            success: true,
+            payload: [
+                {
+                    path: expect.any(String),
+                },
+            ],
+        });
     });
 });

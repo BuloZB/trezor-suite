@@ -25,7 +25,7 @@ import {
 } from '@suite-common/wallet-utils';
 import type { BaseCurrencyCode } from '@trezor/blockchain-link-types';
 import { type TransactionTarget } from '@trezor/connect';
-import { BigNumber } from '@trezor/utils';
+import { BigNumber, isNotNull } from '@trezor/utils';
 
 type AccountTransactionForExports = Omit<WalletAccountTransaction, 'targets'> & {
     targets: (TransactionTarget & { metadataLabel?: string })[];
@@ -58,6 +58,7 @@ type Fields = {
 
 const CSV_NEWLINE = '\n';
 const CSV_SEPARATOR = ',';
+const CSV_LEADING_CHARACTERS_TO_ESCAPE_REGEX = /^[\s\uFEFF]*[=+\-@＝＋－＠]/u;
 
 // Docs: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/format
 const dateFormat = {
@@ -200,12 +201,12 @@ const prepareContent = (
                         ...sharedData,
                         fee: !hasFeeBeenAlreadyUsed ? t.fee : '', // fee only once per tx
                         feeSymbol: !hasFeeBeenAlreadyUsed ? symbol : '',
-                        address: target.isAddress ? target.addresses[0] : '', // SENT - it is destination address, RECV - it is MY address
+                        address: target.isAddress ? (target.addresses[0] ?? '') : '', // SENT - it is destination address, RECV - it is MY address
                         label: target.isAddress && target.metadataLabel ? target.metadataLabel : '',
                         amount: target.isAddress ? target.amount : '',
                         symbol: target.isAddress ? symbol : '',
                         fiat: target.isAddress ? getFiatAmount(target.amount, historicRate) : '',
-                        other: !target.isAddress ? target.addresses[0] : '', // e.g. OP_RETURN
+                        other: !target.isAddress ? (target.addresses[0] ?? '') : '', // e.g. OP_RETURN
                     };
                     hasFeeBeenAlreadyUsed = true;
 
@@ -313,15 +314,17 @@ const prepareContent = (
 
             return [...targets, ...tokens, ...internalTransfers, ...cardanoStaking];
         })
-        .filter(record => record !== null) as Fields[];
+        .filter(isNotNull) as Fields[];
 };
 
-export const sanitizeCsvValue = (value: string) => {
-    if (value.includes(CSV_SEPARATOR)) {
-        return `"${value.replace(/"/g, '""')}"`;
+export const sanitizeCsvValue = (value: string): string => {
+    const sanitizedValue = CSV_LEADING_CHARACTERS_TO_ESCAPE_REGEX.test(value) ? `'${value}` : value;
+
+    if (sanitizedValue.includes(CSV_SEPARATOR)) {
+        return `"${sanitizedValue.replace(/"/g, '""')}"`;
     }
 
-    return value;
+    return sanitizedValue;
 };
 
 const prepareCsv = (
@@ -366,7 +369,7 @@ const prepareCsv = (
         line = [];
 
         fieldKeys.forEach(field => {
-            line.push(sanitizeCsvValue(item[field]));
+            line.push(sanitizeCsvValue(item[field] ?? ''));
         });
 
         lines.push(line.join(CSV_SEPARATOR));

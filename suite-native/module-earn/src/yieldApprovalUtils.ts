@@ -1,11 +1,16 @@
-import { type YieldApproveModalState } from '@suite-common/wallet-core';
+import {
+    type StablecoinYieldSessionState,
+    type YieldApproveModalState,
+    type YieldFlowToken,
+} from '@suite-common/wallet-core';
 import {
     type FeeLevelLabel,
     type FormState,
     type PrecomposedTransactionFinal,
     type TokenAddress,
 } from '@suite-common/wallet-types';
-import { getAllowanceAmount } from '@suite-common/wallet-utils';
+import { getAllowanceAmount, isAllowanceUnlimited } from '@suite-common/wallet-utils';
+import { BigNumber } from '@trezor/utils';
 
 import { type YieldApprovalLimitType } from './types';
 
@@ -34,6 +39,15 @@ type GetYieldApprovalAllowanceAmountParams = {
     tokenContract: TokenAddress;
     tokenDecimals: number;
     tokenSymbol: string;
+};
+
+type IsYieldApprovalAllowanceUnlimitedParams = {
+    session: StablecoinYieldSessionState | null | undefined;
+    token: YieldFlowToken | null | undefined;
+};
+
+type IsYieldApprovalAllowanceEnoughParams = IsYieldApprovalAllowanceUnlimitedParams & {
+    amount: string | undefined;
 };
 
 export const buildYieldApprovalFormState = ({
@@ -110,3 +124,34 @@ export const getYieldApprovalAllowanceAmount = ({
             standard: 'ERC20',
         },
     }).allowanceAmount;
+
+export const isYieldApprovalAllowanceUnlimited = ({
+    session,
+    token,
+}: IsYieldApprovalAllowanceUnlimitedParams): boolean => {
+    const allowanceAmount = session?.approval.allowanceAmount;
+
+    if (!allowanceAmount || token?.decimals === undefined) {
+        return false;
+    }
+
+    return isAllowanceUnlimited(allowanceAmount, token.decimals);
+};
+
+export const isYieldApprovalAllowanceEnough = ({
+    amount,
+    session,
+    token,
+}: IsYieldApprovalAllowanceEnoughParams): boolean => {
+    const { allowanceAmount, allowanceStatus } = session?.approval ?? {};
+
+    if (allowanceStatus !== 'loaded' || !amount || !allowanceAmount) {
+        return false;
+    }
+
+    if (token?.decimals !== undefined && isAllowanceUnlimited(allowanceAmount, token.decimals)) {
+        return true;
+    }
+
+    return new BigNumber(allowanceAmount).gte(amount);
+};

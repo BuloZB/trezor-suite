@@ -27,6 +27,7 @@ export type FirmwareCapability =
     | 'tutorial'
     | 'tropicDeviceAuthentication'
     | 'mcuDeviceAuthentication'
+    | 'authenticityProofChunk'
     | 'getFirmwareHash'
     | 'chunkify'
     | 'entropyCheck'
@@ -34,7 +35,8 @@ export type FirmwareCapability =
     | 'slip24'
     | 'evolu'
     | 'monero'
-    | 'telemetry';
+    | 'telemetry'
+    | 'evmClearSigning';
 
 type RuleSelector = RequireAtLeastOne<{
     coin: Lowercase<string>[];

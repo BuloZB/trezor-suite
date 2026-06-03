@@ -19,12 +19,10 @@ import { HiddenPlaceholder } from './HiddenPlaceholder';
 import { QuestionTooltip } from './QuestionTooltip';
 import { TrendTicker } from './Ticker/TrendTicker';
 import { PriceTicker } from './Ticker/PriceTicker';
-import { AccountLabeling, AddressLabeling, WalletLabeling, useGetWalletLabel } from './labeling';
+import { AccountLabeling, AddressLabeling, WalletLabeling } from './labeling';
 import { FormattedCryptoAmount } from './FormattedCryptoAmount';
 import { FormattedNftAmount } from './FormattedNftAmount';
 import { Sign } from './Sign';
-import { TrezorLink } from './TrezorLink';
-import { ReadMoreLink } from './ReadMoreLink';
 import { RedactNumericalValue } from './RedactNumericalValue';
 import { FormattedDate } from './FormattedDate';
 import { FormattedDateWithBullet } from './FormattedDateWithBullet';
@@ -33,8 +31,7 @@ import { HomescreenGallery } from './HomescreenGallery';
 import { DeviceMatrixExplanation } from './DeviceMatrixExplanation';
 import { TroubleshootingTips } from './troubleshooting/TroubleshootingTips';
 import { getMessageId } from './getMessageId';
-import { CoinGroup } from './CoinGroup/CoinGroup';
-import { CoinList } from './CoinList/CoinList';
+import { NetworkList } from './NetworkList/NetworkList';
 import { StatusLight } from './StatusLight';
 import { AmountUnitSwitchWrapper } from './AmountUnitSwitchWrapper';
 import { TorLoader } from './TorLoader/TorLoader';
@@ -42,7 +39,7 @@ import { CountdownTimer } from './CountdownTimer';
 import { QrCode } from './QrCode';
 import { CoinBalance } from './CoinBalance';
 import { Preloader } from './Preloader/Preloader';
-import { TrafficLightDraggableWindowHeader } from './TrafficLightOffset';
+import { TrafficLightDraggableWindowHeader } from '@suite/macos';
 import { PinMatrix } from './PinMatrix/PinMatrix';
 import { StakingFeature } from './StakingFeature';
 import { StakeAmountWrapper } from './StakeAmountWrapper';
@@ -65,24 +62,20 @@ export {
     AccountLabeling,
     AddressLabeling,
     WalletLabeling,
-    useGetWalletLabel,
     QuestionTooltip,
     FormattedCryptoAmount,
     FormattedNftAmount,
     TrendTicker,
     PriceTicker,
     Sign,
-    ReadMoreLink,
     RedactNumericalValue,
-    TrezorLink,
     FormattedDate,
     FormattedDateWithBullet,
     Metadata,
     HomescreenGallery,
     DeviceMatrixExplanation,
     TroubleshootingTips,
-    CoinGroup,
-    CoinList,
+    NetworkList,
     StatusLight,
     AmountUnitSwitchWrapper,
     TorLoader,

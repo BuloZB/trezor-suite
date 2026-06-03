@@ -1,4 +1,5 @@
 import { TypedEmitter, getSynchronize } from '@trezor/utils';
+import type { Logger } from '@trezor/utils';
 
 import { type TRANSPORT } from '../constants';
 import * as ERRORS from '../errors';
@@ -7,7 +8,6 @@ import type {
     ApiType,
     AsyncResultWithTypedError,
     DescriptorApiLevel,
-    Logger,
     PathInternal,
 } from '../types';
 import { error, success, unknownError } from '../utils/result';
@@ -196,9 +196,12 @@ export abstract class AbstractApi extends TypedEmitter<{
 
             return this.unknownError(err);
         } finally {
+            const lockRecord = this.lock;
+            // @ts-expect-error: indexing with noUncheckedIndexedAccess
+            const currentLock: AccessLock = lockRecord[path];
             this.lock[path] = {
-                read: lock.read ? false : this.lock[path].read,
-                write: lock.write ? false : this.lock[path].write,
+                read: lock.read ? false : currentLock.read,
+                write: lock.write ? false : currentLock.write,
             };
         }
     };

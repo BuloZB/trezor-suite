@@ -4,7 +4,7 @@ import type { ExchangeTrade } from 'invity-api';
 import { type AccountKey } from '@suite-common/wallet-types';
 import { events } from '@suite-native/analytics';
 import { getTranslation } from '@suite-native/intl';
-import { type RootStackParamList, type RootStackRoutes } from '@suite-native/navigation';
+import { type RootStackParamList, RootStackRoutes } from '@suite-native/navigation';
 import {
     type TestStore,
     renderWithStoreProvider,
@@ -16,6 +16,7 @@ import {
     exchangeQuotes,
     getBtcAccount,
     mercuryoFixedWorstQuote,
+    oneInchFusionPlusWithEip712SignDataQuote,
 } from '@suite-native/trading-fixtures';
 
 import { createTradingLightStore } from '../../__tests__/tradingTestUtils';
@@ -62,6 +63,7 @@ jest.mock('../../hooks/exchange/useExchangeFlow', () => ({
         confirmTrade: mockConfirmTrade,
         fetchFeesAndCompose: mockFetchFeesAndCompose,
         signAndSendTransaction: mockSignAndSendTransaction,
+        signDataAndConfirm: jest.fn(),
         isConsentRequested: false,
         resolveConsent: mockResolveConsent,
         get txnErrorString() {
@@ -91,7 +93,7 @@ const createStore = (quote?: ExchangeTrade) =>
                         quotes: exchangeQuotes,
                         tradingAccountKey: 'eth-account-1' as AccountKey, // Todo: create properly via `createAccountKey()`
                         receiveAccountKey: 'btc-account-1' as AccountKey, // Todo: create properly via `createAccountKey()`
-                        receiveAddress: getBtcAccount().addresses?.used[0].address,
+                        receiveAddress: getBtcAccount().addresses?.used[0]?.address,
                         selectedQuote: quote ?? mercuryoFixedWorstQuote,
                     },
                 },
@@ -341,6 +343,23 @@ describe('TradingExchangePreviewScreen', () => {
         });
     });
 
+    describe('Approval Required Redirect', () => {
+        it('redirects to TradingExchangeApproval when selectedQuote.status is APPROVAL_REQ', async () => {
+            const approvalReqQuote: ExchangeTrade = {
+                ...mercuryoFixedWorstQuote,
+                status: 'APPROVAL_REQ',
+            };
+            const testStore = createStore(approvalReqQuote);
+
+            renderTradingExchangePreviewScreen(false, testStore);
+
+            await waitFor(() => {
+                expect(mockNavigate).toHaveBeenCalledTimes(1);
+            });
+            expect(mockNavigate).toHaveBeenCalledWith(RootStackRoutes.TradingExchangeApproval, {});
+        });
+    });
+
     describe('Error String Fallback Logic', () => {
         it('should use txnErrorString when provided', () => {
             mockTxnErrorString = 'Transaction error occurred';
@@ -391,6 +410,41 @@ describe('TradingExchangePreviewScreen', () => {
             const { result } = renderTradingExchangePreviewScreen(false, testStore);
 
             expect(result.getByText('Transaction error takes priority')).toBeOnTheScreen();
+            expect(result.queryByText('Quote error message')).toBeNull();
+        });
+
+        it('should not show errors for quote with SIGN_DATA status and EIP-712 data', () => {
+            mockTxnErrorString = 'Transaction error occurred';
+
+            const quoteWithEip712SignData = {
+                ...oneInchFusionPlusWithEip712SignDataQuote,
+                error: 'Quote error message',
+            };
+
+            const testStore = createStore(quoteWithEip712SignData);
+            const { result } = renderTradingExchangePreviewScreen(false, testStore);
+
+            expect(result.queryByText('Transaction error occurred')).toBeNull();
+            expect(result.queryByText('Quote error message')).toBeNull();
+        });
+
+        it('should show errors for quote with SIGN_DATA status and non-EIP-712 data', () => {
+            mockTxnErrorString = 'Transaction error occurred';
+
+            const quoteWithNonEip712SignData = {
+                ...mercuryoFixedWorstQuote,
+                error: 'Quote error message',
+                status: 'SIGN_DATA' as const,
+                signData: {
+                    type: 'slip24',
+                    data: {},
+                } as any,
+            };
+
+            const testStore = createStore(quoteWithNonEip712SignData);
+            const { result } = renderTradingExchangePreviewScreen(false, testStore);
+
+            expect(result.getByText('Transaction error occurred')).toBeOnTheScreen();
             expect(result.queryByText('Quote error message')).toBeNull();
         });
     });

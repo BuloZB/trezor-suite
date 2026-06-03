@@ -28,5 +28,6 @@ jobs:
         with:
           mode: firewall-free
           job-summary: errors
-      - run: sfw --silent yarn install --immutable
+          firewall-version: 1.11.0
+      - run: sfw yarn install --immutable
       - run: yarn workspace @trezor/urls test:e2e

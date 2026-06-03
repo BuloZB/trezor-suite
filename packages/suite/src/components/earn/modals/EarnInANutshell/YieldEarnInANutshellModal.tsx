@@ -1,4 +1,4 @@
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
 import { useServices } from '@suite-common/dependency-injection';
 import { RewardDtoYieldSource } from '@suite-common/earn-stablecoin-api';
@@ -39,7 +39,7 @@ export const YieldEarnInANutshellModal = ({
     actionType,
     yieldContext,
 }: YieldEarnInANutshellModalProps) => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
 
     const { handleAction, onCancelClick, vault } = useEarnInANutshell({
         flow: EarnFlow.Yield,
@@ -113,7 +113,7 @@ export const YieldEarnInANutshellModal = ({
             payload: {
                 action: 'continue',
                 from: 'deposit-in-a-nutshell-modal',
-                to: 'deposit-morpho-modal',
+                to: 'deposit-legal-modal',
                 networkSymbol: account.symbol,
                 vaultId: vault?.id,
             },

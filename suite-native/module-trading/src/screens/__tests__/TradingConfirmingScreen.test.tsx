@@ -1,6 +1,5 @@
 import type { TransactionStatus } from '@suite-common/trading';
 import {
-    selectTradingExchangePreselectedQuote,
     selectTradingExchangeSelectedQuote,
     tradingExchangeActions,
     useAllowanceTxTracking,
@@ -86,6 +85,15 @@ const mockAllowanceTxStatus: TransactionStatus = {
 jest.mock('@suite-common/trading', () => ({
     ...jest.requireActual('@suite-common/trading'),
     useAllowanceTxTracking: jest.fn(),
+}));
+
+const mockAnalyticsReport = jest.fn();
+jest.mock('@suite-native/trading-analytics', () => ({
+    ...jest.requireActual('@suite-native/trading-analytics'),
+    useExchangeAnalyticsStepReport:
+        (action: unknown) =>
+        (...args: unknown[]) =>
+            mockAnalyticsReport(action, ...args),
 }));
 
 const mockUseAllowanceTxTracking = useAllowanceTxTracking as jest.Mock;
@@ -204,8 +212,19 @@ describe('TradingConfirmingScreen', () => {
         expect(mockNavigation.push).not.toHaveBeenCalled();
     });
 
-    it('revoke-and-approve: navigates to TradingExchangeApproval and clears selectedQuote', () => {
+    it('revoke-and-approve: navigates to TradingExchangeApproval and strips revoke-tx artifacts from selectedQuote', () => {
+        // Seed selectedQuote with revoke artifacts that the post-revoke confirmExchangeTradeThunk would have written.
+        store.dispatch(
+            tradingExchangeActions.saveSelectedQuote({
+                ...testQuote,
+                approvalType: 'ZERO',
+                approvalSendTxHash: 'revoke-txid',
+                status: 'APPROVAL_PENDING',
+            }),
+        );
         mockUseAllowanceTxTracking.mockReturnValue(confirmedStatus);
+
+        const dispatchSpy = jest.spyOn(store, 'dispatch');
 
         renderScreen({ flowType: 'revoke-and-approve' });
 
@@ -213,11 +232,23 @@ describe('TradingConfirmingScreen', () => {
         expect(mockNavigation.push).toHaveBeenCalledWith(RootStackRoutes.TradingExchangeApproval, {
             isRevoked: true,
         });
-        expect(selectTradingExchangeSelectedQuote(store.getState())).toBeUndefined();
+        const dispatchedActions = dispatchSpy.mock.calls.map(([action]) => action);
+        // savePreselectedQuote action no longer exists; assert against the action-type string.
+        expect(
+            dispatchedActions.find(
+                (action: any) => action?.type === '@trading-exchange/savePreselectedQuote',
+            ),
+        ).toBeUndefined();
+        const persisted = selectTradingExchangeSelectedQuote(store.getState());
+        expect(persisted).toBeDefined();
+        expect(persisted?.approvalSendTxHash).toBeUndefined();
+        expect(persisted?.approvalType).toBeUndefined();
+        expect(persisted?.status).toBe('APPROVAL_REQ');
+
+        dispatchSpy.mockRestore();
     });
 
-    it('revoke: pops to top and clears selectedQuote and preselectedQuote', () => {
-        store.dispatch(tradingExchangeActions.savePreselectedQuote(testQuote));
+    it('revoke: pops to top and clears selectedQuote', () => {
         mockUseAllowanceTxTracking.mockReturnValue(confirmedStatus);
 
         renderScreen({ flowType: 'revoke' });
@@ -225,7 +256,6 @@ describe('TradingConfirmingScreen', () => {
         expect(mockNavigation.popToTop).toHaveBeenCalled();
         expect(mockNavigation.push).not.toHaveBeenCalled();
         expect(selectTradingExchangeSelectedQuote(store.getState())).toBeUndefined();
-        expect(selectTradingExchangePreselectedQuote(store.getState())).toBeUndefined();
     });
 
     it('should render the explore in blockchain button', () => {
@@ -257,7 +287,9 @@ describe('TradingConfirmingScreen', () => {
 
         const [, listener] =
             mockAddListener.mock.calls.find(([event]) => event === 'beforeRemove') ?? [];
-        listener?.({ data: { action: { type: 'GO_BACK' } } });
+        act(() => {
+            listener?.({ data: { action: { type: 'GO_BACK' } } });
+        });
 
         expect(selectTradingExchangeSelectedQuote(store.getState())).toBeUndefined();
     });
@@ -267,8 +299,56 @@ describe('TradingConfirmingScreen', () => {
 
         const [, listener] =
             mockAddListener.mock.calls.find(([event]) => event === 'beforeRemove') ?? [];
-        listener?.({ data: { action: { type: 'POP', payload: { count: 3 } } } });
+        act(() => {
+            listener?.({ data: { action: { type: 'POP', payload: { count: 3 } } } });
+        });
 
         expect(selectTradingExchangeSelectedQuote(store.getState())).toEqual(testQuote);
+    });
+
+    describe('analytics', () => {
+        it('should report approval-confirming visit ', () => {
+            renderScreen();
+
+            expect(mockAnalyticsReport).toHaveBeenCalledWith('approval-confirming', 'visit');
+            expect(mockAnalyticsReport).toHaveBeenCalledTimes(1);
+        });
+
+        it('should report approval-confirming cancel on back navigation', () => {
+            store.dispatch(tradingExchangeActions.saveSelectedQuote(testQuote));
+            renderScreen();
+
+            // Simulate the beforeRemove event with a GO_BACK action (back button / swipe back).
+            const [, listener] =
+                mockAddListener.mock.calls.find(([event]) => event === 'beforeRemove') ?? [];
+
+            act(() => {
+                listener?.({ data: { action: { type: 'GO_BACK' } } });
+            });
+
+            expect(mockAnalyticsReport).toHaveBeenCalledWith('approval-confirming', 'cancel');
+            expect(mockAnalyticsReport).toHaveBeenCalledTimes(2);
+        });
+
+        it('should report revoke-confirming visit for revoke', () => {
+            renderScreen({ flowType: 'revoke' });
+
+            expect(mockAnalyticsReport).toHaveBeenCalledWith('revoke-confirming', 'visit');
+            expect(mockAnalyticsReport).toHaveBeenCalledTimes(1);
+        });
+
+        it('should report continue when on navigation to next screen', async () => {
+            mockUseAllowanceTxTracking.mockReturnValue(confirmedStatus);
+            mockConfirmApproval.mockResolvedValue({ ...testQuote, status: 'APPROVAL_PENDING' });
+
+            renderScreen({ flowType: 'approve' });
+
+            await act(async () => {
+                await Promise.resolve();
+            });
+
+            expect(mockAnalyticsReport).toHaveBeenCalledWith('approval-confirming', 'continue');
+            expect(mockAnalyticsReport).toHaveBeenCalledTimes(2);
+        });
     });
 });

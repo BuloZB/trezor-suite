@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import styled from 'styled-components';
 
+import { selectShouldDisplayDeviceCompromised } from '@suite/authenticity-checks';
+import { TrafficLightOffset } from '@suite/macos';
 import { suiteSettingsActions } from '@suite/settings';
 import { selectDevicesCount, selectSelectedDevice } from '@suite-common/device';
 import { Box, ElevationUp, Icon, ResizableBox, useElevation } from '@trezor/components';
@@ -15,10 +17,9 @@ import {
     zIndices,
 } from '@trezor/theme';
 
-import { TrafficLightOffset } from 'src/components/suite/TrafficLightOffset';
 import { AccountsMenu } from 'src/components/wallet/WalletLayout/AccountsMenu/AccountsMenu';
+import { MIN_CONTENT_WIDTH } from 'src/constants/suite/layout';
 import { useDispatch, useSelector } from 'src/hooks/suite';
-import { selectShouldDisplayDeviceCompromised } from 'src/selectors/suite/suiteAuthenticityChecksSelectors';
 import { useResponsiveContext } from 'src/support/suite/ResponsiveContext';
 
 import { Navigation } from './Navigation';
@@ -105,6 +106,9 @@ export const Sidebar = ({ showAccounts = true }: SidebarProps) => {
     } = useResponsiveContext();
     const dispatch = useDispatch();
 
+    const [maxResizableSidebarWidth, setMaxResizableSidebarWidth] =
+        useState<number>(SIDEBAR_MAX_WIDTH);
+
     const { elevation } = useElevation();
 
     const shouldDisplayDeviceCompromised = useSelector(selectShouldDisplayDeviceCompromised);
@@ -176,7 +180,7 @@ export const Sidebar = ({ showAccounts = true }: SidebarProps) => {
                 directions={['right']}
                 width={sidebarWidth}
                 minWidth={SIDEBAR_MIN_WIDTH}
-                maxWidth={SIDEBAR_MAX_WIDTH}
+                maxWidth={maxResizableSidebarWidth}
                 zIndex={zIndices.draggableComponent}
                 onWidthResizeEnd={handleSidebarWidthChanged}
                 onWidthResizeMove={handleSidebarWidthUpdate}
@@ -184,10 +188,20 @@ export const Sidebar = ({ showAccounts = true }: SidebarProps) => {
                     if (direction === 'left' || direction === 'right') {
                         setUserResizingSidebar(true);
                         setAutoCollapseSuppressed(true);
+                        // Cap growth so contentWidth can't shrink below MIN_CONTENT_WIDTH.
+                        // Captured at gesture start to stay stable despite ResizeObserver debounce lag.
+                        const limit =
+                            contentWidth != null
+                                ? sidebarWidth + contentWidth - MIN_CONTENT_WIDTH
+                                : SIDEBAR_MAX_WIDTH;
+                        setMaxResizableSidebarWidth(
+                            Math.min(SIDEBAR_MAX_WIDTH, Math.max(sidebarWidth, limit)),
+                        );
                     }
                 }}
                 onResizeStop={() => {
                     setUserResizingSidebar(false);
+                    setMaxResizableSidebarWidth(SIDEBAR_MAX_WIDTH);
                 }}
                 disabledWidthInterval={[SIDEBAR_MIN_WIDTH, SIDEBAR_COLLAPSED_WIDTH]}
                 flex="1"

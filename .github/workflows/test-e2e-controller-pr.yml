@@ -101,8 +101,9 @@ jobs:
         with:
           mode: firewall-free
           job-summary: errors
+          firewall-version: 1.11.0
       - name: Install dependencies
-        run: sfw --silent yarn workspaces focus @trezor/e2e-utils
+        run: sfw yarn workspaces focus @trezor/e2e-utils
 
       - name: Run LLM test selector
         env:
@@ -136,7 +137,7 @@ jobs:
           private-key: ${{ secrets.TREZOR_BOT_PRIVATE_KEY }}
 
       - name: Update PR description with LLM test selection
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{ steps.trezor-bot-token.outputs.token }}
           script: |
@@ -148,9 +149,9 @@ jobs:
 
             const START_MARKER = '<!-- LLM-TEST-SELECTOR:START -->';
             const END_MARKER   = '<!-- LLM-TEST-SELECTOR:END -->';
-            const HEADING_START = '<!-- LLM-TEST-SELECTOR:HEADING:START -->';
-            const HEADING_END   = '<!-- LLM-TEST-SELECTOR:HEADING:END -->';
-            const headingBlock  = `${HEADING_START}\n## 🤖 LLM Test Recommendations\n${HEADING_END}`;
+            const DETAILS_START = '<!-- LLM-TEST-SELECTOR:DETAILS:START -->';
+            const DETAILS_END   = '<!-- LLM-TEST-SELECTOR:DETAILS:END -->';
+            const TITLE_SUMMARY = '<summary><h3>🤖 LLM Test Recommendations</h3></summary>';
 
             const lines = [];
 
@@ -195,7 +196,17 @@ jobs:
 
             lines.push(`_Updated: ${new Date().toISOString()}_`);
 
-            const newSection = START_MARKER + '\n' + lines.join('\n') + '\n' + END_MARKER;
+            const newSection = [
+              DETAILS_START,
+              '<details>',
+              TITLE_SUMMARY,
+              '',
+              START_MARKER,
+              lines.join('\n'),
+              END_MARKER,
+              '</details>',
+              DETAILS_END,
+            ].join('\n');
 
             const pr = await github.rest.pulls.get({
               owner: context.repo.owner,
@@ -205,21 +216,28 @@ jobs:
 
             let body = pr.data.body || '';
 
-            // Ensure the heading block exists (written only once).
-            if (!body.includes(HEADING_START)) {
-              const sep = body.endsWith('\n\n') ? '' : body.endsWith('\n') ? '\n' : '\n\n';
-              body = body + sep + headingBlock;
-            }
-
-            // Update the section in-place or insert it right after the heading block.
             let newBody;
-            if (body.includes(START_MARKER) && body.includes(END_MARKER)) {
+            if (body.includes(DETAILS_START) && body.includes(DETAILS_END)) {
+              const before = body.slice(0, body.indexOf(DETAILS_START));
+              const after  = body.slice(body.indexOf(DETAILS_END) + DETAILS_END.length);
+              newBody = before + newSection + after;
+            } else if (body.includes(START_MARKER) && body.includes(END_MARKER)) {
               const before = body.slice(0, body.indexOf(START_MARKER));
               const after  = body.slice(body.indexOf(END_MARKER) + END_MARKER.length);
-              newBody = before + newSection + after;
+              const detailsOpenIndex = before.lastIndexOf('<details>');
+              const summaryIndex = before.lastIndexOf(TITLE_SUMMARY);
+
+              if (detailsOpenIndex !== -1 && summaryIndex > detailsOpenIndex) {
+                const afterDetails = after.startsWith('\n</details>')
+                  ? after.slice('\n</details>'.length)
+                  : after;
+                newBody = body.slice(0, detailsOpenIndex) + newSection + afterDetails;
+              } else {
+                newBody = before + newSection + after;
+              }
             } else {
-              const insertAt = body.indexOf(HEADING_END) + HEADING_END.length;
-              newBody = body.slice(0, insertAt) + '\n\n' + newSection + body.slice(insertAt);
+              const sep = body.endsWith('\n\n') ? '' : body.endsWith('\n') ? '\n' : '\n\n';
+              newBody = body + sep + newSection;
             }
 
             await github.rest.pulls.update({

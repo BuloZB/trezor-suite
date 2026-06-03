@@ -10,7 +10,7 @@ const groups = {
     api: {
         name: 'api',
         pattern:
-            'authorizeCoinjoin cancelCoinjoinAuthorization passphrase unlockPath setBusy authenticateDevice keepSession cancel.test info.test resetDevice',
+            'authorizeCoinjoin cancelCoinjoinAuthorization passphrase unlockPath setBusy authenticateDevice keepSession cancel.test info.test resetDevice updateConnectSettings',
         includeFilter: '',
     },
     // temporarily created group for flaky test - to spend less time on reruns and to make test result in CI more readable without investigating long logs
@@ -103,7 +103,7 @@ const inputs = [
     },
     {
         key: 'transport',
-        value: ['node-bridge', '2.0.33'],
+        value: ['node-bridge'],
     },
     {
         key: 'groups',

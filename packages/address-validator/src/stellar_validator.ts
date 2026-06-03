@@ -1,13 +1,13 @@
-import baseX from 'base-x';
+import { utils } from '@scure/base';
 import crc from 'crc';
 
 import * as cryptoUtils from './crypto/utils';
 import { addressType } from './crypto/utils';
-import type { Currency } from './currency-types';
+import type { Currency, NetworkEnvironment } from './currency-types';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
-const base32 = baseX(ALPHABET);
+const base32 = utils.chain(utils.radix(32), utils.alphabet(ALPHABET), utils.join(''));
 const regexp = new RegExp('^[' + ALPHABET + ']{56}$');
 const ed25519PublicKeyVersionByte = 6 << 3;
 
@@ -39,7 +39,11 @@ export const isValidAddress = (address: string): boolean => {
     return false;
 };
 
-export const getAddressType = (address: string, _currency?: Currency, _networkType?: string) => {
+export const getAddressType = (
+    address: string,
+    _currency?: Currency,
+    _network?: NetworkEnvironment,
+) => {
     if (isValidAddress(address)) {
         return addressType.ADDRESS;
     }

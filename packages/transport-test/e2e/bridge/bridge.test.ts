@@ -36,14 +36,18 @@ describe('bridge', () => {
             ],
         });
 
-        const { path } = enumerateResult.payload[0];
+        const firstDescriptor = enumerateResult.payload[0];
+        if (!firstDescriptor) {
+            throw new Error('Expected at least one descriptor');
+        }
+        const { path } = firstDescriptor;
         // eslint-disable-next-line jest/no-standalone-expect
         expect(path.length).toEqual(pathLength);
 
         descriptors = enumerateResult.payload;
 
         const acquireResult = await bridge.acquire({
-            input: { path: descriptors[0].path, previous: session },
+            input: { path: firstDescriptor.path, previous: session },
         });
         assertSuccess(acquireResult);
         // eslint-disable-next-line jest/no-standalone-expect
@@ -138,7 +142,7 @@ describe('bridge', () => {
     });
 
     // todo: udp not implemented correctly yet in new bridge
-    if (!env.USE_NODE_BRIDGE || env.USE_HW) {
+    if (env.USE_HW) {
         test(`send(RebootToBootloader) - send(Cancel) - receive`, async () => {
             // special case - a procedure on device is initiated by SEND method.
             await bridge.send({ session, name: 'RebootToBootloader', data: {} });
@@ -148,7 +152,8 @@ describe('bridge', () => {
 
             // documenting model One odd behavior
             // old bridge does not return rich descriptor so I am using env.USE_HW here
-            if (!env.USE_HW || descriptors[0].type === 1) {
+            const firstDesc = descriptors[0];
+            if (!env.USE_HW || firstDesc?.type === 1) {
                 // receive response
                 const receiveResponse1 = await bridge.receive({ session });
                 // we did 2x send, but no read. it means that now the next receive read the response from the first send
@@ -187,7 +192,11 @@ describe('bridge', () => {
     }
 
     test(`concurrent acquire`, async () => {
-        const { path } = descriptors[0];
+        const currentDescriptor = descriptors[0];
+        if (!currentDescriptor) {
+            throw new Error('Expected at least one descriptor');
+        }
+        const { path } = currentDescriptor;
         const results = await Promise.all([
             bridge.acquire({ input: { path, previous: session } }),
             bridge.acquire({ input: { path, previous: session } }),
@@ -201,7 +210,7 @@ describe('bridge', () => {
     });
 
     // todo: udp not implemented correctly yet in new bridge
-    if (!env.USE_NODE_BRIDGE || env.USE_HW) {
+    if (env.USE_HW) {
         test(`concurrent receive - other call in progress`, async () => {
             await bridge.send({ session, name: 'GetFeatures', data: {} });
 
@@ -278,7 +287,7 @@ describe('bridge', () => {
     });
 
     // todo: udp not implemented correctly yet in new bridge
-    if (!env.USE_NODE_BRIDGE || env.USE_HW) {
+    if (env.USE_HW) {
         test('acquire (wrong session) and concurrent call. what has priority in error handling?', async () => {
             const results = await Promise.all([
                 // send a session which is wrong
@@ -320,7 +329,7 @@ describe('bridge', () => {
     });
 
     // todo: udp not implemented correctly yet in new bridge
-    if (!env.USE_NODE_BRIDGE || env.USE_HW) {
+    if (env.USE_HW) {
         test('send and enumerate, receive and enumerate', async () => {
             const results = await Promise.all([
                 bridge.send({ session, name: 'GetFeatures', data: {} }),

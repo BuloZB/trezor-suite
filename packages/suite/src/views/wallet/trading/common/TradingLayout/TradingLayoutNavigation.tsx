@@ -1,4 +1,4 @@
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation, type TranslationKey } from '@suite/intl';
 import { type Route, goto } from '@suite/router';
 import { useServices } from '@suite-common/dependency-injection';
@@ -18,6 +18,11 @@ type NavigationItem = {
 
 const navigationItems: NavigationItem[] = [
     {
+        id: 'wallet-trading-exchange',
+        icon: 'repeat',
+        translationId: 'TR_TRADING_SWAP',
+    },
+    {
         id: 'wallet-trading-buy',
         icon: 'plus',
         translationId: 'TR_NAV_BUY',
@@ -28,11 +33,6 @@ const navigationItems: NavigationItem[] = [
         translationId: 'TR_NAV_SELL',
     },
     {
-        id: 'wallet-trading-exchange',
-        icon: 'arrowsLeftRight',
-        translationId: 'TR_TRADING_SWAP',
-    },
-    {
         id: 'wallet-trading-concierge',
         icon: 'handshake',
         translationId: 'TR_NAV_CONCIERGE',
@@ -41,7 +41,7 @@ const navigationItems: NavigationItem[] = [
 
 export const TradingLayoutNavigation = ({ route }: TradingLayoutNavigationProps) => {
     const dispatch = useDispatch();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const goToRoute = (route: Route['name']) => () => {
         dispatch(goto({ routeName: route }));
 

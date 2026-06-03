@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Translation } from '@suite/intl';
 import { selectModalType } from '@suite/modal';
 import { selectHasExperimentalFeature } from '@suite/settings';
+import { selectTorState } from '@suite/tor';
 import { type NetworkSymbol, getNetwork } from '@suite-common/wallet-config';
 import {
     Badge,
@@ -12,6 +13,7 @@ import {
     Column,
     Input,
     Modal,
+    Paragraph,
     Row,
     Text,
 } from '@trezor/components';
@@ -22,7 +24,6 @@ import { useBackendsForm } from 'src/hooks/settings/backends';
 import { useExplorerForm } from 'src/hooks/settings/useExplorerForm';
 import { useGapLimitForm } from 'src/hooks/settings/useGapLimitForm';
 import { useDispatch, useSelector } from 'src/hooks/suite';
-import { selectTorState } from 'src/selectors/suite/suiteSelectors';
 
 import { BackendUrls } from './BackendUrls/BackendUrls';
 import { BackendTypeSelect } from './CustomBackends/BackendTypeSelect';
@@ -33,9 +34,14 @@ import { ExplorerConfigForm } from './ExplorerConfigForm';
 type AdvancedCoinSettingsModalProps = {
     symbol: NetworkSymbol;
     onCancel: () => void;
+    onBackClick?: () => void;
 };
 
-export const AdvancedCoinSettingsModal = ({ symbol, onCancel }: AdvancedCoinSettingsModalProps) => {
+export const AdvancedCoinSettingsModal = ({
+    symbol,
+    onCancel,
+    onBackClick,
+}: AdvancedCoinSettingsModalProps) => {
     const network = getNetwork(symbol);
     const { isTorEnabled } = useSelector(selectTorState);
     const modalType = useSelector(selectModalType);
@@ -104,12 +110,12 @@ export const AdvancedCoinSettingsModal = ({ symbol, onCancel }: AdvancedCoinSett
     return (
         <Modal
             onCancel={onCancel}
+            onBackClick={onBackClick}
             heading={
                 <Text as="p">
                     {network.name} <Translation id="TR_BACKENDS" />
                 </Text>
             }
-            description={<Translation id="SETTINGS_BACKEND_SETTINGS_DESCRIPTION" />}
             width={600}
             bottomContent={
                 <>
@@ -130,6 +136,9 @@ export const AdvancedCoinSettingsModal = ({ symbol, onCancel }: AdvancedCoinSett
             }
         >
             <Column gap={spacings.lg}>
+                <Paragraph intent="neutral" priority="secondary" typographyStyle="body-sm">
+                    <Translation id="SETTINGS_BACKEND_SETTINGS_DESCRIPTION" />
+                </Paragraph>
                 <Card
                     header={
                         <BackendTypeSelect

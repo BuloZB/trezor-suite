@@ -51,11 +51,12 @@ jobs:
         with:
           mode: firewall-free
           job-summary: errors
+          firewall-version: 1.11.0
       - name: Install PW Dependencies
         shell: bash
         run: |
           echo "Installing Playwright dependencies"
-          sfw --silent yarn workspaces focus @trezor/suite-e2e
+          sfw yarn workspaces focus @trezor/suite-e2e
           # Playwright runtime may indirectly import the built config, and that would crash if message-system is not built
           yarn message-system-sign-config
 

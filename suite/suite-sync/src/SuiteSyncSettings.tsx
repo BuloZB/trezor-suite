@@ -11,11 +11,10 @@ import {
     selectSuiteSyncRelayUrl,
     updateSuiteSyncDebugEnabled,
 } from '@suite-common/suite-sync';
-import { type SuiteSyncDep } from '@suite-common/suite-sync-types';
+import { selectChangeRelayUrlDep } from '@suite-common/suite-sync-types';
 import { Button, ButtonGroup, Checkbox, Code, Column, Input, Text } from '@trezor/components';
 import { ActionColumn, SectionItem, SettingsSection, TextColumn } from '@trezor/product-components';
-import { type BreakpointFlags } from '@trezor/theme';
-import { spacings } from '@trezor/theme';
+import { type BreakpointFlags, spacings } from '@trezor/theme';
 
 import { WipeSuiteSyncLabels, type WipeSuiteSyncLabelsOnError } from './WipeSuiteSyncLabels';
 
@@ -29,7 +28,8 @@ type SuiteSyncSettingsProps = {
 
 export const SuiteSyncSettings = ({ onError }: SuiteSyncSettingsProps) => {
     const [isRelayUrlLoading, setIsRelayUrlLoading] = useState(false);
-    const { suiteSync } = useServices<SuiteSyncDep>();
+
+    const { changeRelayUrl } = useServices(selectChangeRelayUrlDep);
 
     const dispatch = useDispatch();
     const isBelowLaptop = useSelector(selectIsBelowLaptop);
@@ -49,7 +49,7 @@ export const SuiteSyncSettings = ({ onError }: SuiteSyncSettingsProps) => {
 
         setRelayUrl(url);
 
-        await suiteSync.changeRelayUrl({ relayUrl: url });
+        await changeRelayUrl({ relayUrl: url });
 
         // Fake it, to make some UI interaction for the user
         setTimeout(() => {
@@ -65,7 +65,7 @@ export const SuiteSyncSettings = ({ onError }: SuiteSyncSettingsProps) => {
     if (!isSuiteSyncFeatureEnabled) return null;
 
     return (
-        <SettingsSection title="Suite Sync" isBelowLaptop={isBelowLaptop}>
+        <SettingsSection title="Suite Sync" hasVerticalLayout={isBelowLaptop}>
             <SectionItem>
                 <TextColumn title="Relay URL" />
                 <ActionColumn>
@@ -124,6 +124,7 @@ export const SuiteSyncSettings = ({ onError }: SuiteSyncSettingsProps) => {
                 <TextColumn title="Suite Sync (Evolu) Debug" />
                 <ActionColumn>
                     <Checkbox
+                        data-testid="@settings/debug/suite-sync/debug-toggle"
                         isChecked={isSuiteSyncDebugEnabled}
                         onChange={handleToggleSuiteSyncDebug}
                     />

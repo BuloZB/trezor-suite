@@ -22,7 +22,7 @@ export class WalletPage {
     readonly stakeAddress: Locator;
     readonly walletExtraDropDown: Locator;
     readonly openTradingGlobalButton: Locator;
-    readonly openSwapGlobalButton: Locator;
+    readonly openSwapSidebarButton: Locator;
     readonly tradingDropdownBuyButton: Locator;
     readonly balanceOfAccount = (params: WalletParams) =>
         this.accountButton(params).getByTestId(`@wallet/coin-balance/value-${params.symbol}`);
@@ -56,7 +56,6 @@ export class WalletPage {
     readonly segwitGroupButton: Locator;
     readonly addAccountButton: Locator;
     readonly addAccountConfirmButton: Locator;
-    readonly findMyAccountButton: Locator;
     readonly filterAccountsButton: Locator;
     readonly addAccountTypeSelectInput: Locator;
     readonly addAccountTypeSelectOption = (type: string) =>
@@ -75,6 +74,8 @@ export class WalletPage {
     readonly discoveryWarning: Locator;
     readonly usedAddress = (index: number) =>
         this.page.getByTestId(`@wallet/receive/used-address/${index}`);
+    readonly usedAddressRevealButton = (index: number) =>
+        this.page.getByTestId(`@wallet/receive/reveal-address-button/${index}`);
 
     constructor(private readonly page: Page) {
         this.transactionSearch = this.page.getByTestId('@wallet/accounts/search-icon');
@@ -84,7 +85,7 @@ export class WalletPage {
         this.stakeAddress = this.page.getByTestId('@cardano/staking/address');
         this.walletExtraDropDown = this.page.getByTestId('@wallet/menu/extra-dropdown');
         this.openTradingGlobalButton = this.page.getByTestId('@wallet/menu/wallet-trading-buy');
-        this.openSwapGlobalButton = this.page.getByTestId('@wallet/menu/wallet-trading-exchange');
+        this.openSwapSidebarButton = this.page.getByTestId('@suite/menu/wallet-trading-exchange');
         this.tradingDropdownBuyButton = this.page
             .getByRole('list')
             .getByTestId('@wallet/menu/wallet-trading-buy');
@@ -118,7 +119,6 @@ export class WalletPage {
         this.segwitGroupButton = this.page.getByTestId('@account-menu/segwit');
         this.addAccountButton = this.page.getByTestId('@account-menu/add-account');
         this.addAccountConfirmButton = this.page.getByTestId('@add-account');
-        this.findMyAccountButton = this.page.getByTestId('@find-account');
         this.filterAccountsButton = this.page.getByTestId('@account-menu/filter-accounts');
         this.addAccountTypeSelectInput = this.page.getByTestId('@add-account-type/select/input');
         this.accountNotLoaded = this.page.getByTestId('@accounts/account-not-loaded');
@@ -240,7 +240,7 @@ export class WalletPage {
     @step()
     async openSwapTrading(params: WalletParams = {}) {
         await this.openAccount(params);
-        await this.openSwapGlobalButton.click();
+        await this.openSwapSidebarButton.click();
     }
 
     @step()

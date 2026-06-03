@@ -2,10 +2,11 @@ import { type JSX, useContext } from 'react';
 
 import styled, { css } from 'styled-components';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
+import { Translation } from '@suite/intl';
 import { useServices } from '@suite-common/dependency-injection';
-import { IconButton, useElevation } from '@trezor/components';
-import { type Elevation, mapElevationToBorder, typography, zIndices } from '@trezor/theme';
+import { H3, IconButton, Paragraph, useElevation } from '@trezor/components';
+import { type Elevation, mapElevationToBorder, zIndices } from '@trezor/theme';
 
 import { close } from 'src/actions/suite/guideActions';
 import { ContentScrolledContext, HeaderBreadcrumb } from 'src/components/guide';
@@ -42,19 +43,6 @@ const HeaderWrapper = styled.div<{
         `}
 `;
 
-const MainLabel = styled.div`
-    ${typography['headline-sm']};
-    flex: 1;
-`;
-
-const Label = styled.div`
-    ${typography['body-sm-strong']}
-    text-align: center;
-    color: ${({ theme }) => theme.contentPrimary};
-    padding: 0 15px;
-    width: 100%;
-`;
-
 interface GuideHeaderProps {
     back?: () => void;
     label?: string | JSX.Element;
@@ -62,7 +50,7 @@ interface GuideHeaderProps {
 }
 
 export const GuideHeader = ({ back, label, useBreadcrumb }: GuideHeaderProps) => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const { elevation } = useElevation();
     const dispatch = useDispatch();
     const isScrolled = useContext(ContentScrolledContext);
@@ -96,12 +84,28 @@ export const GuideHeader = ({ back, label, useBreadcrumb }: GuideHeaderProps) =>
                         intent="neutral"
                         priority="secondary"
                         data-testid="@guide/button-back"
+                        tooltip={{ content: <Translation id="TR_BACK" /> }}
                     />
 
-                    {label && <Label data-testid="@guide/label">{label}</Label>}
+                    {label && (
+                        <Paragraph
+                            typographyStyle="body-sm-strong"
+                            align="center"
+                            ellipsisLineCount={2}
+                            margin={{ horizontal: 8 }}
+                            data-testid="@guide/label"
+                            width="100%"
+                        >
+                            {label}
+                        </Paragraph>
+                    )}
                 </>
             )}
-            {!useBreadcrumb && !back && label && <MainLabel>{label}</MainLabel>}
+            {!useBreadcrumb && !back && label && (
+                <H3 flex="1" ellipsisLineCount={1} margin={{ right: 8 }}>
+                    {label}
+                </H3>
+            )}
 
             {useBreadcrumb && <HeaderBreadcrumb />}
 
@@ -111,6 +115,7 @@ export const GuideHeader = ({ back, label, useBreadcrumb }: GuideHeaderProps) =>
                 priority="secondary"
                 onClick={handleClose}
                 data-testid="@guide/button-close"
+                tooltip={{ content: <Translation id="TR_CLOSE" /> }}
             />
         </HeaderWrapper>
     );

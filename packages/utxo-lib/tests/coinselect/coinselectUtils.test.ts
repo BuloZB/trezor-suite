@@ -1,31 +1,36 @@
-import BN from 'bn.js';
-
-import { bignumberOrNaN, getDustAmount, getFee } from '../../src/coinselect/coinselectUtils';
+import {
+    getDustAmount,
+    getFee,
+    getFeePolicy,
+    parseBigInt,
+    sumOrNaN,
+} from '../../src/coinselect/coinselectUtils';
+import { zcash as zcashNetwork } from '../../src/networks';
 
 describe('coinselectUtils', () => {
-    it('bignumberOrNaN', () => {
-        expect(bignumberOrNaN('1')).not.toBeUndefined();
-        expect(bignumberOrNaN('1.1')).toBeUndefined();
-        expect(bignumberOrNaN('-1')).toBeUndefined();
-        expect(bignumberOrNaN('')).toBeUndefined();
-        expect(bignumberOrNaN('deadbeef')).toBeUndefined();
-        expect(bignumberOrNaN('0x dead beef')).toBeUndefined();
-        expect(bignumberOrNaN('1.1')).toBeUndefined();
-        expect(bignumberOrNaN()).toBeUndefined();
+    it('parseBigInt', () => {
+        expect(parseBigInt('1')).not.toBeUndefined();
+        expect(parseBigInt('1.1')).toBeUndefined();
+        expect(parseBigInt('-1')).toBeUndefined();
+        expect(parseBigInt('')).toBeUndefined();
+        expect(parseBigInt('deadbeef')).toBeUndefined();
+        expect(parseBigInt('0x dead beef')).toBeUndefined();
+        expect(parseBigInt('1.1')).toBeUndefined();
+        expect(parseBigInt()).toBeUndefined();
         // @ts-expect-error invalid arg
-        expect(bignumberOrNaN(1)).toBeUndefined();
+        expect(parseBigInt(1)).toBeUndefined();
         // @ts-expect-error invalid arg
-        expect(bignumberOrNaN(-1, true)).not.toBeUndefined();
+        expect(parseBigInt(-1, true)).not.toBeUndefined();
         // @ts-expect-error invalid arg
-        expect(bignumberOrNaN(Infinity)).toBeUndefined();
+        expect(parseBigInt(Infinity)).toBeUndefined();
         // @ts-expect-error invalid arg
-        expect(bignumberOrNaN(NaN)).toBeUndefined();
+        expect(parseBigInt(NaN)).toBeUndefined();
         // @ts-expect-error invalid arg
-        expect(bignumberOrNaN(1.1)).toBeUndefined();
+        expect(parseBigInt(1.1)).toBeUndefined();
         // @ts-expect-error invalid arg
-        expect(bignumberOrNaN(-1)).toBeUndefined();
+        expect(parseBigInt(-1)).toBeUndefined();
         // @ts-expect-error invalid arg
-        expect(bignumberOrNaN({})).toBeUndefined();
+        expect(parseBigInt({})).toBeUndefined();
     });
 
     it('getBaseFee', () => {
@@ -40,13 +45,26 @@ describe('coinselectUtils', () => {
         ).toEqual(1000);
     });
 
+    it('getFeePolicy returns "zcash" for the zcash network', () => {
+        expect(getFeePolicy(zcashNetwork)).toEqual('zcash');
+    });
+
+    it('sumOrNaN short-circuits subsequent items once accumulator becomes undefined', () => {
+        expect(sumOrNaN([{}, { value: 10n }])).toBeUndefined();
+    });
+
+    it('getDogeFee with no dustThreshold option uses 0 default and adds no dust surcharge', () => {
+        // bytes = ceil(224/4) = 56, defaultFee = ceil(1.33 * 56) = 75
+        expect(getFee([], [{ script: { length: 37 } }], 1.33, { feePolicy: 'doge' })).toEqual(75);
+    });
+
     it('getDogeFee', () => {
         expect(
             getFee(
                 [],
                 [
-                    { value: new BN('8'), script: { length: 49 } },
-                    { value: new BN('7'), script: { length: 50 } },
+                    { value: 8n, script: { length: 49 } },
+                    { value: 7n, script: { length: 50 } },
                 ],
                 2,
                 { feePolicy: 'doge', baseFee: 1000, dustThreshold: 1000 },
@@ -56,8 +74,8 @@ describe('coinselectUtils', () => {
             getFee(
                 [],
                 [
-                    { value: new BN('8'), script: { length: 500 } },
-                    { value: new BN('7'), script: { length: 472 } },
+                    { value: 8n, script: { length: 500 } },
+                    { value: 7n, script: { length: 472 } },
                 ],
                 2,
                 { feePolicy: 'doge', baseFee: 1000, dustThreshold: 1000, floorBaseFee: true },
@@ -69,7 +87,7 @@ describe('coinselectUtils', () => {
         const IN = {
             type: 'p2pkh',
             i: 0,
-            value: new BN('1000'),
+            value: 1000n,
             confirmations: 0,
             script: { length: 108 },
         } as const;

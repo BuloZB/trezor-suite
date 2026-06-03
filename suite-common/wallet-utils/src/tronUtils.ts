@@ -7,6 +7,8 @@ import { BigNumber } from '@trezor/utils';
 import { asAmountSubunit } from './AmountTypes';
 import { subunitsToUnits } from './amountUtils';
 
+export const TRON_MEMO_FEE_SUN = 1_000_000;
+
 export type TronFeeBreakdown = {
     trxBurned: BigNumber;
     coveredEnergy: BigNumber;
@@ -35,12 +37,14 @@ export const calculateTronFeeBreakdown = (
     const coveredBandwidth = new BigNumber(isBandwidthCovered ? bandwidthBytes : 0);
     const coveredEnergy = new BigNumber(Math.min(availableEnergy, energyConsumed));
 
-    const isTRC20Transfer = 'token' in tx && tx.token !== undefined;
+    const isContractCall = 'feeLimit' in tx && tx.feeLimit !== undefined;
+    const memoFeeSun = new BigNumber(('memoFee' in tx && tx.memoFee) || 0);
 
-    if (!isTRC20Transfer) {
-        const trxBurned = isBandwidthCovered
-            ? new BigNumber(0)
-            : toTrx(new BigNumber(bandwidthBytes * tronUtils.TRON_BANDWIDTH_SUN_PRICE), symbol);
+    if (!isContractCall) {
+        const bandwidthBurnSun = new BigNumber(
+            isBandwidthCovered ? 0 : bandwidthBytes * tronUtils.TRON_BANDWIDTH_SUN_PRICE,
+        );
+        const trxBurned = toTrx(bandwidthBurnSun.plus(memoFeeSun), symbol);
 
         return { trxBurned, coveredEnergy, coveredBandwidth };
     }
@@ -60,7 +64,7 @@ export const calculateTronFeeBreakdown = (
               )
             : new BigNumber(energyConsumed - coveredEnergy.toNumber()).multipliedBy(energyPrice);
 
-    const trxBurned = toTrx(energyBurnSun.plus(bandwidthBurnSun), symbol);
+    const trxBurned = toTrx(energyBurnSun.plus(bandwidthBurnSun).plus(memoFeeSun), symbol);
 
     return { trxBurned, coveredEnergy, coveredBandwidth };
 };

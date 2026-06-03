@@ -1,0 +1,13 @@
+{
+    "extends": "../../tsconfig.lib.json",
+    "include": ["./src"],
+    "compilerOptions": {
+        "outDir": "./lib",
+        "types": ["chrome", "w3c-web-usb"]
+    },
+    "references": [
+        { "path": "../connect-common" },
+        { "path": "../connect-web" },
+        { "path": "../eslint" }
+    ]
+}

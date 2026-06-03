@@ -1,18 +1,21 @@
 import { Address } from '@suite/address';
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
+import { selectIsDebugModeActive } from '@suite/settings';
 import { useServices } from '@suite-common/dependency-injection';
+import { type YieldAccountsRewards } from '@suite-common/earn-stablecoin-api';
 import { useFormatters } from '@suite-common/formatters';
-import { CardList, Column, Modal, Row, Text } from '@trezor/components';
+import { selectBaseCurrency } from '@suite-common/wallet-core';
+import { CardList, Column, Modal, Row, Text, Tooltip } from '@trezor/components';
 import { CoinLogo } from '@trezor/product-components';
 
 import { AccountLabel } from 'src/components/suite/AccountLabel';
-
-import { type YieldAccountRewards, type YieldAccountsRewards } from '../../yield/claim/hooks';
+import { DebugOnlyBadge } from 'src/components/suite/DebugOnlyBadge';
+import { useSelector } from 'src/hooks/suite';
 
 type EarnYieldClaimSelectAccountModalProps = {
     accountsRewards: YieldAccountsRewards;
-    onSelect: (account: YieldAccountRewards) => void;
+    onSelect: (account: YieldAccountsRewards[number]) => void;
     onClose: () => void;
 };
 
@@ -21,10 +24,12 @@ export const EarnYieldClaimSelectAccountModal = ({
     onSelect,
     onClose,
 }: EarnYieldClaimSelectAccountModalProps) => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const { BaseCurrencyAmountFormatter } = useFormatters();
+    const isDebugModeActive = useSelector(selectIsDebugModeActive);
+    const baseCurrency = useSelector(selectBaseCurrency);
 
-    const handleOnSelect = (account: YieldAccountRewards) => {
+    const handleOnSelect = (account: YieldAccountsRewards[number]) => {
         analytics.report({
             type: events.yieldNavigateEvent.name,
             payload: {
@@ -85,11 +90,25 @@ export const EarnYieldClaimSelectAccountModal = ({
                                 />
                             </Column>
                         </Row>
-                        <Text typographyStyle="body-md-strong">
-                            {BaseCurrencyAmountFormatter.format(
-                                accountRewards.totalClaimableFiatAmount,
-                            )}
-                        </Text>
+                        <Tooltip
+                            content={
+                                isDebugModeActive ? (
+                                    <Column gap={8} alignItems="flex-start">
+                                        <DebugOnlyBadge />
+                                        <Text>
+                                            {accountRewards.totalClaimableFiatAmount.toFixed()}{' '}
+                                            {baseCurrency.toUpperCase()}
+                                        </Text>
+                                    </Column>
+                                ) : undefined
+                            }
+                        >
+                            <Text typographyStyle="body-md-strong">
+                                {BaseCurrencyAmountFormatter.format(
+                                    accountRewards.totalClaimableFiatAmount,
+                                )}
+                            </Text>
+                        </Tooltip>
                     </CardList.Item>
                 ))}
             </CardList>

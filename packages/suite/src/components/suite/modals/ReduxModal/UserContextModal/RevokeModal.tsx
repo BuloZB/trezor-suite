@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import styled from 'styled-components';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
 import { selectIsDebugModeActive } from '@suite/settings';
 import { useServices } from '@suite-common/dependency-injection';
@@ -52,7 +52,7 @@ type RevokeModalProps = {
 };
 
 export const RevokeModal = ({ setIsWaitingForDevice, onCancel }: RevokeModalProps) => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const context = useTradingFormContext<TradingExchangeType>();
     const {
         form: {
@@ -138,8 +138,7 @@ export const RevokeModal = ({ setIsWaitingForDevice, onCancel }: RevokeModalProp
     const isIncreasingAllowanceSupported = tokenSupportsIncreasingAllowance(contractAddress);
 
     const providers = getProvidersInfoProps(context);
-    const provider =
-        selectedQuote?.exchange && providers ? providers[selectedQuote.exchange] : undefined;
+    const provider = selectedQuote?.exchange ? providers?.[selectedQuote.exchange] : undefined;
 
     return (
         <Modal

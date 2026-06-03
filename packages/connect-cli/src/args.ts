@@ -35,6 +35,7 @@ export const HELP = `@trezor/connect CLI arguments:
                                                 --method=get-account-info
                                                 --method=get-features
                                                 --method=apply-settings
+                                                --method=authenticate-device
     --params=<json>                           Extra params passed to the method (JSON object)
                                                 --params='{"use_passphrase": true}'
 `;
@@ -51,16 +52,24 @@ const parseArgv = () => {
             : ((result[key] = true), false);
 
     for (let i = 0; i < argv.length; i++) {
-        const arg = argv[i];
+        const nextIndex = i + 1;
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const arg: string = argv[i];
         if (arg.startsWith('--')) {
             const key = arg.slice(2);
             if (key.includes('=')) {
-                const [k, ...rest] = key.split('=');
+                const [preKey, ...rest] = key.split('=');
+                // @ts-expect-error: indexing with noUncheckedIndexedAccess
+                const k: string = preKey;
                 const v = rest.join('=');
                 add(k, k === 'params' ? v : v.toLowerCase());
             } else if (add(key, argv[i + 1])) i++;
         } else if (arg.startsWith('-') && arg.length === 2) {
-            if (add(arg[1], argv[i + 1])) i++;
+            // @ts-expect-error: indexing with noUncheckedIndexedAccess
+            const flag: string = arg[1];
+            // @ts-expect-error: indexing with noUncheckedIndexedAccess
+            const nextArg: string = argv[nextIndex];
+            if (add(flag, nextArg)) i++;
         } else {
             keys.push(arg);
         }

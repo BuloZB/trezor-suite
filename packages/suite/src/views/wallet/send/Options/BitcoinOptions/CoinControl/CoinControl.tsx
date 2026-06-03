@@ -121,7 +121,7 @@ export const CoinControl = ({ close }: CoinControlProps) => {
 
     // UTXOs and categories displayed on page
     let previousItemsLength = 0;
-    const [spendableUtxosOnPage, lowAnonymityUtxosOnPage, dustUtxosOnPage] = [
+    const paginatedCategories = [
         filteredSpendableUtxos,
         filteredLowAnonymityUtxos,
         filteredDustUtxos,
@@ -135,6 +135,9 @@ export const CoinControl = ({ close }: CoinControlProps) => {
             Math.max(0, lastIndexOnPage),
         );
     });
+    const spendableUtxosOnPage = paginatedCategories[0] ?? [];
+    const lowAnonymityUtxosOnPage = paginatedCategories[1] ?? [];
+    const dustUtxosOnPage = paginatedCategories[2] ?? [];
     const isCoinjoinAccount = account.accountType === 'coinjoin';
     const hasEligibleUtxos = spendableUtxos.length + lowAnonymityUtxos.length > 0;
 
@@ -219,7 +222,7 @@ export const CoinControl = ({ close }: CoinControlProps) => {
                             <Translation id="TR_PRIVATE_DESCRIPTION" values={{ targetAnonymity }} />
                         }
                         icon="shieldCheck"
-                        iconColor="contentBrand"
+                        iconIntent="brand"
                         utxos={spendableUtxosOnPage}
                     />
                 )}
@@ -234,7 +237,7 @@ export const CoinControl = ({ close }: CoinControlProps) => {
                             />
                         }
                         icon="shieldWarning"
-                        iconColor="contentWarning"
+                        iconIntent="warning"
                         utxos={lowAnonymityUtxosOnPage}
                     />
                 )}
@@ -249,7 +252,7 @@ export const CoinControl = ({ close }: CoinControlProps) => {
                         heading={<Translation id="TR_DUST" />}
                         description={<Translation id="TR_DUST_DESCRIPTION" />}
                         icon="info"
-                        iconColor="contentSecondary"
+                        iconIntent="neutral"
                         utxos={dustUtxosOnPage}
                     />
                 )}

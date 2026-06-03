@@ -1,3 +1,5 @@
+import { isNotNull } from '@trezor/utils';
+
 import { type ResultsToValidate } from './types';
 
 const failAllResults = ({
@@ -29,7 +31,7 @@ const failAllResults = ({
 export const validateSerialNumbers = (resultsToValidate: ResultsToValidate): ResultsToValidate => {
     const { optigaResult, tropicResult, mcuResult } = resultsToValidate;
 
-    const availableResults = [optigaResult, tropicResult, mcuResult].filter(r => r !== null);
+    const availableResults = [optigaResult, tropicResult, mcuResult].filter(isNotNull);
     // Cannot happen, see authenticateDevice, there'll always be at least failed optigaResult (it's always required).
     if (availableResults.length === 0) return resultsToValidate;
 
@@ -44,7 +46,9 @@ export const validateSerialNumbers = (resultsToValidate: ResultsToValidate): Res
     if (!allHaveSerialNumber) return failAllResults(resultsToValidate);
 
     // Check that all serial numbers are equal
-    const first = availableResults[0].serialNumber!;
+    // @ts-expect-error: indexing with noUncheckedIndexedAccess
+    const firstAvailableResult: AuthenticationResult | undefined = availableResults[0];
+    const first = firstAvailableResult.serialNumber!;
     const allEqual = availableResults.every(({ serialNumber }) => serialNumber === first);
     if (!allEqual) return failAllResults(resultsToValidate);
 

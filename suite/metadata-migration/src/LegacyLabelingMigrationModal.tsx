@@ -8,6 +8,7 @@ import {
     MetadataProviderSelectionModal,
     type MetadataRootState,
     connectProvider,
+    metadataActions,
     metadataLabelingActions,
     selectSelectedProviderForLabels,
 } from '@suite/metadata';
@@ -16,9 +17,10 @@ import { selectSelectedDevice } from '@suite-common/device';
 import { type MetadataProviderType } from '@suite-common/metadata-types';
 import { type AnyAction, type ExtraDependencies } from '@suite-common/redux-utils';
 import { notificationsActions } from '@suite-common/toast-notifications';
+import { parseDeviceStaticSessionId } from '@suite-common/wallet-utils';
 import { type StaticSessionId } from '@trezor/connect';
 
-import { type MetadataMigrationDep } from './createMetadataMigrationCompositionRoot';
+import { selectMetadataMigrationDep } from './createMetadataMigrationCompositionRoot';
 import type { MigrationError } from './legacyLabelsMigration';
 import { isMigratableDevice } from './migrationUtils';
 
@@ -39,7 +41,7 @@ export const LegacyLabelingMigrationModal = ({
     onSuiteSyncError,
 }: LegacyLabelingMigrationModalProps) => {
     const dispatch = useDispatch<MetadataDispatch>();
-    const { migrateLegacyLabelsToSuiteSync } = useServices<MetadataMigrationDep>();
+    const { migrateLegacyLabelsToSuiteSync } = useServices(selectMetadataMigrationDep);
     const selectedProvider = useSelector(selectSelectedProviderForLabels);
     const selectedDevice = useSelector(selectSelectedDevice);
     const [providerLoading, setProviderLoading] = useState<MetadataProviderType | null>(null);
@@ -97,6 +99,11 @@ export const LegacyLabelingMigrationModal = ({
         const result = await migrateLegacyLabelsToSuiteSync(selectedDevice);
 
         if (result.success) {
+            const { walletDescriptor } = parseDeviceStaticSessionId(
+                selectedDevice.state.staticSessionId,
+            );
+
+            dispatch(metadataActions.setLegacyLabelsMigrationForWallet(walletDescriptor));
             dispatch(
                 notificationsActions.addToast({
                     type: 'legacy-labeling-migration-success',

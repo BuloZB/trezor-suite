@@ -1,0 +1,13 @@
+{
+    "extends": "../../tsconfig.lib.json",
+    "include": ["./src"],
+    "compilerOptions": {
+        "outDir": "./lib",
+        "lib": ["DOM", "ES2023"],
+        "types": []
+    },
+    "references": [
+        { "path": "../transport-common" },
+        { "path": "../eslint" }
+    ]
+}

@@ -1,3 +1,4 @@
+import { TrezorLink } from '@suite/external-links';
 import { Translation, useTranslation } from '@suite/intl';
 import { type SignValue } from '@suite-common/suite-types';
 import { getExplorerUrl } from '@suite-common/wallet-config';
@@ -8,8 +9,6 @@ import { type TokenTransfer } from '@trezor/connect';
 import { type TypographyStyle, spacings } from '@trezor/theme';
 
 import { HiddenPlaceholder, Sign } from 'src/components/suite';
-// importing directly, otherwise unit tests fail, seems to be a styled-components issue
-import { TrezorLink } from 'src/components/suite/TrezorLink';
 import { useSelector } from 'src/hooks/suite/useSelector';
 import { BlurUrls } from 'src/views/wallet/tokens/common/BlurUrls';
 
@@ -19,7 +18,6 @@ export interface FormattedNftAmountProps {
     transfer: TokenTransfer;
     signValue?: SignValue;
     signGrayscale?: boolean;
-    className?: string;
     isWithLink?: boolean;
     alignMultitoken?: 'flex-end' | 'flex-start';
     linkTypographyStyle?: TypographyStyle;
@@ -29,7 +27,6 @@ export const FormattedNftAmount = ({
     transfer,
     signValue,
     signGrayscale,
-    className,
     isWithLink,
     alignMultitoken = 'flex-end',
     linkTypographyStyle,
@@ -93,7 +90,7 @@ export const FormattedNftAmount = ({
     }
 
     return (
-        <Row className={className}>
+        <Row>
             {signValue ? <Sign value={signValue} grayscale={signGrayscale} /> : null}
             <Box margin={{ right: spacings.xxs }}>
                 <Translation id="TR_TOKEN_ID_COLON" />

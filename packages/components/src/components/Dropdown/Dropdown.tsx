@@ -5,7 +5,7 @@ import { type IconName } from '../Icon/Icon';
 import { type DropdownMenuItemProps, Menu, type MenuProps } from '../Menu/Menu';
 import { Popover, type PopoverRef } from '../Popover/Popover';
 import { type PopoverPlacement } from '../Popover/utils';
-import { IconButton } from '../buttons/IconButton/IconButton';
+import { IconButton, type IconButtonProps } from '../buttons/IconButton/IconButton';
 import { type ButtonSize } from '../buttons/types';
 
 export const allowedDropdownFrameProps = ['width', 'minWidth'] as const satisfies FramePropsKeys[];
@@ -18,7 +18,7 @@ export type DropdownProps = Omit<MenuProps, 'onClose'> &
         iconSize?: ButtonSize;
         isLoading?: boolean;
         iconName?: IconName;
-        className?: string;
+        tooltip?: IconButtonProps['tooltip'];
         'data-testid'?: string;
     };
 
@@ -43,6 +43,7 @@ export const Dropdown = forwardRef(
             minWidth,
             maxWidth,
             width,
+            tooltip = { isActive: false },
         }: DropdownProps,
         ref,
     ) => {
@@ -83,6 +84,7 @@ export const Dropdown = forwardRef(
                     isDisabled={isDisabled}
                     isLoading={isLoading}
                     data-testid={dataTest}
+                    tooltip={tooltip}
                 />
             </Popover>
         );

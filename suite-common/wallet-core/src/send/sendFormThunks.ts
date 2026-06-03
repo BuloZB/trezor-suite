@@ -73,15 +73,15 @@ import {
     signSolanaSendFormTransactionThunk,
 } from './sendFormSolanaThunks';
 import {
-    composeTronTransactionFeeLevelsThunk,
-    signTronSendFormTransactionThunk,
-} from './sendFormTronThunks';
-import {
     type ComposeFeeLevelsError,
     type PushTransactionError,
     type SignTransactionError,
     type SignTransactionTimeoutError,
 } from './sendFormTypes';
+import {
+    composeTronTransactionFeeLevelsThunk,
+    signTronSendFormTransactionThunk,
+} from './tron/sendFormTronThunks';
 import { accountsActions } from '../accounts/accountsActions';
 import { selectAccountByKey } from '../accounts/accountsSelectors';
 import { syncAccountsWithBlockchainThunk } from '../blockchain/blockchainThunks';
@@ -236,7 +236,7 @@ export const cancelSignSendFormTransactionThunk = createThunk(
         dispatch(sendFormActions.discardTransaction());
         // if transaction is not signed yet interrupt signing in TrezorConnect
         if (!serializedTx) {
-            TrezorConnect.cancel('tx-cancelled');
+            TrezorConnect.cancel({ reason: 'tx-cancelled' });
 
             return;
         }

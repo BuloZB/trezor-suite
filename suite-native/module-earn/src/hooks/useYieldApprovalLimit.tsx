@@ -1,17 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Translation } from '@suite-native/intl';
 
 import { type YieldApprovalLimitType } from '../types';
 
-export const useYieldApprovalLimit = () => {
+export const useYieldApprovalLimit = (
+    defaultApprovalLimitType: YieldApprovalLimitType = 'per-deposit',
+) => {
     const [approvalLimitType, setApprovalLimitType] =
-        useState<YieldApprovalLimitType>('per-supply');
+        useState<YieldApprovalLimitType>(defaultApprovalLimitType);
+
+    useEffect(() => {
+        setApprovalLimitType(defaultApprovalLimitType);
+    }, [defaultApprovalLimitType]);
 
     const approvalLimitTitleId =
-        approvalLimitType === 'per-supply'
-            ? 'earn.yieldSupplyFlowScreen.perSupply'
-            : 'earn.yieldSupplyFlowScreen.approvalLimitSheet.unlimited.title';
+        approvalLimitType === 'per-deposit'
+            ? 'earn.yieldDepositFlowScreen.perDeposit'
+            : 'earn.yieldDepositFlowScreen.approvalLimitSheet.unlimited.title';
 
     return {
         approvalLimitTitle: <Translation id={approvalLimitTitleId} />,

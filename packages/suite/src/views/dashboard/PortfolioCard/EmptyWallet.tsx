@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
 import { goto } from '@suite/router';
 import { useServices } from '@suite-common/dependency-injection';
@@ -20,7 +20,7 @@ const RoundedBorder = styled.div`
 
 export const EmptyWallet = () => {
     const dispatch = useDispatch();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const enabledNetworks = useSelector(selectEnabledNetworks);
     const isBitcoinOnlyFirmware = useSelector(selectHasBitcoinOnlyFirmware);
 
@@ -53,7 +53,7 @@ export const EmptyWallet = () => {
             <Paragraph
                 intent="neutral"
                 priority="secondary"
-                typographyStyle="body-sm"
+                typographyStyle="body-md"
                 maxWidth={500}
                 align="center"
             >
@@ -81,7 +81,7 @@ export const EmptyWallet = () => {
                 <Button
                     intent="brand"
                     iconLeft="currencyCircleDollar"
-                    size="large"
+                    size="medium"
                     onClick={handleBuy}
                     data-testid="@dashboard/empty-wallet/buy"
                 >
@@ -90,7 +90,7 @@ export const EmptyWallet = () => {
                 <Button
                     intent="brand"
                     iconLeft="arrowDown"
-                    size="large"
+                    size="medium"
                     onClick={handleReceive}
                     data-testid="@dashboard/empty-wallet/receive"
                 >

@@ -50,7 +50,6 @@ import {
     selectTradingCoinSymbolByCryptoId,
     selectTradingComposedTransactionInfo,
     selectTradingExchange,
-    selectTradingExchangeActiveQuote,
     selectTradingExchangeAmountLimits,
     selectTradingExchangeBuyCryptoIds,
     selectTradingExchangeCexQuotes,
@@ -658,33 +657,6 @@ describe('tradingSelectors', () => {
         );
     });
 
-    describe('selectTradingExchangeActiveQuote', () => {
-        it('should return selectedQuote when it is defined', () => {
-            state.wallet.trading.exchange.selectedQuote = invityAPIFixtures.exchangeTrade;
-            state.wallet.trading.exchange.preselectedQuote = {
-                ...invityAPIFixtures.exchangeTrade,
-                exchange: 'preselected-exchange',
-            };
-
-            expect(selectTradingExchangeActiveQuote(state)).toBe(
-                state.wallet.trading.exchange.selectedQuote,
-            );
-        });
-
-        it('should fall back to preselectedQuote when selectedQuote is undefined', () => {
-            state.wallet.trading.exchange.selectedQuote = undefined;
-            state.wallet.trading.exchange.preselectedQuote = invityAPIFixtures.exchangeTrade;
-
-            expect(selectTradingExchangeActiveQuote(state)).toBe(
-                state.wallet.trading.exchange.preselectedQuote,
-            );
-        });
-
-        it('should return undefined when both quotes are undefined', () => {
-            expect(selectTradingExchangeActiveQuote(state)).toBeUndefined();
-        });
-    });
-
     it('selectTradingSellSelectedQuote should return correct data', () => {
         expect(selectTradingSellSelectedQuote(state)).toBe(state.wallet.trading.sell.selectedQuote);
     });
@@ -702,11 +674,21 @@ describe('tradingSelectors', () => {
             const result = selectDeviceTradingTradesOrderedByDate(state);
 
             expect(result).toHaveLength(5);
-            expect(result[0].data.orderId).toBe('orderId4');
-            expect(result[1].data.orderId).toBe('orderId3');
-            expect(result[2].data.orderId).toBe('orderId2');
-            expect(result[3].data.orderId).toBe('orderId1');
-            expect(result[4].data.orderId).toBe('orderId5');
+            // @ts-expect-error: indexing with noUncheckedIndexedAccess
+            const item0: (typeof result)[number] = result[0];
+            // @ts-expect-error: indexing with noUncheckedIndexedAccess
+            const item1: (typeof result)[number] = result[1];
+            // @ts-expect-error: indexing with noUncheckedIndexedAccess
+            const item2: (typeof result)[number] = result[2];
+            // @ts-expect-error: indexing with noUncheckedIndexedAccess
+            const item3: (typeof result)[number] = result[3];
+            // @ts-expect-error: indexing with noUncheckedIndexedAccess
+            const item4: (typeof result)[number] = result[4];
+            expect(item0.data.orderId).toBe('orderId4');
+            expect(item1.data.orderId).toBe('orderId3');
+            expect(item2.data.orderId).toBe('orderId2');
+            expect(item3.data.orderId).toBe('orderId1');
+            expect(item4.data.orderId).toBe('orderId5');
         });
 
         it('should be stable', () => {

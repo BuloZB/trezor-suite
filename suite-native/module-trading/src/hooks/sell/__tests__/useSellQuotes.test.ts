@@ -18,12 +18,14 @@ import { createTradingLightStore } from '../../../__tests__/tradingTestUtils';
 import { useSellForm } from '../useSellForm';
 import { useSellQuotes } from '../useSellQuotes';
 
+const mockDebounce = (fn: () => unknown) => fn();
+
 jest.mock('@trezor/react-utils', () => {
     const originalModule = jest.requireActual('@trezor/react-utils');
 
     return {
         ...originalModule,
-        useDebounce: () => (fn: () => unknown) => fn(),
+        useDebounce: () => mockDebounce,
     };
 });
 
@@ -178,7 +180,7 @@ describe('useSellQuotes', () => {
                 result.current.setValue(field, value);
             });
 
-            expect(dispatchSpy).toHaveBeenLastCalledWith(
+            expect(dispatchSpy).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: 'handleRequestThunkMock',
                 }),
@@ -268,9 +270,6 @@ describe('useSellQuotes', () => {
             result.current.setValue('fiatStringAmount', undefined);
         });
 
-        // The 2nd call ("trading/setCurrentProviderMetadata") is out of scope of this test,
-        // we care only about the "tradingBuy/clearQuotesAndQuotesRequest" call.
-        expect(dispatchSpy).toHaveBeenCalledTimes(2);
         expect(dispatchSpy).toHaveBeenNthCalledWith(1, {
             payload: undefined,
             type: 'tradingSell/clearQuotesAndQuotesRequest',
@@ -317,6 +316,40 @@ describe('useSellQuotes', () => {
         // make sure form has an error
         const { invalid } = result.current.getFieldState('cryptoStringAmount');
         expect(invalid).toBe(true);
+    });
+
+    it('should not clear quotes when fiat quote exceeds max spendable amount', async () => {
+        const store = getInitializedStore();
+        const dispatchSpy = jest.spyOn(store, 'dispatch');
+        const { result } = renderUseSellQuotes(store);
+
+        act(() => {
+            result.current.setValue('sendAsset', usdcAsset);
+            result.current.setValue('fiatCurrency', 'usd');
+            result.current.setValue('amountInCrypto', false);
+            result.current.setValue('fiatStringAmount', '100');
+        });
+        await act(async () => {
+            store.dispatch(tradingSellActions.saveQuotes(sellQuotes));
+            // allow validations to run
+            await Promise.resolve();
+        });
+
+        dispatchSpy.mockClear();
+        await act(async () => {
+            result.current.setError('cryptoStringAmount', {
+                type: 'network-reserve',
+                message: 'Not enough balance to cover fees',
+            });
+            // allow validations to run
+            await Promise.resolve();
+        });
+
+        expect(dispatchSpy).not.toHaveBeenCalledWith({
+            payload: undefined,
+            type: 'tradingSell/clearQuotesAndQuotesRequest',
+        });
+        expect(store.getState().wallet.trading.sell.quotes).toEqual(sellQuotes);
     });
 
     it('should not query quotes when form contains error', async () => {

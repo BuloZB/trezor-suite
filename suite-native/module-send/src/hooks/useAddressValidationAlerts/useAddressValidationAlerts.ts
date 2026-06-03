@@ -4,9 +4,9 @@ import { useSelector } from 'react-redux';
 import { type RouteProp, useRoute } from '@react-navigation/native';
 import { checkAddressCheckSum } from 'web3-utils';
 
+import { isAddressValid } from '@suite-common/address';
 import { getNetworkType } from '@suite-common/wallet-config';
 import { type AccountsRootState, selectAccountNetworkSymbol } from '@suite-common/wallet-core';
-import { isAddressValid } from '@suite-common/wallet-utils';
 import { useFormContext } from '@suite-native/forms';
 import { type SendStackParamList, type SendStackRoutes } from '@suite-native/navigation';
 
@@ -61,7 +61,8 @@ export const useAddressValidationAlerts = ({ inputIndex }: UseAddressValidationA
 
         const shouldCheckContractAddress =
             (wasTokenAlertDisplayed || !shouldShowTokenAlert) &&
-            ['eth', 'tsep', 'thod', 'trx', 'ttrx'].includes(symbol) &&
+            // Solana uses different address validation logic than Ethereum and Tron
+            (networkType === 'ethereum' || networkType === 'tron') &&
             !wasContractAlertDisplayed;
 
         if (shouldShowTokenAlert) {

@@ -55,7 +55,12 @@ export const AccountsMenuHeader = () => {
                 <ExpandedSidebarOnly>
                     <Row gap={12} padding={{ right: !isEmpty ? 10 : 0 }}>
                         {isDiscoveryRunning ? (
-                            <SkeletonRectangle animate width="100%" height={38} />
+                            <SkeletonRectangle
+                                animate
+                                width="100%"
+                                height={20}
+                                margin={{ left: 4 }}
+                            />
                         ) : (
                             <>
                                 {!isEmpty && <AccountSearchBox />}
@@ -87,7 +92,7 @@ export const AccountsMenuHeader = () => {
                                     </Tooltip>
                                 )}
 
-                                <AddAccountButton isIconOnly={!isEmpty} device={device} />
+                                {!isEmpty && <AddAccountButton device={device} />}
                             </>
                         )}
                     </Row>
@@ -95,7 +100,7 @@ export const AccountsMenuHeader = () => {
                 </ExpandedSidebarOnly>
                 <CollapsedSidebarOnly>
                     <Column alignItems="center" margin={{ bottom: 12 }}>
-                        <AddAccountButton isIconOnly={true} device={device} />
+                        {!isEmpty && <AddAccountButton device={device} />}
                     </Column>
                 </CollapsedSidebarOnly>
             </Box>

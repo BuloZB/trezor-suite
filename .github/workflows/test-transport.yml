@@ -45,20 +45,18 @@ jobs:
         with:
           mode: firewall-free
           job-summary: errors
+          firewall-version: 1.11.0
       - name: Install dependencies
         run: |
-          sfw --silent yarn workspaces focus @trezor/transport-test
+          sfw yarn workspaces focus @trezor/transport-test
 
       - name: Setup containers
         run: |
           docker compose -f ./docker/docker-compose.transport-test-ci.yml pull
           docker compose -f ./docker/docker-compose.transport-test-ci.yml up -d
 
-      - name: Run E2E tests (old-bridge:emu)
-        run: yarn workspace @trezor/transport-test test:e2e:old-bridge:emu
-
-      - name: Run E2E tests (new-bridge:emu)
-        run: yarn workspace @trezor/transport-test test:e2e:new-bridge:emu
+      - name: Run E2E tests (bridge:emu)
+        run: yarn workspace @trezor/transport-test test:e2e:bridge:emu
 
   extract-branch:
     if: github.repository == 'trezor/trezor-suite'
@@ -90,10 +88,11 @@ jobs:
         with:
           mode: firewall-free
           job-summary: errors
+          firewall-version: 1.11.0
       - name: Install dependencies
         shell: bash
         run: |
-          sfw --silent yarn workspaces focus @trezor/transport -A
+          sfw yarn workspaces focus @trezor/transport -A
 
       - name: Build transport tester
         run: |

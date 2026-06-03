@@ -6,7 +6,9 @@ import { type TrezorDevice } from '@suite-common/suite-types';
 import {
     type Network,
     type NetworkSymbol,
+    getMainnets,
     getNetwork,
+    getTestnets,
     networksCollection,
 } from '@suite-common/wallet-config';
 import {
@@ -21,17 +23,13 @@ import {
     type FeatureFlagsRootState,
     selectIsFeatureFlagEnabled,
 } from '@suite-native/feature-flags';
-import {
-    type SettingsSliceRootState,
-    selectAreTestnetsEnabled,
-    selectIsTronEnabled,
-} from '@suite-native/settings';
+import { type SettingsSliceRootState, selectAreTestnetsEnabled } from '@suite-native/settings';
 import {
     isNetworkWithTokens,
     selectNetworkSymbolsOfAccountsWithTokensAllowed,
 } from '@suite-native/tokens';
 import { getFirmwareVersion } from '@trezor/device-utils';
-import { versionUtils } from '@trezor/utils';
+import { arrayPartition, versionUtils } from '@trezor/utils';
 
 /**
  * Filter collection of activated networks to only include those supported by device & suite
@@ -69,7 +67,6 @@ const createMemoizedSelector = createWeakMapSelector.withTypes<
 export const selectDiscoverySupportedNetworks = createMemoizedSelector(
     [
         selectDeviceSupportedNetworks,
-        selectIsTronEnabled,
         selectAreTestnetsEnabled,
         (_state, forcedAreTestnetsEnabled?: boolean) => forcedAreTestnetsEnabled,
         state => selectIsFeatureFlagEnabled(state, FeatureFlag.AreDebugOnlyNetworksEnabled),
@@ -77,7 +74,6 @@ export const selectDiscoverySupportedNetworks = createMemoizedSelector(
     ],
     (
         deviceNetworks,
-        isTronEnabled,
         defaultAreTestnetsEnabled,
         forcedAreTestnetsEnabled,
         areDebugOnlyNetworksEnabled,
@@ -87,7 +83,6 @@ export const selectDiscoverySupportedNetworks = createMemoizedSelector(
 
         return pipe(
             deviceNetworks,
-            networkSymbols => networkSymbols.filter(symbol => symbol !== 'trx' || isTronEnabled),
             networkSymbols => filterTestnetNetworks(networkSymbols, areTestnetsEnabled),
             networkSymbols =>
                 networkSymbols.filter(symbol => {
@@ -132,4 +127,47 @@ export const selectTokenDefinitionsEnabledNetworks = createMemoizedSelector(
                 A.uniq,
             ),
         ),
+);
+
+export const selectDiscoveryNetworkGroups = createMemoizedSelector(
+    [
+        selectDeviceSupportedNetworks,
+        state => selectIsFeatureFlagEnabled(state, FeatureFlag.AreDebugOnlyNetworksEnabled),
+        state => selectIsFeatureFlagEnabled(state, FeatureFlag.AreExperimentalOnlyNetworksEnabled),
+        selectAreTestnetsEnabled,
+    ],
+    (
+        deviceSupportedNetworks,
+        areDebugOnlyNetworksEnabled,
+        areExperimentalOnlyNetworksEnabled,
+        areTestnetsEnabled,
+    ) => {
+        const mainnets = getMainnets({
+            debug: areDebugOnlyNetworksEnabled,
+            useExperimentalNetworks: areExperimentalOnlyNetworksEnabled,
+        });
+        const testnets = getTestnets({
+            debug: areDebugOnlyNetworksEnabled,
+            useExperimentalNetworks: areExperimentalOnlyNetworksEnabled,
+            useTestnetNetworks: areTestnetsEnabled,
+        });
+
+        const isNetworkSupported = (network: Network) =>
+            deviceSupportedNetworks.includes(network.symbol);
+        const [supportedMainnets, unsupportedMainnets] = arrayPartition(
+            mainnets,
+            isNetworkSupported,
+        );
+        const [supportedTestnets, unsupportedTestnets] = arrayPartition(
+            testnets,
+            isNetworkSupported,
+        );
+
+        return {
+            supportedMainnets,
+            supportedTestnets,
+            unsupportedMainnets,
+            unsupportedTestnets,
+        };
+    },
 );

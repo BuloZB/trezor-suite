@@ -1,3 +1,4 @@
+import { type receiveActions } from '@suite/receive';
 import { type connectPopupActions } from '@suite-common/connect-popup';
 import { type tokenDefinitionsActions } from '@suite-common/token-definitions/src/tokenDefinitionsActions';
 import {
@@ -21,7 +22,6 @@ import {
 import { type CoinjoinAccountAction } from 'src/actions/wallet/coinjoinAccountActions';
 import { type CoinjoinClientAction } from 'src/actions/wallet/coinjoinClientActions';
 import { type GraphAction } from 'src/actions/wallet/graphActions';
-import { type ReceiveAction } from 'src/actions/wallet/receiveActions';
 import { type SignVerifyAction } from 'src/actions/wallet/signVerifyActions';
 import { type accountSearchActions } from 'src/reducers/wallet/accountSearchReducer';
 
@@ -77,6 +77,7 @@ type AccountSearchAction = ReturnType<
 type StablecoinYieldAction = ReturnType<
     (typeof stablecoinYieldActions)[keyof typeof stablecoinYieldActions]
 >;
+type ReceiveAction = ReturnType<(typeof receiveActions)[keyof typeof receiveActions]>;
 
 export type WalletAction =
     | TokenDefinitionsAction

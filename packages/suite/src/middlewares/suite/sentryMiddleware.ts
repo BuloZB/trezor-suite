@@ -5,6 +5,7 @@ import { METADATA } from '@suite/metadata';
 import { MODAL_CLOSE, MODAL_OPEN_USER_CONTEXT } from '@suite/modal';
 import { routerLocationChange, selectRouterUrl } from '@suite/router';
 import { suiteSettingsActions } from '@suite/settings';
+import { torActions } from '@suite/tor';
 import { analyticsActions } from '@suite-common/analytics-redux';
 import { deviceActions } from '@suite-common/device';
 import {
@@ -61,7 +62,7 @@ const breadcrumbActions = new Set<Action['type']>([
     accountsActions.updateSelectedAccount.type,
     routerLocationChange.type,
     desktopUpdateActions.allowPrerelease.type,
-    SUITE.TOR_STATUS,
+    torActions.setTorStatus.type,
     SUITE.ONLINE_STATUS,
     deviceActions.addButtonRequest.type,
     deviceActions.removeButtonRequests.type,
@@ -112,7 +113,7 @@ const sentryMiddleware =
             case routerLocationChange.type:
                 setSentryTag('routerURL', selectRouterUrl(state));
                 break;
-            case SUITE.TOR_STATUS:
+            case torActions.setTorStatus.type:
                 setSentryTag('torStatus', action.payload);
                 break;
             case TRANSPORT.START: {
@@ -127,10 +128,11 @@ const sentryMiddleware =
                 const { result } = action.payload;
                 if (!result) return;
 
-                const reportToSentry = (error: string) => {
+                const reportToSentry = (error: string, errorDetails?: string) => {
                     withSentryScope(scope => {
                         scope.setLevel('error');
                         scope.setTag('deviceAuthenticityError', error);
+                        scope.setExtra('errorDetails', errorDetails);
                         captureSentryMessage(
                             `Device authenticity invalid! ${JSON.stringify(result, null, 2)}`,
                             scope,
@@ -144,13 +146,16 @@ const sentryMiddleware =
                 }
                 // report errors from either one of the secure elements (or both)
                 if ('optigaResult' in result && result.optigaResult.error) {
-                    reportToSentry(result.optigaResult.error);
+                    const { error, errorDetails } = result.optigaResult;
+                    reportToSentry(error, errorDetails);
                 }
                 if ('tropicResult' in result && result.tropicResult?.error) {
-                    reportToSentry(result.tropicResult.error);
+                    const { error, errorDetails } = result.tropicResult;
+                    reportToSentry(error, errorDetails);
                 }
                 if ('mcuResult' in result && result.mcuResult?.error) {
-                    reportToSentry(result.mcuResult.error);
+                    const { error, errorDetails } = result.mcuResult;
+                    reportToSentry(error, errorDetails);
                 }
                 break;
             }

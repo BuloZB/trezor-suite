@@ -1,0 +1,10 @@
+{
+    "extends": "../../tsconfig.lib.json",
+    "include": ["./src"],
+    "compilerOptions": { "outDir": "./lib" },
+    "references": [
+        { "path": "../utils" },
+        { "path": "../utxo-lib" },
+        { "path": "../type-utils" }
+    ]
+}

@@ -1,12 +1,12 @@
 import styled from 'styled-components';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { UpdateState } from '@suite/desktop-update';
 import { Translation } from '@suite/intl';
 import { useServices } from '@suite-common/dependency-injection';
 import { selectSelectedDevice } from '@suite-common/device';
 import { isDevEnv } from '@suite-common/suite-utils';
-import { Icon, Image, Paragraph } from '@trezor/components';
+import { Icon, Paragraph } from '@trezor/components';
 import { getFirmwareVersion } from '@trezor/device-utils';
 import { isDesktop } from '@trezor/env-utils';
 import { borders, transitions, typography } from '@trezor/theme';
@@ -39,13 +39,13 @@ const SectionButton = styled.button<{ $hasBackground?: boolean }>`
     align-items: center;
     padding: 13px;
     background: ${({ $hasBackground, theme }) =>
-        $hasBackground ? theme.surfaceFillRaised : 'none'};
+        $hasBackground ? theme.elementFillElevated : 'none'};
     border: 0;
 
     transition: background ${transitions.speed.normal} ${transitions.type};
 
     &:hover {
-        background: ${({ theme }) => theme.legacyBackgroundTertiaryPressedOnElevation1};
+        background: ${({ theme }) => theme.elementFillElevatedHovered};
     }
 `;
 
@@ -60,11 +60,6 @@ const Details = styled.div`
 const DetailItem = styled.div`
     display: inline-flex;
     align-items: center;
-`;
-
-// eslint-disable-next-line local-rules/no-override-ds-component
-const StyledIcon = styled(Icon)`
-    padding: 0 6px;
 `;
 
 const Label = styled.div`
@@ -86,7 +81,7 @@ const LabelHeadline = styled.strong`
 `;
 
 export const SupportFeedbackSelection = () => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const desktopUpdate = useSelector(state => state.desktopUpdate);
     const device = useSelector(selectSelectedDevice);
     const dispatch = useDispatch();
@@ -134,7 +129,7 @@ export const SupportFeedbackSelection = () => {
                         $hasBackground
                         data-testid="@guide/feedback/bug"
                     >
-                        <Image image="RECOVERY_2x" width="48px" height="48px" />
+                        <Icon name="lifebuoy" size={40} />
                         <Label>
                             <LabelHeadline>
                                 <Translation id="TR_BUG" />
@@ -153,7 +148,7 @@ export const SupportFeedbackSelection = () => {
                         $hasBackground
                         data-testid="@guide/feedback/suggestion"
                     >
-                        <Image image="UNDERSTAND_2x" width="48px" height="48px" />
+                        <Icon name="megaphone" size={40} />
                         <Label>
                             <LabelHeadline>
                                 <Translation id="TR_SUGGESTION" />
@@ -179,7 +174,7 @@ export const SupportFeedbackSelection = () => {
                             <Label>
                                 <LabelHeadline>
                                     <Translation id="TR_GUIDE_SUPPORT" />
-                                    <Icon size={20} name="arrowUpRight" />
+                                    <Icon size={20} name="arrowLineUpRight" />
                                 </LabelHeadline>
                             </Label>
                         </SectionButton>
@@ -193,7 +188,7 @@ export const SupportFeedbackSelection = () => {
                         <Label>
                             <LabelHeadline>
                                 <Translation id="TR_GUIDE_FORUM" />
-                                <Icon size={20} name="arrowUpRight" />
+                                <Icon size={20} name="arrowLineUpRight" />
                             </LabelHeadline>
                             <Paragraph
                                 typographyStyle="body-sm"
@@ -212,7 +207,13 @@ export const SupportFeedbackSelection = () => {
                         :&nbsp;
                         {!isDevEnv && appUpToDate ? (
                             <>
-                                <StyledIcon name="check" size={10} />
+                                <Icon
+                                    size={12}
+                                    margin={{ horizontal: 4 }}
+                                    name="check"
+                                    intent="neutral"
+                                    priority="secondary"
+                                />
                                 <Translation id="TR_UP_TO_DATE" />
                             </>
                         ) : (
@@ -227,7 +228,13 @@ export const SupportFeedbackSelection = () => {
                         :&nbsp;
                         {firmwareUpToDate ? (
                             <>
-                                <StyledIcon name="check" size={10} />
+                                <Icon
+                                    size={12}
+                                    margin={{ horizontal: 4 }}
+                                    name="check"
+                                    intent="neutral"
+                                    priority="secondary"
+                                />
                                 <Translation id="TR_UP_TO_DATE" />
                             </>
                         ) : (

@@ -4,39 +4,62 @@ import {
     type YieldStackParamList,
     YieldStackRoutes,
     stackNavigationOptionsConfig,
+    useDisableIOSGesture,
 } from '@suite-native/navigation';
 
 import { HowYieldWorksScreen } from '../screens/HowYieldWorksScreen';
 import { YieldConsentsScreen } from '../screens/YieldConsentsScreen';
-import { YieldSupplyApprovalTransactionDataReviewScreen } from '../screens/YieldSupplyApprovalTransactionDataReviewScreen';
-import { YieldSupplyFlowScreen } from '../screens/YieldSupplyFlowScreen';
+import { YieldDepositApprovalScreen } from '../screens/YieldDepositApprovalScreen';
+import { YieldDepositApprovalTransactionDataReviewScreen } from '../screens/YieldDepositApprovalTransactionDataReviewScreen';
+import { YieldDepositCompleteScreen } from '../screens/YieldDepositCompleteScreen';
+import { YieldDepositReviewScreen } from '../screens/YieldDepositReviewScreen';
+import { YieldDepositScreen } from '../screens/YieldDepositScreen';
 
 const YieldStack = createNativeStackNavigator<YieldStackParamList>();
 
-export const YieldStackNavigator = () => (
-    <YieldStack.Navigator
-        screenOptions={stackNavigationOptionsConfig}
-        initialRouteName={YieldStackRoutes.HowYieldWorks}
-    >
-        <YieldStack.Screen
-            options={{ title: YieldStackRoutes.HowYieldWorks }}
-            name={YieldStackRoutes.HowYieldWorks}
-            component={HowYieldWorksScreen}
-        />
-        <YieldStack.Screen
-            options={{ title: YieldStackRoutes.YieldConsents }}
-            name={YieldStackRoutes.YieldConsents}
-            component={YieldConsentsScreen}
-        />
-        <YieldStack.Screen
-            options={{ title: YieldStackRoutes.YieldSupplyFlow }}
-            name={YieldStackRoutes.YieldSupplyFlow}
-            component={YieldSupplyFlowScreen}
-        />
-        <YieldStack.Screen
-            options={{ title: YieldStackRoutes.YieldSupplyApprovalReview }}
-            name={YieldStackRoutes.YieldSupplyApprovalReview}
-            component={YieldSupplyApprovalTransactionDataReviewScreen}
-        />
-    </YieldStack.Navigator>
-);
+export const YieldStackNavigator = () => {
+    useDisableIOSGesture();
+
+    return (
+        <YieldStack.Navigator
+            screenOptions={stackNavigationOptionsConfig}
+            initialRouteName={YieldStackRoutes.HowYieldWorks}
+        >
+            <YieldStack.Screen
+                options={{ title: YieldStackRoutes.HowYieldWorks }}
+                name={YieldStackRoutes.HowYieldWorks}
+                component={HowYieldWorksScreen}
+            />
+            <YieldStack.Screen
+                options={{ title: YieldStackRoutes.YieldConsents }}
+                name={YieldStackRoutes.YieldConsents}
+                component={YieldConsentsScreen}
+            />
+            <YieldStack.Screen
+                options={{ title: YieldStackRoutes.YieldDepositApproval }}
+                name={YieldStackRoutes.YieldDepositApproval}
+                component={YieldDepositApprovalScreen}
+            />
+            <YieldStack.Screen
+                options={{ title: YieldStackRoutes.YieldDeposit }}
+                name={YieldStackRoutes.YieldDeposit}
+                component={YieldDepositScreen}
+            />
+            <YieldStack.Screen
+                options={{ title: YieldStackRoutes.YieldDepositApprovalReview }}
+                name={YieldStackRoutes.YieldDepositApprovalReview}
+                component={YieldDepositApprovalTransactionDataReviewScreen}
+            />
+            <YieldStack.Screen
+                options={{ title: YieldStackRoutes.YieldDepositReview }}
+                name={YieldStackRoutes.YieldDepositReview}
+                component={YieldDepositReviewScreen}
+            />
+            <YieldStack.Screen
+                options={{ title: YieldStackRoutes.YieldDepositComplete }}
+                name={YieldStackRoutes.YieldDepositComplete}
+                component={YieldDepositCompleteScreen}
+            />
+        </YieldStack.Navigator>
+    );
+};

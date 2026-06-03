@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { selectSelectedAccount } from '@suite/account';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { useServices } from '@suite-common/dependency-injection';
@@ -13,10 +14,9 @@ import { spacings } from '@trezor/theme';
 import { BaseCurrencyValue, FormattedCryptoAmount } from 'src/components/suite';
 import { useDispatch, useSelector } from 'src/hooks/suite';
 import { useMessageSystemStaking } from 'src/hooks/suite/useMessageSystemStaking';
-import { selectSelectedAccount } from 'src/reducers/wallet/selectedAccountReducer';
 
 export const ClaimCard = () => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const selectedAccount = useSelector(selectSelectedAccount);
     const claimTxs = useSelector(state =>
         selectAccountClaimTransactions(state, selectedAccount?.key || null),

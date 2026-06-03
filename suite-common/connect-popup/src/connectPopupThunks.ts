@@ -57,6 +57,7 @@ export const connectPopupCallThunkInner = createThunk<
             const methodInfoPayload = methodInfo.payload as MethodInfo;
             if (
                 methodInfoPayload.requiredPermissions.includes('management') ||
+                methodInfoPayload.requiredPermissions.includes('internal') ||
                 (methodInfoPayload.requiredPermissions.includes('push_tx') &&
                     source.type === 'deeplink')
             ) {
@@ -293,8 +294,8 @@ export const connectPopupDeeplinkThunk = createThunk<void, { url: string }>(
                     type: 'deeplink',
                     origin: `${callbackUrl.protocol}//${callbackUrl.host}`,
                     manifest: {
-                        appName: queryParams.appName,
-                        appIcon: queryParams.appIcon,
+                        appName: queryParams.appName ?? '',
+                        appIcon: queryParams.appIcon ?? '',
                     },
                 },
                 method: method as CallMethodKeys,
@@ -341,7 +342,7 @@ export const connectPopupVerifyAddressThunk = createThunk<void, { index: number 
                     state: device.state,
                     useEmptyPassphrase: device.useEmptyPassphrase,
                 },
-                ...call.addresses[index].validatePayload,
+                ...call.addresses?.[index]?.validatePayload,
                 showOnTrezor: true,
                 chunked: false,
             });
@@ -372,11 +373,11 @@ export const connectPopupVerifyAddressThunk = createThunk<void, { index: number 
     },
 );
 
-export const connectPopupCancelThunk = createThunk<void, { error?: string }>(
+export const connectPopupCancelThunk = createThunk<void, { error?: string; callId?: string }>(
     `${CONNECT_POPUP_MODULE}/cancelThunk`,
-    ({ error }, { dispatch }) => {
+    ({ error, callId }, { dispatch }) => {
         getPermissionDeferred().reject(TypedError('Method_Cancel'));
-        TrezorConnect.cancel(error);
+        TrezorConnect.cancel({ reason: error, callId });
         // todo: probably not needed to call explicitly anymore
         dispatch(deviceActions.removeButtonRequests({}));
 

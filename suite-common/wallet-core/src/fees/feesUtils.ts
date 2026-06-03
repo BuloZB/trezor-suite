@@ -42,6 +42,11 @@ export const getNewFeeInfo = async ({
     device,
 }: GetNewFeeInfoProps): Promise<BlockchainEstimatedFeeLevel | undefined> => {
     const { symbol } = network;
+
+    if (network.networkType === 'tron') {
+        return;
+    }
+
     if (network.networkType === 'ethereum') {
         const result = await TrezorConnect.blockchainEstimateFee({
             coin: symbol,
@@ -90,9 +95,14 @@ export const getNewFeeInfo = async ({
     if (!result.success) return;
 
     if (network.symbol === 'btc') {
-        const feeOverride = NETWORK_FEE_OVERRIDES.bitcoin;
+        const { bitcoin: bitcoinFeeOverride } = NETWORK_FEE_OVERRIDES;
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const feeOverride: NonNullable<typeof bitcoinFeeOverride> = bitcoinFeeOverride;
         result.payload.levels.forEach(level => {
-            const minFee = feeOverride.minFeePerUnit[level.label];
+            const { minFeePerUnit } = feeOverride;
+            const { label } = level;
+            // @ts-expect-error: indexing with noUncheckedIndexedAccess
+            const minFee: string = minFeePerUnit[label];
             if (minFee !== undefined && new BigNumber(level.feePerUnit).lte(minFee)) {
                 level.feePerUnit = minFee;
             }

@@ -7,6 +7,7 @@ const makeTrc20Tx = (overrides: Record<string, unknown> = {}): GeneralPrecompose
     ({
         type: 'nonfinal',
         feePerByte: '100',
+        feeLimit: '100000',
         bytes: 300,
         energyConsumed: 1000,
         token: { name: 'USDT', symbol: 'USDT', decimals: 6, balance: '100000000' },
@@ -126,6 +127,31 @@ describe(calculateTronFeeBreakdown.name, () => {
             '110000',
         );
         expect(result?.trxBurned.toString()).toBe('0.01');
+        expect(result?.coveredEnergy.toNumber()).toBe(1000);
+    });
+
+    it('native TRX with memo: adds 1 TRX memo fee on top of bandwidth', () => {
+        // Tx: bandwidth: 300, memo fee: 1 TRX
+        // Account: bandwidth: 300
+        // Expected: trxBurned: 1 TRX (memo only, bandwidth covered)
+        const tx = { ...makeNativeTrxTx(), memoFee: '1000000' } as GeneralPrecomposedTransaction;
+        const result = calculateTronFeeBreakdown(tx, makeTronResources(), 'trx');
+        expect(result?.trxBurned.toString()).toBe('1');
+        expect(result?.coveredBandwidth.toNumber()).toBe(300);
+    });
+
+    it('TRC-20 with memo: adds 1 TRX memo fee on top of energy/bandwidth', () => {
+        // Tx: bandwidth: 300, energy: 1000, memo fee: 1 TRX
+        // Account: bandwidth: 300, energy: 1000
+        // Expected: trxBurned: 1 TRX (memo only, bandwidth+energy covered)
+        const tx = makeTrc20Tx({ memoFee: '1000000' });
+        const result = calculateTronFeeBreakdown(
+            tx,
+            makeTronResources({ availableEnergy: 1000 }),
+            'trx',
+        );
+        expect(result?.trxBurned.toString()).toBe('1');
+        expect(result?.coveredBandwidth.toNumber()).toBe(300);
         expect(result?.coveredEnergy.toNumber()).toBe(1000);
     });
 });

@@ -9,6 +9,8 @@ import {
 import { type TransientProps } from '../../../utils/transientProps';
 import { Box } from '../../Box/Box';
 import { Icon, type IconName } from '../../Icon/Icon';
+import { Tooltip, type UnmanagedTooltipProps } from '../../Tooltip/Tooltip';
+import { TOOLTIP_DELAY_NORMAL } from '../../Tooltip/TooltipDelay';
 import { Spinner } from '../../loaders/Spinner/Spinner';
 import {
     type ButtonIntent,
@@ -52,10 +54,15 @@ const Container = styled.button<ButtonContainerProps>`
     ${withFrameProps}
 `;
 
+export type IconButtonTooltipProps = Omit<UnmanagedTooltipProps, 'children' | 'content'> & {
+    content?: UnmanagedTooltipProps['content'];
+};
+
 export type IconButtonProps = CommonButtonProps &
     AllowedIconButtonFrameProps & {
         size?: ButtonSize;
         icon: IconName;
+        tooltip: IconButtonTooltipProps;
         'data-testid'?: string;
         'aria-label'?: string;
     };
@@ -66,6 +73,7 @@ export const IconButton = ({
     icon,
     size = 'medium',
     isFloating = false,
+    tooltip,
     ...props
 }: IconButtonProps) => {
     const frameProps = pickAndPrepareFrameProps(props, allowedIconButtonFrameProps);
@@ -89,17 +97,19 @@ export const IconButton = ({
             {...buttonProps}
             {...frameProps}
         >
-            <Box padding={mapSizeToPadding(size)}>
-                {props.isLoading ? (
-                    <Spinner
-                        isDisabled={true}
-                        size={mapSizeToIconSize(size)}
-                        data-testid={`${dataTestId}/spinner`}
-                    />
-                ) : (
-                    <Icon name={icon} {...iconProps} />
-                )}
-            </Box>
+            <Tooltip delayShow={TOOLTIP_DELAY_NORMAL} content={null} {...tooltip}>
+                <Box padding={mapSizeToPadding(size)}>
+                    {props.isLoading ? (
+                        <Spinner
+                            isDisabled={true}
+                            size={mapSizeToIconSize(size)}
+                            data-testid={`${dataTestId}/spinner`}
+                        />
+                    ) : (
+                        <Icon name={icon} {...iconProps} />
+                    )}
+                </Box>
+            </Tooltip>
         </Container>
     );
 };

@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { useServices } from '@suite-common/dependency-injection';
 import {
     TRADING_FORM_OUTPUT_AMOUNT,
@@ -40,7 +40,7 @@ import { generateFractionButtons } from './tradingFormInputsUtils';
 
 export const TradingSellFormInputs = () => {
     const context = useTradingFormContext<TradingSellType>();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
 
     const {
         feeInfo,
@@ -56,8 +56,8 @@ export const TradingSellFormInputs = () => {
     const { getValues } = useFormContext<TradingSellFormProps>();
     const { outputs, sendCryptoSelect, amountInCrypto, countrySelect } = getValues();
     const output = outputs[0];
-    const currencySelect = output.currency;
-    const tokenAddress = (output.token ?? undefined) as TokenAddress | undefined;
+    const currencySelect = output?.currency;
+    const tokenAddress = (output?.token ?? undefined) as TokenAddress | undefined;
 
     const { getAssetDecimals } = useTradingAssetDecimals();
     const sendAssetDecimals = useMemo(
@@ -70,9 +70,9 @@ export const TradingSellFormInputs = () => {
     );
 
     const outputAmount =
-        shouldSendInSats && output.amount
+        shouldSendInSats && output?.amount
             ? convertAmountSubunitsToUnits(output.amount, sendAssetDecimals)
-            : output.amount;
+            : output?.amount;
 
     const onCryptoCurrencyChangeRef = useCurrentRef(helpers.onCryptoCurrencyChange);
     const handleSellAssetSelect = useCallback<TradingFormInputSellAssetProps['onAssetSelect']>(
@@ -107,7 +107,7 @@ export const TradingSellFormInputs = () => {
                             cryptoInputName={TRADING_FORM_OUTPUT_AMOUNT}
                             fiatInputName={TRADING_FORM_OUTPUT_FIAT}
                             cryptoSelectName={TRADING_FORM_SEND_CRYPTO_CURRENCY_SELECT}
-                            currencySelectLabel={currencySelect.value.toUpperCase()}
+                            currencySelectLabel={currencySelect?.value.toUpperCase() ?? ''}
                             cryptoCurrencyLabel={sendCryptoSelect?.id}
                         />
                         {amountInCrypto && (
@@ -154,14 +154,14 @@ export const TradingSellFormInputs = () => {
                         />
                     )}
                 </TradingFormSection>
+            </TradingFormCard>
+            <TradingFormCard>
                 <TradingFormFees
                     feeInfo={feeInfo}
                     account={account}
                     composedLevels={composedLevels}
                     changeFeeLevel={changeFeeLevel}
                 />
-            </TradingFormCard>
-            <TradingFormCard>
                 {!!quotes.length && (
                     <TradingFormInputPaymentMethod label="TR_TRADING_RECEIVE_METHOD" />
                 )}
@@ -173,6 +173,7 @@ export const TradingSellFormInputs = () => {
                         country={selectedCountry}
                     />
                 )}
+
                 <TradingSelectedOfferProvider />
             </TradingFormCard>
         </Column>

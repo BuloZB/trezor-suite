@@ -1,6 +1,7 @@
 import { isAnyOf } from '@reduxjs/toolkit';
 import type { MiddlewareAPI } from 'redux';
 
+import { selectSelectedAccountKey } from '@suite/account';
 import { routerLocationChange, selectRouteName } from '@suite/router';
 import { deviceActions } from '@suite-common/device';
 import { getTxsPerPage } from '@suite-common/suite-utils';
@@ -18,10 +19,8 @@ import {
     unsubscribeBlockchainThunk,
 } from '@suite-common/wallet-core';
 
-import * as receiveActions from 'src/actions/wallet/receiveActions';
 import * as selectedAccountActions from 'src/actions/wallet/selectedAccountActions';
 import * as tradingCommonActions from 'src/actions/wallet/trading/tradingCommonActions';
-import { selectSelectedAccountKey } from 'src/reducers/wallet/selectedAccountReducer';
 import type { Action, AppState, Dispatch } from 'src/types/suite';
 
 const walletMiddleware =
@@ -89,7 +88,6 @@ const walletMiddleware =
         if (resetReducers) {
             api.dispatch(accountsActions.disposeAccount());
             api.dispatch(sendFormActions.dispose());
-            api.dispatch(receiveActions.dispose());
             api.dispatch(tradingActions.setVerifiedAddress(undefined));
             api.dispatch(stakeActions.dispose());
         }

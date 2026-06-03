@@ -28,7 +28,7 @@ import {
     roundTimestampToNearestPastHour,
 } from '@suite-common/wallet-utils';
 import type { BaseCurrencyCode } from '@trezor/blockchain-link-types';
-import { typedObjectKeys } from '@trezor/utils';
+import { isNotNullOrUndefined, typedObjectKeys } from '@trezor/utils';
 
 import type { TransactionsRootState } from './transactionsReducerTypes';
 import type { AccountsRootState } from '../accounts/accountsReducer';
@@ -83,7 +83,7 @@ export const selectAccountTransactionsWithNulls = (
 
 export const selectAccountTransactions = createMemoizedSelector(
     [selectAccountTransactionsWithNulls],
-    transactions => returnStableArrayIfEmpty(transactions.filter(t => !!t)),
+    transactions => returnStableArrayIfEmpty(transactions.filter(isNotNullOrUndefined)),
 );
 
 export const selectPendingAccountAddresses = createMemoizedSelector(
@@ -349,8 +349,14 @@ export const selectTransactionsWithMissingRates = (
     const transactions = selectTransactions(state);
     const historicFiatRates = selectHistoricFiatRates(state);
 
+    const accountTransactions: WalletAccountTransaction[] =
+        accountKey && transactions[accountKey] ? transactions[accountKey] : [];
+    const scopedTransactions: Record<string, WalletAccountTransaction[]> = accountKey
+        ? { [accountKey]: accountTransactions }
+        : transactions;
+
     return pipe(
-        accountKey ? { [accountKey]: transactions[accountKey] } : transactions,
+        scopedTransactions,
         D.mapWithKey((key, txs) => ({
             account: selectAccountByKey(state, key as AccountKey),
             txs: txs.filter(tx => {

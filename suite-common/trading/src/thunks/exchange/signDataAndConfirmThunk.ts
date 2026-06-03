@@ -1,3 +1,5 @@
+import { type ExchangeTrade } from 'invity-api';
+
 import { createThunk } from '@suite-common/redux-utils';
 import { type TrezorDevice } from '@suite-common/suite-types';
 import { type Account } from '@suite-common/wallet-types';
@@ -14,6 +16,7 @@ import {
     selectTradingExchangeReceiveAccountKey,
     selectTradingExchangeSelectedQuote,
 } from '../../selectors/tradingSelectors';
+import { type TradingSendRejectedProps } from '../../types';
 import { logErrorThunk } from '../common/logErrorThunk';
 
 export type SignDataAndConfirmThunkProps = {
@@ -22,11 +25,22 @@ export type SignDataAndConfirmThunkProps = {
 
     returnUrl: string;
     triggerAnalyticsTradeConfirmation: () => void;
-    processResponseData: (response: any) => void;
+    processResponseData: (response: ExchangeTrade) => void;
     nextStep: () => void;
 };
 
-export const signDataAndConfirmThunk = createThunk(
+const signDataRejectedValue: TradingSendRejectedProps = {
+    type: 'sign-tx-error',
+    error: { id: 'TR_TRADING_CANNOT_SEND_TRANSACTION' },
+};
+
+export const signDataAndConfirmThunk = createThunk<
+    undefined,
+    SignDataAndConfirmThunkProps,
+    {
+        rejectValue: TradingSendRejectedProps;
+    }
+>(
     `${TRADING_EXCHANGE_THUNK_PREFIX}/signDataAndConfirm`,
     async (
         {
@@ -37,7 +51,7 @@ export const signDataAndConfirmThunk = createThunk(
             processResponseData,
             nextStep,
         }: SignDataAndConfirmThunkProps,
-        { dispatch, getState },
+        { dispatch, getState, rejectWithValue },
     ) => {
         const selectedQuote = selectTradingExchangeSelectedQuote(getState());
         const sendAccountKey = selectTradingExchangeAccountKey(getState());
@@ -51,7 +65,7 @@ export const signDataAndConfirmThunk = createThunk(
                 }),
             );
 
-            return;
+            return rejectWithValue(signDataRejectedValue);
         }
 
         if (
@@ -65,7 +79,7 @@ export const signDataAndConfirmThunk = createThunk(
                 }),
             );
 
-            return;
+            return rejectWithValue(signDataRejectedValue);
         }
 
         const typedData = selectedQuote?.signData
@@ -93,7 +107,7 @@ export const signDataAndConfirmThunk = createThunk(
                 }),
             );
 
-            return;
+            return rejectWithValue(signDataRejectedValue);
         }
 
         const trade = {
@@ -103,7 +117,7 @@ export const signDataAndConfirmThunk = createThunk(
         };
 
         if (!trade.receiveAddress) {
-            return;
+            return rejectWithValue(signDataRejectedValue);
         }
 
         dispatch(
@@ -127,6 +141,6 @@ export const signDataAndConfirmThunk = createThunk(
                 processResponseData,
                 nextStep,
             }),
-        );
+        ).unwrap();
     },
 );

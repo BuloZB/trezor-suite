@@ -82,7 +82,7 @@ export interface ReadAndConfirmAtomicShamirMnemonicEmu {
     threshold: number;
 }
 
-type StartBridgeVersion = '2.0.33' | 'node-bridge';
+type StartBridgeVersion = 'node-bridge' | '2.0.33' | '2.0.32';
 
 export const MNEMONICS = {
     mnemonic_all: 'all all all all all all all all all all all all',

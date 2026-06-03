@@ -48,9 +48,9 @@ export const formatAddress = (address: string) => splitStringEveryNCharacters(ad
 
 const REGEXP_ADDRESS_CHUNKS = /((?:\S+\s){3}\S+)\s/g;
 const EVM_ADDRESS_PREFIX = '0x';
-const DEVICE_RENDERED_EVM_INDENT = '  ';
+export const DEVICE_RENDERED_EVM_INDENT = '  ';
 
-const formatEvmAddress = (address: string) => {
+export const formatEvmAddress = (address: string) => {
     if (!address.startsWith(EVM_ADDRESS_PREFIX)) {
         return formatAddress(address);
     }
@@ -90,7 +90,7 @@ export const getVideoPath = (videoFolder: string): string | false => {
         );
     }
 
-    return path.join(videoFolder, videoFilenames[0]);
+    return path.join(videoFolder, videoFilenames[0] ?? '');
 };
 
 export const findLatestVersionForModel = (model: Model): string => {
@@ -134,7 +134,7 @@ export const countDecimalPlaces = (value: string | number) => {
         throw new Error('Value is not a valid number string');
     }
 
-    return value.toString().split('.')[1].length || 0;
+    return value.toString().split('.')[1]?.length ?? 0;
 };
 
 export const getBigNumberFromBalance = async (locator: Locator) => {

@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
-import type { ExchangeTrade } from 'invity-api';
+import type { DexApprovalType, ExchangeTrade } from 'invity-api';
 
 import {
     type TradingRootState,
     selectTradingCoinSymbolByCryptoId,
-    selectTradingExchangeActiveQuote,
+    selectTradingExchangeSelectedQuote,
     tradingExchangeActions,
 } from '@suite-common/trading';
 import { InlineAlertBox, VStack } from '@suite-native/atoms';
@@ -19,6 +19,7 @@ import {
     ScreenHeader,
     type StackProps,
 } from '@suite-native/navigation';
+import { useExchangeAnalyticsStepReport } from '@suite-native/trading-analytics';
 
 import { ApprovalButton } from '../components/exchange/Approval/ApprovalButton';
 import { ExchangeApprovalDetails } from '../components/exchange/Approval/ExchangeApprovalDetails';
@@ -31,14 +32,15 @@ type TradingExchangeApprovalScreenProps = StackProps<
     RootStackRoutes.TradingExchangeApproval
 >;
 
-export const TradingExchangeApprovalScreen = ({
+const TradingExchangeApprovalScreenContent = ({
     route: { params },
     navigation,
 }: TradingExchangeApprovalScreenProps) => {
     const { shouldIncreaseLimit, isRevoked } = params;
     const dispatch = useDispatch();
+    const reportToAnalytics = useExchangeAnalyticsStepReport('approval-preview');
 
-    const quote = useSelector(selectTradingExchangeActiveQuote);
+    const quote = useSelector(selectTradingExchangeSelectedQuote);
 
     const {
         isReady,
@@ -100,10 +102,12 @@ export const TradingExchangeApprovalScreen = ({
             }
         });
 
+        reportToAnalytics('visit');
+
         return () => {
             isActive = false;
         };
-    }, [quote, isReady, isRevoked, dispatch, confirmApproval]);
+    }, [quote, isReady, isRevoked, dispatch, confirmApproval, reportToAnalytics]);
 
     useEffect(() => {
         // Clear the selected quote only when the user navigates backward (back button / swipe back).
@@ -119,11 +123,17 @@ export const TradingExchangeApprovalScreen = ({
 
             if (isSingleBackPress) {
                 dispatch(tradingExchangeActions.saveSelectedQuote(undefined));
+                reportToAnalytics('cancel');
             }
         });
 
         return unsubscribe;
-    }, [dispatch, navigation]);
+    }, [dispatch, navigation, reportToAnalytics]);
+
+    const onApprovalTypeChangeWithAnalytics = (approvalType: DexApprovalType) => {
+        onApprovalTypeChange(approvalType);
+        reportToAnalytics(`value_change`);
+    };
 
     if (!quote) {
         return (
@@ -139,58 +149,58 @@ export const TradingExchangeApprovalScreen = ({
     }
 
     return (
-        <TradingDeviceConnectionGuard>
-            <Screen
-                header={
-                    <DynamicScreenHeader
+        <Screen
+            header={
+                <DynamicScreenHeader
+                    title={
+                        <Translation
+                            id="moduleTrading.tradingExchangeApprovalScreen.approveTitle"
+                            values={{ symbol: coinSymbol }}
+                        />
+                    }
+                    subtitle={
+                        <Translation
+                            id="moduleTrading.tradingExchangeApprovalScreen.approveSubtitle"
+                            values={{ symbol: coinSymbol }}
+                        />
+                    }
+                    closeActionType="back"
+                />
+            }
+            footer={
+                <ApprovalButton isReady={isApprovalReady} isDisabled={!!error} flowType="approve" />
+            }
+        >
+            <VStack spacing="sp12">
+                {!!shouldIncreaseLimit && (
+                    <InlineAlertBox
+                        variant="info"
                         title={
-                            <Translation
-                                id="moduleTrading.tradingExchangeApprovalScreen.approveTitle"
-                                values={{ symbol: coinSymbol }}
-                            />
+                            <Translation id="moduleTrading.tradingExchangeApprovalScreen.lowLimitInfoAlert" />
                         }
-                        subtitle={
-                            <Translation
-                                id="moduleTrading.tradingExchangeApprovalScreen.approveSubtitle"
-                                values={{ symbol: coinSymbol }}
-                            />
+                    />
+                )}
+
+                {!!isRevoked && (
+                    <InlineAlertBox
+                        variant="success"
+                        title={
+                            <Translation id="moduleTrading.tradingExchangeApprovalScreen.revokeSuccessAlert" />
                         }
-                        closeActionType="back"
                     />
-                }
-                footer={
-                    <ApprovalButton
-                        isReady={isApprovalReady}
-                        isDisabled={!!error}
-                        flowType="approve"
-                    />
-                }
-            >
-                <VStack spacing="sp12">
-                    {!!shouldIncreaseLimit && (
-                        <InlineAlertBox
-                            variant="info"
-                            title={
-                                <Translation id="moduleTrading.tradingExchangeApprovalScreen.lowLimitInfoAlert" />
-                            }
-                        />
-                    )}
+                )}
 
-                    {!!isRevoked && (
-                        <InlineAlertBox
-                            variant="success"
-                            title={
-                                <Translation id="moduleTrading.tradingExchangeApprovalScreen.revokeSuccessAlert" />
-                            }
-                        />
-                    )}
-
-                    <ExchangeApprovalDetails
-                        exchange={quote.exchange}
-                        onApprovalTypeChange={onApprovalTypeChange}
-                    />
-                </VStack>
-            </Screen>
-        </TradingDeviceConnectionGuard>
+                <ExchangeApprovalDetails
+                    exchange={quote.exchange}
+                    onApprovalTypeChange={onApprovalTypeChangeWithAnalytics}
+                />
+            </VStack>
+        </Screen>
     );
 };
+
+export const TradingExchangeApprovalScreen = (props: TradingExchangeApprovalScreenProps) => (
+    <TradingDeviceConnectionGuard>
+        <TradingExchangeApprovalScreenContent {...props} />
+    </TradingDeviceConnectionGuard>
+);

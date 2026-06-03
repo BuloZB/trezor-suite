@@ -11,6 +11,7 @@
         "scripts/**/*.ts"
     ],
     "references": [
+        { "path": "../../suite-common/address" },
         {
             "path": "../../suite-common/analytics"
         },
@@ -35,6 +36,7 @@
             "path": "../../suite-common/suite-types"
         },
         { "path": "../../suite-common/trading" },
+        { "path": "../../suite-common/wallet" },
         {
             "path": "../../suite-common/wallet-config"
         },
@@ -50,6 +52,7 @@
         { "path": "../analytics" },
         { "path": "../flags" },
         { "path": "../intl" },
+        { "path": "../labeling" },
         { "path": "../metadata" },
         { "path": "../router-config" },
         { "path": "../settings" },
@@ -61,7 +64,6 @@
         { "path": "../../packages/e2e-utils" },
         { "path": "../../packages/eslint" },
         { "path": "../../packages/protobuf" },
-        { "path": "../../packages/suite" },
         { "path": "../../packages/suite-data" },
         { "path": "../../packages/theme" },
         { "path": "../../packages/transport" },

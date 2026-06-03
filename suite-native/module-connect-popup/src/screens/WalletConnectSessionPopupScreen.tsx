@@ -26,10 +26,10 @@ import {
 import { NetworkIcon } from '@suite-native/icons';
 import { Translation } from '@suite-native/intl';
 import { Screen, ScreenHeader } from '@suite-native/navigation';
+import { TxSimulationRiskBanner } from '@suite-native/tx-simulation';
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 
 import { ConnectAppIcon } from '../components/ConnectAppIcon';
-import { TxSimulationBanner } from '../components/TxSimulation/TxSimulationBanner';
 
 const networkStyle = prepareNativeStyle<{ isDisabled: boolean }>((_, { isDisabled }) => ({
     opacity: 1,
@@ -90,6 +90,9 @@ export const WalletConnectSessionPopupScreen = () => {
     const noNetworksActivated = !pendingProposal?.networks.some(
         network => network.status === 'active',
     );
+    // @ts-expect-error: indexing with noUncheckedIndexedAccess
+    const firstAccount: (typeof accounts)[number] = accounts[0];
+    const accountToShow = selectedDefaultAccount ?? firstAccount;
     const [ignoreWarning, setIgnoreWarning] = useState(false);
     const isDisabled =
         !pendingProposal ||
@@ -199,10 +202,7 @@ export const WalletConnectSessionPopupScreen = () => {
                             <Translation id="moduleConnectPopup.walletConnect.selectedAccount" />
                         </Text>
                         <Card noPadding>
-                            <AccountsListItem
-                                account={selectedDefaultAccount || accounts[0]}
-                                onPress={openModal}
-                            />
+                            <AccountsListItem account={accountToShow} onPress={openModal} />
 
                             <BottomSheetModal
                                 ref={bottomSheetRef}
@@ -243,8 +243,8 @@ export const WalletConnectSessionPopupScreen = () => {
                 )}
 
                 {pendingProposal?.isScam && (
-                    <TxSimulationBanner
-                        type="error"
+                    <TxSimulationRiskBanner
+                        type="critical"
                         title={<Translation id="moduleConnectPopup.walletConnect.errors.isScam" />}
                         disclaimerAccepted={ignoreWarning}
                         setDisclaimerAccepted={setIgnoreWarning}

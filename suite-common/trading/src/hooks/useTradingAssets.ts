@@ -19,6 +19,7 @@ import {
 } from '@suite-common/wallet-config';
 import { getCurrencies } from '@trezor/address-validator';
 import { type TokenInfo } from '@trezor/connect';
+import { isNotNull } from '@trezor/utils';
 
 import { TRADING_DEFAULT_CRYPTO_CURRENCY } from '../constants';
 import {
@@ -232,14 +233,16 @@ export function useTradingAssets() {
                         coins[cryptoId],
                 )
                 .map(cryptoId => [cryptoId, coins[cryptoId]] as const)
-                .map(([cryptoId, coinInfo]) =>
-                    createAssetOption({
+                .flatMap(([cryptoId, coinInfo]) => {
+                    if (!coinInfo) return [];
+
+                    return createAssetOption({
                         cryptoId,
                         coinInfo,
                         platformInfo: getTradingPlatformsInfoByCryptoId(platforms, cryptoId),
-                    }),
-                )
-                .filter(asset => asset !== null);
+                    });
+                })
+                .filter(isNotNull);
 
             const networks = assets.filter(asset => asset.isNativeToken).map(asset => asset.symbol);
 

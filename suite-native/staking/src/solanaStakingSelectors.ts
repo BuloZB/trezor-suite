@@ -1,4 +1,4 @@
-import { createWeakMapSelector } from '@suite-common/redux-utils';
+import { createWeakMapSelector, returnStableArrayIfEmpty } from '@suite-common/redux-utils';
 import type { NetworkSymbol } from '@suite-common/wallet-config';
 import {
     type AccountsRootState,
@@ -21,12 +21,14 @@ export const createMemoizedSelector = createWeakMapSelector.withTypes<NativeStak
 export const selectVisibleDeviceSolanaAccountsWithStakingByNetworkSymbol = createMemoizedSelector(
     [selectDeviceAccounts, (_state, symbol: NetworkSymbol) => symbol],
     (accounts, symbol) =>
-        accounts.filter(
-            account =>
-                account.symbol === symbol &&
-                account.visible &&
-                account.networkType === 'solana' &&
-                !!account.misc?.solStakingAccounts?.length,
+        returnStableArrayIfEmpty(
+            accounts.filter(
+                account =>
+                    account.symbol === symbol &&
+                    account.visible &&
+                    account.networkType === 'solana' &&
+                    !!account.misc?.solStakingAccounts?.length,
+            ),
         ),
 );
 
@@ -73,8 +75,8 @@ export const selectSolanaStakedBalanceByAccountKey = (
         return '0';
     }
 
-    return new BigNumber(stakingInfo.solStakedBalance)
-        .plus(stakingInfo.solPendingUnstakeBalance)
+    return new BigNumber(stakingInfo.solStakedBalance ?? '0')
+        .plus(stakingInfo.solPendingUnstakeBalance ?? '0')
         .toString();
 };
 
@@ -89,8 +91,8 @@ export const selectExpectedRewardsForEpoch = (
         return '0';
     }
 
-    const yieldBearingBalance = new BigNumber(stakingInfo.solStakedBalance)
-        .plus(stakingInfo.solPendingUnstakeBalance)
+    const yieldBearingBalance = new BigNumber(stakingInfo.solStakedBalance ?? '0')
+        .plus(stakingInfo.solPendingUnstakeBalance ?? '0')
         .toString();
 
     return calculateSolanaStakingReward(yieldBearingBalance, apy);

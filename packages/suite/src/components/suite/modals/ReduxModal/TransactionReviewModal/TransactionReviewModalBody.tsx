@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { selectAccountIncludingChosenInTrading } from '@suite/account';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { preserveModalOnTxTimeout } from '@suite/modal';
 import { selectRouterUrl } from '@suite/router';
 import { useServices } from '@suite-common/dependency-injection';
 import { selectSelectedDevice } from '@suite-common/device';
+import { selectTradingExchangeSelectedQuote } from '@suite-common/trading';
+import { selectStablecoinYieldTxReview } from '@suite-common/wallet-core';
 import { type FormState } from '@suite-common/wallet-types';
 import {
     constructTransactionReviewOutputsOptional,
@@ -15,7 +18,6 @@ import TrezorConnect from '@trezor/connect';
 import { type Deferred } from '@trezor/utils';
 
 import { useDispatch, useSelector } from 'src/hooks/suite';
-import { selectAccountIncludingChosenInTrading } from 'src/reducers/wallet/selectedAccountReducer';
 import { redactRouterUrl } from 'src/utils/suite/analytics';
 
 import { TransactionReviewModalBodyInner } from './TransactionReviewModalBodyInner';
@@ -39,10 +41,16 @@ export const TransactionReviewModalBody = ({
     precomposedForm,
     isRbfConfirmedError,
 }: TransactionReviewModalBodyProps) => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const dispatch = useDispatch();
     const account = useSelector(selectAccountIncludingChosenInTrading);
     const device = useSelector(selectSelectedDevice);
+    const yieldTxReview = useSelector(selectStablecoinYieldTxReview);
+    const swapSlippage = useSelector(selectTradingExchangeSelectedQuote)?.swapSlippage;
+
+    const isYield = Boolean(yieldTxReview.precomposedTx);
+    const vaultName = isYield ? yieldTxReview.vaultName : undefined;
+    const availableRewards = isYield ? yieldTxReview.availableRewards : undefined;
     const [isSending, setIsSending] = useState(false);
     const { precomposedTx, serializedTx } = txInfoState;
     const [hasTxReviewExpired, setHasTxReviewExpired] = useState(false);
@@ -78,7 +86,7 @@ export const TransactionReviewModalBody = ({
             if (mounted && !isSending) {
                 setHasTxReviewExpired(true);
                 dispatch(preserveModalOnTxTimeout());
-                TrezorConnect.cancel('tx-timeout');
+                TrezorConnect.cancel({ reason: 'tx-timeout' });
             }
         }, timeLeft);
 
@@ -100,15 +108,18 @@ export const TransactionReviewModalBody = ({
         account,
         decreaseOutputId,
         device,
+        availableRewards,
         precomposedForm,
         precomposedTx,
+        vaultName,
+        swapSlippage,
     });
 
     const handleTryAgain = useCallback(
         (cancel: boolean) => {
             if (cancel && !serializedTx && !isSending) {
                 dispatch(preserveModalOnTxTimeout());
-                TrezorConnect.cancel('tx-timeout');
+                TrezorConnect.cancel({ reason: 'tx-timeout' });
             }
 
             setHasTxReviewExpired(false);
@@ -142,6 +153,8 @@ export const TransactionReviewModalBody = ({
             tryAgainSignTx={tryAgainSignTx}
             cancelSignTx={cancelSignTx}
             precomposedForm={precomposedForm}
+            vaultName={vaultName}
+            availableRewards={availableRewards}
             precomposedTx={precomposedTx}
             isSending={isSending}
             setIsSending={setIsSending}

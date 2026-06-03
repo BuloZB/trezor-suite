@@ -1,3 +1,4 @@
+import { type SelectedAccountState, selectedAccountReducer } from '@suite/account';
 import { type RouterState } from '@suite/router';
 import { extraDependenciesCommonMock, testMocks } from '@suite-common/test-utils';
 import {
@@ -10,9 +11,6 @@ import { mockWalletAccount } from '@suite-common/wallet-types/mocks';
 import walletMiddleware from 'src/middlewares/wallet/walletMiddleware';
 import { accountsReducer, blockchainReducer, walletSettingsReducer } from 'src/reducers/wallet';
 import formDraftReducer from 'src/reducers/wallet/formDraftReducer';
-import selectedAccountReducer, {
-    type State as SelectedAccountState,
-} from 'src/reducers/wallet/selectedAccountReducer';
 import { extraDependencies } from 'src/support/extraDependencies';
 import { configureStore } from 'src/support/tests/configureStore';
 import { type Action } from 'src/types/suite';

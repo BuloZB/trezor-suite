@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 
 import styled from 'styled-components';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { selectLanguage } from '@suite/settings';
 import { useServices } from '@suite-common/dependency-injection';
 import { type GuideNode as GuideNodeType } from '@suite-common/suite-types';
@@ -20,7 +20,7 @@ const NodeButton = styled.button`
     border-radius: ${borders.radii.xs};
     border: 0;
     width: 100%;
-    background: ${({ theme }) => theme.surfaceFillRaised};
+    background: ${({ theme }) => theme.elementFillElevated};
     padding: 10px;
     cursor: pointer;
     line-height: 1.57;
@@ -28,7 +28,7 @@ const NodeButton = styled.button`
 
     &:hover,
     &:focus {
-        background: ${({ theme }) => theme.legacyBackgroundTertiaryPressedOnElevation1};
+        background: ${({ theme }) => theme.elementFillElevatedHovered};
     }
 `;
 
@@ -68,7 +68,7 @@ type GuideNodeProps = {
 export const GuideNode = ({ node, description }: GuideNodeProps) => {
     const language = useSelector(selectLanguage);
     const dispatch = useDispatch();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
 
     const navigateToNode = () => {
         dispatch(openNode(node));

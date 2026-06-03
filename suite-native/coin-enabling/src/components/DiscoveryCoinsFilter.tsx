@@ -1,24 +1,52 @@
 import { useSelector } from 'react-redux';
 
 import { selectIsDeviceConnected } from '@suite-common/device';
-import { type NetworkSymbol, getNetwork } from '@suite-common/wallet-config';
+import { type Network, type NetworkSymbol, getNetwork } from '@suite-common/wallet-config';
 import { Text, VStack } from '@suite-native/atoms';
+import { selectDiscoveryNetworkGroups } from '@suite-native/discovery';
 import { useFormContext } from '@suite-native/forms';
-import { Icon } from '@suite-native/icons';
 import { Translation } from '@suite-native/intl';
 import { useToast } from '@suite-native/toasts';
 
 import { NetworkSymbolSwitchItem } from './NetworkSymbolSwitchItem';
 
+type NetworkGroupProps = {
+    networks: Network[];
+    enabledSymbols: NetworkSymbol[];
+    handleToggle: (symbol: NetworkSymbol, isEnabled: boolean) => void;
+    showTestnetsLabel?: boolean;
+};
+
 type DiscoveryCoinsFilterProps = {
-    networkSymbols: NetworkSymbol[];
     onDisablingLastCoin?: () => void;
 };
 
-export const DiscoveryCoinsFilter = ({
-    networkSymbols,
-    onDisablingLastCoin,
-}: DiscoveryCoinsFilterProps) => {
+const NetworkGroup = ({
+    networks,
+    enabledSymbols,
+    handleToggle,
+    showTestnetsLabel,
+}: NetworkGroupProps) => (
+    <VStack spacing="sp12">
+        {showTestnetsLabel && (
+            <Text variant="body-sm">
+                <Translation id="moduleSettings.coinEnabling.testnetsLabel" />
+            </Text>
+        )}
+        {networks.map(({ symbol }) => (
+            <NetworkSymbolSwitchItem
+                key={symbol}
+                symbol={symbol}
+                isEnabled={enabledSymbols.includes(symbol)}
+                onToggle={isEnabled => handleToggle(symbol, isEnabled)}
+            />
+        ))}
+    </VStack>
+);
+
+export const DiscoveryCoinsFilter = ({ onDisablingLastCoin }: DiscoveryCoinsFilterProps) => {
+    const { supportedMainnets, supportedTestnets, unsupportedMainnets, unsupportedTestnets } =
+        useSelector(selectDiscoveryNetworkGroups);
     const isDeviceConnected = useSelector(selectIsDeviceConnected);
     const { showToast } = useToast();
 
@@ -58,21 +86,44 @@ export const DiscoveryCoinsFilter = ({
     };
 
     return (
-        <VStack spacing="sp12">
-            {networkSymbols.map(symbol => (
-                <NetworkSymbolSwitchItem
-                    key={symbol}
-                    symbol={symbol}
-                    isEnabled={enabledSymbols?.includes(symbol)}
-                    onToggle={isEnabled => handleToggle(symbol, isEnabled)}
+        <VStack spacing="sp32">
+            <VStack spacing="sp24">
+                <NetworkGroup
+                    networks={supportedMainnets}
+                    enabledSymbols={enabledSymbols}
+                    handleToggle={handleToggle}
                 />
-            ))}
-            <VStack paddingVertical="sp8" alignItems="center">
-                <Icon name="question" color="contentSecondary" size="large" />
-                <Text color="contentSecondary" textAlign="center">
-                    <Translation id="moduleSettings.coinEnabling.bottomNote" />
-                </Text>
+                {supportedTestnets.length > 0 && (
+                    <NetworkGroup
+                        networks={supportedTestnets}
+                        enabledSymbols={enabledSymbols}
+                        handleToggle={handleToggle}
+                        showTestnetsLabel
+                    />
+                )}
             </VStack>
+            {unsupportedMainnets.length > 0 && (
+                <VStack spacing="sp16">
+                    <Text variant="headline-sm">
+                        <Translation id="moduleSettings.coinEnabling.unsupportedSubtitle" />
+                    </Text>
+                    <VStack spacing="sp24">
+                        <NetworkGroup
+                            networks={unsupportedMainnets}
+                            enabledSymbols={enabledSymbols}
+                            handleToggle={handleToggle}
+                        />
+                        {unsupportedTestnets.length > 0 && (
+                            <NetworkGroup
+                                networks={unsupportedTestnets}
+                                enabledSymbols={enabledSymbols}
+                                handleToggle={handleToggle}
+                                showTestnetsLabel
+                            />
+                        )}
+                    </VStack>
+                </VStack>
+            )}
         </VStack>
     );
 };

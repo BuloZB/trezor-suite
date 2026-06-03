@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useSelector } from 'react-redux';
 
 import type { ExchangeProviderInfo, ExchangeTrade } from 'invity-api';
@@ -12,10 +12,10 @@ import {
     selectTradingProviderByNameAndTradeType,
 } from '@suite-common/trading';
 import {
-    type NativeAnalyticsDep,
     type TradingExchangeAction,
     type TradingExchangeStep,
     events,
+    selectNativeAnalyticsDep,
 } from '@suite-native/analytics';
 import { coinInfoToTradeableAsset } from '@suite-native/trading-atoms';
 
@@ -84,20 +84,10 @@ export const useExchangeAnalyticReportCallback = (
 ): TradingExchangeAnalyticReportCallback => {
     const persistedQuote = useSelector(selectTradingExchangeSelectedQuote);
     const quote = candidateQuote || persistedQuote;
-    const { analytics } = useServices<NativeAnalyticsDep>();
-    const {
-        exchangeName,
-        exchangeType,
-        approvalType,
-        rateType,
-        receiveCryptoContractAddress,
-        receiveCryptoLabel,
-        sendCryptoContractAddress,
-        receiveCryptoNetworkSymbol,
-        sendCryptoNetworkSymbol,
-        sendCryptoLabel,
-        slippage,
-    } = useExchangeFormAnalyticsPayload(quote);
+    const { analytics } = useServices(selectNativeAnalyticsDep);
+    const payload = useExchangeFormAnalyticsPayload(quote);
+    const payloadRef = useRef(payload);
+    payloadRef.current = payload;
 
     return useCallback(
         (step: TradingExchangeStep, action: TradingExchangeAction) => {
@@ -106,33 +96,10 @@ export const useExchangeAnalyticReportCallback = (
                 payload: {
                     step,
                     action,
-                    exchangeName,
-                    exchangeType,
-                    approvalType,
-                    rateType,
-                    receiveCryptoContractAddress,
-                    receiveCryptoLabel,
-                    sendCryptoContractAddress,
-                    receiveCryptoNetworkSymbol,
-                    sendCryptoNetworkSymbol,
-                    sendCryptoLabel,
-                    slippage,
+                    ...payloadRef.current,
                 },
             });
         },
-        [
-            analytics,
-            exchangeName,
-            exchangeType,
-            approvalType,
-            rateType,
-            receiveCryptoContractAddress,
-            receiveCryptoLabel,
-            sendCryptoContractAddress,
-            receiveCryptoNetworkSymbol,
-            sendCryptoNetworkSymbol,
-            sendCryptoLabel,
-            slippage,
-        ],
+        [analytics, payloadRef],
     );
 };

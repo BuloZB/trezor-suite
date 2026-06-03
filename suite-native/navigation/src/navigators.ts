@@ -88,19 +88,22 @@ export type EarnStackParamList = {
 export type YieldFlowParams = {
     accountKey: AccountKey;
     tokenContract: TokenAddress;
+    yieldId?: string;
 };
 
-export type YieldSupplyApprovalReviewParams = YieldFlowParams & {
+export type YieldDepositApprovalReviewParams = YieldFlowParams & {
     amount: string;
-    approvalLimitType: 'per-supply' | 'unlimited';
+    approvalLimitType: 'per-deposit' | 'unlimited';
 };
 
 export type YieldStackParamList = {
     [YieldStackRoutes.HowYieldWorks]: YieldFlowParams;
     [YieldStackRoutes.YieldConsents]: YieldFlowParams;
-    [YieldStackRoutes.YieldSupplyFlow]: YieldFlowParams;
-    [YieldStackRoutes.YieldSupplyApprovalReview]: YieldSupplyApprovalReviewParams;
-    [YieldStackRoutes.YieldSupplyReview]: YieldFlowParams;
+    [YieldStackRoutes.YieldDepositApproval]: YieldFlowParams;
+    [YieldStackRoutes.YieldDeposit]: YieldFlowParams;
+    [YieldStackRoutes.YieldDepositApprovalReview]: YieldDepositApprovalReviewParams;
+    [YieldStackRoutes.YieldDepositReview]: YieldFlowParams;
+    [YieldStackRoutes.YieldDepositComplete]: YieldFlowParams;
 };
 
 export type HomeStackParamList = {
@@ -509,7 +512,7 @@ export type TransactionDetailStackParamList = {
 };
 
 export type ConfirmingScreenFlowType = 'approve' | 'revoke' | 'revoke-and-approve';
-export type ExchangeFlowType = 'swap' | ConfirmingScreenFlowType;
+export type ExchangeFlowType = 'swap' | 'sign-data' | ConfirmingScreenFlowType;
 
 export type TradingStackParamList = {
     [TradingStackRoutes.Trading]: { tradingType?: TradingType };

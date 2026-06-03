@@ -36,11 +36,12 @@ jobs:
         with:
           mode: firewall-free
           job-summary: errors
+          firewall-version: 1.11.0
       - name: Install dependencies
         run: |
           echo -e "\nenableHardenedMode: false" >> .yarnrc.yml
-          sfw --silent yarn workspaces focus @trezor/components
-          sfw --silent yarn workspaces focus @trezor/product-components
+          sfw yarn workspaces focus @trezor/components
+          sfw yarn workspaces focus @trezor/product-components
 
       - name: Build storybook
         env:

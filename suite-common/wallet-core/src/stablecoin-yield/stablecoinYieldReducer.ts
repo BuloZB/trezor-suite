@@ -6,6 +6,7 @@ import {
     type AccountKey,
     type FormState,
     type PrecomposedTransactionFinal,
+    type YieldClaimReward,
 } from '@suite-common/wallet-types';
 import { isSafeObjectKey } from '@trezor/utils';
 
@@ -24,6 +25,12 @@ type StablecoinYieldSerializedTx = {
     symbol: NetworkSymbol;
 };
 
+type StablecoinYieldActionReviewState = {
+    amount: string;
+    receiptAmount: string;
+    unsignedTransaction: string;
+};
+
 export type YieldAllowanceStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 export const STABLECOIN_YIELD_PREFIX = '@suite-common/wallet-core/stablecoin-yield';
@@ -31,6 +38,8 @@ export const STABLECOIN_YIELD_PREFIX = '@suite-common/wallet-core/stablecoin-yie
 export type StablecoinYieldTxReviewState = {
     precomposedTx?: PrecomposedTransactionFinal;
     precomposedForm?: FormState;
+    vaultName?: string;
+    availableRewards?: YieldClaimReward[];
     serializedTx?: StablecoinYieldSerializedTx;
     accountKey?: AccountKey;
 };
@@ -55,6 +64,7 @@ export type StablecoinYieldSessionState = {
         isSubmitting: boolean;
         pendingTransaction: YieldPendingTransactionState | null;
         pendingReceiptAmount: string;
+        review: StablecoinYieldActionReviewState | null;
     };
     result: {
         completedAmount: string;
@@ -97,6 +107,7 @@ export const initialStablecoinYieldSessionState: StablecoinYieldSessionState = {
         isSubmitting: false,
         pendingTransaction: null,
         pendingReceiptAmount: '',
+        review: null,
     },
     result: {
         completedAmount: '0',
@@ -107,6 +118,8 @@ export const initialStablecoinYieldSessionState: StablecoinYieldSessionState = {
 export const initialStablecoinYieldTxReviewState: StablecoinYieldTxReviewState = {
     precomposedTx: undefined,
     precomposedForm: undefined,
+    vaultName: undefined,
+    availableRewards: undefined,
     serializedTx: undefined,
     accountKey: undefined,
 };
@@ -245,6 +258,9 @@ export const stablecoinYieldSlice = createSlice({
         startSubmittingApproval(state, action: PayloadAction<StablecoinYieldSessionActionPayload>) {
             withSession(state, action.payload, session => {
                 session.approval.isSubmitting = true;
+                session.approval.modalState = null;
+                session.approval.revokeTransactions = null;
+                session.approval.isRevokeRequired = false;
                 session.error = null;
             });
         },
@@ -299,6 +315,7 @@ export const stablecoinYieldSlice = createSlice({
                 session.approval.isModifyMode = true;
                 session.approval.modalState = null;
                 session.action.pendingTransaction = null;
+                session.action.review = null;
                 session.error = null;
                 session.step = 'approve';
             });
@@ -313,9 +330,12 @@ export const stablecoinYieldSlice = createSlice({
         ) {
             withSession(state, action.payload, session => {
                 session.approval.isModifyMode = false;
+                session.approval.modalState = null;
+                session.approval.isRevokeRequired = false;
                 session.action.amount = action.payload.amount;
                 session.approval.isPending = false;
                 session.action.pendingTransaction = null;
+                session.action.review = null;
                 session.approval.revokeTransactions = null;
                 session.step = 'action';
             });
@@ -354,12 +374,28 @@ export const stablecoinYieldSlice = createSlice({
             withSession(state, action.payload, session => {
                 session.action.amount = action.payload.amount;
                 session.action.isSubmitting = true;
+                session.action.review = null;
                 session.error = null;
             });
         },
         finishSubmittingAction(state, action: PayloadAction<StablecoinYieldSessionActionPayload>) {
             withSession(state, action.payload, session => {
                 session.action.isSubmitting = false;
+            });
+        },
+        storeActionReviewData(
+            state,
+            action: PayloadAction<
+                StablecoinYieldSessionActionPayload & StablecoinYieldActionReviewState
+            >,
+        ) {
+            withSession(state, action.payload, session => {
+                session.action.amount = action.payload.amount;
+                session.action.review = {
+                    amount: action.payload.amount,
+                    receiptAmount: action.payload.receiptAmount,
+                    unsignedTransaction: action.payload.unsignedTransaction,
+                };
             });
         },
         setPendingTx(
@@ -393,6 +429,7 @@ export const stablecoinYieldSlice = createSlice({
                 session.result.completedAmount = action.payload.amount;
                 session.result.completedReceiptAmount = session.action.pendingReceiptAmount;
                 session.action.pendingTransaction = null;
+                session.action.review = null;
                 session.step = 'complete';
             });
         },
@@ -420,11 +457,15 @@ export const stablecoinYieldSlice = createSlice({
             action: PayloadAction<{
                 precomposedTx: PrecomposedTransactionFinal;
                 precomposedForm: FormState;
+                vaultName?: string;
+                availableRewards?: YieldClaimReward[];
                 accountKey: AccountKey;
             }>,
         ) {
             state.txReview.precomposedTx = action.payload.precomposedTx;
             state.txReview.precomposedForm = action.payload.precomposedForm;
+            state.txReview.vaultName = action.payload.vaultName;
+            state.txReview.availableRewards = action.payload.availableRewards;
             state.txReview.accountKey = action.payload.accountKey;
             state.txReview.serializedTx = undefined;
         },
@@ -437,6 +478,8 @@ export const stablecoinYieldSlice = createSlice({
         discardTransaction(state) {
             state.txReview.precomposedTx = undefined;
             state.txReview.precomposedForm = undefined;
+            state.txReview.vaultName = undefined;
+            state.txReview.availableRewards = undefined;
             state.txReview.serializedTx = undefined;
             state.txReview.accountKey = undefined;
         },

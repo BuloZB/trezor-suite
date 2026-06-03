@@ -1,4 +1,4 @@
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
 import { goto } from '@suite/router';
 import { useServices } from '@suite-common/dependency-injection';
@@ -17,7 +17,7 @@ type YieldClaimPageHeaderProps = {
 
 export const YieldClaimPageHeader = ({ account }: YieldClaimPageHeaderProps) => {
     const dispatch = useDispatch();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
 
     const onBackClick = () => {
         analytics.report({
@@ -43,6 +43,7 @@ export const YieldClaimPageHeader = ({ account }: YieldClaimPageHeaderProps) => 
                     size="large"
                     onClick={onBackClick}
                     data-testid="@account-subpage/back"
+                    tooltip={{ content: <Translation id="TR_BACK" /> }}
                 />
                 {account ? (
                     <Row gap={12} alignItems="center" flex="1" overflow="hidden">

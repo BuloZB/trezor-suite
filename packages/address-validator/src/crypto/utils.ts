@@ -1,5 +1,5 @@
-import groestl from 'groestl-hash-js';
-import jsSHA from 'jssha';
+import { sha256 as nobleSha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 
 import * as base32Module from './base32';
 import { decode as base58Decode } from './base58';
@@ -7,7 +7,10 @@ import Blake256 from './blake256';
 import Blake2B from './blake2b';
 import sha3 from './sha3';
 
-const keccak256Fn = (sha3 as unknown as Record<string, (data: string) => string>)['keccak256'];
+// @ts-expect-error: indexing with noUncheckedIndexedAccess
+const keccak256Fn: (data: string) => string = (
+    sha3 as unknown as Record<string, (data: string) => string>
+)['keccak256'];
 
 // Address types, compatible with Trezor
 export const addressType = {
@@ -62,9 +65,13 @@ export function byteArray2hexStr(byteArray: ArrayLike<number>): string {
     let str = '';
     let i;
     for (i = 0; i < byteArray.length - 1; i++) {
-        str += byte2hexStr(byteArray[i]);
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const byte: number = byteArray[i];
+        str += byte2hexStr(byte);
     }
-    str += byte2hexStr(byteArray[i]);
+    // @ts-expect-error: indexing with noUncheckedIndexedAccess
+    const lastByte: number = byteArray[i];
+    str += byte2hexStr(lastByte);
 
     return str;
 }
@@ -94,25 +101,24 @@ export function hexStr2byteArray(str: string): number[] {
 export function toHex(arrayOfBytes: ArrayLike<number>): string {
     let hex = '';
     for (let i = 0; i < arrayOfBytes.length; i++) {
-        hex += numberToHex(arrayOfBytes[i], 1);
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const byte: number = arrayOfBytes[i];
+        hex += numberToHex(byte, 1);
     }
 
     return hex;
 }
 
-export function sha256(payload: string): string {
-    const sha = new jsSHA('SHA-256', 'HEX');
-    sha.update(payload);
-
-    return sha.getHash('HEX');
+export function sha256(hexPayload: string): string {
+    return bytesToHex(nobleSha256(hexToBytes(hexPayload)));
 }
 
-export function sha256x2(buffer: string): string {
-    return sha256(sha256(buffer));
+export function sha256x2(hexPayload: string): string {
+    return sha256(sha256(hexPayload));
 }
 
-export function sha256Checksum(payload: string): string {
-    return sha256(sha256(payload)).substr(0, 8);
+export function sha256Checksum(hexPayload: string): string {
+    return sha256(sha256(hexPayload)).slice(0, 8);
 }
 
 export function blake256(hexString: string): string {
@@ -120,7 +126,7 @@ export function blake256(hexString: string): string {
 }
 
 export function blake256Checksum(payload: string): string {
-    return blake256(blake256(payload)).substr(0, 8);
+    return blake256(blake256(payload)).slice(0, 8);
 }
 
 export function blake2b(hexString: string, outlen: number): string {
@@ -134,17 +140,11 @@ export function keccak256(hexString: string): string {
 export function keccak256Checksum(payload: string | Buffer | Uint8Array): string {
     return keccak256Fn(payload as any)
         .toString()
-        .substr(0, 8);
+        .slice(0, 8);
 }
 
 export function blake2b256(hexString: string): string {
     return new (Blake2B as any)(32).update(Buffer.from(hexString, 'hex'), 32).digest('hex');
-}
-
-export function groestl512x2(hexString: string): string {
-    const result = groestl.groestl_2(Buffer.from(hexString, 'hex'), 1, 0).substr(0, 8);
-
-    return result;
 }
 
 export function bigNumberToBuffer(bignumber: number | string, size?: number): Buffer {

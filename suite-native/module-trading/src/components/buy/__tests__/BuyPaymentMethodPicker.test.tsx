@@ -1,5 +1,6 @@
 import { type EnhancedStore, combineReducers } from '@reduxjs/toolkit';
 
+import { deviceInitialState } from '@suite-common/device';
 import { extraDependenciesCommonMock } from '@suite-common/test-utils';
 import { tradingBuyActions } from '@suite-common/trading';
 import { initialWalletSettingsState } from '@suite-common/wallet-core';
@@ -42,11 +43,13 @@ const services = {
 describe('BuyPaymentMethodPicker', () => {
     let form: BuyFormType;
     const defaultPreloadedState = {
+        device: deviceInitialState,
         locale: localeInitialState,
         wallet: getWalletState({ tradeType: 'buy' }),
     };
 
     const reducer = {
+        device: createStaticReducer(deviceInitialState),
         locale: createStaticReducer(localeInitialState),
         wallet: combineReducers({
             settings: createStaticReducer(initialWalletSettingsState),
@@ -142,6 +145,7 @@ describe('BuyPaymentMethodPicker', () => {
             const store = createLightStore({
                 reducer,
                 preloadedState: {
+                    device: deviceInitialState,
                     wallet: {
                         trading: getWalletState({ tradeType: 'buy' }).trading,
                     },
@@ -199,7 +203,9 @@ describe('BuyPaymentMethodPicker', () => {
                 });
 
                 fireEvent.press(getByText('Payment method'));
-                fireEvent.press(getAllByText(creditCardPaymentMethodTranslation)[1]);
+                const creditCardOption = getAllByText(creditCardPaymentMethodTranslation)[1];
+                if (!creditCardOption) throw new Error('Credit Card option [1] not found');
+                fireEvent.press(creditCardOption);
 
                 expect(reportMock).toHaveBeenCalledTimes(0);
             });

@@ -48,6 +48,7 @@ type FormStateTradingSell = {
 export type FormStateTradingExchange = {
     activeSection: 'exchange';
     receive: FormStateTradingCryptoCurrency;
+    receiveAddress?: string;
 } & FormStateTradingCommon;
 
 export type FormStateTrading =
@@ -79,11 +80,9 @@ export interface FormState {
     bitcoinLocktimeBlockHeight?: string;
     bitcoinLocktimeDatetime?: string;
     ethereumNonce?: string; // TODO: ethereum RBF
-    ethereumDataAscii?: string;
     ethereumAdjustGasLimit?: string; // if used, final gas limit = estimated limit * ethereumAdjustGasLimit
-    tronDataAscii?: string;
     transactionData?: string; // used for solana serialized txn from trading api, ethereum or tron txn hex data
-    destinationTag?: string; // For Ripple, Stellar, and Solana
+    destinationTag?: string; // For Ripple, Stellar, Solana, and Tron
     rbfParams?: RbfTransactionParams;
     isCoinControlEnabled: boolean;
     hasCoinControlBeenOpened: boolean;
@@ -91,10 +90,4 @@ export interface FormState {
     selectedUtxos: AccountUtxo[];
     utxoSorting?: UtxoSorting;
     trading?: FormStateTrading;
-    yieldMetadata?: YieldFormMetadata;
 }
-
-export type YieldFormMetadata = {
-    type: 'deposit' | 'withdraw' | 'redeem';
-    vaultName: string;
-};

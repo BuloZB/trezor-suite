@@ -38,9 +38,10 @@ jobs:
         with:
           mode: firewall-free
           job-summary: errors
+          firewall-version: 1.11.0
       - name: Install libs
         run: |
-          sfw --silent yarn workspaces focus @suite-native/app
+          sfw yarn workspaces focus @suite-native/app
       - name: Build on EAS Android
         run: eas build
           --platform android

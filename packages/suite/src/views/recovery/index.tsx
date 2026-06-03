@@ -61,18 +61,17 @@ export const Recovery = ({ onCancel }: ForegroundAppProps) => {
 
     const handleClose = () => {
         if (['in-progress', 'waiting-for-confirmation'].includes(recovery.status)) {
-            TrezorConnect.cancel(intl.formatMessage(messages.TR_CANCELLED));
+            TrezorConnect.cancel({ reason: intl.formatMessage(messages.TR_CANCELLED) });
         } else {
             onCancel();
         }
     };
 
     const handleBackClick = () => {
-        dispatch(
-            recoveryActions.setStatus(
-                statesInProgressBar[statesInProgressBar.indexOf(recovery.status) - 1],
-            ),
-        );
+        const previousIndex = statesInProgressBar.indexOf(recovery.status) - 1;
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const previousState: SeedInputStatus = statesInProgressBar[previousIndex];
+        dispatch(recoveryActions.setStatus(previousState));
     };
 
     if (!isDeviceAcquired(device) || !deviceModelInternal) {

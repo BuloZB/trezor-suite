@@ -1,15 +1,19 @@
 import * as cryptoUtils from './crypto/utils';
 import { addressType } from './crypto/utils';
-import type { Currency } from './currency-types';
+import type { Currency, NetworkEnvironment } from './currency-types';
 
 function verifyChecksum(address: string): boolean {
     const stripped = address.replace('0x', '');
     const addressHash = cryptoUtils.keccak256(stripped.toLowerCase());
 
     for (let i = 0; i < 40; i++) {
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const hashChar: string = addressHash[i];
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const strippedChar: string = stripped[i];
         if (
-            (parseInt(addressHash[i], 16) > 7 && stripped[i].toUpperCase() !== stripped[i]) ||
-            (parseInt(addressHash[i], 16) <= 7 && stripped[i].toLowerCase() !== stripped[i])
+            (parseInt(hashChar, 16) > 7 && strippedChar.toUpperCase() !== strippedChar) ||
+            (parseInt(hashChar, 16) <= 7 && strippedChar.toLowerCase() !== strippedChar)
         ) {
             return false;
         }
@@ -32,7 +36,11 @@ export const isValidAddress = (address: string): boolean => {
     return verifyChecksum(address);
 };
 
-export const getAddressType = (address: string, _currency?: Currency, _networkType?: string) => {
+export const getAddressType = (
+    address: string,
+    _currency?: Currency,
+    _network?: NetworkEnvironment,
+) => {
     if (isValidAddress(address)) {
         return addressType.ADDRESS;
     }

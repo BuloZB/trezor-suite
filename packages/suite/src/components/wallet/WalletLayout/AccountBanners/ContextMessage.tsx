@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 
+import { getTorUrlIfAvailable } from '@suite/external-links';
+import { Translation } from '@suite/intl';
 import { goto } from '@suite/router';
 import { selectLanguage, selectTorOnionLinks } from '@suite/settings';
+import { selectTorState } from '@suite/tor';
 import {
     type ContextDomain,
     messageSystemActions,
@@ -10,8 +13,6 @@ import {
 import { Banner } from '@trezor/components';
 
 import { useDispatch, useSelector } from 'src/hooks/suite';
-import { selectTorState } from 'src/selectors/suite/suiteSelectors';
-import { getTorUrlIfAvailable } from 'src/utils/suite/tor';
 
 type ContextMessageProps = {
     context: ContextDomain;
@@ -79,6 +80,7 @@ export const ContextMessage = ({ context }: ContextMessageProps) => {
                             onClick={dismissalConfig.onClick}
                             priority="secondary"
                             data-testid={dismissalConfig['data-testid']}
+                            tooltip={{ content: <Translation id="TR_DISMISS" /> }}
                         />
                     )}
                 </>

@@ -46,6 +46,28 @@ ${testSource}
 
 const hashContent = (content: string): string => createHash('sha256').update(content).digest('hex');
 
+/**
+ * Returns the git root containing `fromDir`, or falls back to `process.cwd()` when git is
+ * unavailable or `fromDir` is outside a git worktree. Using `fromDir` (derived from the test
+ * input path) rather than `process.cwd()` keeps the tool working when invoked from outside the
+ * worktree.
+ */
+const getGitRoot = (fromDir: string): string => {
+    const result = spawnSync('git', ['-C', fromDir, 'rev-parse', '--show-toplevel'], {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    if (result.error || result.status !== 0) {
+        log(
+            `Could not determine git root from ${fromDir} (${result.error?.message ?? result.stderr.trim()}); falling back to process.cwd()`,
+        );
+
+        return process.cwd();
+    }
+
+    return result.stdout.trim();
+};
+
 const requiredKeys: (keyof ClaudeAnalysis)[] = [
     'behaviors',
     'entry_points',
@@ -269,19 +291,23 @@ const reportUsageTotals = (apiKey: string | undefined) => {
 const main = async () => {
     const args = process.argv.slice(2);
     const buildCache = args.includes('--buildCache');
+    const force = args.includes('--force');
     const positionalArgs = args.filter(a => !a.startsWith('--'));
 
     const excludePatterns: string[] = [];
     for (let i = 0; i < args.length; i++) {
-        if (args[i] === '--exclude' && args[i + 1]) {
-            excludePatterns.push(args[++i]);
+        const nextArg = args[i + 1];
+        if (args[i] === '--exclude' && nextArg) {
+            excludePatterns.push(nextArg);
+            i++;
         }
     }
 
     let cacheFile = DEFAULT_CACHE_FILE;
     const cacheFileIdx = args.indexOf('--cache-file');
-    if (cacheFileIdx !== -1 && args[cacheFileIdx + 1]) {
-        cacheFile = args[cacheFileIdx + 1];
+    const cacheFileArg = args[cacheFileIdx + 1];
+    if (cacheFileIdx !== -1 && cacheFileArg) {
+        cacheFile = cacheFileArg;
     }
 
     let apiKey: string | undefined;
@@ -307,6 +333,7 @@ const main = async () => {
                 'Options:',
                 '  --buildCache        Build/update the analysis cache file instead of printing.',
                 '                      Skips files whose sha256 hash has not changed since last run.',
+                '  --force             Re-analyze all files even if their sha256 hash matches the cache.',
                 `  --cache-file <path> Path to the cache file. Default: ${DEFAULT_CACHE_FILE}`,
                 '  --exclude <pattern> Glob pattern for files to exclude. Can be repeated.',
                 '                      Example: --exclude "**/manual/**"',
@@ -345,6 +372,10 @@ const main = async () => {
     }
 
     const inputPath = positionalArgs[0];
+    if (!inputPath) {
+        error('No input path provided.');
+        process.exit(1);
+    }
     let testFiles: string[];
     try {
         testFiles = findTestFiles(inputPath, excludePatterns);
@@ -359,15 +390,18 @@ const main = async () => {
     }
 
     if (buildCache) {
+        // @ts-expect-error noUncheckedIndexedAccess
+        const firstTestFile: string = testFiles[0];
+        const gitRoot = getGitRoot(path.dirname(firstTestFile));
         const cache = readCache(cacheFile);
         let failed = 0;
         for (const testFile of testFiles) {
             try {
-                const relPath = path.relative(process.cwd(), testFile);
+                const relPath = path.relative(gitRoot, testFile);
                 const testSource = fs.readFileSync(testFile, 'utf8');
                 const currentHash = hashContent(testSource);
                 const cached = cache[relPath];
-                if (cached?.sha256 === currentHash) {
+                if (!force && cached?.sha256 === currentHash) {
                     log(`Cache up-to-date, skipping ${relPath}`);
                     continue;
                 }
@@ -382,15 +416,22 @@ const main = async () => {
         reportUsageTotals(apiKey);
         if (failed > 0) process.exit(1);
     } else {
-        if (testFiles.length === 1) {
-            const analysis = await analyzeTestFile(testFiles[0], apiKey);
+        const firstTestFile = testFiles[0];
+        if (testFiles.length === 1 && firstTestFile) {
+            const analysis = await analyzeTestFile(firstTestFile, apiKey);
             output(JSON.stringify(analysis, null, 2));
         } else {
             const results: Record<string, TestAnalysis> = {};
+            // @ts-expect-error noUncheckedIndexedAccess
+            const elseTestFile: string = testFiles[0];
+            const gitRoot = getGitRoot(path.dirname(elseTestFile));
             let failed = 0;
             for (const testFile of testFiles) {
                 try {
-                    results[testFile] = await analyzeTestFile(testFile, apiKey);
+                    results[path.relative(gitRoot, testFile)] = await analyzeTestFile(
+                        testFile,
+                        apiKey,
+                    );
                 } catch (err) {
                     error(
                         `Failed to analyze ${testFile}:`,

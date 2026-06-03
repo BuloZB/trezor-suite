@@ -255,45 +255,71 @@ export const verifyAuthenticityProof = async ({
     blacklistConfig,
 }: VerifyAuthenticityProofParams): Promise<VerifyAuthenticityProofResult> => {
     // Parse config with given device model, type of secure element and debug mode.
-    const allRootPubKeys = getRootPubKeys({ config, deviceModel, allowDebugKeys });
+    let allRootPubKeys: string[];
+    try {
+        allRootPubKeys = getRootPubKeys({ config, deviceModel, allowDebugKeys });
+    } catch {
+        return { valid: false, error: 'INVALID_DEVICE_MODEL' };
+    }
     const caPubKeyBlacklist = getCaPubKeyBlacklist({ blacklistConfig, allowDebugKeys });
+    let parsedCertificates: ParsedCertificate[];
+    try {
+        // Parse all x509 certificates received from AuthenticityProof
+        parsedCertificates = certificates.map(c =>
+            parseCertificate(new Uint8Array(Buffer.from(c, 'hex'))),
+        );
+    } catch (e) {
+        return { valid: false, error: 'INVALID_DEVICE_CERTIFICATE', errorDetails: e.message };
+    }
 
-    // Parse all x509 certificates received from AuthenticityProof
-    const parsedCertificates = certificates.map(c =>
-        parseCertificate(new Uint8Array(Buffer.from(c, 'hex'))),
-    );
+    if (parsedCertificates.length < 1) {
+        return { valid: false, error: 'RESPONSE_MALFORMED' };
+    }
     // For both signing schemes, the 1st certificate is the one expected to be signed by rootPubKey (checked by matchRootPubKeyToCertificate)
-    const firstCertAlgName = parsedCertificates[0].signatureAlgorithm.algorithmName;
+    const firstCertAlgName = parsedCertificates[0]?.signatureAlgorithm.algorithmName;
 
     if (firstCertAlgName === 'MLDSA44') {
         if (parsedCertificates.length !== 1) {
             return { valid: false, error: 'RESPONSE_MALFORMED' };
         }
-        const [deviceCert] = parsedCertificates;
 
-        return await verifyOnlyDeviceCertificate({
-            deviceCert,
-            signature,
-            signedData,
-            deviceModel,
-            allRootPubKeys,
-        });
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const deviceCert: (typeof parsedCertificates)[number] = parsedCertificates[0];
+
+        try {
+            return await verifyOnlyDeviceCertificate({
+                deviceCert,
+                signature,
+                signedData,
+                deviceModel,
+                allRootPubKeys,
+            });
+        } catch (e) {
+            return { valid: false, error: 'INVALID_DEVICE_CERTIFICATE', errorDetails: e.message };
+        }
     }
     if (firstCertAlgName === 'Ed25519' || firstCertAlgName === 'P-256') {
         if (parsedCertificates.length !== 2) {
             return { valid: false, error: 'RESPONSE_MALFORMED' };
         }
-        const [deviceCert, caCert] = parsedCertificates;
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const deviceCert: (typeof parsedCertificates)[number] = parsedCertificates[0];
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const caCert: (typeof parsedCertificates)[number] = parsedCertificates[1];
 
-        return await verifyDeviceAndCACertificates({
-            deviceCert,
-            caCert,
-            signature,
-            signedData,
-            deviceModel,
-            allRootPubKeys,
-            caPubKeyBlacklist,
-        });
+        try {
+            return await verifyDeviceAndCACertificates({
+                deviceCert,
+                caCert,
+                signature,
+                signedData,
+                deviceModel,
+                allRootPubKeys,
+                caPubKeyBlacklist,
+            });
+        } catch (e) {
+            return { valid: false, error: 'INVALID_DEVICE_CERTIFICATE', errorDetails: e.message };
+        }
     }
 
     return { valid: false, error: 'RESPONSE_MALFORMED' }; // unknown signature

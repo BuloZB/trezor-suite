@@ -14,6 +14,7 @@
         "sourceMap": true,
         "strict": true,
         "strictNullChecks": true,
+        "noUncheckedIndexedAccess": true,
         "noErrorTruncation": true,
         "noFallthroughCasesInSwitch": true,
         "useUnknownInCatchVariables": false,
@@ -32,7 +33,6 @@
     "exclude": [
         "**/node_modules",
         "**/lib",
-        "**/libESM",
         "**/libDev",
         "**/build",
         "**/build-electron",

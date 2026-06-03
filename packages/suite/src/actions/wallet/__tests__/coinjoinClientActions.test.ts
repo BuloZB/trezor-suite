@@ -1,7 +1,9 @@
 import { combineReducers, createReducer } from '@reduxjs/toolkit';
 
+import { selectedAccountReducer } from '@suite/account';
 import { locksReducer } from '@suite/locks';
 import { modalReducer } from '@suite/modal';
+import { TorStatus, torActions, torReducer } from '@suite/tor';
 import { prepareMessageSystemReducer } from '@suite-common/message-system';
 import { configureMockStore, initPreloadedState, testMocks } from '@suite-common/test-utils';
 import { prepareWalletSettingsReducer } from '@suite-common/wallet-core';
@@ -13,7 +15,6 @@ import { promiseAllSequence } from '@trezor/utils';
 import { coinjoinMiddleware } from 'src/middlewares/wallet/coinjoinMiddleware';
 import { accountsReducer } from 'src/reducers/wallet';
 import { coinjoinReducer } from 'src/reducers/wallet/coinjoinReducer';
-import selectedAccountReducer from 'src/reducers/wallet/selectedAccountReducer';
 import { CoinjoinService } from 'src/services/coinjoin/coinjoinService';
 import { db } from 'src/storage';
 import { extraDependencies } from 'src/support/extraDependencies';
@@ -42,6 +43,7 @@ const walletSettingsReducer = prepareWalletSettingsReducer(extraDependencies);
 
 const rootReducer = combineReducers({
     suite: createReducer({}, () => ({})),
+    tor: torReducer,
     locks: locksReducer,
     device: createReducer(
         { devices: [fixtures.DEVICE], selectedDevice: fixtures.DEVICE },
@@ -160,7 +162,7 @@ describe('coinjoinClientActions', () => {
             );
 
             f.result.trezorConnectCalledWith.forEach((params, index) => {
-                expect(TrezorConnect.signTransaction.mock.calls[index][0]).toMatchObject(params);
+                expect(TrezorConnect.signTransaction.mock.calls[index]?.[0]).toMatchObject(params);
             });
 
             expect(response).toMatchObject(f.result.response);
@@ -217,7 +219,7 @@ describe('coinjoinClientActions', () => {
         const cli1 = await store.dispatch(initCoinjoinService('btc'));
         const cli2 = await store.dispatch(initCoinjoinService('btc'));
         expect(cli1).toEqual(cli2);
-        expect(spy.mock.calls[0][0]).toMatchObject({
+        expect(spy.mock.calls[0]?.[0]).toMatchObject({
             symbol: 'btc',
             prison: [
                 {
@@ -353,7 +355,7 @@ describe('coinjoinClientActions', () => {
         expect(cli.client.emit).toHaveBeenCalledTimes(1);
 
         // restore session after previous action, and set phase to critical again
-        // NOTE: dispatching { type: '@suite/tor-status', payload: 'Enabled' } requires a lot more fixtures
+        // NOTE: dispatching torActions.setTorStatus('Enabled') requires a lot more fixtures
         const restoreSession = () => {
             store.dispatch({
                 type: '@coinjoin/session-restore',
@@ -366,7 +368,7 @@ describe('coinjoinClientActions', () => {
         };
 
         restoreSession();
-        store.dispatch({ type: '@suite/tor-status', payload: 'Disabled' });
+        store.dispatch(torActions.setTorStatus(TorStatus.Disabled));
         expect(cli.client.emit).toHaveBeenCalledTimes(2);
 
         restoreSession();

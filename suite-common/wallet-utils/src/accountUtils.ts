@@ -22,7 +22,6 @@ import {
     type GeneralPrecomposedTransactionFinal,
     type PrecomposedTransactionFinal,
     type RatesByKey,
-    type ReceiveInfo,
     type SuccessfulAccount,
     type TokenAddress,
     asBaseCurrencyAmount,
@@ -72,34 +71,6 @@ export const isEvmNetwork = (networkSymbol: NetworkSymbol): boolean =>
 const getAccountIndexOffset = (networkType: NetworkType, accountType: AccountType): number =>
     shouldSkipFirstAccountIndex(networkType, accountType) ? 1 : 0;
 
-export const getFirstFreshAddress = (
-    account: Account,
-    receiveAddresses: ReceiveInfo[],
-    pendingAddresses: string[],
-    utxoBasedAccount: boolean,
-) => {
-    const unused = account.addresses
-        ? account.addresses.unused
-        : [
-              {
-                  path: account.path,
-                  address: account.descriptor,
-                  transfers: account.history.total,
-              },
-          ];
-
-    const unrevealed = unused.filter(
-        a =>
-            !receiveAddresses.find(r => r.path === a.path) && !pendingAddresses.includes(a.address),
-    );
-
-    // const addressLabel = utxoBasedAccount ? 'RECEIVE_ADDRESS_FRESH' : 'RECEIVE_ADDRESS';
-    // NOTE: unrevealed[0] can be undefined (limit exceeded)
-    const firstFreshAddress = utxoBasedAccount ? unrevealed[0] : unused[0];
-
-    return firstFreshAddress;
-};
-
 /** NOTE: input addresses' paths sequence must be uninterrupted and start with 0 */
 export const sortByBIP44AddressIndex = <T extends { path: string }>(
     pathBase: string,
@@ -111,7 +82,16 @@ export const sortByBIP44AddressIndex = <T extends { path: string }>(
         return prev;
     }, {});
 
-    return addresses.slice().sort((a, b) => lookup[a.path] - lookup[b.path]);
+    return addresses.slice().sort((a, b) => {
+        const { path: aPath } = a;
+        const { path: bPath } = b;
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const aIndex: number = lookup[aPath];
+        // @ts-expect-error: indexing with noUncheckedIndexedAccess
+        const bIndex: number = lookup[bPath];
+
+        return aIndex - bIndex;
+    });
 };
 
 export const parseBIP44Path = (path: string) => {
@@ -353,7 +333,7 @@ export const findAccountDevice = (account: Account, devices: TrezorDevice[]) =>
     devices.find(d => d.state?.staticSessionId === account.deviceState);
 
 export const getAllAccounts = (
-    deviceState: DeviceState | StaticSessionId | typeof undefined,
+    deviceState: DeviceState | StaticSessionId | undefined,
     accounts: Account[],
 ) => {
     if (!deviceState) return [];
@@ -720,8 +700,8 @@ export const getAccountSpecific = (accountInfo: Partial<AccountInfo>, networkTyp
         return {
             networkType,
             misc: {
-                sequence: misc?.sequence ? misc.sequence : 0,
-                reserve: misc?.reserve ? misc.reserve : '0',
+                sequence: misc?.sequence ?? 0,
+                reserve: misc?.reserve ?? '0',
             },
             marker: accountInfo.marker,
             stellarCursor: undefined,
@@ -734,7 +714,7 @@ export const getAccountSpecific = (accountInfo: Partial<AccountInfo>, networkTyp
             networkType,
             misc: {
                 ...misc,
-                nonce: misc?.nonce ? misc.nonce : '0',
+                nonce: misc?.nonce ?? '0',
             },
             marker: undefined,
             stellarCursor: undefined,
@@ -747,11 +727,11 @@ export const getAccountSpecific = (accountInfo: Partial<AccountInfo>, networkTyp
             networkType,
             misc: {
                 staking: {
-                    rewards: misc?.staking ? misc.staking.rewards : '0',
-                    isActive: misc?.staking ? misc.staking.isActive : false,
-                    address: misc?.staking ? misc.staking.address : '',
-                    poolId: misc?.staking ? misc.staking.poolId : null,
-                    drep: misc?.staking ? misc.staking.drep : null,
+                    rewards: misc?.staking?.rewards ?? '0',
+                    isActive: misc?.staking?.isActive ?? false,
+                    address: misc?.staking?.address ?? '',
+                    poolId: misc?.staking?.poolId ?? null,
+                    drep: misc?.staking?.drep ?? null,
                 },
             },
             marker: undefined,
@@ -871,10 +851,13 @@ export const accountSearchFn = (
 
     const accountLabelMatch = accountLabel.toLowerCase().includes(searchString);
 
+    // filter tokens by search string and balance greater than zero
     const filterTokens = (token: TokenInfo) =>
-        token.name?.toLowerCase().includes(searchString) ||
-        token.symbol?.toLowerCase().includes(searchString) ||
-        token.contract.toLowerCase().includes(searchString);
+        [token.name, token.symbol, token.contract].some(
+            field =>
+                field?.toLowerCase().includes(searchString) &&
+                new BigNumber(token.balance || '0').gt(0),
+        );
 
     const tokenMatch = tokensMatch && !!account.tokens?.some(filterTokens);
 

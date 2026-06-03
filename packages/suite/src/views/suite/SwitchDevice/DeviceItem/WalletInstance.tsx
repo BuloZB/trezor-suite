@@ -2,9 +2,9 @@ import { useState } from 'react';
 
 import { Translation, useTranslation } from '@suite/intl';
 import { Labeling } from '@suite/labeling';
-import { selectIsLegacyLabelingVisible, selectLabelingDataForWallet } from '@suite/metadata';
+import { selectIsLegacyLabelingVisible } from '@suite/metadata';
 import { SuiteSyncWalletDebug } from '@suite/suite-sync';
-import { selectIsSuiteSyncEnabled, selectSuiteSyncWalletLabel } from '@suite-common/suite-sync';
+import { useWalletLabel } from '@suite/wallet';
 import {
     getAccountsByDeviceState,
     selectAllAccountsToList,
@@ -12,7 +12,7 @@ import {
     selectCurrentFiatRates,
     selectDeviceThunk,
 } from '@suite-common/wallet-core';
-import { getAllAccounts, parseDeviceStaticSessionId } from '@suite-common/wallet-utils';
+import { getAllAccounts } from '@suite-common/wallet-utils';
 import {
     Box,
     Card,
@@ -26,17 +26,15 @@ import {
     Text,
     Tooltip,
 } from '@trezor/components';
-import { type StaticSessionId } from '@trezor/connect';
 import { spacings } from '@trezor/theme';
 
 import { redirectAfterWalletSelectedThunk } from 'src/actions/wallet/addWalletThunk';
 import { WalletLabeling } from 'src/components/suite';
-import { useWalletLabeling } from 'src/components/suite/labeling/WalletLabeling';
 import { FiatHeader } from 'src/components/wallet/FiatHeader';
 import { useDispatch, useSelector } from 'src/hooks/suite';
 import { useStore } from 'src/hooks/suite/useStore';
 import { useTotalFiatBalance } from 'src/hooks/wallet/useTotalFiatBalance';
-import { type AcquiredDevice, type AppState, type ForegroundAppProps } from 'src/types/suite';
+import { type AcquiredDevice, type ForegroundAppProps } from 'src/types/suite';
 
 import { EjectConfirmation } from './EjectConfirmation';
 
@@ -46,33 +44,6 @@ type WalletInstanceProps = {
     index: number; // used only in data-test
     onCancel?: ForegroundAppProps['onCancel'];
 };
-
-const selectCombinedWalletLabel =
-    ({ deviceStaticSessionId }: { deviceStaticSessionId: StaticSessionId | null }) =>
-    (state: AppState): string | null => {
-        if (!deviceStaticSessionId) return null;
-
-        const isSuiteSyncEnabled = selectIsSuiteSyncEnabled(state);
-
-        if (isSuiteSyncEnabled) {
-            const { walletDescriptor } = parseDeviceStaticSessionId(deviceStaticSessionId);
-
-            return selectSuiteSyncWalletLabel(state, walletDescriptor);
-        }
-
-        const isLegacyLabelingVisible = selectIsLegacyLabelingVisible(state);
-
-        if (isLegacyLabelingVisible) {
-            const legacyLabel = selectLabelingDataForWallet(
-                state,
-                deviceStaticSessionId,
-            ).walletLabel;
-
-            return legacyLabel === undefined || legacyLabel.trim() === '' ? null : legacyLabel;
-        }
-
-        return null;
-    };
 
 export const WalletInstance = ({
     instance,
@@ -90,23 +61,14 @@ export const WalletInstance = ({
     const dispatch = useDispatch();
     const store = useStore();
     const { translationString } = useTranslation();
-
     const isLegacyLabelingVisible = useSelector(selectIsLegacyLabelingVisible);
-    const { defaultAccountLabelString } = useWalletLabeling();
+    const { defaultLabel, label } = useWalletLabel({ device: instance });
 
     const deviceAccounts = getAllAccounts(instance.state, accounts);
 
     const walletBalance = useTotalFiatBalance(deviceAccounts, baseCurrencyCode, currentFiatRates);
 
-    const walletLabel = useSelector(
-        selectCombinedWalletLabel({
-            deviceStaticSessionId: instance?.state?.staticSessionId ?? null,
-        }),
-    );
-
     const dataTestBase = `@switch-device/wallet-on-index/${index}`;
-
-    const defaultWalletLabel = defaultAccountLabelString({ device: instance });
 
     const stopPropagation = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) =>
         e.stopPropagation();
@@ -124,8 +86,8 @@ export const WalletInstance = ({
 
             // NOTE: to determine which account is the first one, we need to filter out empty accounts
             // that are currently displayed in the UI
-            const unfilteredUIAccounGroups = selectAllAccountsToList(store.getState());
-            const currentFirstAccount = unfilteredUIAccounGroups[0];
+            const unfilteredUIAccountGroups = selectAllAccountsToList(store.getState());
+            const currentFirstAccount = unfilteredUIAccountGroups[0];
             // NOTE: attempt to determine, if the currently selected account
             // has a corresponding account in the next wallet accounts
             // if not, enforce switching URL to dashboard
@@ -182,16 +144,15 @@ export const WalletInstance = ({
                                             )}
                                             maxWidth={290}
                                             deviceStaticSessionId={instance.state.staticSessionId}
-                                            defaultValue={defaultWalletLabel}
+                                            defaultValue={defaultLabel}
                                             payload={{
                                                 type: 'walletLabel',
                                                 entityKey: instance.state.staticSessionId,
                                                 defaultValue: instance.state.staticSessionId,
-                                                value: walletLabel ?? undefined,
                                             }}
                                             leftAddon={passphraseIcon}
                                         >
-                                            {walletLabel ?? defaultWalletLabel}
+                                            {label}
                                         </Labeling>
                                         <SuiteSyncWalletDebug
                                             device={instance}
@@ -206,34 +167,33 @@ export const WalletInstance = ({
                                 )}
                             </Text>
                             <Collapsible.Toggle>
-                                <Tooltip
-                                    delayShow={TOOLTIP_DELAY_LONG}
-                                    content={
-                                        <Translation
-                                            id={
-                                                isEjecting
-                                                    ? 'TR_CANCEL'
-                                                    : 'TR_SWITCH_DEVICE_EJECT_TOOLTIP'
-                                            }
-                                        />
+                                <IconButton
+                                    data-testid={
+                                        isEjecting
+                                            ? `@switch-device/cancelEject`
+                                            : `${dataTestBase}/eject-button`
                                     }
-                                >
-                                    <IconButton
-                                        data-testid={
-                                            isEjecting
-                                                ? `@switch-device/cancelEject`
-                                                : `${dataTestBase}/eject-button`
-                                        }
-                                        icon={isEjecting ? 'x' : 'eject'}
-                                        size="small"
-                                        intent="neutral"
-                                        priority="secondary"
-                                        onClick={e => {
-                                            e.stopPropagation();
-                                            setIsEjecting(prev => !prev);
-                                        }}
-                                    />
-                                </Tooltip>
+                                    icon={isEjecting ? 'x' : 'eject'}
+                                    size="small"
+                                    intent="neutral"
+                                    priority="secondary"
+                                    onClick={e => {
+                                        e.stopPropagation();
+                                        setIsEjecting(prev => !prev);
+                                    }}
+                                    tooltip={{
+                                        delayShow: TOOLTIP_DELAY_LONG,
+                                        content: (
+                                            <Translation
+                                                id={
+                                                    isEjecting
+                                                        ? 'TR_CANCEL'
+                                                        : 'TR_SWITCH_DEVICE_EJECT_TOOLTIP'
+                                                }
+                                            />
+                                        ),
+                                    }}
+                                />
                             </Collapsible.Toggle>
                         </Row>
 

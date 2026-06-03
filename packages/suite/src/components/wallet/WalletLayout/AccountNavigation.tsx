@@ -1,4 +1,5 @@
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { selectSelectedAccount } from '@suite/account';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
 import { selectRouterParams } from '@suite/router';
 import { selectHasExperimentalFeature } from '@suite/settings';
@@ -9,11 +10,10 @@ import { hasNetworkFeatures } from '@suite-common/wallet-utils';
 import { type NavigationItem, SubpageNavigation } from 'src/components/suite/layouts/SuiteLayout';
 import { useGoToWithAnalytics } from 'src/components/suite/layouts/SuiteLayout/PageHeader/useGoToWithAnalytics';
 import { useSelector } from 'src/hooks/suite';
-import { selectSelectedAccount } from 'src/reducers/wallet/selectedAccountReducer';
 import { type WalletParams } from 'src/types/wallet';
 
 export const AccountNavigation = () => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const account = useSelector(selectSelectedAccount);
     const routerParams = useSelector(selectRouterParams) as WalletParams;
     const enabledNftSection = useSelector(selectHasExperimentalFeature('nft-section'));

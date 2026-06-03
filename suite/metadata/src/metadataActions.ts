@@ -7,6 +7,7 @@ import {
     type MetadataProvider,
     type PasswordManagerState,
 } from '@suite-common/metadata-types';
+import { type WalletDescriptor } from '@suite-common/wallet';
 import { type Account } from '@suite-common/wallet-types';
 import { type StaticSessionId } from '@trezor/connect';
 
@@ -52,6 +53,10 @@ export type MetadataAction =
           payload: { deviceState: StaticSessionId; failed: boolean };
       }
     | {
+          type: typeof METADATA.SET_LEGACY_LABELS_MIGRATION_FOR_WALLET;
+          payload: { walletDescriptor: WalletDescriptor };
+      }
+    | {
           type: typeof METADATA.ACCOUNT_ADD;
           payload: Account;
       }
@@ -68,7 +73,15 @@ export const enableMetadata = (): MetadataAction => ({
     type: METADATA.ENABLE,
 });
 
+export const setLegacyLabelsMigrationForWallet = (walletDescriptor: WalletDescriptor) => ({
+    type: METADATA.SET_LEGACY_LABELS_MIGRATION_FOR_WALLET,
+    payload: {
+        walletDescriptor,
+    },
+});
+
 export const metadataActions = {
     setAccountAdd,
     enableMetadata,
+    setLegacyLabelsMigrationForWallet,
 };

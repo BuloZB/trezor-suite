@@ -1,15 +1,14 @@
 import { type ReactNode } from 'react';
 
 import { Card, Column, type IconName, InfoItem, Tooltip } from '@trezor/components';
-import { spacings } from '@trezor/theme';
 
 type SettingsSectionProps = {
     title: ReactNode;
     icon?: IconName;
-    className?: string;
     children?: ReactNode;
     tooltipText?: ReactNode;
-    isBelowLaptop?: boolean;
+    hasVerticalLayout?: boolean;
+    hasContainer?: boolean;
 };
 
 export const SettingsSection = ({
@@ -17,14 +16,15 @@ export const SettingsSection = ({
     icon,
     children,
     tooltipText,
-    isBelowLaptop,
+    hasVerticalLayout,
+    hasContainer = true,
 }: SettingsSectionProps) => {
-    const width = isBelowLaptop ? '100%' : 250;
+    const width = hasVerticalLayout ? '100%' : 250;
 
     return (
         <InfoItem
             ellipsisLineCount={0}
-            direction={isBelowLaptop ? 'column' : 'row'}
+            direction={hasVerticalLayout ? 'column' : 'row'}
             labelWidth={width}
             iconName={icon}
             label={
@@ -37,11 +37,17 @@ export const SettingsSection = ({
             typographyStyle="headline-sm"
             verticalAlignment="start"
         >
-            <Card>
-                <Column gap={spacings.xxl} hasDivider>
+            {hasContainer ? (
+                <Card>
+                    <Column gap={32} hasDivider>
+                        {children}
+                    </Column>
+                </Card>
+            ) : (
+                <Column gap={32} width="100%">
                     {children}
                 </Column>
-            </Card>
+            )}
         </InfoItem>
     );
 };

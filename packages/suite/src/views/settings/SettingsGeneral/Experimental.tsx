@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import type { ExperimentalFeature } from '@suite/experimental';
+import { LearnMoreButton } from '@suite/external-links';
 import { feedbackRequested } from '@suite/feature-feedback';
 import { Translation } from '@suite/intl';
 import { goto } from '@suite/router';
@@ -18,10 +19,9 @@ import { spacings } from '@trezor/theme';
 import { EXPERIMENTAL_FEATURES_KB_URL } from '@trezor/urls';
 import { typedObjectKeys } from '@trezor/utils';
 
-import { LearnMoreButton } from 'src/components/suite/LearnMoreButton';
 import { EXPERIMENTAL_FEATURES } from 'src/constants/suite/experimental';
 import { useDispatch, useSelector } from 'src/hooks/suite';
-import { type SuiteServices } from 'src/support/extraDependencies';
+import { selectSuiteServices } from 'src/support/extraDependencies';
 
 type FeatureLineProps = {
     feature: ExperimentalFeature;
@@ -30,7 +30,7 @@ type FeatureLineProps = {
 
 const FeatureLine = ({ feature, enabledFeatures }: FeatureLineProps) => {
     const dispatch = useDispatch();
-    const services = useServices<SuiteServices>();
+    const services = useServices(selectSuiteServices);
     const checked = enabledFeatures.includes(feature);
 
     const config = EXPERIMENTAL_FEATURES[feature];
@@ -123,7 +123,7 @@ export const Experimental = () => {
     const isDebug = useSelector(selectIsDebugModeActive);
 
     const dispatch = useDispatch();
-    const services = useServices<SuiteServices>();
+    const services = useServices(selectSuiteServices);
 
     const onSwitchExperimental = () => {
         enabledFeatures?.forEach(feature =>

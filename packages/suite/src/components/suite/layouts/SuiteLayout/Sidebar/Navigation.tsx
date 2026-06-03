@@ -43,10 +43,21 @@ export const Navigation = ({ children }: NavigationProps) => {
                 ...(!isBtcOnly
                     ? [
                           {
+                              nameId: 'TR_TRADING_SWAP',
+                              icon: 'repeat',
+                              goToRoute: 'wallet-trading-exchange',
+                              routes: ['wallet-trading-exchange'],
+                          } as NavigationItemProps,
+                          {
                               nameId: 'TR_EARN',
                               icon: 'piggyBank',
                               goToRoute: 'suite-earn',
-                              routes: ['suite-earn', 'earn-deposit', 'earn-withdraw', 'earn-claim'],
+                              routes: [
+                                  'suite-earn',
+                                  'earn-yield-deposit',
+                                  'earn-yield-withdraw',
+                                  'earn-yield-claim',
+                              ],
                           } as NavigationItemProps,
                       ]
                     : []),

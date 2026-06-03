@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation, useTranslation } from '@suite/intl';
 import { useServices } from '@suite-common/dependency-injection';
 import { selectIsMevProtectionFeatureEnabled } from '@suite-common/mev';
@@ -37,7 +37,7 @@ export const SendRaw = ({ account }: SendRawProps) => {
     });
     const dispatch = useDispatch();
     const { translationString } = useTranslation();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const inputValue = watch(INPUT_NAME);
     const error = errors[INPUT_NAME];
     const hasError = !!error;
@@ -92,7 +92,13 @@ export const SendRaw = ({ account }: SendRawProps) => {
                     </Tooltip>
                 </H3>
 
-                <IconButton intent="neutral" priority="secondary" icon="x" onClick={cancel} />
+                <IconButton
+                    intent="neutral"
+                    priority="secondary"
+                    icon="x"
+                    onClick={cancel}
+                    tooltip={{ content: <Translation id="TR_CLOSE" /> }}
+                />
             </Row>
 
             <Textarea

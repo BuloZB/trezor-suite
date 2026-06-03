@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { selectFlags, setFlag } from '@suite/flags';
 import { Translation } from '@suite/intl';
 import { openModal } from '@suite/modal';
@@ -38,7 +38,6 @@ import {
     LoadingContent,
     Row,
     TOOLTIP_DELAY_LONG,
-    Tooltip,
 } from '@trezor/components';
 import { spacingsPx, typography } from '@trezor/theme';
 import { type PartialRecord } from '@trezor/type-utils';
@@ -79,10 +78,9 @@ const useAssetsFiatBalances = (
 
         const fiatRateKey = getFiatRateKey(asset.network.symbol, localCurrency);
         const fiatRate = currentFiatRates?.[fiatRateKey];
-        const amount =
-            accounts[asset.network.symbol]
-                .reduce((balance, account) => balance + Number(account.formattedBalance), 0)
-                .toString() ?? '0';
+        const amount = (accounts[asset.network.symbol] ?? [])
+            .reduce((balance, account) => balance + Number(account.formattedBalance), 0)
+            .toString();
 
         const fiatBalance = toFiatCurrency({ amount, rate: fiatRate?.rate }) ?? BASE_CURRENCY_ZERO;
 
@@ -94,7 +92,7 @@ export const AssetsView = () => {
     const enabledNetworks = useSelector(selectEnabledNetworks);
 
     const dispatch = useDispatch();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const { isDiscoveryRunning } = useDiscovery();
     const discoveryStatus = useSelector(selectDiscoveryOverallStatus);
     const accounts = useSelector(selectAllAccountsToList);
@@ -213,25 +211,28 @@ export const AssetsView = () => {
                                 <Translation id="TR_ENABLE_MORE_COINS" />
                             </Button>
                         )}
-                        <Tooltip
-                            content={<Translation id="TR_MY_ASSETS_CHANGE_VIEW" />}
-                            delayShow={TOOLTIP_DELAY_LONG}
-                        >
-                            <ButtonGroup intent="neutral" priority="secondary">
-                                <IconButton
-                                    icon="rowsFilled"
-                                    data-testid="@dashboard/assets/table-icon"
-                                    onClick={setTable}
-                                    intent={dashboardAssetsGridMode ? 'neutral' : 'brand'}
-                                />
-                                <IconButton
-                                    icon="gridNineFilled"
-                                    data-testid="@dashboard/assets/grid-icon"
-                                    onClick={setGrid}
-                                    intent={dashboardAssetsGridMode ? 'brand' : 'neutral'}
-                                />
-                            </ButtonGroup>
-                        </Tooltip>
+                        <ButtonGroup intent="neutral" priority="secondary">
+                            <IconButton
+                                icon="rowsFilled"
+                                data-testid="@dashboard/assets/table-icon"
+                                onClick={setTable}
+                                intent={dashboardAssetsGridMode ? 'neutral' : 'brand'}
+                                tooltip={{
+                                    content: <Translation id="TR_MY_ASSETS_CHANGE_VIEW" />,
+                                    delayShow: TOOLTIP_DELAY_LONG,
+                                }}
+                            />
+                            <IconButton
+                                icon="gridNineFilled"
+                                data-testid="@dashboard/assets/grid-icon"
+                                onClick={setGrid}
+                                intent={dashboardAssetsGridMode ? 'brand' : 'neutral'}
+                                tooltip={{
+                                    content: <Translation id="TR_MY_ASSETS_CHANGE_VIEW" />,
+                                    delayShow: TOOLTIP_DELAY_LONG,
+                                }}
+                            />
+                        </ButtonGroup>
                     </Row>
                 )
             }

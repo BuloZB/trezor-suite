@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { Translation } from '@suite/intl';
+import { isOnionUrl } from '@suite/tor';
 import { type UserContextPayload } from '@suite-common/suite-types';
 import { type NetworkSymbol, getNetwork } from '@suite-common/wallet-config';
 import { blockchainActions } from '@suite-common/wallet-core';
@@ -10,7 +11,6 @@ import { spacings } from '@trezor/theme';
 
 import { useCustomBackends } from 'src/hooks/settings/backends';
 import { useDispatch } from 'src/hooks/suite';
-import { isOnionUrl } from 'src/utils/suite/tor';
 
 import { AdvancedCoinSettingsModal } from './AdvancedCoinSettingsModal/AdvancedCoinSettingsModal';
 
@@ -38,7 +38,11 @@ export const DisableTorModal = ({ onCancel, decision }: DisableTorModalProps) =>
     };
 
     return symbol ? (
-        <AdvancedCoinSettingsModal symbol={symbol} onCancel={() => setSymbol(undefined)} />
+        <AdvancedCoinSettingsModal
+            symbol={symbol}
+            onCancel={() => setSymbol(undefined)}
+            onBackClick={() => setSymbol(undefined)}
+        />
     ) : (
         <Modal
             onCancel={onCancel}

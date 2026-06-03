@@ -2,13 +2,13 @@ import { components } from 'react-select';
 
 import styled from 'styled-components';
 
+import { type ReceiveInfo } from '@suite-common/wallet-types';
 import { Select, type SelectProps } from '@trezor/components';
 
 import {
     type AddressItem,
     useSignAddressOptions,
 } from 'src/hooks/wallet/sign-verify/useSignAddressOptions';
-import type { State as RevealedAddresses } from 'src/reducers/wallet/receiveReducer';
 import type { Account } from 'src/types/wallet';
 
 import { HiddenAddressRow } from './HiddenAddressRow';
@@ -50,7 +50,7 @@ const optionToAddress = (option: AddressItem | null) =>
 
 type SignAddressInputProps = {
     account?: Account;
-    revealedAddresses: RevealedAddresses;
+    revealedAddresses: ReceiveInfo[];
 } & SelectProps;
 
 export const SignAddressInput = ({

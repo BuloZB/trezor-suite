@@ -32,9 +32,10 @@ jobs:
         with:
           mode: firewall-free
           job-summary: errors
+          firewall-version: 1.11.0
       - name: Download crypto icons
         run: |
-          sfw --silent yarn install
+          sfw yarn install
           cd suite-common/icons
           yarn download-crypto-icons
 

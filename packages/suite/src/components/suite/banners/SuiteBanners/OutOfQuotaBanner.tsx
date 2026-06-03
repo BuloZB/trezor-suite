@@ -1,3 +1,4 @@
+import { useExternalLink } from '@suite/external-links';
 import { Translation } from '@suite/intl';
 import { selectSelectedDevice } from '@suite-common/device';
 import {
@@ -7,7 +8,7 @@ import {
 import { Banner, Button, IconButton } from '@trezor/components';
 import { TREZOR_SUPPORT_URL } from '@trezor/urls';
 
-import { useDispatch, useExternalLink, useSelector } from 'src/hooks/suite';
+import { useDispatch, useSelector } from 'src/hooks/suite';
 
 export const OutOfQuotaBanner = () => {
     const dispatch = useDispatch();
@@ -40,6 +41,7 @@ export const OutOfQuotaBanner = () => {
                         intent="info"
                         priority="secondary"
                         onClick={handleDismiss}
+                        tooltip={{ content: <Translation id="TR_DISMISS" /> }}
                     />
                 </>
             }

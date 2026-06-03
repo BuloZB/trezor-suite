@@ -1,12 +1,12 @@
 import { useIntl } from 'react-intl';
 
+import { selectSelectedAccount } from '@suite/account';
 import { messages } from '@suite/intl';
 import { type MODAL_CONTEXT_DEVICE } from '@suite/modal';
 import { selectSelectedDevice } from '@suite-common/device';
 import TrezorConnect, { UI_REQUEST } from '@trezor/connect';
 
 import { useSelector } from 'src/hooks/suite';
-import { selectSelectedAccount } from 'src/reducers/wallet/selectedAccountReducer';
 
 import { ConfirmActionModal } from './ConfirmActionModal';
 import { ConfirmFingerprintModal } from './ConfirmFingerprintModal';
@@ -28,7 +28,7 @@ export const DeviceContextModal = ({
     const selectedAccount = useSelector(selectSelectedAccount);
 
     if (!device) return null;
-    const abort = () => TrezorConnect.cancel(intl.formatMessage(messages.TR_CANCELLED));
+    const abort = () => TrezorConnect.cancel({ reason: intl.formatMessage(messages.TR_CANCELLED) });
 
     switch (windowType) {
         // T1B1 firmware

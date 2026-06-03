@@ -5,11 +5,12 @@ import { diff } from 'jest-diff';
 import { isEqualWith } from 'lodash';
 
 import { type TranslationKey, messages } from '@suite/intl';
+import { isAddressValid } from '@suite-common/address';
 import { type Account } from '@suite-common/wallet-types';
-import { isAddressValid } from '@suite-common/wallet-utils';
 import { Model } from '@trezor/trezor-user-env-link';
+import { getIndexOrThrow } from '@trezor/utils';
 
-import { formatAddress, isEqualWithOmit, normalizeWhitespace } from '../common';
+import { formatAddress, formatEvmAddress, isEqualWithOmit, normalizeWhitespace } from '../common';
 import { DeviceFixture } from '../device';
 import type { NormalizedDisplayContent } from '../helpers/displayContentNormalizedParser';
 
@@ -69,24 +70,8 @@ const compareDisplayContent = async (
 const addNewlinesToAddress = (address: string, regex: RegExp, newLineFormat: string) =>
     address
         .replace(regex, match => `${match}${newLineFormat}`)
-        .trim()
-        .split(' ');
-
-const formatEvmAddress = (address: string) => {
-    if (!address.startsWith('0x')) {
-        return formatAddress(address);
-    }
-
-    const tetragrams = address.slice(2).match(/.{1,4}/g);
-
-    if (!tetragrams) {
-        return address;
-    }
-
-    const [firstTetragram, ...rest] = tetragrams;
-
-    return ['0x' + firstTetragram, ...rest].join(' ');
-};
+        .trimEnd()
+        .split(/(?<=[\S\n]) /);
 
 const formatCardanoAddress = (address: string) => {
     const formatted = formatAddress(address);
@@ -102,10 +87,10 @@ export const transformAddress = (address: string, lineFormat: LineFormats = 'fou
     // bc1q pyfv fvm5 2zx7
     // gek8 6ajj 5pkk ne3h
     // 385a da8r 2y
-    // 2. EVM tetragrams of address:
-    // 0x12as 34ab cdef 5678
-    // 9abc def0 1234 5678
-    // 9abc def0
+    // 2. EVM tetragrams of address (two leading spaces before 0x):
+    //   0x 12as 34ab cdef
+    // 5678 9abc def0 1234
+    // 5678 9abc def0
     // 3. Full lines (18 chars) of address:
     // bc1qpyfvfvm52zx7ge
     // k86ajj5pkkne3h385a
@@ -131,30 +116,6 @@ export const transformAddress = (address: string, lineFormat: LineFormats = 'fou
 };
 
 export const expect = baseExpect.extend({
-    async toBeEnabledCoin(locator: Locator) {
-        const isActive = await locator.getAttribute('data-active');
-
-        return {
-            pass: isActive === 'true',
-            message: () =>
-                isActive === null
-                    ? `expected ${locator} to have attribute 'data-active', but it does not have this attribute at all`
-                    : `expected ${locator} to have attribute 'data-active' set to 'true', but got '${isActive}'`,
-        };
-    },
-
-    async toBeDisabledCoin(locator: Locator) {
-        const isActive = await locator.getAttribute('data-active');
-
-        return {
-            pass: isActive === 'false',
-            message: () =>
-                isActive === null
-                    ? `expected ${locator} to have attribute 'data-active', but it does not have this attribute at all`
-                    : `expected ${locator} to have attribute 'data-active' set to 'false', but got '${isActive}'`,
-        };
-    },
-
     async toHaveTextGreaterThan(locator: Locator, expectedValue: number) {
         return await compareTextAndNumber(locator, expectedValue, (a, b) => a > b, 'greater');
     },
@@ -298,7 +259,7 @@ export const expect = baseExpect.extend({
                     timeout: options?.timeout,
                 });
                 for (let i = 0; i < expected.length; i++) {
-                    await baseExpect(locator.nth(i)).toHaveValue(expected[i], {
+                    await baseExpect(locator.nth(i)).toHaveValue(getIndexOrThrow(expected, i), {
                         timeout: options?.timeout,
                     });
                 }

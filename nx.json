@@ -21,7 +21,7 @@
                 "{workspaceRoot}/tsconfig.base.json",
                 "{workspaceRoot}/tsconfig.lib.json"
             ],
-            "outputs": ["{projectRoot}/lib", "{projectRoot}/libESM", "{projectRoot}/build"],
+            "outputs": ["{projectRoot}/lib", "{projectRoot}/build"],
             "cache": true
         },
         "type-check": {
@@ -46,7 +46,10 @@
                 "^production",
                 "default",
                 "{workspaceRoot}/jest.config.base.js",
-                "{workspaceRoot}/jest.config.native.js"
+                "{workspaceRoot}/jest.config.base.swc.js",
+                "{workspaceRoot}/jest.config.native.js",
+                "{workspaceRoot}/jest.config.swc-transform.js",
+                "{workspaceRoot}/JestCustomEnv.js"
             ],
             "cache": true
         },

@@ -1,11 +1,14 @@
 import { type ReactNode } from 'react';
 
 import { Address, copyAddressToClipboard, showCopyAddressModal } from '@suite/address';
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
+import { selectIsDeviceCompromised } from '@suite/authenticity-checks';
 import { useDevice } from '@suite/device';
+import { useExternalLink } from '@suite/external-links';
 import { selectIsCopyAddressModalShown, selectIsUnhideTokenModalShown } from '@suite/flags';
 import { Translation } from '@suite/intl';
 import { openModal } from '@suite/modal';
+import { showAddressThunk } from '@suite/receive';
 import { goto } from '@suite/router';
 import { useServices } from '@suite-common/dependency-injection';
 import { selectSelectedDevice } from '@suite-common/device';
@@ -42,15 +45,12 @@ import {
     InfoItem,
     Link,
     Row,
-    Tooltip,
 } from '@trezor/components';
 
 import { SUITE } from 'src/actions/suite/constants';
 import { setSendFormPrefill } from 'src/actions/suite/suiteActions';
-import { showAddress } from 'src/actions/wallet/receiveActions';
 import { getEarnRouteParams } from 'src/components/earn/utils/getEarnRouteParams';
-import { useDispatch, useExternalLink, useLayoutSize, useSelector } from 'src/hooks/suite';
-import { selectIsDeviceCompromised } from 'src/selectors/suite/suiteAuthenticityChecksSelectors';
+import { useDispatch, useLayoutSize, useSelector } from 'src/hooks/suite';
 import { getTokenAddressTranslationId } from 'src/utils/wallet/tokenUtils';
 
 import type { TokensTableType } from './types';
@@ -77,7 +77,7 @@ const TokenRowBasicActions = ({
     setShowDeactivateModal,
 }: TokenRowBasicActionsProps) => {
     const dispatch = useDispatch();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const device = useSelector(selectSelectedDevice);
     const { isLocked } = useDevice();
     const { isBelowTablet } = useLayoutSize();
@@ -147,7 +147,7 @@ const TokenRowBasicActions = ({
 
         dispatch(
             goto({
-                routeName: 'earn-deposit',
+                routeName: 'earn-yield-deposit',
                 params: getEarnRouteParams({
                     account,
                     yieldId,
@@ -176,7 +176,7 @@ const TokenRowBasicActions = ({
 
         dispatch(
             goto({
-                routeName: 'earn-withdraw',
+                routeName: 'earn-yield-withdraw',
                 params: getEarnRouteParams({
                     account,
                     yieldId,
@@ -251,7 +251,7 @@ const TokenRowBasicActions = ({
         if (network.networkType === 'cardano') {
             goToWithAnalytics({ routeName: 'wallet-receive', preserveParams: true });
         } else {
-            dispatch(showAddress(path, unusedAddress));
+            dispatch(showAddressThunk({ path, address: unusedAddress }));
         }
     };
 
@@ -322,6 +322,7 @@ const TokenRowBasicActions = ({
         <Row gap={8}>
             <Dropdown
                 placement={{ position: 'bottom', alignment: 'start' }}
+                tooltip={{ content: <Translation id="TR_SHOW_MORE" />, placement: 'left' }}
                 content={
                     <Card paddingType="small">
                         <Column gap={16}>
@@ -371,7 +372,7 @@ const TokenRowBasicActions = ({
                     {
                         label: <Translation id="TR_TRADING_SWAP" />,
                         'data-testid': '@trading/tokens/swap-button',
-                        icon: 'arrowsLeftRight',
+                        icon: 'repeat',
                         onClick: onSwapButtonClick,
                         isHidden: type === 'defi' ? false : !isBelowTablet,
                         isDisabled: !canSwapToken,
@@ -450,24 +451,21 @@ const TokenRowBasicActions = ({
             />
 
             {type !== 'defi' && !isBelowTablet && (
-                <Tooltip
-                    content={
-                        canSwapToken ? (
+                <IconButton
+                    isDisabled={!canSwapToken}
+                    key="swap"
+                    intent="neutral"
+                    priority="secondary"
+                    icon="repeat"
+                    onClick={onSwapButtonClick}
+                    tooltip={{
+                        content: canSwapToken ? (
                             <Translation id="TR_TRADING_SWAP" />
                         ) : (
                             <Translation id="TR_TRADING_SWAP_UNAVAILABLE" />
-                        )
-                    }
-                >
-                    <IconButton
-                        isDisabled={!canSwapToken}
-                        key="swap"
-                        intent="neutral"
-                        priority="secondary"
-                        icon="arrowsLeftRight"
-                        onClick={onSwapButtonClick}
-                    />
-                </Tooltip>
+                        ),
+                    }}
+                />
             )}
 
             {!isBelowTablet &&
@@ -500,57 +498,55 @@ const TokenRowBasicActions = ({
                     <>
                         {type === 'defi' ? (
                             <ButtonGroup intent="neutral" priority="secondary">
-                                <Tooltip
-                                    content={<Translation id="TR_DEFI_NO_VAULT_TOOLTIP" />}
-                                    isActive={isSupplyButtonDisabled}
-                                >
-                                    <IconButton
-                                        icon="plus"
-                                        isDisabled={isSupplyButtonDisabled}
-                                        onClick={navigateToYieldSupply}
-                                    />
-                                </Tooltip>
+                                <IconButton
+                                    icon="plus"
+                                    isDisabled={isSupplyButtonDisabled}
+                                    onClick={navigateToYieldSupply}
+                                    tooltip={{
+                                        content: <Translation id="TR_DEFI_NO_VAULT_TOOLTIP" />,
+                                        isActive: isSupplyButtonDisabled,
+                                    }}
+                                />
 
-                                <Tooltip
-                                    content={<Translation id="TR_DEFI_NO_VAULT_TOOLTIP" />}
-                                    isActive={isWithdrawButtonDisabled}
-                                >
-                                    <IconButton
-                                        icon="minus"
-                                        isDisabled={isWithdrawButtonDisabled}
-                                        onClick={navigateToYieldWithdraw}
-                                    />
-                                </Tooltip>
+                                <IconButton
+                                    icon="minus"
+                                    isDisabled={isWithdrawButtonDisabled}
+                                    onClick={navigateToYieldWithdraw}
+                                    tooltip={{
+                                        content: <Translation id="TR_DEFI_NO_VAULT_TOOLTIP" />,
+                                        isActive: isWithdrawButtonDisabled,
+                                    }}
+                                />
                             </ButtonGroup>
                         ) : (
                             <ButtonGroup intent="neutral" priority="secondary">
-                                <Tooltip
-                                    content={
-                                        <Translation
-                                            id={
-                                                isDeviceCompromised
-                                                    ? 'TR_RECEIVE_ADDRESS_SECURITY_CHECK_FAILED'
-                                                    : 'TR_NAV_RECEIVE'
-                                            }
-                                        />
-                                    }
-                                >
-                                    <IconButton
-                                        key="token-receive"
-                                        icon="arrowDown"
-                                        isDisabled={!canReceiveToken}
-                                        onClick={onReceiveButtonClick}
-                                    />
-                                </Tooltip>
+                                <IconButton
+                                    key="token-receive"
+                                    icon="arrowDown"
+                                    isDisabled={!canReceiveToken}
+                                    onClick={onReceiveButtonClick}
+                                    tooltip={{
+                                        content: (
+                                            <Translation
+                                                id={
+                                                    isDeviceCompromised
+                                                        ? 'TR_RECEIVE_ADDRESS_SECURITY_CHECK_FAILED'
+                                                        : 'TR_NAV_RECEIVE'
+                                                }
+                                            />
+                                        ),
+                                    }}
+                                />
 
-                                <Tooltip content={<Translation id="TR_NAV_SEND" />}>
-                                    <IconButton
-                                        isDisabled={token.balance === '0'}
-                                        key="token-send"
-                                        icon="arrowUp"
-                                        onClick={onSendButtonClick}
-                                    />
-                                </Tooltip>
+                                <IconButton
+                                    isDisabled={token.balance === '0'}
+                                    key="token-send"
+                                    icon="arrowUp"
+                                    onClick={onSendButtonClick}
+                                    tooltip={{
+                                        content: <Translation id="TR_NAV_SEND" />,
+                                    }}
+                                />
                             </ButtonGroup>
                         )}
                     </>

@@ -36,12 +36,13 @@ jobs:
         with:
           mode: firewall-free
           job-summary: errors
+          firewall-version: 1.11.0
       - name: Build and sign ${{ env.RELEASE_ENV }} message-system config file
         env:
           IS_CODESIGN_BUILD: ${{ env.RELEASE_ENV == 'production' && 'true' || 'false' }}
           JWS_PRIVATE_KEY_ENV: ${{ secrets.JWS_PRIVATE_KEY_ENV }}
         run: |
-          sfw --silent yarn install
+          sfw yarn install
           yarn message-system-sign-config
 
       - name: Upload ${{ env.RELEASE_ENV }}  message-system config file

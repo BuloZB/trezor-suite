@@ -1,4 +1,4 @@
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
 import { goto } from '@suite/router';
 import { useServices } from '@suite-common/dependency-injection';
@@ -19,7 +19,7 @@ interface AccountEmptyProps {
 
 export const AccountEmpty = ({ account }: AccountEmptyProps) => {
     const dispatch = useDispatch();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
 
     const isTokensNetwork = getNetworkFeatures(account.symbol).includes('tokens');
 
@@ -79,6 +79,7 @@ export const AccountEmpty = ({ account }: AccountEmptyProps) => {
                     key: '1',
                     onClick: handleNavigateToBuyPage,
                     iconLeft: 'currencyCircleDollar',
+                    size: 'medium',
                     children: isTokensNetwork ? (
                         <Translation id="TR_BUY" />
                     ) : (
@@ -93,6 +94,7 @@ export const AccountEmpty = ({ account }: AccountEmptyProps) => {
                     key: '2',
                     onClick: handleNavigateToReceivePage,
                     iconLeft: 'arrowDown',
+                    size: 'medium',
                     children: isTokensNetwork ? (
                         <Translation id="TR_RECEIVE" />
                     ) : (

@@ -2,7 +2,7 @@ import { type ChangeEvent, type ReactNode, useCallback, useState } from 'react';
 
 import styled from 'styled-components';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { useDevice } from '@suite/device';
 import { Translation } from '@suite/intl';
 import { useServices } from '@suite-common/dependency-injection';
@@ -13,7 +13,7 @@ import {
     buildUserFeedbackData,
     sendFeedbackAction,
 } from '@suite-common/feedback';
-import { Button, CollapsibleBox, Select, Textarea } from '@trezor/components';
+import { Box, Button, CollapsibleBox, Select, Textarea } from '@trezor/components';
 import { EmojiRatingSelector } from '@trezor/product-components';
 import { typography } from '@trezor/theme';
 
@@ -57,7 +57,7 @@ type FeedbackProps = {
 
 export const Feedback = ({ type }: FeedbackProps) => {
     const { device } = useDevice();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const dispatch = useDispatch();
     const router = useSelector(state => state.router);
     const [description, setDescription] = useState('');
@@ -180,7 +180,7 @@ export const Feedback = ({ type }: FeedbackProps) => {
                     </>
                 )}
                 {type === 'SUGGESTION' && (
-                    <>
+                    <Box margin={{ bottom: 12 }}>
                         <Headline>
                             <Translation id="TR_GUIDE_FEEDBACK_RATING_HEADLINE" />
                         </Headline>
@@ -189,7 +189,7 @@ export const Feedback = ({ type }: FeedbackProps) => {
                             onChange={setRating}
                             data-testid="@guide/feedback/suggestion"
                         />
-                    </>
+                    </Box>
                 )}
                 {type === 'BUG' && (
                     <Headline>

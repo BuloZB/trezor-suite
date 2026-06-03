@@ -48,6 +48,10 @@ file path.
 > which instances need investigation. It does **not** contain per-test error messages or artifact
 > URLs. Those only come from `currents-get-spec-instance` in Step 3, which is always required.
 
+**Excluded directories:** Skip any instance whose spec path starts with
+`suite/e2e/tests/trading-live`. Do not investigate, diagnose, or include these in fix tasks
+or the skipped list — omit them entirely from the report.
+
 ## Step 3 — Get full debugging data per instance
 
 For each failed or pending `instanceId`, use `currents-get-spec-instance` and extract:
@@ -100,7 +104,7 @@ instance. Read the full file and any page objects, fixtures, or helpers it uses.
 
 ## Step 6 — Produce the diagnosis report
 
-Write the report to `packages/e2e-utils/src/fixBot/reports/<YYYY-MM-DD>.md`.
+Write the report to `packages/e2e-utils/src/fixBot/reports/report.md`.
 
 Open with:
 
@@ -176,10 +180,7 @@ Tasks with `fix_scope` of `PRODUCT_BUG` or `INFRA` go into `skipped` instead of 
 
 ## Step 8 — Write report.json
 
-Write the following JSON structure to the reports directory alongside `report.md`.
-The file must be named `<YYYY-MM-DD>.json` using today's date (same date as the `.md` file).
-
-The reports directory path is: `packages/e2e-utils/src/fixBot/reports/`
+Write the following JSON structure to `packages/e2e-utils/src/fixBot/reports/report.json`.
 
 ```json
 {

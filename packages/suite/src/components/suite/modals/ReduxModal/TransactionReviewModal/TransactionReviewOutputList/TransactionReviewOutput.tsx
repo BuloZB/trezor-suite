@@ -16,6 +16,7 @@ import {
     type EvmTransactionPurpose,
     type ReviewOutput,
     type StakeType,
+    type YieldClaimReward,
 } from '@suite-common/wallet-types';
 import {
     type EvmApprovalPurpose,
@@ -142,6 +143,13 @@ const getTranslationValues = (
         return yieldStrings[evmTxType];
     }
 
+    if (evmTxType === 'claim') {
+        return {
+            value: 'TR_EARN_YIELD_REVIEW_CLAIM_TITLE',
+            label: 'TR_EARN_YIELD_REVIEW_CLAIM_TITLE',
+        };
+    }
+
     return null;
 };
 
@@ -167,6 +175,7 @@ const getOutputTitle = (
     stakeType: StakeType | undefined,
     evmTxType?: EvmTransactionPurpose,
     device?: TrezorDevice,
+    receiveAddress?: string,
 ): ReactNode | undefined => {
     const translation = getTranslationValues(networkType, stakeType, evmTxType, device);
     const contractTitle = getContractTitle(networkType, isApprovalFlowSupported(device), evmTxType);
@@ -220,7 +229,7 @@ const getOutputTitle = (
         case 'note':
             return <Translation id="TR_TRON_NOTE" />;
         case 'data':
-            return <Translation id={translation ? translation.label : 'DATA_ETH'} />;
+            return <Translation id={translation ? translation.label : 'DATA'} />;
         case 'opreturn':
             return <Translation id="OP_RETURN" />;
         case 'timebounds':
@@ -233,10 +242,14 @@ const getOutputTitle = (
             );
         case 'recipient_name':
             return <Translation id="TR_TRADING_PROVIDER" />;
+        case 'swap_intent':
+            return <Translation id="TR_TRADING_INTENT" />;
         case 'traded_assets':
-            return <Translation id="TR_MY_ASSETS" />;
+            return <Translation id={receiveAddress ? 'TR_CONTRACT' : 'TR_MY_ASSETS'} />;
         case 'fee-limit':
             return <Translation id="TR_SUMMARY" />;
+        case 'rewards':
+            return <Translation id="TR_REWARD_TOKENS" />;
         default:
             return exhaustive(type);
     }
@@ -253,6 +266,7 @@ interface GetOutputLinesParams {
     device?: TrezorDevice;
     token?: ReviewOutput['token'];
     nativeToken?: TokenInfo;
+    rewards?: YieldClaimReward[];
     translationString: TranslationFunction;
     locale: Locale;
 }
@@ -268,6 +282,7 @@ const getOutputLines = ({
     device,
     token,
     nativeToken,
+    rewards,
     translationString,
     locale,
 }: GetOutputLinesParams): OutputElementLine[] => {
@@ -362,6 +377,16 @@ const getOutputLines = ({
                 }
             }
 
+            if (evmTxType === 'claim' && type === 'data') {
+                return [
+                    {
+                        id: 'data',
+                        type: 'default',
+                        value,
+                    },
+                ];
+            }
+
             const translation = translationValues?.value;
 
             const defaultOutput = [
@@ -414,6 +439,14 @@ const getOutputLines = ({
                     id: type,
                     type: 'data',
                     value,
+                },
+            ];
+        case 'swap_intent':
+            return [
+                {
+                    id: 'swap_intent',
+                    type: 'data',
+                    value: translationString('TR_TRADING_INTENT_SWAP', {}),
                 },
             ];
         case 'amount': {
@@ -510,6 +543,12 @@ const getOutputLines = ({
                     value: `${localizeNumber(value, locale)} SUN`,
                 },
             ];
+        case 'rewards':
+            return (rewards ?? []).map(reward => ({
+                id: `reward-${reward.tokenAddress}`,
+                value: reward.tokenSymbol || reward.tokenAddress,
+                type: 'default' as const,
+            }));
         default:
             return exhaustive(type);
     }
@@ -525,22 +564,25 @@ export type TransactionReviewOutputProps = {
     nativeToken?: TokenInfo;
 } & ReviewOutput;
 
-export const TransactionReviewOutput = ({
-    type,
-    state,
-    label,
-    value,
-    value2,
-    send,
-    receive,
-    token,
-    account,
-    stakeType,
-    isRbf,
-    isTrading,
-    evmTxType,
-    nativeToken,
-}: TransactionReviewOutputProps) => {
+export const TransactionReviewOutput = (props: TransactionReviewOutputProps) => {
+    const {
+        type,
+        state,
+        label,
+        value,
+        value2,
+        send,
+        receive,
+        token,
+        account,
+        stakeType,
+        isRbf,
+        isTrading,
+        evmTxType,
+        nativeToken,
+    } = props;
+    const rewards = type === 'rewards' ? props.rewards : undefined;
+    const receiveAddress = type === 'traded_assets' ? props.receiveAddress : undefined;
     const { networkType, symbol } = account;
     const accounts = useSelector(selectAccounts);
     const device = useSelector(selectSelectedDevice);
@@ -555,23 +597,25 @@ export const TransactionReviewOutput = ({
     const outputTitle = getOutputTitle(
         type,
         networkType,
-        value,
+        value ?? '',
         isRbf,
         stakeType,
         evmTxType,
         device,
+        receiveAddress,
     );
 
     const outputLines = getOutputLines({
         type,
         account,
-        value,
+        value: value ?? '',
         value2,
         label,
         stakeType,
         evmTxType,
         device,
         token,
+        rewards,
         translationString,
         nativeToken,
         locale,
@@ -625,6 +669,7 @@ export const TransactionReviewOutput = ({
                 state={state}
                 send={send}
                 receive={receive}
+                receiveAddress={receiveAddress}
             />
         );
     }

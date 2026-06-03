@@ -1,11 +1,9 @@
-import { useMemo } from 'react';
-
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation, type TranslationKey, useTranslation } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { type EarnParams, goto } from '@suite/router';
 import { useServices } from '@suite-common/dependency-injection';
-import { useAllYieldOpportunities } from '@suite-common/earn-stablecoin-api';
+import { type YieldDto } from '@suite-common/earn-stablecoin-api';
 import {
     type EarnAnalyticsStep,
     EarnFlow,
@@ -25,6 +23,8 @@ interface YieldPageHeaderProps {
     fallbackTitleId: TranslationKey;
     account?: Account;
     routeParams?: EarnParams;
+    vault?: YieldDto;
+    isInvalid?: boolean;
 }
 
 export const YieldPageHeader = ({
@@ -32,21 +32,16 @@ export const YieldPageHeader = ({
     fallbackTitleId,
     account,
     routeParams,
+    vault,
+    isInvalid,
 }: YieldPageHeaderProps) => {
     const dispatch = useDispatch();
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const { translationString } = useTranslation();
     const { isBelowMobile } = useLayoutSize();
-    const { data: yieldOpportunities, isSuccess } = useAllYieldOpportunities();
-    const vault = useMemo(
-        () =>
-            routeParams?.yieldId && isSuccess
-                ? yieldOpportunities.find(opportunity => opportunity.id === routeParams.yieldId)
-                : undefined,
-        [routeParams?.yieldId, isSuccess, yieldOpportunities],
-    );
     const vaultName = vault?.outputToken?.name;
     const networkSymbol = account?.symbol;
+    const isHowItWorksVisible = !isInvalid;
 
     const onBackClick = () => {
         analytics.report({
@@ -111,9 +106,10 @@ export const YieldPageHeader = ({
                     size="large"
                     onClick={onBackClick}
                     data-testid="@account-subpage/back"
+                    tooltip={{ content: <Translation id="TR_BACK" /> }}
                 />
 
-                {account && vaultName ? (
+                {!isInvalid && account && vaultName ? (
                     <Row alignItems="center" gap={12} overflow="hidden">
                         {networkSymbol && (
                             <AssetLogo
@@ -143,33 +139,41 @@ export const YieldPageHeader = ({
                         </Column>
                     </Row>
                 ) : (
-                    <Text typographyStyle="body-md-strong">
-                        <Translation id={fallbackTitleId} />
-                    </Text>
+                    <Row alignItems="center" gap={12}>
+                        {routeParams?.symbol && (
+                            <AssetLogo symbol={routeParams.symbol} size={32} isBordered={false} />
+                        )}
+                        <Text typographyStyle="body-md-strong">
+                            <Translation id={fallbackTitleId} />
+                        </Text>
+                    </Row>
                 )}
 
-                <Box margin={{ left: 'auto' }}>
-                    {isBelowMobile ? (
-                        <IconButton
-                            icon="info"
-                            intent="neutral"
-                            priority="secondary"
-                            size="large"
-                            aria-label={translationString('TR_EARN_HOW_IT_WORKS')}
-                            onClick={onHowItWorksClick}
-                            isDisabled={!account || !routeParams}
-                        />
-                    ) : (
-                        <Button
-                            intent="neutral"
-                            priority="secondary"
-                            onClick={onHowItWorksClick}
-                            isDisabled={!account || !routeParams}
-                        >
-                            <Translation id="TR_EARN_HOW_IT_WORKS" />
-                        </Button>
-                    )}
-                </Box>
+                {isHowItWorksVisible && (
+                    <Box margin={{ left: 'auto' }}>
+                        {isBelowMobile ? (
+                            <IconButton
+                                icon="info"
+                                intent="neutral"
+                                priority="secondary"
+                                size="large"
+                                aria-label={translationString('TR_EARN_HOW_IT_WORKS')}
+                                onClick={onHowItWorksClick}
+                                isDisabled={!account || !routeParams}
+                                tooltip={{ content: <Translation id="TR_EARN_HOW_IT_WORKS" /> }}
+                            />
+                        ) : (
+                            <Button
+                                intent="neutral"
+                                priority="secondary"
+                                onClick={onHowItWorksClick}
+                                isDisabled={!account || !routeParams}
+                            >
+                                <Translation id="TR_EARN_HOW_IT_WORKS" />
+                            </Button>
+                        )}
+                    </Box>
+                )}
             </Row>
         </PageHeader>
     );

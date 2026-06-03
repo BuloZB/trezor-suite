@@ -1,8 +1,8 @@
 import { Locator, Page, test } from '@playwright/test';
 
+import type { LabelingSelectValue } from '@suite/labeling';
 import type { NetworkSymbol } from '@suite-common/wallet-config';
 import type { BaseCurrencyCode } from '@trezor/blockchain-link-types';
-import type { LabelingSelectValue } from '@trezor/suite/src/constants/suite/labeling';
 import { capitalizeFirstLetter } from '@trezor/utils';
 
 import { CoinsTab } from './coinsTab';
@@ -166,7 +166,7 @@ export class SettingsPage {
             debug: () => this.debugTabButton.click(),
             connect: () => this.connectTabButton.click(),
         };
-        await tabNavigation[tab]();
+        await tabNavigation[tab]?.();
     }
 
     @step()
@@ -264,9 +264,6 @@ export class SettingsPage {
         await this.navigateTo('coins');
         for (const network of options.enableNetworks) {
             await this.coinsTab.enableNetwork(network);
-            if (network === 'ada') {
-                await this.coinsTab.temporarilySetOfficialCardanoBackend();
-            }
         }
 
         for (const network of options.disableNetworks ?? []) {

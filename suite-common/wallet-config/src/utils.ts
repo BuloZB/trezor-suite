@@ -1,4 +1,4 @@
-import { type NetworkDtoId } from '@suite-common/earn-stablecoin-api';
+import { type NetworkDtoId } from '@suite-common/earn-stablecoin-defs';
 import { exhaustive } from '@trezor/type-utils';
 
 import { networks } from './networksConfig';
@@ -25,22 +25,19 @@ export const networkSymbolCollection = networksCollection.map(n => n.symbol);
 interface GetMainnetsProps {
     debug?: boolean;
     useExperimentalNetworks?: boolean;
-    includeTron?: boolean;
     allNetworks?: Network[];
 }
 
 export const getMainnets = ({
     debug = false,
     useExperimentalNetworks = false,
-    includeTron = false,
     allNetworks = networksCollection,
 }: GetMainnetsProps = {}) =>
     allNetworks.filter(
         n =>
             !n.testnet &&
             (!n.isDebugOnlyNetwork || debug) &&
-            (!n.isExperimentalOnlyNetwork || useExperimentalNetworks) &&
-            (n.symbol !== 'trx' || includeTron),
+            (!n.isExperimentalOnlyNetwork || useExperimentalNetworks),
     );
 
 interface GetTestnetsProps {

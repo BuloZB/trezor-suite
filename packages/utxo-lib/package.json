@@ -22,21 +22,21 @@
     ],
     "main": "./src/index.ts",
     "files": [
-        "libESM/",
+        "lib/",
         "CHANGELOG.md"
     ],
     "publishConfig": {
-        "main": "./libESM/index.mjs",
-        "types": "./libESM/index.d.mts",
+        "main": "./lib/index.mjs",
+        "types": "./lib/index.d.mts",
         "exports": {
             ".": {
-                "types": "./libESM/index.d.mts",
-                "default": "./libESM/index.mjs"
+                "types": "./lib/index.d.mts",
+                "default": "./lib/index.mjs"
             },
-            "./libESM/*": "./libESM/*",
-            "./libESM/compose": {
-                "types": "./libESM/compose/index.d.mts",
-                "default": "./libESM/compose/index.mjs"
+            "./lib/*": "./lib/*",
+            "./lib/compose": {
+                "types": "./lib/compose/index.d.mts",
+                "default": "./lib/compose/index.mjs"
             }
         }
     },
@@ -44,7 +44,7 @@
         "depcheck": "yarn g:depcheck",
         "test:unit": "yarn g:jest",
         "type-check": "yarn g:tsc --build tsconfig.json",
-        "build:lib": "yarn g:rimraf ./libESM && yarn g:tsc --build tsconfig.libESM.json && ../../scripts/publish/replace-imports.sh ./libESM esm",
+        "build:lib": "yarn g:rimraf ./lib && yarn g:tsc --build tsconfig.lib.json && ../../scripts/publish/replace-imports.sh ./lib",
         "lint:js": "yarn g:eslint '**/*.{ts,tsx,js}'"
     },
     "dependencies": {
@@ -53,19 +53,12 @@
         "@scure/base": "^2.0.0",
         "@sinclair/typebox": "^0.34.49",
         "@trezor/utils": "workspace:*",
-        "bip66": "^2.0.0",
-        "bitcoin-ops": "^1.4.1",
-        "bn.js": "5.2.3",
         "cashaddrjs": "0.4.4",
-        "int64-buffer": "^1.1.0",
-        "pushdata-bitcoin": "^1.0.1",
         "varuint-bitcoin": "2.0.0",
         "wif": "^5.0.0"
     },
     "devDependencies": {
-        "@trezor/eslint": "workspace:*",
-        "@types/bn.js": "^5.2.0",
-        "minimaldata": "^1.0.2"
+        "@trezor/eslint": "workspace:*"
     },
     "peerDependencies": {
         "tslib": "^2.6.2"

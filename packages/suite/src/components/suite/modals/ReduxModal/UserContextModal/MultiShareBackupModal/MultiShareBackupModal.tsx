@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
-import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
+import { LearnMoreButton } from '@suite/external-links';
 import { Translation } from '@suite/intl';
 import { isAdditionalShamirBackupInProgress } from '@suite/recovery';
 import { useServices } from '@suite-common/dependency-injection';
@@ -14,7 +15,6 @@ import {
     TREZOR_SUPPORT_RECOVERY_ISSUES_URL,
 } from '@trezor/urls';
 
-import { LearnMoreButton } from 'src/components/suite/LearnMoreButton';
 import { useSelector } from 'src/hooks/suite';
 
 import { MultiShareBackupStep1 } from './MultiShareBackupStep1';
@@ -29,7 +29,7 @@ type MultiShareBackupModalProps = {
 type StepConfig = Partial<ModalProps>;
 
 export const MultiShareBackupModal = ({ onCancel }: MultiShareBackupModalProps) => {
-    const { analytics } = useServices<DesktopAnalyticsDep>();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const device = useSelector(selectSelectedDevice);
 
     const isInBackupMode =
@@ -59,7 +59,7 @@ export const MultiShareBackupModal = ({ onCancel }: MultiShareBackupModalProps) 
     };
 
     const closeWithCancelOnDevice = () => {
-        TrezorConnect.cancel('cancel');
+        TrezorConnect.cancel({ reason: 'cancel' });
         handleCancel();
     };
 

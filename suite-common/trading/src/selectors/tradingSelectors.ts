@@ -316,6 +316,12 @@ export const selectTradingProviderKycPolicy = (
     return undefined;
 };
 
+export const selectTradingProviderCompanyName = (
+    state: TradingRootState,
+    name: string | undefined,
+    type: TradingType,
+) => selectTradingProviderByNameAndTradeType(state, name, type)?.companyName ?? name;
+
 export const selectTradingBuyQuotesRequest = (state: TradingRootState) =>
     state.wallet.trading.buy.quotesRequest;
 
@@ -342,12 +348,6 @@ export const selectTradingBuySelectedQuote = (state: TradingRootState) =>
 
 export const selectTradingExchangeSelectedQuote = (state: TradingRootState) =>
     state.wallet.trading.exchange.selectedQuote;
-
-export const selectTradingExchangePreselectedQuote = (state: TradingRootState) =>
-    state.wallet.trading.exchange.preselectedQuote;
-
-export const selectTradingExchangeActiveQuote = (state: TradingRootState) =>
-    selectTradingExchangeSelectedQuote(state) ?? selectTradingExchangePreselectedQuote(state);
 
 export const selectTradingSellSelectedQuote = (state: TradingRootState) =>
     state.wallet.trading.sell.selectedQuote;

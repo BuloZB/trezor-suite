@@ -471,7 +471,9 @@ describe('HttpServer', () => {
     });
 
     test('port negotiation, first available port is occupied, second is free', async () => {
-        const [freePort1, freePort2] = await getFreePort(2);
+        const freePorts = await getFreePort(2);
+        const freePort1 = freePorts[0] ?? 0;
+        const freePort2 = freePorts[1] ?? 0;
         // start server using 'ports' array. first port is empty and will be used
         server = new HttpServer<Events>({ logger: muteLogger, port: freePort1 });
         await server.start();
@@ -493,7 +495,8 @@ describe('HttpServer', () => {
     });
 
     test('port negotiation - it is possible to start and stop server multiple times', async () => {
-        const [freePort1] = await getFreePort(1);
+        const freePorts2 = await getFreePort(1);
+        const freePort1 = freePorts2[0] ?? 0;
 
         server = new HttpServer<Events>({ logger: muteLogger, ports: [freePort1] });
         await server.start();
@@ -508,6 +511,61 @@ describe('HttpServer', () => {
         });
 
         await server.stop();
+    });
+
+    // Previously this test pinned the leak (see #27981): `HttpServer.stop()` did not
+    // remove the 'connection'/'error' listeners that `start()` attached to the underlying
+    // `http.Server`, only the TypedEmitter wrapper ones. The fix removes them surgically
+    // (`server.off(event, handler)`) so Node's built-in `connectionListener` — attached
+    // once by `http.createServer` and responsible for HTTP parsing — is preserved across
+    // start/stop cycles. Two cycles cover both halves: cleanup after stop() and
+    // non-accumulation across the next start().
+    test('repeated start()/stop() does not leak connection/error listeners on the underlying http.Server', async () => {
+        const underlyingServer = (server as any).server;
+        const connectionBaseline = underlyingServer.listenerCount('connection');
+
+        await server.start();
+        expect(underlyingServer.listenerCount('connection')).toBe(connectionBaseline + 1);
+        expect(underlyingServer.listenerCount('error')).toBe(1);
+
+        await server.stop();
+        expect(underlyingServer.listenerCount('connection')).toBe(connectionBaseline);
+        expect(underlyingServer.listenerCount('error')).toBe(0);
+
+        await server.start();
+        expect(underlyingServer.listenerCount('connection')).toBe(connectionBaseline + 1);
+        expect(underlyingServer.listenerCount('error')).toBe(1);
+
+        await server.stop();
+        expect(underlyingServer.listenerCount('connection')).toBe(connectionBaseline);
+        expect(underlyingServer.listenerCount('error')).toBe(0);
+    });
+
+    // Regression for an earlier iteration of the fix that called
+    // `this.server.removeAllListeners('connection')` in stop(). That wiped out Node's
+    // built-in `connectionListener` (the one `http.createServer` attaches), so the next
+    // start() accepted TCP connections without ever parsing them as HTTP and clients
+    // got `socket hang up`. The surgical `.off(event, storedHandler)` cleanup leaves
+    // Node's parser listener intact across cycles.
+    test('HTTP requests still work after a stop()/start() cycle', async () => {
+        server.get('/ping', [
+            (_request, response) => {
+                response.end('pong');
+            },
+        ]);
+
+        await server.start();
+        const firstAddr = server.getServerAddress();
+        const firstRes = await fetch(`http://${firstAddr.address}:${firstAddr.port}/ping`);
+        expect(firstRes.status).toBe(200);
+        expect(await firstRes.text()).toBe('pong');
+
+        await server.stop();
+        await server.start();
+        const secondAddr = server.getServerAddress();
+        const secondRes = await fetch(`http://${secondAddr.address}:${secondAddr.port}/ping`);
+        expect(secondRes.status).toBe(200);
+        expect(await secondRes.text()).toBe('pong');
     });
 
     test('port negotiation - even when started using random port, the resulting port is stored for future use', async () => {

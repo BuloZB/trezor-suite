@@ -9,7 +9,12 @@ import { Plugin, ViteDevServer, build, defineConfig } from 'vite';
 import wasm from 'vite-plugin-wasm';
 
 import { suiteVersion } from '../suite/package.json';
-import { assetPrefix, isTanstackReactQueryDevTools, project } from './utils/env';
+import {
+    assetPrefix,
+    isTanstackReactQueryDevTools,
+    project,
+    transportBrowserPing,
+} from './utils/env';
 
 const require = createRequire(import.meta.url);
 
@@ -52,7 +57,9 @@ const flagsPlugin = (): Plugin => {
 
                     return;
                 }
-                const filePath = resolve(flagsAssetsDir, match[1].toLowerCase());
+                // @ts-expect-error: noUncheckedIndexedAccess
+                const secondMatch: string = match[1];
+                const filePath = resolve(flagsAssetsDir, secondMatch.toLowerCase());
                 if (!fs.existsSync(filePath)) {
                     next();
 
@@ -75,7 +82,7 @@ const trezorLogosRequirePlugin = (): Plugin => ({
     name: 'trezor-logos-require',
     enforce: 'pre',
     transform(code, id) {
-        const cleanId = id.split('?')[0];
+        const cleanId = id.split('?')[0] ?? id;
         if (
             !cleanId.includes(
                 'packages/product-components/src/components/TrezorLogo/trezorLogos.ts',
@@ -629,6 +636,7 @@ export default defineConfig({
         'process.env.NODE_ENV': JSON.stringify('development'),
         'process.env.ASSET_PREFIX': JSON.stringify(assetPrefix),
         'process.env.TANSTACK_REACT_QUERY_DEV_TOOLS': JSON.stringify(isTanstackReactQueryDevTools),
+        'process.env.TRANSPORT_BROWSER_PING': JSON.stringify(transportBrowserPing),
         global: 'globalThis',
         __DEV__: true,
         ENABLE_REDUX_LOGGER: true,

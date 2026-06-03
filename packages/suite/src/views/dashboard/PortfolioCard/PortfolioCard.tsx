@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 
 import { useDevice } from '@suite/device';
 import { selectFlags, setFlag } from '@suite/flags';
+import { Translation } from '@suite/intl';
 import { networksCollection } from '@suite-common/wallet-config';
 import {
     selectAllAccountsToList,
@@ -15,17 +16,20 @@ import {
     Collapsible,
     Column,
     Divider,
+    Flex,
     Icon,
     IconButton,
     Paragraph,
     Row,
 } from '@trezor/components';
+import { breakpoints } from '@trezor/theme';
 
 import { updateGraphData } from 'src/actions/wallet/graphActions';
 import { DashboardSection } from 'src/components/dashboard';
 import { GraphRangeSelector, GraphSkeleton } from 'src/components/suite';
 import { useDiscovery, useDispatch, useSelector } from 'src/hooks/suite';
 import { useTotalFiatBalance } from 'src/hooks/wallet/useTotalFiatBalance';
+import { useIsContentBelowBreakpoint } from 'src/support/suite/ContentFlex';
 import { isNetworkWithGraphFeature } from 'src/utils/wallet/graph';
 import { selectDiscoveryOverallStatus } from 'src/utils/wallet/selectDiscoveryOverallStatus';
 
@@ -47,6 +51,7 @@ export const PortfolioCard = memo(() => {
     const { dashboardGraphHidden } = useSelector(selectFlags);
     const dispatch = useDispatch();
     const { device } = useDevice();
+    const isBelowLaptop = useIsContentBelowBreakpoint(breakpoints.laptop);
     const isDeviceEmpty = useMemo(() => accounts.every(a => a.empty), [accounts]);
     const failedAccounts = useMemo(() => accounts.filter(isAccountFailed), [accounts]);
 
@@ -140,6 +145,11 @@ export const PortfolioCard = memo(() => {
                     }),
                 )
             }
+            tooltip={{
+                content: (
+                    <Translation id={dashboardGraphHidden ? 'TR_GRAPH_SHOW' : 'TR_GRAPH_HIDE'} />
+                ),
+            }}
         />
     ) : null;
 
@@ -169,15 +179,25 @@ export const PortfolioCard = memo(() => {
                                     {body}
                                 </Column>
                                 {showGraphControls && (
-                                    <Row gap={32} justifyContent="space-between">
+                                    <Flex
+                                        gap={16}
+                                        direction={isBelowLaptop ? 'column' : 'row'}
+                                        justifyContent="space-between"
+                                        alignItems={isBelowLaptop ? 'flex-start' : 'center'}
+                                    >
                                         <GraphRangeSelector onSelectedRange={onSelectedRange} />
                                         {showMissingDataTooltip && (
-                                            <Row gap={12} flex="1 1">
+                                            <Row
+                                                gap={12}
+                                                flex={isBelowLaptop ? undefined : '1 1 240px'}
+                                                minWidth={0}
+                                                isReversed={isBelowLaptop}
+                                            >
                                                 <Paragraph
                                                     typographyStyle="body-xs"
                                                     intent="neutral"
                                                     priority="secondary"
-                                                    align="end"
+                                                    align={isBelowLaptop ? 'start' : 'end'}
                                                     textWrap="balance"
                                                 >
                                                     <UnsupportedAssetsMessage
@@ -193,7 +213,7 @@ export const PortfolioCard = memo(() => {
                                                 />
                                             </Row>
                                         )}
-                                    </Row>
+                                    </Flex>
                                 )}
                             </Column>
                         </Collapsible.Content>

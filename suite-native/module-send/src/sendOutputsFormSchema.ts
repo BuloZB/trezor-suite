@@ -1,15 +1,17 @@
+import {
+    isAddressDeprecated,
+    isAddressValid,
+    isBech32AddressUppercase,
+    isTaprootAddress,
+} from '@suite-common/address';
 import { formInputsMaxLength, yup } from '@suite-common/validators';
 import { type NetworkSymbol, getDisplaySymbol, getNetworkType } from '@suite-common/wallet-config';
 import { U_INT_32 } from '@suite-common/wallet-constants';
 import { type FeeInfo, type Output } from '@suite-common/wallet-types';
 import {
     formatNetworkAmount,
-    isAddressDeprecated,
-    isAddressValid,
     isAmountWithinNetworkReserve,
-    isBech32AddressUppercase,
     isDecimalsValid,
-    isTaprootAddress,
 } from '@suite-common/wallet-utils';
 import { type FeeLevelsMaxAmount } from '@suite-native/transaction-management';
 import { BigNumber, isNotNullOrUndefined } from '@trezor/utils';
@@ -274,7 +276,6 @@ export type OutputsFormValues = yup.InferType<typeof outputSchema>;
 export const sendOutputsFormValidationSchema = yup.object({
     outputs: yup.array(outputSchema).required(),
     transactionData: yup.string(),
-    tronDataAscii: yup.string(),
     isDestinationTagEnabled: yup.boolean(),
     destinationTag: yup
         .string()
@@ -291,7 +292,7 @@ export const sendOutputsFormValidationSchema = yup.object({
 
                 if (!symbol) return true;
                 const networkType = getNetworkType(symbol);
-                if (networkType === 'stellar' || networkType === 'solana') return true;
+                if (['solana', 'stellar', 'tron'].includes(networkType)) return true;
 
                 if (!value) return true;
 

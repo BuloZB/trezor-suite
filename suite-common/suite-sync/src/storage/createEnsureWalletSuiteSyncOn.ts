@@ -1,16 +1,22 @@
-import { isTrezorDeviceWithState, selectDeviceByStaticSessionId } from '@suite-common/device';
+import {
+    type DeviceRootState,
+    isTrezorDeviceWithState,
+    selectDeviceByStaticSessionId,
+} from '@suite-common/device';
 import {
     type EnsureSubscribedStorageDep,
     type EnsureSuiteSyncKeysDep,
     type EnsureWalletSuiteSyncOn,
     type SubscriptionStorageDep,
+    type WalletSuiteSyncOnEnsuredListener,
 } from '@suite-common/suite-sync-types';
 import { err } from '@trezor/type-utils';
 
 import { isFwUpgradeNeededForSuiteSync, isSuiteSyncSupportedByDevice } from '../suiteSyncUtils';
 
 export type EnsureWalletSuiteSyncOnDeps = {
-    getState: () => any;
+    getState: () => DeviceRootState;
+    getWalletSuiteSyncOnEnsuredListeners: () => WalletSuiteSyncOnEnsuredListener[];
 } & EnsureSubscribedStorageDep &
     EnsureSuiteSyncKeysDep &
     SubscriptionStorageDep;
@@ -35,5 +41,19 @@ export const createEnsureWalletSuiteSyncOn =
             return err({ type: 'SuiteSyncUnavailableOnDeviceError' });
         }
 
-        return await deps.ensureSubscribedStorage({ deviceStaticSessionId, isWriteMode });
+        const result = await deps.ensureSubscribedStorage({ deviceStaticSessionId, isWriteMode });
+
+        if (!result.success) {
+            return result;
+        }
+
+        for (const listener of deps.getWalletSuiteSyncOnEnsuredListeners()) {
+            await listener({
+                deviceStaticSessionId,
+                isWriteMode,
+                storage: result.payload,
+            });
+        }
+
+        return result;
     };
