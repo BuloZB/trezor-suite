@@ -6,7 +6,8 @@ import {
     tradingActions,
     tradingExchangeActions,
 } from '@suite-common/trading';
-import { events } from '@suite-native/analytics';
+import { type NativeAnalyticsDep, events } from '@suite-native/analytics';
+import { mockNativeAnalytics } from '@suite-native/analytics/mocks';
 import { type TestStore, act, renderHookWithStoreProvider } from '@suite-native/test-utils-store';
 import {
     btc1NormalAccount,
@@ -25,10 +26,8 @@ import { useExchangeForm } from '../useExchangeForm';
 import { useExchangeQuotes } from '../useExchangeQuotes';
 
 const mockReport = jest.fn();
-const services = {
-    analytics: {
-        report: mockReport,
-    },
+const services: NativeAnalyticsDep = {
+    analytics: mockNativeAnalytics(mockReport),
 };
 
 jest.mock('@trezor/react-utils', () => {

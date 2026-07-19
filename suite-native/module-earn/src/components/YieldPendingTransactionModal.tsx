@@ -26,7 +26,7 @@ import {
     VStack,
 } from '@suite-native/atoms';
 import { CryptoAmountFormatter, CryptoToFiatAmountFormatter } from '@suite-native/formatters';
-import { CryptoIcon, Icon, NetworkIcon } from '@suite-native/icons';
+import { Icon, NetworkIcon, TokenIcon } from '@suite-native/icons';
 import { Translation } from '@suite-native/intl';
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 
@@ -53,8 +53,6 @@ type YieldPendingTransactionModalProps = {
     vaultTokenContract?: TokenAddress;
 };
 
-const VAULT_NAME_MAX_WIDTH = 150;
-
 const pendingIconStyle = prepareNativeStyle(utils => ({
     width: 56,
     height: 56,
@@ -65,8 +63,7 @@ const pendingIconStyle = prepareNativeStyle(utils => ({
     ...utils.boxShadows.small,
 }));
 
-const constrainedValueStyle = prepareNativeStyle(() => ({
-    maxWidth: VAULT_NAME_MAX_WIDTH,
+const valueStyle = prepareNativeStyle(() => ({
     minWidth: 0,
     flexShrink: 1,
 }));
@@ -211,9 +208,9 @@ export const YieldPendingTransactionModal = ({
                             <HStack
                                 spacing="sp4"
                                 alignItems="center"
-                                style={applyStyle(constrainedValueStyle)}
+                                style={applyStyle(valueStyle)}
                             >
-                                <CryptoIcon
+                                <TokenIcon
                                     symbol={accountSymbol}
                                     contractAddress={vaultTokenContract}
                                     size="extraSmall"
@@ -237,9 +234,9 @@ export const YieldPendingTransactionModal = ({
                                 <HStack
                                     spacing="sp4"
                                     alignItems="center"
-                                    style={applyStyle(constrainedValueStyle)}
+                                    style={applyStyle(valueStyle)}
                                 >
-                                    <CryptoIcon
+                                    <TokenIcon
                                         symbol={accountSymbol}
                                         contractAddress={amountTokenContract}
                                         size="extraSmall"

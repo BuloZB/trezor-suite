@@ -10,7 +10,7 @@ const legacyResults = [
     },
 ];
 
-export default {
+const getOwnershipProof: TestCase = {
     method: 'getOwnershipProof',
     setup: {
         mnemonic: 'mnemonic_all',
@@ -79,8 +79,8 @@ export default {
                 bundle: [
                     { path: "m/84'/0'/0'/1/0", coin: 'btc' },
                     { path: "m/86'/0'/0'/1/0", coin: 'btc' },
-                    { path: "m/49'/1'/0'/0/0", coin: 'testnet' },
-                    { path: "m/44'/1'/0'/0/0", coin: 'testnet' },
+                    { path: "m/49'/1'/0'/0/0", coin: 'test' },
+                    { path: "m/44'/1'/0'/0/0", coin: 'test' },
                 ],
             },
             result: [
@@ -104,4 +104,6 @@ export default {
             legacyResults,
         },
     ],
-} satisfies TestCase;
+};
+
+export default getOwnershipProof;

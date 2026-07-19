@@ -1,15 +1,21 @@
 import { useSelector } from 'react-redux';
 
+import { useTronStakingStats } from '@suite-common/earn-staking-api';
 import {
     selectFormattedAccountType,
     selectHasRunningDiscovery,
     useAccountsSelector,
 } from '@suite-common/wallet-core';
+import { isApyAvailable } from '@suite-common/wallet-utils';
 import { Badge, Box, BoxSkeleton, HStack, Text } from '@suite-native/atoms';
 import { NetworkDisplaySymbolNameFormatter } from '@suite-native/formatters';
-import { CryptoIconWithNetwork } from '@suite-native/icons';
+import { TokenIcon } from '@suite-native/icons';
 import { Translation } from '@suite-native/intl';
-import { selectApy, useSelector as useNativeStakingSelector } from '@suite-native/staking';
+import {
+    selectApy,
+    selectIsCardanoStakedOutsideEverstake,
+    useSelector as useNativeStakingSelector,
+} from '@suite-native/staking';
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 
 import { type EarnPromoItem } from '../types';
@@ -77,9 +83,20 @@ export const EarnItemOverviewSection = (item: EarnPromoItem) => {
         }),
     );
 
+    const { formattedMaxApr: tronMaxApr } = useTronStakingStats({
+        enabled: item.type === 'staking' && item.symbol === 'trx',
+    });
+
     const isDiscoveryRunning = useSelector(selectHasRunningDiscovery);
 
-    const apyValue = item.type === 'staking' ? apy : item.apy;
+    const isAdaStakedOutsideEverstake = useNativeStakingSelector(state =>
+        accountKey ? selectIsCardanoStakedOutsideEverstake(state, accountKey) : false,
+    );
+
+    const symbol = item.type === 'staking' ? item.symbol : item.networkSymbol;
+
+    const resolvedApy = symbol === 'trx' ? tronMaxApr : apy;
+    const apyValue = item.type === 'staking' ? resolvedApy : item.apy;
 
     const iconProps =
         item.type === 'staking'
@@ -95,7 +112,7 @@ export const EarnItemOverviewSection = (item: EarnPromoItem) => {
         >
             <Box flexDirection="row" alignItems="center" flex={1}>
                 <Box marginRight="sp16">
-                    <CryptoIconWithNetwork {...iconProps} />
+                    <TokenIcon {...iconProps} showNetworkIcon />
                 </Box>
                 <Box style={applyStyle(accountDescriptionStyle)}>
                     <Text>
@@ -118,12 +135,23 @@ export const EarnItemOverviewSection = (item: EarnPromoItem) => {
                 <BoxSkeleton width={70} height={20} />
             ) : (
                 <Box style={applyStyle(valuesContainerStyle)}>
-                    {apyValue != null && (
+                    {(isAdaStakedOutsideEverstake || apyValue != null) && (
                         <Text
                             variant={accountKey ? 'body-sm' : 'body-md'}
                             color={accountKey ? 'contentSecondary' : 'contentPrimary'}
                         >
-                            <Translation id="earn.apyPercentage" values={{ apy: apyValue }} />
+                            {isAdaStakedOutsideEverstake || !isApyAvailable(apyValue) ? (
+                                <Translation id="earn.notAvailableShort" />
+                            ) : (
+                                <Translation
+                                    id={
+                                        symbol === 'trx'
+                                            ? 'earn.aprPercentage'
+                                            : 'earn.apyPercentage'
+                                    }
+                                    values={{ apy: apyValue }}
+                                />
+                            )}
                         </Text>
                     )}
                 </Box>

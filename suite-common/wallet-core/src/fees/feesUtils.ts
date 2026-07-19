@@ -2,7 +2,7 @@ import { type TrezorDevice } from '@suite-common/suite-types';
 import { type Network, type NetworkSymbol, getNetwork } from '@suite-common/wallet-config';
 import { isEip1559 } from '@suite-common/wallet-utils';
 import TrezorConnect, { type FeeLevel } from '@trezor/connect';
-import { type BlockchainEstimatedFeeLevel } from '@trezor/connect-common/src/types/api/blockchainEstimateFee';
+import { type BlockchainEstimatedFeeLevel } from '@trezor/connect-common/src/types/api/blockchain/blockchainEstimateFee';
 import { BigNumber } from '@trezor/utils';
 
 const NETWORK_FEE_OVERRIDES: Record<
@@ -11,7 +11,7 @@ const NETWORK_FEE_OVERRIDES: Record<
 > = {
     bitcoin: {
         minFeePerUnit: {
-            normal: '1',
+            normal: '0.2',
             high: '2',
         },
     },
@@ -23,15 +23,15 @@ export const ETHEREUM_ADJUST_GAS_LIMIT = '1.25';
 // TODO: consider to use same order in @trezor/connect to avoid double sorting
 const order: FeeLevel['label'][] = ['low', 'economy', 'normal', 'high'];
 
-export const sortLevels = (levels: FeeLevel[]) =>
-    levels.sort((levelA, levelB) => order.indexOf(levelA.label) - order.indexOf(levelB.label));
+export const sortLevels = (levelA: FeeLevel, levelB: FeeLevel) =>
+    order.indexOf(levelA.label) - order.indexOf(levelB.label);
 
 type GetEip1559AvailabilityProps = {
     symbol: NetworkSymbol;
     feeLevel: FeeLevel;
     device?: TrezorDevice;
 };
-export const getEip1559Availability = ({ symbol, feeLevel, device }: GetEip1559AvailabilityProps) =>
+const getEip1559Availability = ({ symbol, feeLevel, device }: GetEip1559AvailabilityProps) =>
     getNetwork(symbol).features.includes('eip1559') &&
     isEip1559(feeLevel) &&
     !device?.unavailableCapabilities?.['eip1559'];
@@ -42,10 +42,6 @@ export const getNewFeeInfo = async ({
     device,
 }: GetNewFeeInfoProps): Promise<BlockchainEstimatedFeeLevel | undefined> => {
     const { symbol } = network;
-
-    if (network.networkType === 'tron') {
-        return;
-    }
 
     if (network.networkType === 'ethereum') {
         const result = await TrezorConnect.blockchainEstimateFee({
@@ -111,11 +107,10 @@ export const getNewFeeInfo = async ({
 
     return {
         ...result.payload,
-        levels: sortLevels(
-            result.payload.levels
-                // hack to hide "low" fee option
-                // (we do not want to change the connect API as it is a potentially breaking change)
-                .filter(level => level.label !== 'low'),
-        ),
+        levels: result.payload.levels
+            // hack to hide "low" fee option
+            // (we do not want to change the connect API as it is a potentially breaking change)
+            .filter(level => level.label !== 'low')
+            .sort(sortLevels),
     };
 };

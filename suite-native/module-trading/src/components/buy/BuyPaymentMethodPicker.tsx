@@ -12,8 +12,8 @@ import { selectBuyBestQuotesForAvailablePaymentMethods } from '@suite-native/tra
 
 import { useBuyFormContext } from '../../hooks/buy/useBuyFormContext';
 import { useSheetControls } from '../../hooks/general/useSheetControls';
+import { PaymentMethodPickerValue } from '../general/PaymentMethodPickerValue';
 import { PaymentMethodSheet } from '../general/PaymentMethodSheet/PaymentMethodSheet';
-import { PaymentMethodTranslation } from '../general/PaymentMethodTranslation';
 
 const PAYMENT_METHOD_PICKER_TEST_ID = '@trading/buy/payment-method-picker';
 
@@ -34,17 +34,12 @@ const BuyPaymentMethodPickerRight = ({
 
     if (selectedValue) {
         return (
-            <Text
-                color="contentSecondary"
-                variant="body-sm"
+            <PaymentMethodPickerValue
+                paymentMethod={selectedValue.paymentMethod}
+                paymentMethodName={selectedValue.paymentMethodName}
                 accessibilityLabel={translate('moduleTrading.tradingScreen.selectedPaymentMethod')}
                 testID={PAYMENT_METHOD_PICKER_TEST_ID + '/value'}
-            >
-                <PaymentMethodTranslation
-                    paymentMethod={selectedValue.paymentMethod}
-                    paymentMethodName={selectedValue.paymentMethodName}
-                />
-            </Text>
+            />
         );
     }
 

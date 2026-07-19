@@ -16,8 +16,8 @@ import {
 } from './routes';
 
 export type PathString = `/${string}`; // in format `/alpha/beta/gamma`
-export type SearchString = '' | `?${string}`; // in format `?alpha=beta&gamma=delta`
-export type HashString = '' | `#${string}`; // in format `#/alpha/beta/gamma`
+type SearchString = '' | `?${string}`; // in format `?alpha=beta&gamma=delta`
+type HashString = '' | `#${string}`; // in format `#/alpha/beta/gamma`
 
 // NOTE: this is basically a bit stricter Path from history package (file://./../../../node_modules/history/index.d.ts),
 // but it is satisfied by window.location as well
@@ -80,7 +80,7 @@ export const isEqualLocation = (loc1: RouterPathOptional, loc2: RouterPathOption
     (loc1.search ?? '') === (loc2.search ?? '') &&
     (loc1.hash ?? '') === (loc2.hash ?? '');
 
-export const findRoute = (pathname: PathString) => {
+export const findRoute = (pathname: PathString): Route | undefined => {
     const clean = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
 
     return suiteRoutes.find(r => r.pattern === clean);
@@ -129,6 +129,16 @@ const validateEarnYieldParams = (route: Route, hash: HashString) => {
     });
 };
 
+const validateEarnStakingParams = (hash: HashString) => {
+    const [symbol, index, rawAccountType] = parseHash(hash);
+
+    return validateAccountRouteParams({
+        symbol,
+        index,
+        rawAccountType,
+    });
+};
+
 const parseParamValue = <T>(value: string, defaultValue?: T) => {
     if (value === 'true') return true;
     if (value === 'false') return false;
@@ -156,7 +166,7 @@ const validateModalAppParams = (hash: HashString, params?: Route['params']): Mod
                 ),
             ]) ?? [],
         ),
-    } as ModalAppParams;
+    };
 };
 
 const validateDashboardParams = (hash: HashString): DashboardParams | undefined => {
@@ -185,6 +195,8 @@ const getAppParams = (route: Route, hash: HashString = '') => {
             return undefined;
         case 'earn-yield':
             return validateEarnYieldParams(route, hash);
+        case 'earn-staking':
+            return validateEarnStakingParams(hash);
         case 'wallet':
             return validateWalletParams(hash);
         default:
@@ -213,7 +225,8 @@ export const resolveEffectiveBackgroundRouteName = (
 
 export type WalletParams = CommonWalletParams;
 
-export const getRoute = (name: Route['name']) => suiteRoutes.find(r => r.name === name);
+export const getRoute = (name: Route['name']): Route | undefined =>
+    suiteRoutes.find(r => r.name === name);
 
 export const getRouteHash = (route?: Route, params?: RouteParams) =>
     ensureHashString(

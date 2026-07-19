@@ -18,7 +18,6 @@ import {
     addIdsToQuotes,
     filterQuotesAccordingTags,
     getNetworkDecimalsWithFallback,
-    getTradingPaymentMethods,
     tradingGetSuccessQuotes,
 } from '../../utils';
 import { isCountrySubdivisionEmpty } from '../../utils/countryUtils';
@@ -136,7 +135,6 @@ export const handleSellRequestThunk = createThunk<
             dispatch(tradingSellActions.setAmountLimits(undefined));
             dispatch(tradingSellActions.saveQuotes(quotesSuccess));
             dispatch(tradingSellActions.saveQuoteRequest(requestData));
-            dispatch(tradingActions.savePaymentMethods([]));
 
             return fulfillWithValue(quotesSuccess);
         }
@@ -156,11 +154,8 @@ export const handleSellRequestThunk = createThunk<
         // without errors
         const successQuotes = tradingGetSuccessQuotes<TradingSellType>(quotesDefault);
 
-        const paymentMethodsFromQuotes = getTradingPaymentMethods(successQuotes);
-
         dispatch(tradingSellActions.saveQuotes(successQuotes));
         dispatch(tradingSellActions.saveQuoteRequest(requestData));
-        dispatch(tradingActions.savePaymentMethods(paymentMethodsFromQuotes));
         dispatch(tradingSellActions.setAmountLimits(limits));
 
         const { setMaxOutputId } = formValues;

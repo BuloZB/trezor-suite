@@ -6,8 +6,7 @@ import {
     type TransactionNotificationToken,
     type TransactionNotificationType,
 } from './notificationsTypes';
-import { AssetLogo } from '../AssetLogo/AssetLogo';
-import { CoinLogo } from '../CoinLogo/CoinLogo';
+import { TokenIcon } from '../TokenIcon/TokenIcon';
 
 type TransactionIconProps = {
     icon?: ReactNode;
@@ -26,7 +25,7 @@ const shouldDisplayAssetLogo = ({ notificationType, token }: ShouldDisplayAssetL
     const isTransferTokenType =
         notificationType === 'tx-sent' || notificationType === 'tx-received';
     const isYieldType =
-        notificationType === 'tx-yield-supply' ||
+        notificationType === 'tx-yield-deposit' ||
         notificationType === 'tx-yield-withdraw' ||
         notificationType === 'tx-yield-claim';
 
@@ -45,7 +44,7 @@ export const TransactionIcon = ({
 
     if (shouldDisplayAssetLogo({ notificationType, token }) && token) {
         return (
-            <AssetLogo
+            <TokenIcon
                 symbol={symbol}
                 contractAddress={token.contract ?? null}
                 placeholder={token.symbol ?? token.name ?? symbol}
@@ -55,5 +54,5 @@ export const TransactionIcon = ({
         );
     }
 
-    return <CoinLogo symbol={symbol} size={20} />;
+    return <TokenIcon symbol={symbol} size={20} />;
 };

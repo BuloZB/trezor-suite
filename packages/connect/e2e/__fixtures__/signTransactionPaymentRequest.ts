@@ -2,7 +2,7 @@
 
 const { TX_CACHE } = global.TestUtils;
 
-export default {
+const signTransactionPaymentRequest: TestCase = {
     method: 'signTransaction',
     setup: {
         mnemonic: 'mnemonic_all',
@@ -15,7 +15,7 @@ export default {
             description: 'Testnet (Bech32/P2WPKH): Payment request success',
             skip: ['1', '<2.9.4'], // payment requests are not implemented in T1B1 and proto was changed in 2.9.4
             params: {
-                coin: 'Testnet',
+                coin: 'test',
                 inputs: [
                     {
                         address_n: "m/84'/1'/0'/0/0",
@@ -63,4 +63,6 @@ export default {
             },
         },
     ],
-} satisfies TestCase;
+};
+
+export default signTransactionPaymentRequest;

@@ -1,5 +1,6 @@
 import { createMemoryHistory } from 'history';
 
+import { debugInitialState } from '@suite/debug';
 import { prepareFlagsReducer } from '@suite/flags';
 import { lockRouter, locksInitialState, locksReducer } from '@suite/locks';
 import { metadataReducer } from '@suite/metadata';
@@ -57,7 +58,7 @@ import { init } from 'src/actions/suite/initAction';
 import { prepareSuiteMiddleware } from 'src/middlewares/suite/suiteMiddleware';
 import suiteReducer from 'src/reducers/suite/suiteReducer';
 import windowReducer from 'src/reducers/suite/windowReducer';
-import walletReducers from 'src/reducers/wallet';
+import { walletReducers } from 'src/reducers/wallet';
 import { extraDependencies } from 'src/support/extraDependencies';
 import { configureStore } from 'src/support/tests/configureStore';
 import type { AppState } from 'src/types/suite';
@@ -83,6 +84,7 @@ const getInitialState = (initialRun?: boolean) => {
     return {
         suite: suiteReducer(undefined, EMPTY_ACTION),
         suiteSettings: suiteSettingsInitialState,
+        debug: debugInitialState,
         flags: {
             ...(initialRun !== undefined
                 ? { ...initialFlagsState, initialRun }

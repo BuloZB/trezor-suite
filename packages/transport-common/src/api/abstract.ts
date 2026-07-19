@@ -23,6 +23,16 @@ type AccessLock = {
     read: boolean;
     write: boolean;
 };
+
+export type AbstractApiReadError =
+    | typeof ERRORS.DEVICE_NOT_FOUND
+    | typeof ERRORS.INTERFACE_UNABLE_TO_OPEN_DEVICE
+    | typeof ERRORS.INTERFACE_DATA_TRANSFER
+    | typeof ERRORS.DEVICE_DISCONNECTED_DURING_ACTION
+    | typeof ERRORS.UNEXPECTED_ERROR
+    | typeof ERRORS.ABORTED_BY_TIMEOUT
+    | typeof ERRORS.ABORTED_BY_SIGNAL;
+
 /**
  * This class defines unifying shape for native communication interfaces such as
  * - navigator.bluetooth
@@ -68,17 +78,10 @@ export abstract class AbstractApi extends TypedEmitter<{
      */
     abstract read(
         path: PathInternal,
-        signal?: AbortSignal,
-    ): AsyncResultWithTypedError<
-        Buffer,
-        | typeof ERRORS.DEVICE_NOT_FOUND
-        | typeof ERRORS.INTERFACE_UNABLE_TO_OPEN_DEVICE
-        | typeof ERRORS.INTERFACE_DATA_TRANSFER
-        | typeof ERRORS.DEVICE_DISCONNECTED_DURING_ACTION
-        | typeof ERRORS.UNEXPECTED_ERROR
-        | typeof ERRORS.ABORTED_BY_TIMEOUT
-        | typeof ERRORS.ABORTED_BY_SIGNAL
-    >;
+        options?: {
+            signal?: AbortSignal;
+        },
+    ): AsyncResultWithTypedError<Buffer, AbstractApiReadError>;
 
     /**
      * write to device on path
@@ -86,7 +89,9 @@ export abstract class AbstractApi extends TypedEmitter<{
     abstract write(
         path: PathInternal,
         buffers: Buffer,
-        signal?: AbortSignal,
+        options?: {
+            signal?: AbortSignal;
+        },
     ): AsyncResultWithTypedError<
         undefined,
         | typeof ERRORS.DEVICE_NOT_FOUND
@@ -212,3 +217,12 @@ export type AbstractApiAwaitedResult<K extends keyof AbstractApi> = AbstractApi[
 ) => any
     ? Awaited<ReturnType<AbstractApi[K]>>
     : never;
+
+export type AbstractApiArgs<K extends keyof AbstractApi> = AbstractApi[K] extends (
+    ...args: any[]
+) => any
+    ? Parameters<AbstractApi[K]>
+    : never;
+
+export type AbstractApiArgsOmitPath<K extends keyof AbstractApi> =
+    AbstractApiArgs<K> extends [any, ...infer Rest] ? Rest : never;

@@ -11,7 +11,8 @@ import { colorVariants } from '@trezor/theme';
 import { createDeferred, resolveAfter } from '@trezor/utils';
 
 import { handshakeAndHangDetect } from './handshake-and-hang-detect';
-import { processStatePatch, removeElectronAppData, restartApp } from './libs/app-utils';
+import { processStatePatch, restartApp } from './libs/app-utils';
+import { isAutoStartEnabled, promptForAutoStartBeforeQuit } from './libs/auto-start';
 import { APP_NAME } from './libs/constants';
 import { createElectronSessionInterceptor } from './libs/create-electron-session-interceptor';
 import { getBuildInfo, getComputerInfo } from './libs/info';
@@ -22,9 +23,8 @@ import { hasSwitch } from './libs/process-switches';
 import { MIN_HEIGHT, MIN_WIDTH } from './libs/screen';
 import { initSentry } from './libs/sentry';
 import { Store, type WinBoundsCoords } from './libs/store';
-import { clearAppCache, initUserData } from './libs/user-data';
+import { clearAppCache, clearUserDataOptimistically, initUserData } from './libs/user-data';
 import { initBackgroundModules, initModules } from './modules';
-import { isAutoStartEnabled, promptForAutoStartBeforeQuit } from './modules/auto-start';
 // todo: why is this separated here? shoudlnt it be part of modules?
 import { initBioAuthModule } from './modules/bioAuthModule';
 import { mainThreadEmitter } from './modules/module';
@@ -43,7 +43,7 @@ global.resourcesPath = isDevEnv
 
 const parseRemoveUserDataSwitch = () => {
     if (hasSwitch('remove-user-data-on-start')) {
-        removeElectronAppData();
+        clearUserDataOptimistically();
     }
 };
 parseRemoveUserDataSwitch();
@@ -97,7 +97,9 @@ const createMainWindow = ({ winBounds, cspNonce, store }: CreateMainWindowParams
     mainWindow.webContents.setUserAgent(`Trezor Suite ${app.getVersion()}`);
 
     const debouncedStoreWinBounds = debounce(() => {
-        if (!mainWindow) return;
+        // The trailing debounced call can fire after the window was destroyed within the debounce
+        // window; getBounds() on a destroyed BrowserWindow throws "Object has been destroyed".
+        if (!isMainWindowUsable(mainWindow)) return;
         const winBound = mainWindow.getBounds();
         Store.getStore().setWinBounds(winBound);
         logger.debug('app', 'new winBounds saved');
@@ -414,9 +416,16 @@ const init = async () => {
         // load and wait for handshake message from renderer
 
         // Refresh if it failed to load
-        mainWindow.webContents.on('did-fail-load', () => {
-            loadIndex(mainWindow);
-        });
+        mainWindow.webContents.on(
+            'did-fail-load',
+            (_event, errorCode, _desc, _url, isMainFrame) => {
+                // ERR_ABORTED (-3) fires when a new load cancels an in-progress one — ignore it to avoid an infinite loop.
+                // https://source.chromium.org/chromium/chromium/src/+/main:net/base/net_error_list.h
+                if (!isMainFrame || errorCode === -3) return;
+                // Delay retry to avoid a busy loop if the failure persists.
+                setTimeout(() => loadIndex(mainWindow), 1000);
+            },
+        );
 
         const { handshake, cleanup } = handshakeAndHangDetect({ mainWindow, statePatch });
         mainWindowProxy.once('destroy', cleanup);

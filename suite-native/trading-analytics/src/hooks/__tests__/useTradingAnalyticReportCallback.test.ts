@@ -1,10 +1,12 @@
 import {
+    type NativeAnalyticsDep,
     type TradingExchangeAction,
     type TradingExchangeStep,
     type TradingSellAction,
     type TradingSellStep,
     events,
 } from '@suite-native/analytics';
+import { mockNativeAnalytics } from '@suite-native/analytics/mocks';
 import { renderHookWithStoreProvider } from '@suite-native/test-utils-store';
 import {
     banxaCreditCardSellQuote,
@@ -15,10 +17,8 @@ import {
 import { useTradingAnalyticReportCallback } from '../useTradingAnalyticReportCallback';
 
 const reportMock = jest.fn();
-const services = {
-    analytics: {
-        report: reportMock,
-    },
+const services: NativeAnalyticsDep = {
+    analytics: mockNativeAnalytics(reportMock),
 };
 
 describe('useTradingAnalyticReportCallback', () => {

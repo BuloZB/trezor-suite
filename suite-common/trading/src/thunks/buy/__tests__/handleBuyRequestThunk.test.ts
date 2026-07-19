@@ -12,6 +12,7 @@ import {
     initialState,
 } from '../../../reducers/tradingCommonReducer';
 import { prepareTradingReducer } from '../../../reducers/tradingReducer';
+import { selectTradingBuyPaymentMethods } from '../../../selectors/tradingSelectors';
 import {
     type HandleBuyRequestThunkProps,
     type TradingAssetOption,
@@ -33,7 +34,10 @@ describe('handleBuyRequestThunk', () => {
     invityAPI.setInvityServersEnvironment = () => {};
     invityAPI.createInvityAPIKey = () => {};
 
-    const getMocks = (refetchQuotesOverride?: Partial<QuoteRefetchingState>) => {
+    const getMocks = (
+        refetchQuotesOverride?: Partial<QuoteRefetchingState>,
+        coinsOverride?: NonNullable<typeof initialState.info.coins>,
+    ) => {
         const store = configureMockStore({
             extra: {},
             reducer: combineReducers({
@@ -58,6 +62,7 @@ describe('handleBuyRequestThunk', () => {
                                         exchange: false,
                                     },
                                 },
+                                ...coinsOverride,
                             },
                         },
                         quoteRefetchingState: {
@@ -83,6 +88,7 @@ describe('handleBuyRequestThunk', () => {
                 symbol: 'btc',
                 coingeckoId: 'bitcoin',
                 displaySymbol: 'BTC',
+                displaySymbolName: 'Bitcoin',
                 contractAddress: null,
                 networkName: 'Bitcoin',
                 networkSymbol: 'btc',
@@ -135,7 +141,7 @@ describe('handleBuyRequestThunk', () => {
             receiveAddress: 'RECEIVE_ADDRESS',
             wantCrypto: false,
         });
-        expect(state.info.paymentMethods.length).toEqual(1);
+        expect(selectTradingBuyPaymentMethods(store.getState()).length).toEqual(1);
         expect(state.isLoading).toBe(false);
         expect(state.quoteRefetchingState.status).toBe('running');
         expect(state.quoteRefetchingState.lastFetchTimestamp).toBeGreaterThan(0);

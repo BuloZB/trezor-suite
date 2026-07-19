@@ -5,10 +5,10 @@ import { type IconSize } from '../Icon/types';
 
 export const mapIntentToBorderColor = (intent: IconCircleIntent): Color => {
     const colorMap: Record<IconCircleIntent, Color> = {
-        brand: 'legacyBackgroundPrimarySubtleOnElevation0',
-        warning: 'legacyBackgroundAlertYellowSubtleOnElevation0',
-        critical: 'legacyBackgroundAlertRedSubtleOnElevation0',
-        info: 'legacyBackgroundAlertBlueSubtleOnElevation0',
+        brand: 'elementBorderBrandSofter',
+        warning: 'elementBorderWarningSofter',
+        critical: 'elementBorderCriticalSofter',
+        info: 'elementBorderInfoSofter',
         neutral: 'elementBorderNeutralSofter',
         accentViolet: 'elementBorderAccentVioletSofter',
     };
@@ -22,6 +22,7 @@ export const mapSizeToBorderWidth = (size: IconCircleSize): BorderWidths => {
         24: 0,
         32: 0,
         40: 0,
+        48: 0,
         64: 6,
         96: 10,
         112: 12,
@@ -32,19 +33,19 @@ export const mapSizeToBorderWidth = (size: IconCircleSize): BorderWidths => {
 
 export const mapIntentToBackground = (intent: IconCircleIntent, size: IconCircleSize): Color => {
     const noBorderColorMap: Record<IconCircleIntent, Color> = {
-        brand: 'legacyBackgroundPrimarySubtleOnElevation0',
-        warning: 'legacyBackgroundAlertYellowSubtleOnElevation0',
-        critical: 'legacyBackgroundAlertRedSubtleOnElevation0',
-        info: 'legacyBackgroundAlertBlueSubtleOnElevation0',
-        neutral: 'elementFillNeutralSofter',
+        brand: 'elementFillBrandSoft',
+        warning: 'elementFillWarningSoft',
+        critical: 'elementFillCriticalSoft',
+        info: 'elementFillInfoSoft',
+        neutral: 'elementFillNeutralSoft',
         accentViolet: 'elementFillAccentVioletSofter',
     };
 
     const borderColorMap: Record<IconCircleIntent, Color> = {
-        brand: 'legacyBackgroundPrimarySubtleOnElevation1',
-        warning: 'legacyBackgroundAlertYellowSubtleOnElevation1',
-        critical: 'legacyBackgroundAlertRedSubtleOnElevation1',
-        info: 'legacyBackgroundAlertBlueSubtleOnElevation1',
+        brand: 'elementFillBrandSofter',
+        warning: 'elementFillWarningSofter',
+        critical: 'elementFillCriticalSofter',
+        info: 'elementFillInfoSofter',
         neutral: 'elementFillField',
         accentViolet: 'elementFillAccentVioletSoft',
     };
@@ -56,8 +57,9 @@ export const mapSizeToIconSize = (size: IconCircleSize): IconSize => {
     const iconSizeMap: Record<IconCircleSize, IconSize> = {
         16: 8,
         24: 12,
-        32: 16,
-        40: 20,
+        32: 20,
+        40: 24,
+        48: 28,
         64: 32,
         96: 40,
         112: 48,

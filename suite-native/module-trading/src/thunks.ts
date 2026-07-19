@@ -36,7 +36,6 @@ import {
     type FeeInfo,
     type FeeLevelLabel,
     type PrecomposedTransactionFinal,
-    type TokenAddress,
     isFinalPrecomposedTransaction,
 } from '@suite-common/wallet-types';
 import {
@@ -46,6 +45,7 @@ import {
 } from '@suite-common/wallet-utils';
 import { requestPrioritizedDeviceAccess } from '@suite-native/device-mutex';
 import { selectAccountTokenInfo } from '@suite-native/tokens';
+import { getErrorStrFromThunkRejectedValue } from '@suite-native/trading-quote-utils';
 import { getFormDraftKeyByTradeType } from '@suite-native/trading-state';
 import {
     type UpdateSelectedFeeLevelThunkParams,
@@ -55,7 +55,6 @@ import {
 import TrezorConnect from '@trezor/connect';
 
 import { createFormStateForSendForm } from './utils';
-import { getErrorStrFromThunkRejectedValue } from './utils/general/utils';
 
 const NATIVE_TRADING_EXCHANGE_THUNK_PREFIX = 'trading/native';
 
@@ -205,7 +204,7 @@ export const composeTradingTransactionThunk = createThunk(
                     const composed = (await dispatch(
                         enhancePrecomposedTransactionThunk({
                             transactionFormValues: formState,
-                            precomposedTransaction: selectedLevel as PrecomposedTransactionFinal,
+                            precomposedTransaction: selectedLevel,
                             selectedAccount: account,
                         }),
                     ).unwrap()) as PrecomposedTransactionFinal;
@@ -299,18 +298,13 @@ export const composeEvmApprovalFeeLevelsThunk = createThunk(
                 return rejectWithValue('Could not extract token contract address');
             }
 
-            const token = selectAccountTokenInfo(
-                getState(),
-                account.key,
-                contractAddress as TokenAddress,
-            );
+            const token = selectAccountTokenInfo(getState(), account.key, contractAddress);
 
             if (!token) {
                 return rejectWithValue('Token not found in account');
             }
 
-            const approvalType =
-                approvalTypeOverride ?? ((quoteApprovalType ?? 'INFINITE') as DexApprovalType);
+            const approvalType = approvalTypeOverride ?? quoteApprovalType ?? 'INFINITE';
             const { allowanceAmount } = getAllowanceAmount({
                 rawAmount: sendStringAmount,
                 approvalType,
@@ -343,7 +337,7 @@ export const composeEvmApprovalFeeLevelsThunk = createThunk(
 
                 const selectedLevel = feeLevels[selectedFeeLevel];
                 if (selectedLevel && isFinalPrecomposedTransaction(selectedLevel)) {
-                    const composed = selectedLevel as PrecomposedTransactionFinal;
+                    const composed = selectedLevel;
 
                     dispatch(
                         tradingCommonActions.saveComposedTransactionInfo({
@@ -376,7 +370,7 @@ export const composeEvmApprovalFeeLevelsThunk = createThunk(
                                       fiat: '',
                                       currency: { label: '', value: '' },
                                       label: '',
-                                      token: contractAddress as TokenAddress,
+                                      token: contractAddress,
                                   },
                               ];
 

@@ -1,5 +1,7 @@
-import { events } from '@suite-native/analytics';
+import { type NativeAnalyticsDep, events } from '@suite-native/analytics';
+import { mockNativeAnalytics } from '@suite-native/analytics/mocks';
 import { Form } from '@suite-native/forms';
+import { getTranslation } from '@suite-native/intl';
 import { act, fireEvent, screen } from '@suite-native/test-utils-store';
 import {
     buyCexdirect,
@@ -21,10 +23,8 @@ import { useBuyForm } from '../../../hooks/buy/useBuyForm';
 import { BuyProviderPicker } from '../BuyProviderPicker';
 
 const reportMock = jest.fn();
-const services = {
-    analytics: {
-        report: reportMock,
-    },
+const services: NativeAnalyticsDep = {
+    analytics: mockNativeAnalytics(reportMock),
 };
 
 describe('BuyProviderPicker', () => {
@@ -62,7 +62,9 @@ describe('BuyProviderPicker', () => {
             wallet: { trading: { buy: { isLoading: true, quotes: [] } } },
         });
 
-        expect(getByLabelText('Fetching offers...')).toBeOnTheScreen();
+        expect(
+            getByLabelText(getTranslation('moduleTrading.tradingScreen.quotesLoadingLabel')),
+        ).toBeOnTheScreen();
     });
 
     describe('with quotes loaded', () => {
@@ -95,10 +97,12 @@ describe('BuyProviderPicker', () => {
         it('should allow to select provider', () => {
             const { getByText, getByLabelText } = renderTradingProviderPicker(withQuotes);
 
-            fireEvent.press(getByText('Provider'));
+            fireEvent.press(getByText(getTranslation('moduleTrading.tradingScreen.provider')));
             fireEvent.press(getByText('Mercuryo'));
 
-            expect(getByLabelText('Selected provider')).toHaveTextContent('Mercuryo');
+            expect(
+                getByLabelText(getTranslation('moduleTrading.tradingScreen.selectedProvider')),
+            ).toHaveTextContent('Mercuryo');
         });
 
         it('should display loader while quotes are re-fetched', () => {
@@ -108,7 +112,9 @@ describe('BuyProviderPicker', () => {
                 }),
             );
 
-            expect(getByLabelText('Fetching offers...')).toBeOnTheScreen();
+            expect(
+                getByLabelText(getTranslation('moduleTrading.tradingScreen.quotesLoadingLabel')),
+            ).toBeOnTheScreen();
         });
 
         it('should display sheet even while quotes are fetched', () => {
@@ -118,7 +124,7 @@ describe('BuyProviderPicker', () => {
                 }),
             );
 
-            fireEvent.press(getByText('Provider'));
+            fireEvent.press(getByText(getTranslation('moduleTrading.tradingScreen.provider')));
 
             expect(getByText('Mercuryo')).toBeOnTheScreen();
         });
@@ -131,7 +137,7 @@ describe('BuyProviderPicker', () => {
             it('should fire analytics event on provider select', () => {
                 const { getByText } = renderTradingProviderPicker(withQuotes);
 
-                fireEvent.press(getByText('Provider'));
+                fireEvent.press(getByText(getTranslation('moduleTrading.tradingScreen.provider')));
                 fireEvent.press(getByText('Mercuryo'));
 
                 expect(reportMock).toHaveBeenCalledTimes(2);
@@ -153,7 +159,7 @@ describe('BuyProviderPicker', () => {
             it('should fire analytics event on provider change', () => {
                 const { getByText } = renderTradingProviderPicker(withQuotes);
 
-                fireEvent.press(getByText('Provider'));
+                fireEvent.press(getByText(getTranslation('moduleTrading.tradingScreen.provider')));
                 fireEvent.press(getByText('Mercuryo'));
 
                 expect(reportMock).toHaveBeenCalledTimes(2);
@@ -162,7 +168,7 @@ describe('BuyProviderPicker', () => {
             it('should not fire analytics event when same provider is selected', () => {
                 const { getByText, getAllByText } = renderTradingProviderPicker(withQuotes);
 
-                fireEvent.press(getByText('Provider'));
+                fireEvent.press(getByText(getTranslation('moduleTrading.tradingScreen.provider')));
                 fireEvent.press(getIndexOrThrow(getAllByText('Cexdirect'), 1));
 
                 expect(reportMock).toHaveBeenCalledTimes(1);
@@ -181,7 +187,7 @@ describe('BuyProviderPicker', () => {
                     }),
                 );
 
-                fireEvent.press(getByText('Provider'));
+                fireEvent.press(getByText(getTranslation('moduleTrading.tradingScreen.provider')));
 
                 expect(reportMock).not.toHaveBeenCalled();
             });

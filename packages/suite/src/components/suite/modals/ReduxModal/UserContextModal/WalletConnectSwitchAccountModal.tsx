@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 
+import { AccountLabel, AccountTypeBadge } from '@suite/account';
 import { Translation } from '@suite/intl';
 import { closeModal } from '@suite/modal';
 import { selectAllAccountsToList } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
+import { sortByCoin } from '@suite-common/wallet-utils';
 import {
     getSessionNetworks,
     selectSessions,
@@ -12,11 +14,9 @@ import {
     walletConnectActions,
 } from '@suite-common/walletconnect';
 import { Column, Modal, type Option, Row, Select } from '@trezor/components';
-import { CoinLogo } from '@trezor/product-components';
+import { TokenIcon } from '@trezor/product-components';
 import { spacings } from '@trezor/theme';
 
-import { AccountLabel } from 'src/components/suite/AccountLabel';
-import { AccountTypeBadge } from 'src/components/suite/AccountTypeBadge';
 import { useSelector } from 'src/hooks/suite';
 
 interface WalletConnectSwitchAccountModalProps {
@@ -34,11 +34,13 @@ export const WalletConnectSwitchAccountModal = ({
     const selectableAccounts = useMemo<Account[]>(
         () =>
             session
-                ? getSessionNetworks(session)
-                      .filter(network => network.status === 'active')
-                      .flatMap(network =>
-                          accounts.filter(account => account.symbol === network.symbol),
-                      )
+                ? sortByCoin(
+                      getSessionNetworks(session)
+                          .filter(network => network.status === 'active')
+                          .flatMap(network =>
+                              accounts.filter(account => account.symbol === network.symbol),
+                          ),
+                  )
                 : [],
         [accounts, session],
     );
@@ -83,9 +85,7 @@ export const WalletConnectSwitchAccountModal = ({
                     options={selectableAccounts}
                     formatOptionLabel={(account: Account) => (
                         <Row gap={spacings.xs}>
-                            {account.symbol && (
-                                <CoinLogo type="token" symbol={account.symbol} size={24} />
-                            )}
+                            {account.symbol && <TokenIcon symbol={account.symbol} size={24} />}
                             <AccountLabel account={account} key={account.descriptor} />
                             <AccountTypeBadge
                                 accountType={account.accountType}

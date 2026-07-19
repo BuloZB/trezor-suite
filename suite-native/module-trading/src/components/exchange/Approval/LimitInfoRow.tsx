@@ -6,7 +6,7 @@ import {
     selectTradingExchangeSelectedQuote,
 } from '@suite-common/trading';
 import { HStack, Text, VStack } from '@suite-native/atoms';
-import { CryptoIcon, Icon } from '@suite-native/icons';
+import { Icon, TokenIcon } from '@suite-native/icons';
 import { Translation } from '@suite-native/intl';
 import { TradeInfoRow } from '@suite-native/trading-atoms';
 
@@ -34,7 +34,7 @@ export const LimitInfoRow = ({ onPress, testID, withCaret, children }: LimitInfo
         <TradeInfoRow onPress={onPress} testID={testID}>
             <VStack flex={1}>
                 <HStack justifyContent="space-between" alignItems="center">
-                    <Text variant="body-sm">
+                    <Text variant="body-sm" color="contentSecondary">
                         {hasPreapprovedLimit(quote) ? (
                             <Translation id="moduleTrading.tradingExchangeApprovalScreen.newLimitLabel" />
                         ) : (
@@ -43,14 +43,14 @@ export const LimitInfoRow = ({ onPress, testID, withCaret, children }: LimitInfo
                     </Text>
                     <HStack alignItems="center">
                         {!!network?.symbol && (
-                            <CryptoIcon
+                            <TokenIcon
                                 symbol={network.symbol}
                                 contractAddress={contractAddress}
                                 size="extraSmall"
                             />
                         )}
                         {approvalType === 'INFINITE' ? (
-                            <UnlimitedAllowanceLabel cryptoId={send} />
+                            <UnlimitedAllowanceLabel />
                         ) : (
                             <TradingCoinAmountFormatter
                                 amount={sendStringAmount}

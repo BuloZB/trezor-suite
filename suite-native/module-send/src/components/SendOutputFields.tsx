@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useFieldArray } from 'react-hook-form';
 import { useSelector } from 'react-redux';
 
-import { getNetworkType } from '@suite-common/wallet-config';
+import { type NetworkSymbol, getNetworkType } from '@suite-common/wallet-config';
 import {
     type AccountsRootState,
     selectAccountFormattedBalance,
@@ -42,6 +43,7 @@ export const SendOutputFields = ({
 }: SendOutputFieldsProps) => {
     const { applyStyle } = useNativeStyles();
     const { control, watch } = useFormContext<SendOutputsFormValues>();
+    const [qrNetworkSymbol, setQrNetworkSymbol] = useState<NetworkSymbol | null>(null);
     const symbol = useSelector((state: AccountsRootState) =>
         selectAccountNetworkSymbol(state, accountKey),
     );
@@ -65,11 +67,19 @@ export const SendOutputFields = ({
             <Text variant="headline-sm">
                 <Translation id="moduleSend.outputs.recipients.title" />
             </Text>
-            {symbol && <CorrectNetworkMessageCard symbol={symbol} />}
+            {symbol && (
+                <CorrectNetworkMessageCard symbol={symbol} qrNetworkSymbol={qrNetworkSymbol} />
+            )}
             <Card style={applyStyle(cardStyle)}>
                 <VStack spacing="sp12">
                     {outputsFieldArray.fields.map((output, index) => (
-                        <RecipientInputs key={output.id} index={index} accountKey={accountKey} />
+                        <RecipientInputs
+                            key={output.id}
+                            index={index}
+                            accountKey={accountKey}
+                            maxSpendableAmount={maxAmount}
+                            onQrNetworkMismatch={setQrNetworkSymbol}
+                        />
                     ))}
                     {/*
                     TODO: add output (outputs.append({...})) button

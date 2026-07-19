@@ -449,8 +449,9 @@ const legacyResults = {
     },
 };
 
-export default {
+const cardanoSignTransaction: TestCase = {
     method: 'cardanoSignTransaction',
+    enabledCoins: ['ada'] as const,
     setup: {
         mnemonic: 'mnemonic_all',
     },
@@ -2908,4 +2909,6 @@ export default {
 
         return { ...test, legacyResults: [legacyResults.minConnectVersion] };
     }),
-} satisfies TestCase;
+};
+
+export default cardanoSignTransaction;

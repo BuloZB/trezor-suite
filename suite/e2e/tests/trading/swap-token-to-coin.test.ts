@@ -23,6 +23,7 @@ test.describe('Trading - Swap token to coin', { tag: ['@webOnly', '@T3W1', '@T3T
     test.use({
         deviceSetup: { mnemonic: 'mnemonic_academic', passphrase_protection: true },
     });
+
     test.beforeEach(
         async ({ page, onboardingPage, dashboardPage, tradingMock, walletPage, settingsPage }) => {
             await test.step('Mocking responses', async () => {
@@ -32,6 +33,7 @@ test.describe('Trading - Swap token to coin', { tag: ['@webOnly', '@T3W1', '@T3T
                 await tradingMock.routeSwapTrade(swapTradeTetherBTC);
                 await tradingMock.routeSolanaSendRequests();
             });
+
             await onboardingPage.completeOnboarding();
             await settingsPage.changeNetworks({ enableNetworks: ['sol', 'btc'] });
             await dashboardPage.navigateTo();
@@ -78,10 +80,13 @@ test.describe('Trading - Swap token to coin', { tag: ['@webOnly', '@T3W1', '@T3T
         // Thanks to our mocked responses, the crypto is actually not send.
         await test.step('Send crypto to provider', async () => {
             await devicePrompt.sendButton.click();
-            await expect(tradingPage.swapToastSendAccount).toContainText('Solana #1');
-            await expect(tradingPage.swapToastReceiveAccount).toContainText('Bitcoin #1');
-            await expect(tradingPage.swapToastSendAmount).toContainText(sendAmount);
-            await expect(tradingPage.swapToastReceiveAmount).toContainText(receiveAmount);
+            await tradingPage.verifySwapToast({
+                sendAccount: 'Solana #1',
+                receiveAccount: 'Bitcoin #1',
+                sendAmount,
+                receiveAmount,
+            });
+
             await expect(tradingPage.transactionDetailStatus).toHaveTranslation(
                 'TR_EXCHANGE_DETAIL_SUCCESS_TITLE',
             );

@@ -1,8 +1,8 @@
 import React from 'react';
 
 import { useServices } from '@suite-common/dependency-injection';
-import { tradingExchangeActions, tradingSettingsActions } from '@suite-common/trading';
-import { type AccountKey } from '@suite-common/wallet-types';
+import { tradingExchangeActions } from '@suite-common/trading';
+import { asAccountDescriptor } from '@suite-common/wallet-types';
 import { events, selectNativeAnalyticsDep } from '@suite-native/analytics';
 import { type TestStore, act, renderHookWithStoreProvider } from '@suite-native/test-utils-store';
 import {
@@ -60,6 +60,9 @@ describe('useExchangeSelectQuote', () => {
     let exchangeForm: ExchangeFormType;
     let store: TestStore;
 
+    const btcAccount = getBtcAccount({ descriptor: asAccountDescriptor('btcAccountKey') });
+    const ethAccount = getEthAccount({ descriptor: asAccountDescriptor('ethAccountKey') });
+
     const getInitializedStore = ({
         isLoading,
         dexQuoteApprovalPrefetchLoadingQuoteId,
@@ -67,13 +70,6 @@ describe('useExchangeSelectQuote', () => {
         isLoading?: boolean;
         dexQuoteApprovalPrefetchLoadingQuoteId?: string;
     }) => {
-        const btcAccount = getBtcAccount(
-            'btc-account-key' as AccountKey, // Todo: create properly via `createAccountKey()`
-        );
-        const ethAccount = getEthAccount(
-            'eth-account-key' as AccountKey, // Todo: create properly via `createAccountKey()`
-        );
-
         const tradingState = getInitializedTradingStateWithQuotes();
 
         if (isLoading !== undefined) {
@@ -84,8 +80,8 @@ describe('useExchangeSelectQuote', () => {
                 dexQuoteApprovalPrefetchLoadingQuoteId;
         }
 
-        tradingState.exchange.tradingAccountKey = 'btc-account-key' as AccountKey;
-        tradingState.exchange.receiveAccountKey = 'eth-account-key' as AccountKey;
+        tradingState.exchange.tradingAccountKey = btcAccount.key;
+        tradingState.exchange.receiveAccountKey = ethAccount.key;
 
         return createTradingLightStore({
             tradeType: 'exchange',
@@ -128,6 +124,8 @@ describe('useExchangeSelectQuote', () => {
         it('should canProceed be false when loading', () => {
             const { result } = renderUseExchangeSelectQuote();
             expect(result.current.canProceed).toBe(false);
+            expect(result.current.isLoading).toBe(true);
+            expect(result.current.isDexQuoteApprovalPrefetchLoadingForCandidateQuote).toBe(false);
         });
 
         it('selectQuote should not dispatch selectQuoteThunk when isLoading', () => {
@@ -176,6 +174,8 @@ describe('useExchangeSelectQuote', () => {
             await act(() => Promise.resolve());
 
             expect(result.current.canProceed).toBe(false);
+            expect(result.current.isLoading).toBe(false);
+            expect(result.current.isDexQuoteApprovalPrefetchLoadingForCandidateQuote).toBe(true);
         });
 
         it('should not dispatch selectQuoteThunk while prefetch is loading for approval-required quote', () => {
@@ -271,36 +271,11 @@ describe('useExchangeSelectQuote', () => {
             );
         });
 
-        it('should call selectQuoteThunk with correct maxSlippage value', () => {
-            const dispatchSpy = jest.spyOn(store, 'dispatch');
-            act(() => {
-                store.dispatch(tradingSettingsActions.setMaxSlippagePercentage('1.5'));
-            });
-            const { result } = renderUseExchangeSelectQuote();
-
-            act(() => {
-                result.current.selectQuote();
-            });
-
-            expect(dispatchSpy).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    type: 'selectQuoteThunkMock',
-                    payload: expect.objectContaining({
-                        quote: expect.objectContaining({ swapSlippage: '1.5' }),
-                    }),
-                }),
-            );
-        });
-
         it('should not call selectQuoteThunk when account is not fully selected', () => {
             act(() => {
                 [
-                    tradingExchangeActions.setReceiveAccountKey(
-                        'btc-account-key' as AccountKey, // Todo: create properly via `createAccountKey()`
-                    ),
-                    tradingExchangeActions.setTradingAccountKey(
-                        'eth-account-key' as AccountKey, // Todo: create properly via `createAccountKey()`
-                    ),
+                    tradingExchangeActions.setReceiveAccountKey(btcAccount.key),
+                    tradingExchangeActions.setTradingAccountKey(ethAccount.key),
                 ].forEach(store.dispatch);
                 exchangeForm.setValue('receiveAsset', btcAsset);
             });
@@ -377,12 +352,8 @@ describe('useExchangeSelectQuote', () => {
             it('should not call selectQuoteThunk when account is not fully selected', () => {
                 act(() => {
                     [
-                        tradingExchangeActions.setReceiveAccountKey(
-                            'btc-account-key' as AccountKey, // Todo: create properly via `createAccountKey()`
-                        ),
-                        tradingExchangeActions.setTradingAccountKey(
-                            'eth-account-key' as AccountKey, // Todo: create properly via `createAccountKey()`
-                        ),
+                        tradingExchangeActions.setReceiveAccountKey(btcAccount.key),
+                        tradingExchangeActions.setTradingAccountKey(ethAccount.key),
                     ].forEach(store.dispatch);
                     exchangeForm.setValue('receiveAsset', btcAsset);
                 });

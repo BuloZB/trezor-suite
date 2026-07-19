@@ -2,12 +2,13 @@ import { useEffect } from 'react';
 
 import { type TranslationKey } from '@suite/intl';
 import { type EarnParams, goto } from '@suite/router';
-import { isStablecoinYieldSupported, selectSelectedDevice } from '@suite-common/device';
-import { type YieldDto, useAllYieldOpportunities } from '@suite-common/earn-stablecoin-api';
+import { selectSelectedDevice } from '@suite-common/device';
+import { type YieldDtoV2 } from '@suite-common/earn-stablecoin-api';
+import { useYieldOpportunity } from '@suite-common/earn-stablecoin-api';
 import { type TrezorDevice } from '@suite-common/suite-types';
 import { type EarnAnalyticsStep } from '@suite-common/suite-types/src/staking';
 import { getNetworkByYieldXyzId } from '@suite-common/wallet-config';
-import { type YieldActionFlowType } from '@suite-common/wallet-core';
+import { type YieldPositionFlowType, isStablecoinYieldSupported } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
 import { getContractAddressForNetworkSymbol } from '@suite-common/wallet-utils';
 
@@ -16,10 +17,10 @@ import { useEarnRouteAccount } from 'src/components/earn/utils/useEarnRouteAccou
 import { useDispatch, useLayout, useSelector } from 'src/hooks/suite';
 import { type EarnLayoutState } from 'src/types/earn/earnLayout';
 
-type EarnYieldAnalyticsStep = Extract<EarnAnalyticsStep, 'yield-supply' | 'yield-withdraw'>;
+type EarnYieldAnalyticsStep = Extract<EarnAnalyticsStep, 'yield-deposit' | 'yield-withdraw'>;
 
 type UseEarnLayoutParams = {
-    type: YieldActionFlowType;
+    type: YieldPositionFlowType;
     fallbackTitleId: TranslationKey;
 };
 
@@ -27,8 +28,8 @@ type GetEarnLayoutResultParams = {
     account?: Account;
     device?: TrezorDevice;
     routeParams?: EarnParams;
-    vault?: YieldDto;
-    type: YieldActionFlowType;
+    vault?: YieldDtoV2;
+    type: YieldPositionFlowType;
     isYieldOpportunitiesLoading: boolean;
     isYieldOpportunitiesSuccess: boolean;
     isYieldOpportunitiesError: boolean;
@@ -36,18 +37,19 @@ type GetEarnLayoutResultParams = {
 
 type VaultValidationParams = {
     account: Account;
-    vault?: YieldDto;
+    vault?: YieldDtoV2;
 };
 
 type VaultTokenValidationParams = VaultValidationParams & {
     routeParams: EarnParams;
 };
 
-const getAnalyticsStep = (type: YieldActionFlowType): EarnYieldAnalyticsStep => {
+const getAnalyticsStep = (type: YieldPositionFlowType): EarnYieldAnalyticsStep => {
     switch (type) {
         case 'deposit':
-            return 'yield-supply';
+            return 'yield-deposit';
         case 'withdraw':
+        case 'redeem':
             return 'yield-withdraw';
     }
 };
@@ -136,11 +138,11 @@ export const useEarnLayout = ({ type, fallbackTitleId }: UseEarnLayoutParams): E
     const { account, routeParams } = useEarnRouteAccount();
     const selectedDevice = useSelector(selectSelectedDevice);
     const {
-        yieldOpportunities,
-        isLoading: isYieldOpportunitiesLoading,
-        isSuccess: isYieldOpportunitiesSuccess,
-        isError: isYieldOpportunitiesError,
-    } = useAllYieldOpportunities();
+        data: vault,
+        isLoading,
+        isSuccess,
+        isError,
+    } = useYieldOpportunity(routeParams?.yieldId);
 
     useEffect(() => {
         if (!routeParams) {
@@ -148,20 +150,15 @@ export const useEarnLayout = ({ type, fallbackTitleId }: UseEarnLayoutParams): E
         }
     }, [dispatch, routeParams]);
 
-    const vault =
-        isYieldOpportunitiesSuccess && routeParams
-            ? yieldOpportunities.find(opportunity => opportunity.id === routeParams.yieldId)
-            : undefined;
-
     const layoutState = getEarnLayoutResult({
         account,
         device: selectedDevice,
         routeParams,
         vault,
         type,
-        isYieldOpportunitiesLoading,
-        isYieldOpportunitiesSuccess,
-        isYieldOpportunitiesError,
+        isYieldOpportunitiesLoading: isLoading,
+        isYieldOpportunitiesSuccess: isSuccess,
+        isYieldOpportunitiesError: isError,
     });
 
     const isFirmwareNotSupported =

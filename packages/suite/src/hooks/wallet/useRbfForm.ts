@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { type UseFormReturn, useForm } from 'react-hook-form';
 
-import { getNetwork } from '@suite-common/wallet-config';
+import { selectCurrentTargetAnonymity } from '@suite/coinjoin';
+import { type Network, getNetwork } from '@suite-common/wallet-config';
 import {
     DEFAULT_OPRETURN,
     DEFAULT_PAYMENT,
@@ -15,6 +16,9 @@ import {
     type FeeInfo,
     type FormOptions,
     type FormState,
+    type Output,
+    type PrecomposedLevels,
+    type PrecomposedLevelsCardano,
     type RbfTransactionParams,
     type RbfTransactionParamsBitcoin,
     type RbfTransactionParamsEthereum,
@@ -24,23 +28,52 @@ import {
     getConvertedOrDefaultFeeInfo,
     isEip1559,
 } from '@suite-common/wallet-utils';
+import { type AccountUtxo, type FeeLevel } from '@trezor/connect';
 import { BigNumber, throwError } from '@trezor/utils';
 
 import { useSelector } from 'src/hooks/suite';
 import { useCoinjoinRegisteredUtxos } from 'src/hooks/wallet/form/useCoinjoinRegisteredUtxos';
-import { selectCurrentTargetAnonymity } from 'src/reducers/wallet/coinjoinReducer';
 
 import { useCompose } from './form/useCompose';
 import { useFees } from './form/useFees';
 import { useBitcoinAmountUnit } from './useBitcoinAmountUnit';
 
-const MIN_FEE_RATE_PER_VB = 1; // minimum fee rate in sat/vB, introduced because nodes lowered min relay tx fee, but not incremental fee
+// Conservative minimum fee rate floor in sat/vB. Bitcoin Core has officially lowered both the min relay tx fee and the incremental relay fee, but actual minimums depend on individual node configurations.
+const MIN_FEE_RATE_PER_VB = 0.2;
 
 export type UseRbfProps = {
     account: Account;
     rbfParams: RbfTransactionParams;
     chainedTxs?: ChainedTransactions;
 };
+
+type RbfState = {
+    account: Account;
+    network: Network;
+    feeInfo: FeeInfo;
+    coinjoinRegisteredUtxos: AccountUtxo[];
+    chainedTxs?: ChainedTransactions;
+    shouldSendInSats?: boolean;
+    formValues: Omit<FormState, 'outputs' | 'selectedUtxos'> & {
+        outputs: Array<Omit<Output, 'token'> & { token?: string | null }>;
+    };
+};
+
+type RbfFormMethods = Pick<
+    UseFormReturn<FormState>,
+    'control' | 'formState' | 'getValues' | 'register' | 'setValue' | 'trigger'
+>;
+
+export type RbfContextValues = RbfState &
+    RbfFormMethods & {
+        methods: UseFormReturn<FormState>;
+        isLoading: boolean;
+        showDecreasedOutputs: boolean;
+        composedLevels?: PrecomposedLevels | PrecomposedLevelsCardano;
+        changeFeeLevel: (level: FeeLevel['label']) => void;
+        composeRequest: (field?: string) => Promise<void>;
+        signTransaction: () => Promise<boolean | undefined>;
+    };
 
 const getBitcoinFeeInfo = (info: FeeInfo, rbfParams: RbfTransactionParamsBitcoin) => {
     const { feeRate } = rbfParams;
@@ -90,12 +123,14 @@ const getEthereumFeeInfo = (info: FeeInfo, rbfParams: RbfTransactionParamsEthere
         const highMaxPriorityFeePerGas = highLevel.maxPriorityFeePerGas;
         const newMaxFeePerGas = BigNumber.maximum(currentMaxFee, highMaxFeePerGas ?? 0)
             .multipliedBy(ETH_SPEED_UP_TX_MULTIPLIER)
+            .decimalPlaces(9, BigNumber.ROUND_UP)
             .toString();
         const newMaxPriorityFeePerGas = BigNumber.maximum(
             currentMaxPriorityFee,
             highMaxPriorityFeePerGas ?? 0,
         )
             .multipliedBy(ETH_SPEED_UP_TX_MULTIPLIER)
+            .decimalPlaces(9, BigNumber.ROUND_UP)
             .toString();
 
         return {
@@ -137,7 +172,7 @@ const getRbfFeeInfo = (info: FeeInfo, rbfParams: RbfTransactionParams) => {
     return info;
 };
 
-const useRbfState = ({ account, rbfParams, chainedTxs }: UseRbfProps) => {
+const useRbfState = ({ account, rbfParams, chainedTxs }: UseRbfProps): RbfState => {
     const networkFees = useSelector(state => selectRawNetworkFeeInfo(state, account.symbol));
     const targetAnonymity = useSelector(selectCurrentTargetAnonymity);
     const coinjoinRegisteredUtxos = useCoinjoinRegisteredUtxos({ account });
@@ -241,7 +276,7 @@ const useRbfState = ({ account, rbfParams, chainedTxs }: UseRbfProps) => {
     ]);
 };
 
-export const useRbf = (props: UseRbfProps) => {
+export const useRbf = (props: UseRbfProps): RbfContextValues => {
     // local state
     const state = useRbfState(props);
     const { formValues, feeInfo, account } = state;
@@ -335,10 +370,6 @@ export const useRbf = (props: UseRbfProps) => {
         trigger,
     };
 };
-
-// context accepts only valid state (non-nullable account)
-export type RbfContextValues = ReturnType<typeof useRbf> &
-    NonNullable<ReturnType<typeof useRbfState>>;
 
 export const RbfContext = createContext<RbfContextValues | null>(null);
 RbfContext.displayName = 'RbfContext';

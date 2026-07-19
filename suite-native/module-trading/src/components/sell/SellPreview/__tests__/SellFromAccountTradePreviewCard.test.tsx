@@ -1,4 +1,5 @@
-import { type AccountKey } from '@suite-common/wallet-types';
+import { mockAccountKey } from '@suite-common/wallet-types/mocks';
+import { getTranslation } from '@suite-native/intl';
 import { banxaCreditCardSellQuote, eth1NormalAccount } from '@suite-native/trading-fixtures';
 
 import { renderWithTradingProvider } from '../../../../__tests__/tradingTestUtils';
@@ -30,7 +31,7 @@ describe('SellFromAccountTradePreviewCard', () => {
     it('should render nothing when account is not found', () => {
         const { toJSON } = renderSellFromAccountTradePreviewCard(
             { quote: banxaCreditCardSellQuote },
-            'unknown-account-key' as AccountKey,
+            mockAccountKey({ descriptor: 'unknownAccountKey' }),
         );
 
         expect(toJSON()).toBeNull();
@@ -41,7 +42,9 @@ describe('SellFromAccountTradePreviewCard', () => {
             quote: banxaCreditCardSellQuote,
         });
 
-        expect(getByText('From')).toBeOnTheScreen();
+        expect(
+            getByText(getTranslation('moduleTrading.tradingExchangePreviewScreen.fromAccount')),
+        ).toBeOnTheScreen();
         expect(getByText('ETH Account #1')).toBeOnTheScreen();
         expect(getByText('-0.0233 ETH')).toBeOnTheScreen();
         expect(getByText('0.0233-ethereum')).toBeOnTheScreen();

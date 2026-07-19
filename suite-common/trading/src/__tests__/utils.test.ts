@@ -6,8 +6,8 @@ import {
 } from 'invity-api';
 
 import { type NetworkSymbol } from '@suite-common/wallet-config';
-import type { Account, AccountKey } from '@suite-common/wallet-types';
-import { BigNumber } from '@trezor/utils';
+import type { Account } from '@suite-common/wallet-types';
+import { mockAccountKey } from '@suite-common/wallet-types/mocks';
 
 import * as BUY_FIXTURE from '../__fixtures__/buyUtils';
 import * as EXCHANGE_FIXTURE from '../__fixtures__/exchangeUtils';
@@ -23,7 +23,6 @@ import {
     getDefaultCountry,
     getDefaultCountrySubdivision,
     getTradingFormState,
-    getTradingPaymentMethods,
     getTradingQuotesByPaymentMethod,
     getUnusedAddressFromAccount,
     isCryptoIdForNativeToken,
@@ -33,8 +32,8 @@ import {
     toTokenCryptoId,
 } from '../utils';
 
-const sendAccountKey = 'send-account-key' as AccountKey;
-const receiveAccountKey = 'receive-account-key' as AccountKey;
+const sendAccountKey = mockAccountKey({ descriptor: 'sendAccountKey' });
+const receiveAccountKey = mockAccountKey({ descriptor: 'receiveAccountKey' });
 
 describe('getUnusedAddressFromAccount', () => {
     it('should return unused value from the passed account', () => {
@@ -44,7 +43,7 @@ describe('getUnusedAddressFromAccount', () => {
         });
 
         expect(getUnusedAddressFromAccount(accountEth as Account)).toStrictEqual({
-            address: 'eth-descriptor',
+            address: 'ethDescriptor',
             path: "m/44'/60'/0'/0/1",
         });
     });
@@ -141,45 +140,6 @@ describe('isCryptoIdForNativeToken', () => {
                 'base--0x0000000000000000000000000000000000000000' as CryptoId,
             ),
         ).toEqual(true);
-    });
-});
-
-describe('getTradingPaymentMethods', () => {
-    const duplicateApplePayQuoteWithWorseAmount = {
-        ...BUY_FIXTURE.MIN_MAX_QUOTES_OK[1],
-        receiveStringAmount: '0.00000001',
-    };
-    const paymentMethods = getTradingPaymentMethods([
-        ...BUY_FIXTURE.MIN_MAX_QUOTES_OK,
-        duplicateApplePayQuoteWithWorseAmount, // duplicate applePay
-    ]);
-
-    it('should get payment methods from quotes', () => {
-        const findApplePay = paymentMethods.find(
-            paymentMethod =>
-                paymentMethod.value === 'applePay' && paymentMethod.label === 'Apple Pay',
-        );
-
-        expect(paymentMethods.length).toBe(2);
-        expect(findApplePay).toBeDefined();
-    });
-
-    it('should sort payment methods by receive amount in descending order', () => {
-        const amounts = paymentMethods.map(method => new BigNumber(method.receiveAmount || '0'));
-        const sortedAmounts = [...amounts].sort((a, b) => b.minus(a).toNumber());
-
-        expect(amounts.map(amount => amount.toString())).toEqual(
-            sortedAmounts.map(amount => amount.toString()),
-        );
-    });
-
-    it('should keep first quote amount for duplicate payment method', () => {
-        const applePayMethod = paymentMethods.find(method => method.value === 'applePay');
-        const { MIN_MAX_QUOTES_OK } = BUY_FIXTURE;
-        // @ts-expect-error: indexing with noUncheckedIndexedAccess
-        const minMaxQuote: (typeof MIN_MAX_QUOTES_OK)[number] = MIN_MAX_QUOTES_OK[1];
-
-        expect(applePayMethod?.receiveAmount).toBe(minMaxQuote.receiveStringAmount);
     });
 });
 

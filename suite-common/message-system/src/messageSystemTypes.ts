@@ -40,16 +40,25 @@ export const Feature = {
         eth: 'eth.staking.stake',
         sol: 'sol.staking.stake',
         ada: 'ada.staking.stake',
+        trx: 'trx.staking.stake',
     },
     unstake: {
         eth: 'eth.staking.unstake',
         sol: 'sol.staking.unstake',
         ada: 'ada.staking.unstake',
+        trx: 'trx.staking.unstake',
     },
     claim: {
         eth: 'eth.staking.claim',
         sol: 'sol.staking.claim',
         ada: 'ada.staking.claim',
+        trx: 'trx.staking.claim',
+    },
+    vote: {
+        trx: 'trx.staking.vote',
+    },
+    withdraw: {
+        trx: 'trx.staking.withdraw',
     },
 
     banners: {
@@ -100,6 +109,7 @@ export const Feature = {
         yield: {
             deposit: 'earn.yield.deposit',
             withdraw: 'earn.yield.withdraw',
+            redeem: 'earn.yield.redeem',
             claim: 'earn.yield.claim',
         } as const satisfies Record<YieldFlowType, string>,
     },
@@ -141,7 +151,7 @@ const getEarnYieldContext = (type: YieldFlowType) => `earn.yield.${type}` as con
 export type SettingsCategory = 'general' | 'device' | 'networks' | 'debug';
 const getSettingsContext = (category: SettingsCategory) => `settings.${category}` as const;
 
-export type LegalContextKey = 'gateway';
+type LegalContextKey = 'gateway';
 const getLegalContext = (key: LegalContextKey) => `legal.${key}` as const;
 
 /**
@@ -186,6 +196,7 @@ export type ContextDomain = FunctionContextReturnValues;
 export enum ExperimentId {
     tradingFeedbackForm = '092db279-98dc-418e-bbfa-ef70716fb211',
     tradingFiatValues = 'b73df44d-37ed-4b66-aba1-5c4164493bae',
+    tradingShowTradeFee = 'eef0ff6f-95da-4a7e-aae6-ccd589c32998',
 }
 
 export type ExperimentsItemType = Omit<ExperimentsItem, 'id'> & { id: ExperimentId };

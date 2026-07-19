@@ -15,7 +15,6 @@ import {
     getUtxoOutpoint,
     hasNetworkFeatures,
     isTestnet,
-    parseBIP44Path,
     sortByBIP44AddressIndex,
     sortByCoin,
     substituteBip43Path,
@@ -35,15 +34,13 @@ describe('account utils', () => {
         });
     });
 
-    fixtures.parseBIP44Path.forEach(f => {
-        it('accountUtils.parseBIP44Path', () => {
-            expect(parseBIP44Path(f.path)).toEqual(f.result);
-        });
-    });
-
     fixtures.sortByCoin.forEach(f => {
         it('accountUtils.sortByCoin', () => {
-            expect(sortByCoin(f.accounts as Account[])).toEqual(f.result);
+            const input = [...(f.accounts as Account[])];
+
+            expect(sortByCoin(input)).toEqual(f.result);
+            // The input array is not mutated.
+            expect(input).toEqual(f.accounts);
         });
     });
 
@@ -119,6 +116,36 @@ describe('account utils', () => {
                 deviceStaticSessionId: '1stTestnetAddress@device_id:0',
             }),
         ).toEqual('descriptor-btc-1stTestnetAddress@device_id:0');
+    });
+
+    it('createAccountKey throws when accountDescriptor contains "-"', () => {
+        expect(() =>
+            createAccountKey({
+                accountDescriptor: asAccountDescriptor('btc-with-hyphen'),
+                networkSymbol: 'btc',
+                deviceStaticSessionId: '1stTestnetAddress@device_id:0',
+            }),
+        ).toThrow(/accountDescriptor must not contain '-'/);
+    });
+
+    it('createAccountKey throws when networkSymbol contains "-"', () => {
+        expect(() =>
+            createAccountKey({
+                accountDescriptor: asAccountDescriptor('descriptor'),
+                networkSymbol: 'btc-bogus' as 'btc',
+                deviceStaticSessionId: '1stTestnetAddress@device_id:0',
+            }),
+        ).toThrow(/networkSymbol must not contain '-'/);
+    });
+
+    it('createAccountKey throws when deviceStaticSessionId contains "-"', () => {
+        expect(() =>
+            createAccountKey({
+                accountDescriptor: asAccountDescriptor('descriptor'),
+                networkSymbol: 'btc',
+                deviceStaticSessionId: 'session-with-hyphen@device:0',
+            }),
+        ).toThrow(/deviceStaticSessionId must not contain '-'/);
     });
 
     it('isTestnet', () => {
@@ -203,6 +230,40 @@ describe('account utils', () => {
         expect(accountSearchFn(btcAcc, '#1', { accountLabel: 'Bitcoin #1' })).toBe(true);
     });
 
+    it('accountSearchFn matches displayed account type name', () => {
+        const segwitAcc = mockWalletAccount({
+            symbol: 'btc',
+            accountType: 'segwit',
+        });
+
+        // Matched only via the displayed name, the raw account type key alone would not match.
+        expect(
+            accountSearchFn(segwitAcc, 'legacy segwit', {
+                accountLabel: '',
+                accountTypeName: 'Legacy SegWit',
+            }),
+        ).toBe(true);
+        expect(
+            accountSearchFn(segwitAcc, 'legacy', {
+                accountLabel: '',
+                accountTypeName: 'Legacy SegWit',
+            }),
+        ).toBe(true);
+        expect(
+            accountSearchFn(segwitAcc, 'LEGACY SEGWIT', {
+                accountLabel: '',
+                accountTypeName: 'Legacy SegWit',
+            }),
+        ).toBe(true);
+        expect(accountSearchFn(segwitAcc, 'legacy segwit', { accountLabel: '' })).toBe(false);
+        expect(
+            accountSearchFn(segwitAcc, 'taproot', {
+                accountLabel: '',
+                accountTypeName: 'Legacy SegWit',
+            }),
+        ).toBe(false);
+    });
+
     it('accountSearchFn empty tokens', () => {
         const ethAcc = mockWalletAccount({
             symbol: 'eth',
@@ -214,6 +275,42 @@ describe('account utils', () => {
 
         expect(accountSearchFn(ethAcc, 'test', { accountLabel: '' })).toBe(true);
         expect(accountSearchFn(ethAcc, 'test2', { accountLabel: '' })).toBe(false);
+    });
+
+    it('accountSearchFn empty tokens pepe-like', () => {
+        const ethAcc = mockWalletAccount({
+            symbol: 'eth',
+            tokens: [
+                mockAccountToken({ balance: '0.000069', name: 'test' }),
+                mockAccountToken({ balance: '0.0', name: 'pepe' }),
+            ],
+        });
+
+        expect(accountSearchFn(ethAcc, 'test', { accountLabel: '' })).toBe(true);
+        expect(accountSearchFn(ethAcc, 'pepe', { accountLabel: '' })).toBe(false);
+    });
+
+    it('accountSearchFn hidden tokens excluded via searchableTokens', () => {
+        const shownToken = mockAccountToken({ balance: '0.000069', name: 'shown' });
+        const hiddenToken = mockAccountToken({ balance: '1.0', name: 'hidden-spam' });
+        const ethAcc = mockWalletAccount({
+            symbol: 'eth',
+            tokens: [shownToken, hiddenToken],
+        });
+
+        expect(accountSearchFn(ethAcc, 'hidden-spam', { accountLabel: '' })).toBe(true);
+        expect(
+            accountSearchFn(ethAcc, 'hidden-spam', {
+                accountLabel: '',
+                searchableTokens: [shownToken],
+            }),
+        ).toBe(false);
+        expect(
+            accountSearchFn(ethAcc, 'shown', {
+                accountLabel: '',
+                searchableTokens: [shownToken],
+            }),
+        ).toBe(true);
     });
 
     it('getNetworkAccountFeatures', () => {

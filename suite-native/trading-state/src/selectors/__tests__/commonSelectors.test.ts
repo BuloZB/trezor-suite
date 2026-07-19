@@ -16,7 +16,7 @@ import {
     selectTradingProviderMetadata,
 } from '@suite-common/trading';
 import { type AccountsRootState } from '@suite-common/wallet-core';
-import { type Account, type AccountKey } from '@suite-common/wallet-types';
+import { type Account, type AccountKey, asAccountDescriptor } from '@suite-common/wallet-types';
 import { FeatureFlag, featureFlagsInitialState } from '@suite-native/feature-flags';
 import { appSettingsInitialState } from '@suite-native/settings';
 import {
@@ -30,6 +30,7 @@ import {
     getWalletState,
 } from '@suite-native/trading-fixtures';
 import { type TradeableAsset } from '@suite-native/trading-types';
+import { type StaticSessionId } from '@trezor/device-utils';
 import { BigNumber } from '@trezor/utils';
 
 import { type TradingRootState, tradingInitialState } from '../../reducers';
@@ -47,6 +48,7 @@ import {
     selectIsTradingEnabled,
     selectIsTradingExchangeEnabled,
     selectIsTradingSellEnabled,
+    selectIsTradingSlip24Enabled,
     selectTradeToBeOpened,
     selectTradesToWatchByAccount,
     selectTradingEnvironment,
@@ -80,6 +82,7 @@ const getPreloadedState = ({
     exchange,
     concierge,
     blacklist,
+    slip24,
     residence,
     countryCode,
 }: {
@@ -88,6 +91,7 @@ const getPreloadedState = ({
     exchange?: boolean;
     concierge?: boolean;
     blacklist?: boolean;
+    slip24?: boolean;
     residence?: boolean;
     countryCode?: TradingCountryCode | undefined;
 }) => {
@@ -120,6 +124,12 @@ const getPreloadedState = ({
         features.push({
             domain: 'trading.restrictions.blacklist',
             flag: blacklist,
+        });
+    }
+    if (slip24 !== undefined) {
+        features.push({
+            domain: 'trading.slip24',
+            flag: slip24,
         });
     }
 
@@ -256,6 +266,65 @@ describe('commonSelectors', () => {
 
         it('should correctly select that concierge is enabled if remote feature is not set', () => {
             expect(selectIsTradingConciergeEnabled(getPreloadedState({}))).toBe(true);
+        });
+    });
+
+    describe('selectIsTradingSlip24Enabled', () => {
+        const getSlip24State = (
+            isFeatureFlagEnabled: boolean,
+            features: object | undefined = {
+                major_version: 2,
+                minor_version: 12,
+                patch_version: 1,
+            },
+        ) =>
+            ({
+                messageSystem: messageSystemState,
+                featureFlags: {
+                    ...featureFlagsInitialState,
+                    [FeatureFlag.IsTradingSlip24Enabled]: isFeatureFlagEnabled,
+                },
+                device: { selectedDevice: { features } },
+                wallet: { trading: tradingInitialState },
+            }) as any;
+
+        it('should be enabled when the feature flag is on for a supported network and firmware', () => {
+            expect(selectIsTradingSlip24Enabled(getSlip24State(true), getBtcAccount())).toBe(true);
+        });
+
+        it('should be disabled when the device firmware is too old', () => {
+            const state = getSlip24State(true, {
+                major_version: 2,
+                minor_version: 12,
+                patch_version: 0,
+            });
+
+            expect(selectIsTradingSlip24Enabled(state, getBtcAccount())).toBe(false);
+        });
+
+        it('should be disabled when the feature flag is off', () => {
+            expect(selectIsTradingSlip24Enabled(getSlip24State(false), getBtcAccount())).toBe(
+                false,
+            );
+        });
+
+        it('should be disabled when the message-system feature is disabled', () => {
+            const state = {
+                ...getSlip24State(true),
+                messageSystem: getPreloadedState({ slip24: false }).messageSystem,
+            };
+
+            expect(selectIsTradingSlip24Enabled(state, getBtcAccount())).toBe(false);
+        });
+
+        it('should be disabled for an unsupported network type', () => {
+            expect(selectIsTradingSlip24Enabled(getSlip24State(true), getCardanoAccount())).toBe(
+                false,
+            );
+        });
+
+        it('should be disabled when there is no account', () => {
+            expect(selectIsTradingSlip24Enabled(getSlip24State(true), undefined)).toBe(false);
         });
     });
 
@@ -456,7 +525,7 @@ describe('commonSelectors', () => {
         });
 
         it('should return sections for accounts with positive balance', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const btcAccount = {
                 ...getBtcAccount(),
                 visible: true,
@@ -485,7 +554,7 @@ describe('commonSelectors', () => {
             expect(result.length).toBeGreaterThan(0);
             expect(result[0]).toEqual(
                 expect.objectContaining({
-                    key: 'section_btc-account-1',
+                    key: `section_${btcAccount.key}`,
                     label: expect.any(String),
                     sectionData: expect.any(Object),
                     data: expect.any(Array),
@@ -494,7 +563,7 @@ describe('commonSelectors', () => {
         });
 
         it('should filter out accounts with zero balance', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const zeroBalanceAccount = {
                 ...getBtcAccount(),
                 balance: '0',
@@ -522,7 +591,7 @@ describe('commonSelectors', () => {
         });
 
         it('should handle accounts with tokens and include only tokens with positive balance', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const ethAccount = {
                 ...getEthAccount(),
                 balance: '1000000000000000000', // 1 ETH
@@ -591,7 +660,7 @@ describe('commonSelectors', () => {
         });
 
         it('should handle accounts with zero balance but tokens with positive balance', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const ethAccount = {
                 ...getEthAccount(),
                 balance: '0',
@@ -646,7 +715,7 @@ describe('commonSelectors', () => {
         });
 
         it('should filter out sections with no assets', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const ethAccount = {
                 ...getEthAccount(),
                 balance: '0',
@@ -699,7 +768,7 @@ describe('commonSelectors', () => {
         });
 
         it('should handle accounts with missing token definitions', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const ethAccount = {
                 ...getEthAccount(),
                 balance: '1000000000000000000', // 1 ETH
@@ -744,7 +813,7 @@ describe('commonSelectors', () => {
         });
 
         it('should return empty array for buy trading type', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const btcAccount = {
                 ...getBtcAccount(),
                 balance: '100000000', // 1 BTC
@@ -776,7 +845,7 @@ describe('commonSelectors', () => {
         });
 
         it('should return sections for sell trading type', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const btcAccount = {
                 ...getBtcAccount(),
                 balance: '100000000', // 1 BTC
@@ -817,7 +886,7 @@ describe('commonSelectors', () => {
         });
 
         it('should use network display symbol name for account asset name', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
 
             const stateWithDevice = {
                 featureFlags: featureFlagsInitialState,
@@ -838,7 +907,7 @@ describe('commonSelectors', () => {
         });
 
         it('should filter out Cardano accounts when IsCardanoSendEnabled feature flag is disabled', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const cardanoAccount = {
                 ...getCardanoAccount(),
                 visible: true,
@@ -877,7 +946,7 @@ describe('commonSelectors', () => {
         });
 
         it('should filter out accounts whose network has no tradeCryptoId', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'test-device@x:0';
             const regtestAccount = {
                 ...getBtcAccount(),
                 key: 'regtest-account-1' as AccountKey,
@@ -919,7 +988,7 @@ describe('commonSelectors', () => {
         });
 
         it('should include Cardano accounts when IsCardanoSendEnabled feature flag is enabled', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const cardanoAccount = {
                 ...getCardanoAccount(),
                 visible: true,
@@ -960,7 +1029,7 @@ describe('commonSelectors', () => {
         });
 
         it('should handle contractIds as case insensitive', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const ethAccount = {
                 ...getEthAccount(),
                 balance: '1000000000000000000', // 1 ETH
@@ -1018,7 +1087,7 @@ describe('commonSelectors', () => {
 
     describe('selectAccountsWithTokensToSellSectionCondensedListByTradingType', () => {
         it('should group disabled tokens', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const ethAccount = {
                 ...getEthAccount(),
                 balance: '1000000000000000000', // 1 ETH
@@ -1104,7 +1173,7 @@ describe('commonSelectors', () => {
         });
 
         it('should not display empty disabled section', () => {
-            const testDeviceState = 'test-device';
+            const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const ethAccount = {
                 ...getEthAccount(),
                 balance: '1000000000000000000', // 1 ETH
@@ -1288,30 +1357,28 @@ describe('commonSelectors', () => {
     });
 
     describe('selectVisibleDeviceAccountsByNetworkSymbolSorted', () => {
+        const eth1Account = getEthAccount({ descriptor: asAccountDescriptor('eth1') });
+        const btc0Account = getBtcAccount({
+            descriptor: asAccountDescriptor('btc0'),
+            deviceState: 'otherDevice@test:123' as StaticSessionId,
+        });
+        const btc1Account = getBtcAccount({
+            descriptor: asAccountDescriptor('btc1'),
+            accountType: 'ledger',
+        });
+        const btc2Account = getBtcAccount({
+            descriptor: asAccountDescriptor('btc2'),
+            accountType: 'normal',
+        });
+        const btc3Account = getBtcAccount({
+            descriptor: asAccountDescriptor('btc3'),
+            accountType: 'segwit',
+        });
+
         const getStateWithAccounts = () => ({
             wallet: {
                 ...getWalletState({ tradeType: 'exchange' }),
-                accounts: [
-                    getEthAccount(
-                        'eth1' as AccountKey, // Todo: create properly via `createAccountKey()`
-                    ),
-                    getBtcAccount(
-                        'btc0' as AccountKey, // Todo: create properly via `createAccountKey()`
-                        { deviceState: 'other-device@test:123' },
-                    ),
-                    getBtcAccount(
-                        'btc1' as AccountKey, // Todo: create properly via `createAccountKey()`
-                        { accountType: 'ledger' },
-                    ),
-                    getBtcAccount(
-                        'btc2' as AccountKey, // Todo: create properly via `createAccountKey()`
-                        { accountType: 'normal' },
-                    ),
-                    getBtcAccount(
-                        'btc3' as AccountKey, // Todo: create properly via `createAccountKey()`
-                        { accountType: 'segwit' },
-                    ),
-                ],
+                accounts: [eth1Account, btc0Account, btc1Account, btc2Account, btc3Account],
             },
             device: {
                 ...deviceInitialState,
@@ -1331,9 +1398,9 @@ describe('commonSelectors', () => {
             );
 
             expect(result).toEqual([
-                expect.objectContaining({ key: 'btc2' }), // normal
-                expect.objectContaining({ key: 'btc3' }), // segwit
-                expect.objectContaining({ key: 'btc1' }), // ledger
+                expect.objectContaining({ key: btc2Account.key }), // normal
+                expect.objectContaining({ key: btc3Account.key }), // segwit
+                expect.objectContaining({ key: btc1Account.key }), // ledger
             ]);
         });
 
@@ -1357,17 +1424,18 @@ describe('commonSelectors', () => {
 
     describe('selectAccountLabelWithNetworkFallback', () => {
         it('should return account label if account exists', () => {
+            const eth1Account = getEthAccount();
             expect(
                 selectAccountLabelWithNetworkFallback(
                     {
-                        wallet: { accounts: [getEthAccount()] },
+                        wallet: { accounts: [eth1Account] },
                         suiteSyncData: initialSuiteSyncDataState,
                         suiteSync: initialSuiteSyncState,
                         device: deviceInitialState,
                         appSettings: appSettingsInitialState,
                         messageSystem: messageSystemState,
                     },
-                    'eth-account-1' as AccountKey, // Todo: create properly via `createAccountKey()`
+                    eth1Account.key,
                     'eth' as CryptoId,
                 ),
             ).toBe('Ethereum #1');
@@ -1380,6 +1448,9 @@ describe('commonSelectors', () => {
         ])(
             'should return network name for %s when account is not found',
             (asset, expectedLabel) => {
+                const unknownAccount = getEthAccount({
+                    descriptor: asAccountDescriptor('ethaccount2'),
+                });
                 expect(
                     selectAccountLabelWithNetworkFallback(
                         {
@@ -1390,7 +1461,7 @@ describe('commonSelectors', () => {
                             appSettings: appSettingsInitialState,
                             messageSystem: messageSystemState,
                         },
-                        'eth-account-2' as AccountKey, // Todo: create properly via `createAccountKey()`
+                        unknownAccount.key,
                         asset as CryptoId,
                     ),
                 ).toBe(expectedLabel);

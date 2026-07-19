@@ -5,19 +5,16 @@ import { Box, VStack } from '@suite-native/atoms';
 import { ConfirmOnTrezorWrapper } from '@suite-native/confirm-on-trezor';
 import { Translation } from '@suite-native/intl';
 import { type ExchangeFlowType, ScreenHeader } from '@suite-native/navigation';
-import { ReviewOutputItemList } from '@suite-native/transaction-management';
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 
+import { ReviewOutputsBody } from './ReviewOutputsBody';
 import { ReviewOutputsFooter } from './ReviewOutputsFooter';
-import { ReviewOutputsSkeleton } from './ReviewOutputsSkeleton';
-import { SignDataMessageReview } from './SignDataMessageReview';
 import type { UseTradingTransactionReturnProps } from '../../hooks/general/useTradingTransaction';
 import { useDelayedReviewOutputListDisplayFlag } from '../../hooks/reviewOutputs/useDelayedReviewOutputListDisplayFlag';
 import {
     type UseTradingOutputsReviewScreenControlsProps,
     useTradingOutputsReviewScreenControls,
 } from '../../hooks/reviewOutputs/useTradingOutputsReviewScreenControls';
-import { getFormDraftKeyPrefixFromTradingType } from '../../utils/general/utils';
 
 const spacerStyle = prepareNativeStyle(_ => ({
     height: 150,
@@ -64,26 +61,6 @@ export const ReviewOutputsContent = memo(
             });
         const shouldDisplayReviewList = useDelayedReviewOutputListDisplayFlag();
 
-        const prefix = getFormDraftKeyPrefixFromTradingType(tradingType);
-        const renderReviewContent = () => {
-            if (exchangeFlowType === 'sign-data') {
-                return <SignDataMessageReview />;
-            }
-
-            if (shouldDisplayReviewList) {
-                return (
-                    <ReviewOutputItemList
-                        prefix={prefix}
-                        accountKey={accountKey}
-                        tokenContract={tokenContract}
-                        flowType={exchangeFlowType}
-                    />
-                );
-            }
-
-            return <ReviewOutputsSkeleton />;
-        };
-
         return (
             <ConfirmOnTrezorWrapper
                 controlRef={confirmOnTrezorRef}
@@ -101,7 +78,13 @@ export const ReviewOutputsContent = memo(
                     justifyContent="space-between"
                     testID="@trading/outputs-review"
                 >
-                    {renderReviewContent()}
+                    <ReviewOutputsBody
+                        accountKey={accountKey}
+                        tokenContract={tokenContract}
+                        exchangeFlowType={exchangeFlowType}
+                        shouldDisplayReviewList={shouldDisplayReviewList}
+                        tradingType={tradingType}
+                    />
                     {isTransactionAlreadySigned ? (
                         <ReviewOutputsFooter
                             isConsentRequested={isTransactionSendConsentRequested}

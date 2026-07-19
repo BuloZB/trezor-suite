@@ -2,8 +2,6 @@ export type ImageType = keyof typeof IMAGES;
 
 export const IMAGES = {
     APP_STORE: 'app-store.svg',
-    CONFIRM_EVM_EXPLANATION_ETH: 'confirm-evm-explanation-eth.svg',
-    CONFIRM_EVM_EXPLANATION_OTHER: 'confirm-evm-explanation-other.svg',
     CONFIRM_FW_INSTALLATION_SCREEN_T1B1: 'confirm-fw-installation-screen-t1b1.png',
     CONNECTOR: 'connector.webp',
     CONNECT_DEVICE: 'connect-device.svg',
@@ -13,6 +11,8 @@ export const IMAGES = {
     DASHBOARD_PROMO_BANNER_UNDERLINE: 'dashboard-promo-banner/underline.svg',
     DASHBOARD_PROMO_BANNER_STABLECOIN_YIELD: 'dashboard-promo-banner/stablecoin-yield.webp',
     DASHBOARD_PROMO_BANNER_STABLECOIN_YIELD_2x: 'dashboard-promo-banner/stablecoin-yield@2x.webp',
+    DASHBOARD_FEEDBACK_BANNER: 'dashboard-feedback-banner/feedback.webp',
+    DASHBOARD_FEEDBACK_BANNER_2x: 'dashboard-feedback-banner/feedback@2x.webp',
     ERROR_404: 'error-404.svg',
     EVERSTAKE_LOGO: 'everstake-logo.svg',
     GAINS_GRAPH: 'gains-graph.svg',
@@ -65,6 +65,8 @@ export const IMAGES = {
     TREZOR_T3W1_HOLOGRAM_2x: 't3w1/t3w1-hologram@2x.webp',
     TREZOR_T3W1_LARGE: 't3w1/t3w1-large.webp',
     TREZOR_T3W1_LARGE_2x: 't3w1/t3w1-large@2x.webp',
+    TREZOR_T3W1_PACKSHOT: 't3w1/t3w1-packshot.webp',
+    TREZOR_T3W1_PACKSHOT_2x: 't3w1/t3w1-packshot@2x.webp',
     TREZOR_UNKNOWN: 'trezor-unknown.webp',
     TREZOR_UNKNOWN_2x: 'trezor-unknown@2x.webp',
     TREZOR_UNKNOWN_LARGE: 'trezor-unknown.webp',

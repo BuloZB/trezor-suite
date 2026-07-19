@@ -40,6 +40,7 @@ const formattedSendAddress = formatAddressWithNewlines(sendAddress);
 
 test.describe('Trading - Swap coins', { tag: ['@webOnly', '@T3T1', '@T3W1'] }, () => {
     test.use({ deviceSetup: { mnemonic: 'mnemonic_academic', passphrase_protection: true } });
+
     test.beforeEach(
         async ({ page, onboardingPage, dashboardPage, tradingMock, walletPage, settingsPage }) => {
             await test.step('Mocking responses', async () => {
@@ -53,6 +54,7 @@ test.describe('Trading - Swap coins', { tag: ['@webOnly', '@T3T1', '@T3W1'] }, (
                     await route.fulfill({ json: { status: 'SENDING', sendAddress } });
                 });
             });
+
             await onboardingPage.completeOnboarding();
             await settingsPage.changeNetworks({ enableNetworks: ['sol', 'btc'] });
             await dashboardPage.navigateTo();
@@ -143,14 +145,17 @@ test.describe('Trading - Swap coins', { tag: ['@webOnly', '@T3T1', '@T3W1'] }, (
 
             await devicePrompt.waitForFinalPromptAndConfirm();
         });
+
         // Thanks to our mocked responses, the crypto is actually not send.
         await test.step('Send crypto to provider', async () => {
             await page.clock.install();
             await devicePrompt.sendButton.click();
-            await expect(tradingPage.swapToastSendAccount).toContainText('Solana #1');
-            await expect(tradingPage.swapToastReceiveAccount).toContainText('Bitcoin #1');
-            await expect(tradingPage.swapToastSendAmount).toContainText(sendAmount);
-            await expect(tradingPage.swapToastReceiveAmount).toContainText(receiveAmount);
+            await tradingPage.verifySwapToast({
+                sendAccount: 'Solana #1',
+                receiveAccount: 'Bitcoin #1',
+                sendAmount,
+                receiveAmount,
+            });
         });
 
         for (const { transactionStatus, displayedText, translationValues } of transactionStates) {

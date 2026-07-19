@@ -1,24 +1,33 @@
 import { useSelector } from 'react-redux';
 
 import { selectIsPortfolioTrackerDevice } from '@suite-common/device';
+import {
+    formatTronApr,
+    getTronVotedApr,
+    useTronStakingStats,
+} from '@suite-common/earn-staking-api';
 import { getNetworkDisplaySymbolName } from '@suite-common/wallet-config';
-import { isSupportedEthStakingNetworkSymbol } from '@suite-common/wallet-utils';
+import { isApyAvailable, isSupportedStakingNetworkSymbol } from '@suite-common/wallet-utils';
 import { AccountTypeBadge } from '@suite-native/accounts';
 import { Box, Card, PressableOpacity, Text, VStack } from '@suite-native/atoms';
-import { CryptoIconWithNetwork, Icon } from '@suite-native/icons';
+import { Icon, TokenIcon } from '@suite-native/icons';
 import { Translation } from '@suite-native/intl';
 import {
     selectApy,
     selectCanClaimByAccountKey,
     selectClaimableAmountByAccountKey,
+    selectIsCardanoStakedOutsideEverstake,
+    selectTronAvailableVotingPowerByAccountKey,
+    selectTronVotesByAccountKey,
     useSelector as useStakingSelector,
 } from '@suite-native/staking';
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 
 import { CRYPTO_BALANCE_DECIMALS } from '../constants';
-import { EarnClaimAlert } from './EarnClaimAlert';
 import { useMessageSystemStaking } from '../hooks/useMessageSystemStaking';
 import { type EarnDepositsCardActiveItem } from '../types';
+import { EarnClaimAlert } from './EarnClaimAlert';
+import { EarnTronVotingAlert } from './EarnTronVotingAlert';
 
 const itemCardStyle = prepareNativeStyle(utils => ({
     marginBottom: utils.spacings.sp16,
@@ -64,8 +73,10 @@ export const EarnAccountCard = ({ item, onPress, onClaimPress }: EarnAccountCard
     const { applyStyle } = useNativeStyles();
     const isStakingItem = item.type === 'staking';
     const isStablecoinYieldItem = item.type === 'stablecoin-yield';
-    const isSupportedStaking = isStakingItem && isSupportedEthStakingNetworkSymbol(item.symbol);
+    const isSupportedStaking = isStakingItem && isSupportedStakingNetworkSymbol(item.symbol);
     const isPortfolioTrackerDevice = useSelector(selectIsPortfolioTrackerDevice);
+
+    const symbol = isStakingItem ? item.symbol : item.networkSymbol;
 
     const apy = useStakingSelector(state =>
         isStakingItem
@@ -73,7 +84,32 @@ export const EarnAccountCard = ({ item, onPress, onClaimPress }: EarnAccountCard
             : null,
     );
 
-    const apyValue = isStakingItem ? apy : item.apy;
+    const { stats: tronStats, formattedMaxApr: tronMaxApr } = useTronStakingStats({
+        enabled: isStakingItem && item.symbol === 'trx',
+    });
+
+    const tronVotes = useStakingSelector(state =>
+        selectTronVotesByAccountKey(state, item.accountKey),
+    );
+
+    const votedTronApr = getTronVotedApr(
+        tronStats.data,
+        tronVotes.map(({ address }) => address),
+    );
+
+    const tronApr = formatTronApr(votedTronApr ?? tronMaxApr);
+
+    const resolvedApy = symbol === 'trx' ? tronApr : apy;
+    const apyValue = isStakingItem ? resolvedApy : item.apy;
+
+    const availableTronVotingPower = useStakingSelector(state =>
+        selectTronAvailableVotingPowerByAccountKey(state, item.accountKey),
+    );
+
+    const isAdaStakedOutsideEverstake = useStakingSelector(state =>
+        selectIsCardanoStakedOutsideEverstake(state, item.accountKey),
+    );
+
     const canClaim = useStakingSelector(state =>
         isSupportedStaking ? selectCanClaimByAccountKey(state, item.accountKey) : false,
     );
@@ -87,7 +123,9 @@ export const EarnAccountCard = ({ item, onPress, onClaimPress }: EarnAccountCard
 
     const showClaimAlert = canClaim && !isClaimingDisabled && !isPortfolioTrackerDevice;
 
-    const symbol = isStakingItem ? item.symbol : item.networkSymbol;
+    const showTronVotingAlert =
+        isStakingItem && item.symbol === 'trx' && availableTronVotingPower !== '0';
+
     const contractAddress = isStablecoinYieldItem ? item.tokenContractAddress : undefined;
     const secondaryDescription = isStablecoinYieldItem
         ? item.accountLabel || getNetworkDisplaySymbolName(item.networkSymbol)
@@ -97,10 +135,11 @@ export const EarnAccountCard = ({ item, onPress, onClaimPress }: EarnAccountCard
         <Card borderColor="borderNeutral" noPadding style={applyStyle(itemCardStyle)}>
             <PressableOpacity onPress={onPress} style={applyStyle(rowStyle)}>
                 <Box marginRight="sp12">
-                    <CryptoIconWithNetwork
+                    <TokenIcon
                         symbol={symbol}
                         contractAddress={contractAddress}
                         size="extraSmall"
+                        showNetworkIcon
                     />
                 </Box>
 
@@ -116,9 +155,20 @@ export const EarnAccountCard = ({ item, onPress, onClaimPress }: EarnAccountCard
 
                 <VStack spacing="sp2" style={applyStyle(valuesStyle)}>
                     <Text variant="body-md">{formatActiveItemBalance(item)}</Text>
-                    {apyValue != null && (
+                    {(isAdaStakedOutsideEverstake || apyValue != null) && (
                         <Text variant="body-sm" color="contentSecondary">
-                            <Translation id="earn.apyPercentage" values={{ apy: apyValue }} />
+                            {isAdaStakedOutsideEverstake || !isApyAvailable(apyValue) ? (
+                                <Translation id="earn.notAvailableShort" />
+                            ) : (
+                                <Translation
+                                    id={
+                                        symbol === 'trx'
+                                            ? 'earn.aprPercentage'
+                                            : 'earn.apyPercentage'
+                                    }
+                                    values={{ apy: apyValue }}
+                                />
+                            )}
                         </Text>
                     )}
                 </VStack>
@@ -127,12 +177,17 @@ export const EarnAccountCard = ({ item, onPress, onClaimPress }: EarnAccountCard
                     <Icon name="caretRight" size="mediumLarge" color="contentSecondary" />
                 </Box>
             </PressableOpacity>
+
             {showClaimAlert && (
                 <EarnClaimAlert
                     claimableAmount={claimableAmount}
                     symbol={symbol}
                     onClaimPress={onClaimPress}
                 />
+            )}
+
+            {showTronVotingAlert && (
+                <EarnTronVotingAlert votesRemaining={availableTronVotingPower} />
             )}
         </Card>
     );

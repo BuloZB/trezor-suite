@@ -1,5 +1,6 @@
 import { tradingExchangeActions } from '@suite-common/trading';
-import { type AccountKey } from '@suite-common/wallet-types';
+import { mockAccountKey } from '@suite-common/wallet-types/mocks';
+import { getTranslation } from '@suite-native/intl';
 import { type TestStore, renderWithStoreProvider, userEvent } from '@suite-native/test-utils-store';
 import { mercuryoFixedWorstQuote } from '@suite-native/trading-fixtures';
 
@@ -24,6 +25,8 @@ jest.mock('@suite-native/trading-analytics', () => ({
             mockAnalyticsReport(action, ...args),
 }));
 
+const ethAccountKey = mockAccountKey({ symbol: 'eth', descriptor: 'eth1normal' });
+
 describe('ApprovalButton', () => {
     let store: TestStore;
 
@@ -42,7 +45,7 @@ describe('ApprovalButton', () => {
                     trading: {
                         exchange: {
                             selectedQuote: mercuryoFixedWorstQuote,
-                            tradingAccountKey: 'eth-account-1' as AccountKey,
+                            tradingAccountKey: ethAccountKey,
                         },
                     },
                 },
@@ -53,22 +56,28 @@ describe('ApprovalButton', () => {
     it('should render continue button when isReady is true', () => {
         const { getByText } = renderApprovalButton({ isReady: true });
 
-        expect(getByText('Continue')).toBeOnTheScreen();
+        const button = getByText(getTranslation('moduleTrading.tradingScreen.buttons.continue'));
+        expect(button).toBeOnTheScreen();
+        expect(button).toBeEnabled();
     });
 
-    it('should render nothing when isReady is false', () => {
-        const { toJSON } = renderApprovalButton({ isReady: false });
+    it('should render disabled button when isReady is false', () => {
+        const { getByText } = renderApprovalButton({ isReady: false });
 
-        expect(toJSON()).toBeNull();
+        const button = getByText(getTranslation('moduleTrading.tradingScreen.buttons.continue'));
+        expect(button).toBeOnTheScreen();
+        expect(button).toBeDisabled();
     });
 
     it('should navigate to TradingExchangeOutputsReview on press', async () => {
         const { getByText } = renderApprovalButton({ isReady: true });
 
-        await userEvent.press(getByText('Continue'));
+        await userEvent.press(
+            getByText(getTranslation('moduleTrading.tradingScreen.buttons.continue')),
+        );
 
         expect(mockNavigate).toHaveBeenCalledWith('TradingExchangeOutputsReview', {
-            accountKey: 'eth-account-1',
+            accountKey: ethAccountKey,
             tokenContract: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
             orderId: 'c2de24a5-b923-42af-b70e-44bda8fa41dd',
             flowType: 'approve',
@@ -78,7 +87,9 @@ describe('ApprovalButton', () => {
     it('should report to analytics on press', async () => {
         const { getByText } = renderApprovalButton({ isReady: true });
 
-        await userEvent.press(getByText('Continue'));
+        await userEvent.press(
+            getByText(getTranslation('moduleTrading.tradingScreen.buttons.continue')),
+        );
 
         expect(mockAnalyticsReport).toHaveBeenCalledWith('approval-preview', 'continue');
     });
@@ -86,10 +97,12 @@ describe('ApprovalButton', () => {
     it('should navigate to TradingExchangeOutputsReview on press for flowType revoke', async () => {
         const { getByText } = renderApprovalButton({ isReady: true, flowType: 'revoke' });
 
-        await userEvent.press(getByText('Continue'));
+        await userEvent.press(
+            getByText(getTranslation('moduleTrading.tradingScreen.buttons.continue')),
+        );
 
         expect(mockNavigate).toHaveBeenCalledWith('TradingExchangeOutputsReview', {
-            accountKey: 'eth-account-1',
+            accountKey: ethAccountKey,
             tokenContract: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
             orderId: 'c2de24a5-b923-42af-b70e-44bda8fa41dd',
             flowType: 'revoke',
@@ -99,7 +112,9 @@ describe('ApprovalButton', () => {
     it('should report to analytics on press for flowType revoke', async () => {
         const { getByText } = renderApprovalButton({ isReady: true, flowType: 'revoke' });
 
-        await userEvent.press(getByText('Continue'));
+        await userEvent.press(
+            getByText(getTranslation('moduleTrading.tradingScreen.buttons.continue')),
+        );
 
         expect(mockAnalyticsReport).toHaveBeenCalledWith('revoke-preview', 'continue');
     });

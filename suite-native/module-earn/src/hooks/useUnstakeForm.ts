@@ -3,15 +3,20 @@ import { useSelector } from 'react-redux';
 
 import { buildUnstakeData, getEthereumStakingAddressByType } from '@suite-common/staking';
 import { getNetwork } from '@suite-common/wallet-config';
-import { UNSTAKE_INTERCHANGES } from '@suite-common/wallet-constants';
+import { UNSTAKE_INTERCHANGES, WALLET_SDK_SOURCE_MOBILE } from '@suite-common/wallet-constants';
 import { type AccountsRootState, selectAccountByKey } from '@suite-common/wallet-core';
 import { type AccountKey } from '@suite-common/wallet-types';
-import { getStakingLimitsByNetworkSymbol, isPositiveBalance } from '@suite-common/wallet-utils';
+import {
+    fromEther,
+    getStakingLimitsByNetworkSymbol,
+    isPositiveBalance,
+} from '@suite-common/wallet-utils';
 import { useForm, useWatch } from '@suite-native/forms';
 import { useTranslate } from '@suite-native/intl';
 import {
     type NativeStakingRootState,
-    ethToWei,
+    selectCanClaimByAccountKey,
+    selectClaimableAmountByAccountKey,
     selectStakedBalanceByAccountKey,
 } from '@suite-native/staking';
 import { BigNumber } from '@trezor/utils';
@@ -31,6 +36,13 @@ export const useUnstakeForm = (accountKey: AccountKey) => {
     const stakedBalance = useSelector((state: NativeStakingRootState) =>
         selectStakedBalanceByAccountKey(state, accountKey),
     );
+    const canClaim = useSelector((state: NativeStakingRootState) =>
+        selectCanClaimByAccountKey(state, accountKey),
+    );
+    const claimableAmount =
+        useSelector((state: NativeStakingRootState) =>
+            selectClaimableAmountByAccountKey(state, accountKey),
+        ) ?? '0';
 
     const network = account ? getNetwork(account.symbol) : null;
 
@@ -54,21 +66,27 @@ export const useUnstakeForm = (accountKey: AccountKey) => {
     const unstakeFormState = useMemo(() => {
         if (!account || !isValid || !amountValue) return undefined;
 
-        const amountWei = ethToWei(amountValue);
+        if (account.networkType === 'solana') {
+            // Solana compose uses output amount (not calldata); pass the real amount, not '0'.
+            return buildEarnComposeFormState(account.descriptor, amountValue, '');
+        }
+
+        const amountWei = fromEther(amountValue).toWei();
         if (!isPositiveBalance(amountWei)) return undefined;
 
         return buildEarnComposeFormState(
             getEthereumStakingAddressByType(account.symbol, 'unstake'),
             '0',
-            buildUnstakeData(amountWei, UNSTAKE_INTERCHANGES),
+            buildUnstakeData(amountWei, UNSTAKE_INTERCHANGES, WALLET_SDK_SOURCE_MOBILE),
         );
     }, [account, isValid, amountValue]);
 
-    const { formDraft, formDraftKey, isFeeUnavailable, updateFeeLevelThunk } = useComposeEarnFees({
-        accountKey,
-        formState: unstakeFormState,
-        formDraftPrefix: 'unstake',
-    });
+    const { formDraft, formDraftKey, isFeeUnavailable, isPrecomposeError, updateFeeLevelThunk } =
+        useComposeEarnFees({
+            accountKey,
+            formState: unstakeFormState,
+            formDraftPrefix: 'unstake',
+        });
 
     const approximatedInstantEthAmount = useApproximateInstantUnstakeAmount(
         accountKey,
@@ -91,10 +109,13 @@ export const useUnstakeForm = (accountKey: AccountKey) => {
         form,
         amountValue,
         stakedBalance,
+        canClaim,
+        claimableAmount,
         showNetworkFeeWarning,
         formDraft,
         formDraftKey,
         isFeeUnavailable,
+        isPrecomposeError,
         updateFeeLevelThunk,
         approximatedInstantEthAmount,
     };

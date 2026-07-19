@@ -17,6 +17,7 @@ import type {
 } from '@suite-common/wallet-types';
 import {
     getConfirmations,
+    getErc4626Contracts,
     getFiatRateKey,
     isCardanoStakingTx,
     isClaimTx,
@@ -30,7 +31,7 @@ import {
 import type { BaseCurrencyCode } from '@trezor/blockchain-link-types';
 import { isNotNullOrUndefined, typedObjectKeys } from '@trezor/utils';
 
-import type { TransactionsRootState } from './transactionsReducerTypes';
+import type { TransactionsByAccount, TransactionsRootState } from './transactionsReducerTypes';
 import type { AccountsRootState } from '../accounts/accountsReducer';
 import { selectAccountByKey } from '../accounts/accountsSelectors';
 import {
@@ -40,14 +41,15 @@ import {
 import { selectHistoricFiatRates } from '../fiat-rates/fiatRatesSelectors';
 import type { FiatRatesRootState } from '../fiat-rates/fiatRatesTypes';
 import { type PhishingRootState } from '../phishing/phishingReducerTypes';
-import {
-    selectDustPhishingIsEnabled,
-    selectDustPhishingThreshold,
-} from '../phishing/phishingSelectors';
+import { selectActiveDustPhishingThreshold } from '../phishing/phishingSelectors';
 import { isAccountStakingActive } from '../stake/stakeUtils';
 
 const createMemoizedSelector = createWeakMapSelector.withTypes<
     TransactionsRootState & AccountsRootState
+>();
+
+const createPhishingContextMemoizedSelector = createWeakMapSelector.withTypes<
+    TokenDefinitionsRootState & TransactionsRootState & FiatRatesRootState
 >();
 
 export const selectIsLoadingAccountTransactions = (
@@ -57,7 +59,7 @@ export const selectIsLoadingAccountTransactions = (
     accountKey !== null &&
     state.wallet.transactions.fetchStatusDetail?.[accountKey]?.status === 'loading';
 
-export const selectTransactions = (state: TransactionsRootState) =>
+export const selectTransactions = (state: TransactionsRootState): TransactionsByAccount =>
     state.wallet.transactions.transactions;
 
 export const selectAreAllTransactionsLoaded = (
@@ -68,6 +70,7 @@ export const selectAreAllTransactionsLoaded = (
     state.wallet.transactions.fetchStatusDetail?.[accountKey]?.areAllTransactionsLoaded;
 
 const EMPTY_STABLE_TRANSACTIONS: WalletAccountTransaction[] = [];
+const EMPTY_STABLE_TXIDS_ARRAY: string[] = [];
 /**
  * The list is not sorted here because it may contain null values as placeholders
  * for transactions that have not been fetched yet. (This affects pagination.)
@@ -103,7 +106,7 @@ export const selectPendingAccountAddresses = createMemoizedSelector(
 
 export const selectAllPendingTransactions = createMemoizedSelector(
     [selectTransactions],
-    transactions =>
+    (transactions): TransactionsByAccount =>
         typedObjectKeys(transactions).reduce(
             (response, accountKey) => {
                 response[accountKey] = (transactions[accountKey] ?? []).filter(isPending);
@@ -170,19 +173,22 @@ export const selectTransactionIsMarkedAsNotScam = (
 export const selectAccountTransactionsMarkedAsNotScam = (
     state: TransactionsRootState,
     accountKey: AccountKey,
-) => state.wallet.transactions.phishing[accountKey] ?? [];
+) => state.wallet.transactions.phishing[accountKey] ?? EMPTY_STABLE_TXIDS_ARRAY;
 
-export const selectPhishingTransactionsContext = (
-    state: TokenDefinitionsRootState & TransactionsRootState & FiatRatesRootState,
-    accountKey: AccountKey,
-    symbol: NetworkSymbol,
-) => {
-    const historicRates = selectHistoricFiatRates(state);
-    const tokenDefinitions = selectNetworkTokenDefinitions(state, symbol);
-    const txsMarkedAsNotScam = selectAccountTransactionsMarkedAsNotScam(state, accountKey);
-
-    return { tokenDefinitions, txsMarkedAsNotScam, historicRates };
-};
+export const selectPhishingTransactionsContext = createPhishingContextMemoizedSelector(
+    [
+        selectHistoricFiatRates,
+        (state: TokenDefinitionsRootState, _accountKey: AccountKey, symbol: NetworkSymbol) =>
+            selectNetworkTokenDefinitions(state, symbol),
+        (state: TransactionsRootState, accountKey: AccountKey, _symbol: NetworkSymbol) =>
+            selectAccountTransactionsMarkedAsNotScam(state, accountKey),
+    ],
+    (historicRates, tokenDefinitions, txsMarkedAsNotScam) => ({
+        tokenDefinitions,
+        txsMarkedAsNotScam,
+        historicRates,
+    }),
+);
 
 export const selectIsPhishingTransaction = (
     state: TokenDefinitionsRootState &
@@ -199,9 +205,7 @@ export const selectIsPhishingTransaction = (
     const { tokenDefinitions, txsMarkedAsNotScam, historicRates } =
         selectPhishingTransactionsContext(state, accountKey, transaction.symbol);
 
-    const dustPhishingIsEnabled = selectDustPhishingIsEnabled(state);
-    const dustPhishingThreshold = selectDustPhishingThreshold(state);
-    const dustThreshold = dustPhishingIsEnabled ? dustPhishingThreshold : undefined;
+    const dustThreshold = selectActiveDustPhishingThreshold(state);
 
     return isPhishingTransaction({
         transaction,
@@ -357,30 +361,41 @@ export const selectTransactionsWithMissingRates = (
 
     return pipe(
         scopedTransactions,
-        D.mapWithKey((key, txs) => ({
-            account: selectAccountByKey(state, key as AccountKey),
-            txs: txs.filter(tx => {
-                const fiatRateKey = getFiatRateKey(tx.symbol, localCurrency as BaseCurrencyCode);
-                const roundedTimestamp = roundTimestampToNearestPastHour(tx.blockTime as Timestamp);
-                const historicRate = historicFiatRates?.[fiatRateKey]?.[roundedTimestamp];
+        D.mapWithKey((key, txs) => {
+            const account = selectAccountByKey(state, key as AccountKey);
+            const erc4626Contracts = getErc4626Contracts(account?.tokens);
 
-                const isMissingTokenRate = tx.tokens
-                    .filter(token => !isNftTokenTransfer(token))
-                    .some(token => {
-                        const tokenFiatRateKey = getFiatRateKey(
-                            tx.symbol,
-                            localCurrency,
-                            token.contract as TokenAddress,
-                        );
-                        const historicTokenRate =
-                            historicFiatRates?.[tokenFiatRateKey]?.[roundedTimestamp];
+            return {
+                account,
+                txs: txs.filter(tx => {
+                    const fiatRateKey = getFiatRateKey(tx.symbol, localCurrency);
+                    const roundedTimestamp = roundTimestampToNearestPastHour(
+                        tx.blockTime as Timestamp,
+                    );
+                    const historicRate = historicFiatRates?.[fiatRateKey]?.[roundedTimestamp];
 
-                        return historicTokenRate === undefined || historicTokenRate === 0;
-                    });
+                    const isMissingTokenRate = tx.tokens
+                        .filter(
+                            token =>
+                                !isNftTokenTransfer(token) &&
+                                !erc4626Contracts.has(token.contract.toLowerCase()),
+                        )
+                        .some(token => {
+                            const tokenFiatRateKey = getFiatRateKey(
+                                tx.symbol,
+                                localCurrency,
+                                token.contract as TokenAddress,
+                            );
+                            const historicTokenRate =
+                                historicFiatRates?.[tokenFiatRateKey]?.[roundedTimestamp];
 
-                return historicRate === undefined || historicRate === 0 || isMissingTokenRate;
-            }),
-        })),
+                            return historicTokenRate === undefined || historicTokenRate === 0;
+                        });
+
+                    return historicRate === undefined || historicRate === 0 || isMissingTokenRate;
+                }),
+            };
+        }),
         D.filter(({ account, txs }) => !!account && !!txs.length),
         D.values,
         A.filter(value => !!value),

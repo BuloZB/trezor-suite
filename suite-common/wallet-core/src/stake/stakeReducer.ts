@@ -2,19 +2,22 @@ import { createReducerWithExtraDeps } from '@suite-common/redux-utils';
 import { cloneObject } from '@trezor/utils';
 
 import { stakeActions } from './stakeActions';
-import { stakeDataSlice } from './stakeDataSlice';
+import { stakeDataInitialState, stakeDataReducer } from './stakeDataSlice';
 import type { StakeState } from './stakeReducerTypes';
 
 export const stakeInitialState: StakeState = {
     precomposedTx: undefined,
     serializedTx: undefined,
     votingDelegation: { type: 'everstake' },
-    data: stakeDataSlice.getInitialState(),
+    data: stakeDataInitialState,
 };
 
 export const prepareStakeReducer = createReducerWithExtraDeps(stakeInitialState, builder => {
     builder
         .addCase(stakeActions.requestSignTransaction, (state, action) => {
+            // Reset the resolved nonce on every (re)start; it's re-set by setResolvedEthereumNonce
+            // once signing resolves it. Clearing it here also covers cancel (falsy payload).
+            delete state.resolvedEthereumNonce;
             if (action.payload) {
                 state.precomposedTx = {
                     ...action.payload.transactionInfo,
@@ -30,6 +33,9 @@ export const prepareStakeReducer = createReducerWithExtraDeps(stakeInitialState,
                 delete state.precomposedForm;
             }
         })
+        .addCase(stakeActions.setResolvedEthereumNonce, (state, action) => {
+            state.resolvedEthereumNonce = action.payload;
+        })
         .addCase(stakeActions.requestPushTransaction, (state, action) => {
             if (action.payload) {
                 state.serializedTx = action.payload;
@@ -44,8 +50,9 @@ export const prepareStakeReducer = createReducerWithExtraDeps(stakeInitialState,
             delete state.precomposedTx;
             delete state.precomposedForm;
             delete state.serializedTx;
+            delete state.resolvedEthereumNonce;
         })
         .addDefaultCase((state, action) => {
-            state.data = stakeDataSlice.reducer(state.data, action);
+            state.data = stakeDataReducer(state.data, action);
         });
 });

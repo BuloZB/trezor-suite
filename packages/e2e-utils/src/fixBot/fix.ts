@@ -1,10 +1,14 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { prettifyError } from 'zod';
 
 import { error, log } from '../logger';
 import { processAgentOutput, runClaude } from './common';
-import { ReportSchema } from './schemas';
+import { AnalysisReportSchema, FixResultJsonSchema, FixResultSchema } from './schemas';
+
+const MAX_BUDGET_USD = '10';
+const TIMEOUT_MS = 3 * 60 * 60 * 1000; // 3 hours
 
 function main(): void {
     const reportPath = process.env.REPORT_PATH;
@@ -25,8 +29,8 @@ function main(): void {
     }).trim();
     const fixAgentDir = join(root, 'packages/e2e-utils/src/fixBot');
 
-    const report = ReportSchema.parse(JSON.parse(readFileSync(reportPath, 'utf-8')));
-    const task = report.fix_tasks.find(t => t.id === taskId);
+    const report = AnalysisReportSchema.parse(JSON.parse(readFileSync(reportPath, 'utf-8')));
+    const task = report.fixTasks.find(t => t.id === taskId);
 
     if (!task) {
         error(`Task '${taskId}' not found in ${reportPath}`);
@@ -37,7 +41,6 @@ function main(): void {
     const desktopCount = task.validations.filter(v => v.platform === 'desktop').length;
 
     log(`━━━ Task ${task.id} ━━━`);
-    log(`Scope:   ${task.fix_scope}`);
     log(`Branch:  ${task.branch}`);
     log(`Web:     ${webCount}  Desktop: ${desktopCount}`);
 
@@ -50,23 +53,61 @@ function main(): void {
             '--verbose',
             '--output-format',
             'json',
+            '--json-schema',
+            JSON.stringify(FixResultJsonSchema),
             '--settings',
             join(fixAgentDir, 'settings.json'),
+            '--max-budget-usd',
+            MAX_BUDGET_USD,
         ],
         input: prompt,
         tmpPrefix: `claude-fix-${task.id}`,
+        timeoutMs: TIMEOUT_MS,
     });
 
-    const { model } = JSON.parse(readFileSync(join(fixAgentDir, 'settings.json'), 'utf-8'));
-    processAgentOutput(output, 'nightlyFixer', model);
+    const agentResult = processAgentOutput(output, 'nightlyFixer');
 
     if (spawnError) {
-        error(`Failed to run claude: ${spawnError.message}`);
+        const timedOut = (spawnError as NodeJS.ErrnoException).code === 'ETIMEDOUT';
+        error(
+            timedOut
+                ? `Fix agent exceeded the ${TIMEOUT_MS / 60000}-minute timeout and was killed; no result produced.`
+                : `Failed to run claude: ${spawnError.message}`,
+        );
         process.exit(1);
     }
 
+    if (!agentResult) {
+        error('Could not parse Claude result envelope from fix agent output.');
+        process.exit(1);
+    }
+
+    if (agentResult.subtype === 'error_max_structured_output_retries') {
+        error(
+            `Fix agent could not produce schema-conformant output after retries. Raw envelope:\n${output}`,
+        );
+        process.exit(1);
+    }
+
+    const fixResult = FixResultSchema.safeParse(agentResult.structured_output);
+    if (!fixResult.success) {
+        error(
+            `structured output failed schema validation: ${prettifyError(fixResult.error)} \nRaw structured output:\n${JSON.stringify(agentResult.structured_output, null, 2)}`,
+        );
+        process.exit(1);
+    }
+
+    writeFileSync(join(root, 'fix-result.json'), `${JSON.stringify(fixResult.data, null, 2)}\n`);
+
+    const prDescriptionFile = join(root, 'pr-description.md');
+    if (existsSync(prDescriptionFile)) {
+        log(`PR description:\n\n${readFileSync(prDescriptionFile, 'utf-8')}`);
+    } else {
+        log('No pr-description.md written by the agent.');
+    }
+
     log('Agent done.');
-    process.exit(status);
+    process.exit(status ?? 1);
 }
 
 main();

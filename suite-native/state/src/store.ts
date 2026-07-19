@@ -1,13 +1,17 @@
 import {
+    type EnhancedStore,
     type Middleware,
     type MiddlewareAPI,
     type StoreEnhancer,
+    type UnknownAction,
     configureStore,
 } from '@reduxjs/toolkit';
+import { type Persistor, persistStore } from 'redux-persist';
 
 import { logsMiddleware } from '@suite-common/logger';
 import {
     type ExtraDependencies,
+    type ExtraDependenciesStatic,
     type ReducerState,
     castExtraStore,
     createStoreWithExtraStoreMiddleware,
@@ -22,6 +26,7 @@ import { deviceConnectionMiddleware, prepareDeviceMiddleware } from '@suite-nati
 import { prepareDiscoveryMiddleware } from '@suite-native/discovery';
 import { messageSystemMiddleware } from '@suite-native/message-system';
 import { sendFormMiddleware } from '@suite-native/send';
+import { type NativeServices } from '@suite-native/services';
 import { createEnsureEncryptionKey, createMMKVStorage } from '@suite-native/storage';
 import {
     prepareTradingLastErrorSentryMiddleware,
@@ -56,6 +61,15 @@ export type FullAppState = ExcludeChildPersists<
 
 export type PreloadedState = DeepPartial<FullPersistedAppState> | undefined;
 
+type NativeExtra = ExtraDependenciesStatic & { services: NativeServices };
+
+export type StoreWithExtra = ReturnType<
+    typeof castExtraStore<NativeExtra, EnhancedStore<FullPersistedAppState, UnknownAction>>
+> & {
+    persistor: Persistor;
+    services: NativeServices;
+};
+
 const ENABLE_REDUX_LOGGER = false;
 const enhancers: Array<StoreEnhancer<any, any>> = [];
 
@@ -88,7 +102,7 @@ const getMiddlewares = (getExtra: () => ExtraDependencies | null) => {
     return middlewares;
 };
 
-export const initStore = (preloadedState?: PreloadedState) => {
+export const initStore = (preloadedState?: PreloadedState): StoreWithExtra => {
     let extra: ReturnType<typeof extraFactory> | null = null as ReturnType<
         typeof extraFactory
     > | null;
@@ -131,9 +145,9 @@ export const initStore = (preloadedState?: PreloadedState) => {
 
     return {
         ...castedStore,
+        persistor: persistStore(castedStore.store),
         services: castedStore.extra.services,
     };
 };
 
-export type StoreWithExtra = Awaited<ReturnType<typeof initStore>>;
 export type Store = StoreWithExtra['store'];

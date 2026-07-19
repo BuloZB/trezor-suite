@@ -14,11 +14,17 @@ import { Translation } from '@suite-native/intl';
 
 import {
     type CoinEnablingFormValues,
-    coinEnablingFormValidationSchema,
-} from '../coinEnablingSchema';
+    getEnabledCoinsFromNetworkSymbols,
+    getNetworkSymbolsFromEnabledCoins,
+} from '../coinEnablingFormUtils';
+import { coinEnablingFormValidationSchema } from '../coinEnablingSchema';
 import { DiscoveryCoinsFilter } from './DiscoveryCoinsFilter';
 
-export const CoinEnablingForm = () => {
+type CoinEnablingFormProps = {
+    searchQuery: string;
+};
+
+export const CoinEnablingForm = ({ searchQuery }: CoinEnablingFormProps) => {
     const dispatch = useDispatch();
     const navigation = useNavigation();
     const { analytics } = useServices(selectNativeAnalyticsDep);
@@ -41,21 +47,21 @@ export const CoinEnablingForm = () => {
 
     const form = useForm<CoinEnablingFormValues>({
         defaultValues: {
-            enabledCoins: enabledNetworkSymbols,
+            enabledCoins: getEnabledCoinsFromNetworkSymbols(enabledNetworkSymbols),
         },
         validation: coinEnablingFormValidationSchema,
     });
 
-    const handleSubmit = form.handleSubmit(values => {
+    const handleSubmit = form.handleSubmit((values: CoinEnablingFormValues) => {
+        const enabledCoins = getNetworkSymbolsFromEnabledCoins(values.enabledCoins);
         const changedCoins = networkSymbolCollection.filter(
-            symbol =>
-                enabledNetworkSymbols.includes(symbol) !== values.enabledCoins.includes(symbol),
+            symbol => enabledNetworkSymbols.includes(symbol) !== enabledCoins.includes(symbol),
         );
 
         if (changedCoins.length === 0) return;
 
         changedCoins.forEach(symbol => {
-            const isEnabled = values.enabledCoins.includes(symbol);
+            const isEnabled = enabledCoins.includes(symbol);
             dispatch(changeCoinVisibility({ symbol, shouldBeVisible: isEnabled }));
 
             analytics.report({
@@ -78,7 +84,10 @@ export const CoinEnablingForm = () => {
 
     return (
         <Form form={form}>
-            <DiscoveryCoinsFilter onDisablingLastCoin={showLastNetworkAlert} />
+            <DiscoveryCoinsFilter
+                searchQuery={searchQuery}
+                onDisablingLastCoin={showLastNetworkAlert}
+            />
         </Form>
     );
 };

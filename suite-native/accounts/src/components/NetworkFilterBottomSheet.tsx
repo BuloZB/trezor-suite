@@ -1,4 +1,5 @@
 import { type Ref, forwardRef, useEffect, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 
 import { type BottomSheetModalMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 
@@ -13,27 +14,31 @@ import {
     Text,
     VStack,
 } from '@suite-native/atoms';
-import { CryptoIcon } from '@suite-native/icons';
+import { TokenIcon } from '@suite-native/icons';
 import { Translation, useTranslate } from '@suite-native/intl';
 
-import { type NetworkFilterOption } from '../selectors';
+import { type NativeAccountsRootState, selectNetworkFilterOptions } from '../selectors';
 
 type NetworkFilterBottomSheetProps = {
-    options: NetworkFilterOption[];
     selectedNetworks: NetworkSymbol[];
     onApply: (selected: NetworkSymbol[]) => void;
     onClear: () => void;
+    isSendFlow: boolean;
 };
 
 export const NetworkFilterBottomSheet = forwardRef(
     (
-        { options, selectedNetworks, onApply, onClear }: NetworkFilterBottomSheetProps,
+        { selectedNetworks, onApply, onClear, isSendFlow }: NetworkFilterBottomSheetProps,
         ref: Ref<BottomSheetModalMethods>,
     ) => {
         const { translate } = useTranslate();
         const [pendingSelection, setPendingSelection] = useState<NetworkSymbol[]>(selectedNetworks);
         const selectedNetworksRef = useRef(selectedNetworks);
         selectedNetworksRef.current = selectedNetworks;
+
+        const options = useSelector((state: NativeAccountsRootState) =>
+            selectNetworkFilterOptions(state, isSendFlow),
+        );
 
         useEffect(() => {
             setPendingSelection(selectedNetworks);
@@ -87,7 +92,7 @@ export const NetworkFilterBottomSheet = forwardRef(
                         <PressableOpacity key={symbol} onPress={() => handleSelectNetwork(symbol)}>
                             <Card noShadow>
                                 <HStack alignItems="center" spacing="sp16">
-                                    <CryptoIcon symbol={symbol} />
+                                    <TokenIcon symbol={symbol} />
                                     <VStack flex={1} spacing={0}>
                                         <Text variant="body-md-strong">
                                             {getNetwork(symbol).name}

@@ -4,15 +4,20 @@ import {
     AbstractTransport,
     type AbstractTransportMethodParams,
     type AbstractTransportParams,
+    type ReadWriteError,
 } from './abstract';
-import { type AbstractApi, type OpenDeviceChannel } from '../api/abstract';
+import {
+    type AbstractApi,
+    type AbstractApiArgsOmitPath,
+    type OpenDeviceChannel,
+} from '../api/abstract';
 import { TRANSPORT } from '../constants';
 import * as ERRORS from '../errors';
 import { SessionsBackground } from '../sessions/background';
 import { SessionsClient } from '../sessions/client';
 import { type SessionsBackgroundInterface } from '../sessions/types';
 import { callThpMessage, parseThpMessage, receiveThpMessage, sendThpMessage } from '../thp';
-import { type Session } from '../types';
+import { type AsyncResultWithTypedError, type MessageResponse, type Session } from '../types';
 import { receiveAndParse } from '../utils/receive';
 import { error, success } from '../utils/result';
 import { buildMessage, createChunks, sendChunks } from '../utils/send';
@@ -132,10 +137,14 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                 );
 
                 if (!openDeviceResult.success) {
+                    // release the lock taken by acquireIntent without committing a
+                    // session, otherwise the device deadlocks on the next acquire
+                    await this.sessionsClient.acquireDone({ path, abort: true });
+
                     return openDeviceResult;
                 }
 
-                this.sessionsClient.acquireDone({ path, sessionOwner: this.id });
+                await this.sessionsClient.acquireDone({ path, sessionOwner: this.id });
 
                 return success(acquireIntentResponse.payload.session);
             },
@@ -217,7 +226,10 @@ export abstract class AbstractApiTransport extends AbstractTransport {
         thpState,
         signal,
         timeout,
-    }: AbstractTransportMethodParams<'call'>) {
+    }: AbstractTransportMethodParams<'call'>): AsyncResultWithTypedError<
+        MessageResponse,
+        ReadWriteError
+    > {
         return this.scheduleAction(
             async signal => {
                 const handleError = (error: string) => {
@@ -253,17 +265,20 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                     this.api.nativeWriteChunking ? 0 : this.api.chunkSize,
                 );
                 let progress = 0;
-                const apiWrite = (chunk: Buffer, attemptSignal?: AbortSignal) => {
+                const apiWrite = (...[chunk, options]: AbstractApiArgsOmitPath<'write'>) => {
                     if (chunks.length > 1) {
                         progress++;
                         this.emit(TRANSPORT.SEND_MESSAGE_PROGRESS, progress / chunks.length);
                     }
 
-                    return this.api.write(path, chunk, attemptSignal || signal);
+                    return this.api.write(path, chunk, {
+                        ...options,
+                        signal: options?.signal || signal,
+                    });
                 };
 
-                const apiRead = (attemptSignal?: AbortSignal) =>
-                    this.api.read(path, attemptSignal || signal);
+                const apiRead = (...[options]: AbstractApiArgsOmitPath<'read'>) =>
+                    this.api.read(path, { ...options, signal: options?.signal || signal });
 
                 if (protocol.name === 'v2') {
                     const prevNonce = thpState?.sendNonce;
@@ -323,7 +338,10 @@ export abstract class AbstractApiTransport extends AbstractTransport {
         thpState,
         signal,
         timeout,
-    }: AbstractTransportMethodParams<'send'>) {
+    }: AbstractTransportMethodParams<'send'>): AsyncResultWithTypedError<
+        undefined,
+        ReadWriteError
+    > {
         return this.scheduleAction(
             async signal => {
                 const getPathBySessionResponse = await this.sessionsClient.getPathBySession({
@@ -349,14 +367,20 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                     this.api.nativeWriteChunking ? 0 : this.api.chunkSize,
                 );
                 let progress = 0;
-                const apiWrite = (chunk: Buffer) => {
+                const apiWrite = (...[chunk, options]: AbstractApiArgsOmitPath<'write'>) => {
                     if (chunks.length > 1) {
                         progress++;
                         this.emit(TRANSPORT.SEND_MESSAGE_PROGRESS, progress / chunks.length);
                     }
 
-                    return this.api.write(path, chunk, signal);
+                    return this.api.write(path, chunk, {
+                        ...options,
+                        signal: options?.signal || signal,
+                    });
                 };
+                const apiRead = (...[options]: AbstractApiArgsOmitPath<'read'>) =>
+                    this.api.read(path, { ...options, signal: options?.signal || signal });
+
                 let sendResult;
                 if (protocol.name === 'v2') {
                     sendResult = await sendThpMessage({
@@ -364,7 +388,7 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                         skipAck: true,
                         chunks,
                         apiWrite,
-                        apiRead: attemptSignal => this.api.read(path, attemptSignal || signal),
+                        apiRead,
                         signal,
                         logger: this.logger,
                     });
@@ -396,7 +420,10 @@ export abstract class AbstractApiTransport extends AbstractTransport {
         thpState,
         signal,
         timeout,
-    }: AbstractTransportMethodParams<'receive'>) {
+    }: AbstractTransportMethodParams<'receive'>): AsyncResultWithTypedError<
+        MessageResponse,
+        ReadWriteError
+    > {
         return this.scheduleAction(
             async signal => {
                 const getPathBySessionResponse = await this.sessionsClient.getPathBySession({
@@ -407,16 +434,21 @@ export abstract class AbstractApiTransport extends AbstractTransport {
                 }
                 const { path } = getPathBySessionResponse.payload;
 
-                const apiRead = (attemptSignal?: AbortSignal) =>
-                    this.api.read(path, attemptSignal || signal);
+                const apiRead = (...[options]: AbstractApiArgsOmitPath<'read'>) =>
+                    this.api.read(path, { ...options, signal: options?.signal || signal });
+
+                const apiWrite = (...[chunk, options]: AbstractApiArgsOmitPath<'write'>) =>
+                    this.api.write(path, chunk, {
+                        ...options,
+                        signal: options?.signal || signal,
+                    });
 
                 const protocol = customProtocol || v1Protocol;
                 if (protocol.name === 'v2') {
                     const decoded = await receiveThpMessage({
                         thpState,
                         skipAck: true,
-                        apiWrite: (chunk, attemptSignal) =>
-                            this.api.write(path, chunk, attemptSignal || signal),
+                        apiWrite,
                         apiRead,
                         signal,
                         logger: this.logger,

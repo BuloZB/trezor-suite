@@ -10,6 +10,7 @@ export interface TronChainExtraData {
     resource?: string;
     stakeAmount?: string;
     unstakeAmount?: string;
+    claimedVoteReward?: string;
     delegateAmount?: string;
     delegateTo?: string;
     assetIssueID?: string;
@@ -24,6 +25,42 @@ export interface TronChainExtraData {
     votes?: TronVoteExtra[];
     note?: string;
 }
+export interface TronVote {
+    /** Super Representative address in base58check format. */
+    address: string;
+    /** Voting power allocated to this SR, in TRX (NOT Sun). 1 vote = 1 TRX of frozen stake. */
+    voteCount: string;
+}
+export interface TronUnstakingBatch {
+    /** Amount being unstaked, in Sun. */
+    amount: string;
+    /** Unix timestamp in seconds. Blockbook divides Tron's millisecond value by 1000. */
+    expireTime: number;
+}
+export interface TronStakingInfo {
+    /** Total frozen TRX, in Sun. Equals stakedBalanceBandwidth + stakedBalanceEnergy. */
+    stakedBalance: string;
+    /** TRX frozen for the ENERGY resource, in Sun. */
+    stakedBalanceEnergy: string;
+    /** TRX frozen for the BANDWIDTH resource, in Sun. */
+    stakedBalanceBandwidth: string;
+    /** Pending unstake batches — the 14-day unfreeze queue introduced by Stake 2.0. */
+    unstakingBatches: TronUnstakingBatch[];
+    /** Total voting power, in TRX (NOT Sun). Equals stakedBalance / 1e6. */
+    totalVotingPower: string;
+    /** Voting power not yet allocated to any SR, in TRX. Equals totalVotingPower - sum(votes[].voteCount). */
+    availableVotingPower: string;
+    /** Current vote allocations to Super Representatives. */
+    votes: TronVote[];
+    /** Unclaimed voting reward, in Sun. */
+    unclaimedReward: string;
+    /** Unix timestamp in seconds of the last voting-reward withdrawal, or 0 if never withdrawn. */
+    latestWithdrawTime: number;
+    /** TRX delegated to other accounts for the ENERGY resource, in Sun. */
+    delegatedBalanceEnergy: string;
+    /** TRX delegated to other accounts for the BANDWIDTH resource, in Sun. */
+    delegatedBalanceBandwidth: string;
+}
 export interface TronAccountExtraData {
     availableStakedBandwidth: number;
     totalStakedBandwidth: number;
@@ -31,6 +68,11 @@ export interface TronAccountExtraData {
     totalFreeBandwidth: number;
     availableEnergy: number;
     totalEnergy: number;
+    totalEnergyLimit: number;
+    totalEnergyWeight: number;
+    totalBandwidthLimit: number;
+    totalBandwidthWeight: number;
+    stakingInfo?: TronStakingInfo;
 }
 export interface APIError {
     /** Human-readable error message describing the issue. */
@@ -82,7 +124,7 @@ export interface EthereumSpecific {
     /** Transaction nonce (sequential number from the sender). */
     nonce: number;
     /** Maximum gas allowed by the sender for this transaction. */
-    gasLimit: number;
+    gasLimit?: number;
     /** Actual gas consumed by the transaction execution. */
     gasUsed?: number;
     /** Price (in Wei or base units) per gas unit. */
@@ -375,8 +417,10 @@ export interface Address {
     transactions?: Tx[];
     /** List of transaction IDs (if detailed data is not requested). */
     txids?: string[];
-    /** Current transaction nonce for Ethereum-like addresses. */
+    /** Current transaction nonce for Ethereum-like addresses (pending-inclusive). */
     nonce?: string;
+    /** Confirmed transaction nonce (mined only, eth_getTransactionCount at latest block). */
+    confirmedNonce?: string;
     /** Number of tokens with any historical usage at this address. */
     usedTokens?: number;
     /** List of tokens associated with this address. */
@@ -743,6 +787,8 @@ export interface WsAccountInfoReq {
     secondaryCurrency?: string;
     /** Gap limit for XPUB scanning, if relevant. */
     gap?: number;
+    /** If true, additionally fetch and return the confirmed (mined-only) nonce for Ethereum-like addresses (extra backend call). */
+    confirmedNonce?: boolean;
 }
 export interface WsContractInfoReq {
     /** Contract address to query. */
@@ -858,8 +904,8 @@ export interface WsEstimateFeeReq {
     };
 }
 export interface Eip1559Fee {
-    maxFeePerGas: string;
-    maxPriorityFeePerGas: string;
+    maxFeePerGas?: string;
+    maxPriorityFeePerGas?: string;
     minWaitTimeEstimate?: number;
     maxWaitTimeEstimate?: number;
 }
@@ -952,4 +998,14 @@ export interface MempoolTxidFilterEntries {
     entries?: { [key: string]: string };
     /** Indicates if a zeroed key was used in filter calculation. */
     usedZeroedKey?: boolean;
+}
+export interface EthereumGasData {
+    baseFeePerGas?: string;
+    blockGasUsed?: string;
+    blockGasLimit?: string;
+}
+export interface WsNewBlock {
+    height: number;
+    hash: string;
+    evmData: EthereumGasData | null;
 }

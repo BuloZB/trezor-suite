@@ -1,7 +1,9 @@
 import { yup } from '@suite-common/validators';
 import { type NetworkSymbol } from '@suite-common/wallet-config';
-import { type AccountKey, type TokenAddress } from '@suite-common/wallet-types';
+import { type TokenAddress } from '@suite-common/wallet-types';
+import { mockAccountKey } from '@suite-common/wallet-types/mocks';
 import { Form, useForm } from '@suite-native/forms';
+import { getTranslation } from '@suite-native/intl';
 import {
     type TestStore,
     createStoreFromPreloadedState,
@@ -56,7 +58,7 @@ describe('FeesFooter', () => {
     let mockOnSubmit: jest.Mock;
 
     const defaultProps = {
-        accountKey: 'test-account-key' as AccountKey,
+        accountKey: mockAccountKey({ descriptor: 'testAccountKey' }),
         isSubmittable: true,
         onSubmit: jest.fn(),
         symbol: 'btc' as NetworkSymbol,
@@ -106,7 +108,7 @@ describe('FeesFooter', () => {
     it('should render mainnet summary when no token contract is provided', () => {
         const { getByText } = renderFeesFooter();
 
-        expect(getByText('Total amount')).toBeTruthy();
+        expect(getByText(getTranslation('transactionManagement.fees.totalAmount'))).toBeTruthy();
     });
 
     it('should render token summary when token contract is provided', () => {
@@ -114,8 +116,8 @@ describe('FeesFooter', () => {
             tokenContract: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48' as TokenAddress,
         });
 
-        expect(getByText('Amount')).toBeTruthy();
-        expect(getByText('Fee')).toBeTruthy();
+        expect(getByText(getTranslation('transactionManagement.fees.amount'))).toBeTruthy();
+        expect(getByText(getTranslation('transactions.detail.feeLabel'))).toBeTruthy();
     });
 
     it('should display total amount correctly', () => {
@@ -189,7 +191,7 @@ describe('FeesFooter', () => {
             withSubmitButton: true,
         });
 
-        expect(getByText('Review and sign')).toBeTruthy();
+        expect(getByText(getTranslation('transactionManagement.fees.submitButton'))).toBeTruthy();
     });
 
     it.each([
@@ -201,7 +203,9 @@ describe('FeesFooter', () => {
         props => {
             const { queryByText } = renderFeesFooter(props);
 
-            expect(queryByText('Review and sign')).toBeNull();
+            expect(
+                queryByText(getTranslation('transactionManagement.fees.submitButton')),
+            ).toBeNull();
         },
     );
 
@@ -211,6 +215,6 @@ describe('FeesFooter', () => {
             // withSubmitButton not provided, should default to true
         });
 
-        expect(getByText('Review and sign')).toBeTruthy();
+        expect(getByText(getTranslation('transactionManagement.fees.submitButton'))).toBeTruthy();
     });
 });

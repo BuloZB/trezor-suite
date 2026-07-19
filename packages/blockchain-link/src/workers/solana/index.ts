@@ -9,8 +9,13 @@ import type {
 } from '@trezor/blockchain-link-types';
 import { CustomError, MESSAGES, RESPONSES } from '@trezor/blockchain-link-types';
 import { solanaUtils } from '@trezor/blockchain-link-utils';
-import { tokenProgramsInfo } from '@trezor/coins-solana/constants';
-import solana from '@trezor/coins-solana/runtime';
+import { getSuiteVersion } from '@trezor/env-utils';
+import {
+    SOLANA_DECIMALS,
+    SOLANA_MAINNET_GENESIS_HASH,
+    tokenProgramsInfo,
+} from '@trezor/network-solana/constants';
+import solana from '@trezor/network-solana/runtime';
 import type {
     AccountInfoBase,
     Address,
@@ -21,8 +26,7 @@ import type {
     SolanaRpcResponse,
     SolanaTokenAccountInfo,
     SolanaValidParsedTxWithMeta,
-} from '@trezor/coins-solana/types';
-import { getSuiteVersion } from '@trezor/env-utils';
+} from '@trezor/network-solana/types';
 import { type IntervalId } from '@trezor/type-utils';
 import { BigNumber, createDeferred, createLazy, isNotNullOrUndefined } from '@trezor/utils';
 
@@ -299,8 +303,8 @@ const getAccountInfo = async (request: Request<MessageTypes.GetAccountInfo>) => 
 
     const tokenAccountsInfos = tokenAccounts.map(a => ({
         address: a.pubkey,
-        mint: a.account.data.parsed?.info?.mint as string | undefined,
-        decimals: a.account.data.parsed?.info?.tokenAmount?.decimals as number | undefined,
+        mint: a.account.data.parsed?.info?.mint,
+        decimals: a.account.data.parsed?.info?.tokenAmount?.decimals,
     }));
 
     const transactionPage =
@@ -389,7 +393,7 @@ const getInfo = async (request: Request<MessageTypes.GetInfo>, isTestnet: boolea
         url: api.clusterUrl,
         name: 'Solana',
         version: '1', // saving request api.rpc.getVersion().send(), version is not used anyways
-        decimals: 9,
+        decimals: SOLANA_DECIMALS,
     };
 
     return {
@@ -705,10 +709,7 @@ class SolanaWorker extends BaseWorker<SolanaAPI> {
         const { getApi } = await solana();
         const api = getApi(url, `Trezor Suite ${getSuiteVersion()}`);
 
-        // genesisHash is reliable identifier of the network, for mainnet the genesis hash is 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d
-        this.isTestnet =
-            (await api.rpc.getGenesisHash().send()) !==
-            '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d';
+        this.isTestnet = (await api.rpc.getGenesisHash().send()) !== SOLANA_MAINNET_GENESIS_HASH;
 
         this.post({ id: -1, type: RESPONSES.CONNECTED });
 

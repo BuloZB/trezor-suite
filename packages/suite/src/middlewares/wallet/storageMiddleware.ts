@@ -1,11 +1,13 @@
 import { isAnyOf } from '@reduxjs/toolkit';
 import { type MiddlewareAPI } from 'redux';
 
+import { COINJOIN } from '@suite/coinjoin';
+import { debugActions } from '@suite/debug';
 import { featureUsed, feedbackDismissed, feedbackRequested } from '@suite/feature-feedback';
 import { setFlag } from '@suite/flags';
 import { METADATA, metadataActions } from '@suite/metadata';
-import { receiveActions } from '@suite/receive';
 import { suiteSettingsActions } from '@suite/settings';
+import { dismissUnsupportedDeviceBanner } from '@suite/suite-sync';
 import { analyticsActions } from '@suite-common/analytics-redux';
 import { bluetoothActions } from '@suite-common/bluetooth';
 import { connectPopupActions } from '@suite-common/connect-popup';
@@ -16,8 +18,10 @@ import {
     selectDevices,
     selectSelectedDevice,
 } from '@suite-common/device';
+import { discreetModeActions } from '@suite-common/discreet-mode';
 import { firmwareActions } from '@suite-common/firmware';
 import { messageSystemActions } from '@suite-common/message-system';
+import { receiveActions } from '@suite-common/receive';
 import {
     setSuiteSyncOwner,
     setSuiteSyncRelayUrl,
@@ -52,7 +56,6 @@ import { walletConnectActions } from '@suite-common/walletconnect';
 import { STORAGE, SUITE } from 'src/actions/suite/constants';
 import * as storageActions from 'src/actions/suite/storageActions';
 import { GRAPH } from 'src/actions/wallet/constants';
-import * as COINJOIN from 'src/actions/wallet/constants/coinjoinConstants';
 import { db } from 'src/storage';
 import type { AppState, Dispatch, Action as SuiteAction } from 'src/types/suite';
 import type { WalletAction } from 'src/types/wallet';
@@ -105,11 +108,7 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
             }
 
             if (
-                isAnyOf(
-                    receiveActions.showAddress,
-                    receiveActions.showUnverifiedAddress,
-                    receiveActions.setCurrentFreshAddress,
-                )(action)
+                isAnyOf(receiveActions.showAddress, receiveActions.setCurrentFreshAddress)(action)
             ) {
                 api.dispatch(storageActions.saveAccountReceive(action.payload.accountKey));
             }
@@ -228,6 +227,7 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                 isAnyOf(
                     updateSuiteSyncDebugEnabled,
                     updateSuiteSyncEnabled,
+                    dismissUnsupportedDeviceBanner,
                     setSuiteSyncRelayUrl,
                 )(action)
             ) {
@@ -311,6 +311,7 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                 isAnyOf(
                     connectPopupActions.rememberAppPermissions,
                     connectPopupActions.forgetAppPermissions,
+                    connectPopupActions.forgetAppPermission,
                     connectPopupActions.setAppSilentMode,
                     walletConnectActions.saveSession,
                     walletConnectActions.removeSession,
@@ -350,8 +351,11 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                 api.dispatch(storageActions.savePersistentDeviceData());
             }
 
+            if (discreetModeActions.setDiscreetMode.match(action)) {
+                api.dispatch(storageActions.saveDiscreetMode());
+            }
+
             switch (action.type) {
-                case WALLET_SETTINGS.SET_HIDE_BALANCE:
                 case setBaseCurrency.type:
                 case WALLET_SETTINGS.SET_BITCOIN_AMOUNT_UNITS:
                 case WALLET_SETTINGS.SET_MEV_PROTECTION:
@@ -377,6 +381,9 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                 case SUITE.EVM_CLOSE_EXPLANATION_BANNER:
                 case suiteSettingsActions.setIsCoinsFilterVisible.type:
                     api.dispatch(storageActions.saveSuiteSettings());
+                    break;
+                case debugActions.setShowDebugMenu.type:
+                    api.dispatch(storageActions.saveDebugSettings());
                     break;
                 case suiteSettingsActions.setCoinjoinReceiveWarningHidden.type: {
                     const device = selectSelectedDevice(api.getState());
@@ -461,6 +468,9 @@ const storageMiddleware = (api: MiddlewareAPI<Dispatch, AppState>) => {
                     }
                     break;
                 }
+                case COINJOIN.SET_DEBUG_SETTINGS:
+                    api.dispatch(storageActions.saveCoinjoinDebugSettings());
+                    break;
                 case COINJOIN.CLIENT_PRISON_EVENT: {
                     const affectedAccounts = action.payload.map(inmate => inmate.accountKey);
                     const state = api.getState();

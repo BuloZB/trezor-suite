@@ -7,7 +7,7 @@ import { selectAccountLabel } from '@suite-native/accounts';
 import { Box, HStack, Text, VStack } from '@suite-native/atoms';
 import { useCoinLabel } from '@suite-native/device';
 import { CryptoAmountFormatter, CryptoToFiatAmountFormatter } from '@suite-native/formatters';
-import { CryptoIcon, Icon } from '@suite-native/icons';
+import { Icon, TokenIcon } from '@suite-native/icons';
 import { useTranslate } from '@suite-native/intl';
 import { type CombinedLabelingState } from '@suite-native/labeling';
 import { type ReceiveAccount } from '@suite-native/trading-types';
@@ -22,8 +22,6 @@ export type AccountListBaseItemProps = {
 };
 
 type TextColor = 'contentPrimary' | 'contentSecondary';
-
-export const ACCOUNT_LIST_ITEM_HEIGHT = 68 as const;
 
 const labelTextStyle = prepareNativeStyle<{ textColor: TextColor; flex: number }>(
     ({ colors }, { textColor, flex }) => ({
@@ -94,7 +92,7 @@ export const AccountListBaseItem = ({
                 justifyContent="center"
             >
                 <Box justifyContent="center">
-                    <CryptoIcon symbol={account.symbol} size="extraSmall" />
+                    <TokenIcon symbol={account.symbol} size="extraSmall" />
                 </Box>
                 {!info && (
                     <Box flex={1}>

@@ -37,6 +37,7 @@ describe('Message system types', () => {
             it.each([
                 ['eth', 'accounts.eth.staking'],
                 ['sol', 'accounts.sol.staking'],
+                ['trx', 'accounts.trx.staking'],
             ] as const satisfies [StakingNetworkSymbol, string][])(
                 'getStaking(%s) → %s',
                 (symbol, expected) => {
@@ -72,6 +73,7 @@ describe('Message system types', () => {
             it.each([
                 ['deposit', 'earn.yield.deposit'],
                 ['withdraw', 'earn.yield.withdraw'],
+                ['redeem', 'earn.yield.redeem'],
                 ['claim', 'earn.yield.claim'],
             ] as const)('getEarnYield(%s) → %s', (type, expected) => {
                 expect(Context.getEarnYield(type)).toBe(expected);

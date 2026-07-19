@@ -3,6 +3,7 @@ import {
     type DelegatedIdentityKey,
     type DeviceCancelledErrType,
     type DeviceErrorType,
+    type DeviceNotConnectedErrorType,
     type TrezorDevice,
 } from '@suite-common/suite-types';
 import { type Result } from '@trezor/type-utils';
@@ -12,10 +13,8 @@ type EnsureSuiteSyncKeysParams = {
 };
 
 /**
- * This error is used in cases where we need to get keys, but it is not possible
- * to get them. For example: Device is not connected, Device does not support Suite Sync.
- *
- * This error can be split if we need more granular error.
+ * This error is used in cases where the device does not support Suite Sync,
+ * or is in some unexpected state (does not have `state`, ...).
  */
 export type SuiteSyncUnavailableOnDeviceErrorType = {
     type: 'SuiteSyncUnavailableOnDeviceError';
@@ -31,7 +30,10 @@ export type EnsureSuiteSyncKeys = (
 ) => Promise<
     Result<
         EnsureSuiteSyncKeysResult,
-        SuiteSyncUnavailableOnDeviceErrorType | DeviceErrorType | DeviceCancelledErrType
+        | SuiteSyncUnavailableOnDeviceErrorType
+        | DeviceErrorType
+        | DeviceCancelledErrType
+        | DeviceNotConnectedErrorType
     >
 >;
 

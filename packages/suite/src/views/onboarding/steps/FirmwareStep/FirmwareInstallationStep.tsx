@@ -2,8 +2,11 @@ import { FirmwareProgressBar, useFirmwareDesktopUpdate } from '@suite/firmware-u
 import { Translation } from '@suite/intl';
 import { OnboardingCard } from '@suite/onboarding-components';
 import { Card, Column, Paragraph } from '@trezor/components';
+import { CircuitryIcon } from '@trezor/icons';
 
-import { FirmwareOffer, ReconnectDevicePrompt, RotatingPhrases } from 'src/components/firmware';
+import { FirmwareOffer } from 'src/components/firmware/FirmwareOffer';
+import { ReconnectDevicePrompt } from 'src/components/firmware/ReconnectDevicePrompt';
+import { RotatingPhrases } from 'src/components/firmware/RotatingPhrases';
 import { WebUsbButton } from 'src/components/suite';
 import { useSelector } from 'src/hooks/suite/useSelector';
 import { selectHasTransportOfType } from 'src/selectors/suite/suiteSelectors';
@@ -53,13 +56,13 @@ export const FirmwareInstallationStep = ({ install, onSuccess }: FirmwareInstall
         <>
             {showReconnectPrompt && <ReconnectDevicePrompt onSuccess={install} />}
             <OnboardingCard
-                iconName="circuitry"
+                icon={CircuitryIcon}
                 heading={<Translation id="TR_INSTALL_FIRMWARE" />}
                 isActionAbortable={true}
                 innerActions={getInnerActionComponent()}
             >
                 <Column gap={60}>
-                    <Card>
+                    <Card type="contrast">
                         <Column gap={8}>
                             <FirmwareOffer
                                 isCustomFirmware={false}

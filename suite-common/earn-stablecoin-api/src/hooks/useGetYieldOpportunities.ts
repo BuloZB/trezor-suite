@@ -1,50 +1,36 @@
-import {
-    type GetYieldsParams,
-    type GetYieldsSort,
-    type YieldsResponse,
-} from '@suite-common/earn-stablecoin-defs';
-import { type MutationOptions, desktopMutationKeys, useMutation } from '@suite-common/react-query';
+import type z from 'zod';
 
+import { type GetYieldsQueryParams } from '@suite-common/earn-stablecoin-defs';
+import { commonQueryKeys, useInfiniteQuery } from '@suite-common/react-query';
+
+import { YIELD_OPPORTUNITIES_DEFAULT_LIMIT, queriesStaleTime } from '../config';
 import { getYields } from '../services';
 
-interface GetYieldOpportunitiesVariables {
-    offset?: number;
-    limit?: number;
-    sort?: GetYieldsSort;
-}
-
 export interface UseGetYieldOpportunitiesProps {
-    providers?: NonNullable<GetYieldsParams['providers']>;
-
-    types?: NonNullable<GetYieldsParams['types']>;
-
-    onSuccess?: MutationOptions<YieldsResponse, Error, GetYieldOpportunitiesVariables>['onSuccess'];
-    onError?: MutationOptions<YieldsResponse, Error, GetYieldOpportunitiesVariables>['onError'];
+    limit?: number;
+    sort?: z.infer<typeof GetYieldsQueryParams>['sort'];
+    enabled?: boolean;
 }
 
 /**
- * Paginated list of Yield opportunities
+ * Paginated list of Yield opportunities — each `fetchNextPage()` loads the next offset.
  */
 export function useGetYieldOpportunities({
-    providers = ['morpho'],
-    types = ['vault'],
-    onError,
-    onSuccess,
-}: UseGetYieldOpportunitiesProps) {
-    return useMutation<YieldsResponse, Error, GetYieldOpportunitiesVariables>({
-        mutationKey: desktopMutationKeys.getYieldOpportunities,
-        mutationFn: ({ offset = 0, limit = 20, sort = 'statusEnterDesc' }) =>
-            getYields({
-                params: {
-                    offset,
-                    limit,
-                    providers,
-                    types,
-                    sort,
-                },
-            }),
-        onError,
-        onSuccess: (data, variables, onMutateResult, context) =>
-            onSuccess?.(data, variables, onMutateResult, context),
+    limit = YIELD_OPPORTUNITIES_DEFAULT_LIMIT,
+    sort = 'statusEnterDesc',
+    enabled = true,
+}: UseGetYieldOpportunitiesProps = {}) {
+    return useInfiniteQuery({
+        queryKey: commonQueryKeys.yieldOpportunitiesPages({ limit, sort }),
+        queryFn: ({ pageParam, signal }) =>
+            getYields({ params: { offset: pageParam, limit, sort }, signal }),
+        initialPageParam: 0,
+        getNextPageParam: lastPage => {
+            const nextOffset = lastPage.offset + (lastPage.items?.length ?? 0);
+
+            return nextOffset < lastPage.total ? nextOffset : undefined;
+        },
+        enabled,
+        staleTime: queriesStaleTime.getYieldOpportunities,
     });
 }

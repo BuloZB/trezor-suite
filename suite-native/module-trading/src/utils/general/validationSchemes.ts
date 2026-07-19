@@ -128,11 +128,9 @@ export const sendCryptoAmountValidationSchema = yup
 
         const convertedValue = convertNumberToBaseUnit(value, sendSymbol.toLowerCase());
 
-        if (convertedValue === undefined || balance === undefined) {
+        if (convertedValue === undefined || convertedValue === 0 || balance === undefined) {
             return true;
         }
-
-        const maxAvailableAmount = maxSpendableAmount ?? balance;
 
         if (convertedValue > parseFloat(balance)) {
             return testContext.createError({
@@ -141,7 +139,13 @@ export const sendCryptoAmountValidationSchema = yup
             });
         }
 
-        if (convertedValue > parseFloat(maxAvailableAmount)) {
+        // undefined means the max amount is unknown (still loading or its calculation
+        // failed), there is nothing to validate against
+        if (maxSpendableAmount === undefined) {
+            return true;
+        }
+
+        if (convertedValue > parseFloat(maxSpendableAmount)) {
             return testContext.createError({
                 type: 'network-reserve',
                 message: translate('moduleTrading.validators.networkReserve', {

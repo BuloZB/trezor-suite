@@ -16,7 +16,7 @@ import { BigNumber } from '@trezor/utils';
 
 import { type NativeStakingRootState } from './types';
 
-export const createMemoizedSelector = createWeakMapSelector.withTypes<NativeStakingRootState>();
+const createMemoizedSelector = createWeakMapSelector.withTypes<NativeStakingRootState>();
 
 export const selectVisibleDeviceSolanaAccountsWithStakingByNetworkSymbol = createMemoizedSelector(
     [selectDeviceAccounts, (_state, symbol: NetworkSymbol) => symbol],
@@ -71,13 +71,11 @@ export const selectSolanaStakedBalanceByAccountKey = (
     accountKey: AccountKey,
 ) => {
     const stakingInfo = selectSolStakingAccountsInfoByAccountKey(state, accountKey);
-    if (!stakingInfo) {
+    if (!stakingInfo?.solStakedBalance) {
         return '0';
     }
 
-    return new BigNumber(stakingInfo.solStakedBalance ?? '0')
-        .plus(stakingInfo.solPendingUnstakeBalance ?? '0')
-        .toString();
+    return stakingInfo.solStakedBalance;
 };
 
 export const selectExpectedRewardsForEpoch = (

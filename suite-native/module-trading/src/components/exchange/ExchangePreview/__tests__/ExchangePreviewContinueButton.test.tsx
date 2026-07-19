@@ -1,4 +1,5 @@
-import { type AccountKey } from '@suite-common/wallet-types';
+import { mockAccountKey } from '@suite-common/wallet-types/mocks';
+import { getTranslation } from '@suite-native/intl';
 import { userEvent } from '@suite-native/test-utils-store';
 import { createPrecomposedTxFinal, mercuryoFixedWorstQuote } from '@suite-native/trading-fixtures';
 import { mergeDeepObject } from '@trezor/utils';
@@ -22,13 +23,16 @@ jest.mock('@react-navigation/native', () => ({
     }),
 }));
 
+const btcAccountKey = mockAccountKey({ symbol: 'btc', descriptor: 'btc1normal' });
+const ethAccountKey = mockAccountKey({ symbol: 'eth', descriptor: 'eth1normal' });
+
 describe('ExchangePreviewContinueButton', () => {
     const baseOverrides: PreloadedStatePartial<TradingTestPreloadedState> = {
         wallet: {
             trading: {
                 exchange: {
-                    tradingAccountKey: 'btc-account-1' as AccountKey,
-                    receiveAccountKey: 'eth-account-1' as AccountKey,
+                    tradingAccountKey: btcAccountKey,
+                    receiveAccountKey: ethAccountKey,
                     selectedQuote: mercuryoFixedWorstQuote,
                 },
             },
@@ -69,19 +73,19 @@ describe('ExchangePreviewContinueButton', () => {
             { wallet: { send: { precomposedTx: { type: 'composing' } as any } } },
         );
 
-        expect(getByText('Continue')).toBeDisabled();
+        expect(getByText(getTranslation('generic.buttons.continue'))).toBeDisabled();
     });
 
     it('should render continue button', () => {
         const { getByText } = renderExchangePreviewContinueButton();
 
-        expect(getByText('Continue')).toBeOnTheScreen();
+        expect(getByText(getTranslation('generic.buttons.continue'))).toBeOnTheScreen();
     });
 
     it('should render disabled button when isDisabled prop is specified', () => {
         const { getByText } = renderExchangePreviewContinueButton({ isDisabled: true });
 
-        expect(getByText('Continue')).toBeDisabled();
+        expect(getByText(getTranslation('generic.buttons.continue'))).toBeDisabled();
     });
 
     it('should keep continue button enabled when dex quote approval prefetch is loading', () => {
@@ -133,7 +137,7 @@ describe('ExchangePreviewContinueButton', () => {
             },
         );
 
-        await userEvent.press(getByText('Continue'));
+        await userEvent.press(getByText(getTranslation('generic.buttons.continue')));
 
         expect(consoleWarnSpy).toHaveBeenCalledWith('quote or fromAccount is not defined', {
             hasQuote: false,
@@ -151,13 +155,15 @@ describe('ExchangePreviewContinueButton', () => {
             {
                 wallet: {
                     trading: {
-                        exchange: { tradingAccountKey: 'non-existing-key' as AccountKey },
+                        exchange: {
+                            tradingAccountKey: mockAccountKey({ descriptor: 'nonExistingKey' }),
+                        },
                     },
                 },
             },
         );
 
-        await userEvent.press(getByText('Continue'));
+        await userEvent.press(getByText(getTranslation('generic.buttons.continue')));
 
         expect(consoleWarnSpy).toHaveBeenCalledWith('quote or fromAccount is not defined', {
             hasQuote: true,
@@ -174,11 +180,11 @@ describe('ExchangePreviewContinueButton', () => {
             onSignTransactionNavigation: mockOnSignTransactionNavigation,
         });
 
-        await userEvent.press(getByText('Continue'));
+        await userEvent.press(getByText(getTranslation('generic.buttons.continue')));
 
         expect(consoleWarnSpy).not.toHaveBeenCalled();
         expect(mockNavigate).toHaveBeenCalledWith('TradingExchangeOutputsReview', {
-            accountKey: 'btc-account-1',
+            accountKey: btcAccountKey,
             orderId: mercuryoFixedWorstQuote.orderId,
             tokenContract: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
             flowType: 'swap',
@@ -201,10 +207,10 @@ describe('ExchangePreviewContinueButton', () => {
             },
         );
 
-        await userEvent.press(getByText('Continue'));
+        await userEvent.press(getByText(getTranslation('generic.buttons.continue')));
 
         expect(mockNavigate).toHaveBeenCalledWith('TradingExchangeOutputsReview', {
-            accountKey: 'btc-account-1',
+            accountKey: btcAccountKey,
             orderId: mercuryoFixedWorstQuote.orderId,
             tokenContract: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
             flowType: 'sign-data',

@@ -11,13 +11,14 @@ import {
 } from '@suite-common/trading';
 import { AnimatedVStack, InlineAlertBox, VStack } from '@suite-native/atoms';
 import { Translation, useTranslate } from '@suite-native/intl';
+import { KycPolicyWarning, hasKycPolicyWarning } from '@suite-native/trading-provider-utils';
+import { SlippagePicker } from '@suite-native/trading-slippage';
 
 import { ExchangeEIP712Info } from './ExchangeEIP712Info';
-import { ExchangeFeePickerCard } from './ExchangeFeePickerCard';
 import { ExchangeFiatDeviationWarning } from './ExchangeFiatDeviationWarning';
 import { ExchangeFromAccountTradePreviewCard } from './ExchangeFromAccountTradePreviewCard';
+import { ExchangeInfo } from './ExchangeInfo';
 import { ExchangeToAccountTradePreviewCard } from './ExchangeToAccountTradePreviewCard';
-import { getKycPolicyWarningTranslation } from '../../../utils/general/kycUtils';
 import { LastErrorMessage } from '../../general/Error/LastErrorMessage';
 
 export type ExchangePreviewViewProps = {
@@ -37,14 +38,12 @@ export const ExchangePreviewView = memo(
         const isTxnError = !!txnErrorString;
         const hasEIP712SignData = hasEip712SignData(quote);
 
-        const kycWarning = getKycPolicyWarningTranslation(kycPolicy);
-
         return (
-            <VStack spacing="sp20" paddingVertical="sp20">
+            <VStack spacing="sp16">
                 <LastErrorMessage tradingType="exchange" />
                 {!!isApproved && (
                     <InlineAlertBox
-                        variant="success"
+                        intent="brand"
                         title={
                             <Translation id="moduleTrading.tradingExchangePreviewScreen.approvalSuccessAlert" />
                         }
@@ -52,22 +51,26 @@ export const ExchangePreviewView = memo(
                 )}
                 {isTxnError && (
                     <Animated.View layout={LinearTransition} entering={FadeIn} exiting={FadeOut}>
-                        <InlineAlertBox variant="critical" title={txnErrorString} />
+                        <InlineAlertBox intent="critical" title={txnErrorString} />
                     </Animated.View>
                 )}
-                <AnimatedVStack layout={LinearTransition}>
+                <AnimatedVStack layout={LinearTransition} spacing="sp16">
                     <ExchangeFromAccountTradePreviewCard quote={quote} />
                     <ExchangeToAccountTradePreviewCard quote={quote} />
                     <ExchangeFiatDeviationWarning quote={quote} />
                     {hasEIP712SignData ? (
-                        <ExchangeEIP712Info exchange={quote?.exchange} />
+                        <ExchangeEIP712Info exchange={quote?.exchange}>
+                            <SlippagePicker />
+                        </ExchangeEIP712Info>
                     ) : (
-                        <ExchangeFeePickerCard quote={quote} isTxnError={isTxnError} />
+                        <ExchangeInfo quote={quote} isTxnError={isTxnError}>
+                            <SlippagePicker />
+                        </ExchangeInfo>
                     )}
-                    {kycWarning && (
+                    {hasKycPolicyWarning(kycPolicy) && (
                         <InlineAlertBox
                             iconName="identificationCard"
-                            title={kycWarning}
+                            title={<KycPolicyWarning kycPolicyType={kycPolicy} />}
                             accessibilityHint={translate('generic.warning')}
                         />
                     )}

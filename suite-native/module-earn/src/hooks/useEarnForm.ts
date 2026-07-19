@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 
 import { buildStakeData, getEthereumStakingAddressByType } from '@suite-common/staking';
 import { getNetwork } from '@suite-common/wallet-config';
+import { WALLET_SDK_SOURCE_MOBILE } from '@suite-common/wallet-constants';
 import { type AccountsRootState, selectAccountByKey } from '@suite-common/wallet-core';
 import { type AccountKey } from '@suite-common/wallet-types';
 import { formatNetworkAmount } from '@suite-common/wallet-utils';
@@ -50,15 +51,16 @@ export const useEarnForm = (accountKey: AccountKey) => {
         return buildEarnComposeFormState(
             getEthereumStakingAddressByType(account.symbol, 'stake'),
             amountValue,
-            buildStakeData(),
+            buildStakeData(WALLET_SDK_SOURCE_MOBILE),
         );
     }, [account, isValid, amountValue]);
 
-    const { formDraft, formDraftKey, isFeeUnavailable, updateFeeLevelThunk } = useComposeEarnFees({
-        accountKey,
-        formState: stakeFormState,
-        formDraftPrefix: 'stake',
-    });
+    const { formDraft, formDraftKey, isFeeUnavailable, isPrecomposeError, updateFeeLevelThunk } =
+        useComposeEarnFees({
+            accountKey,
+            formState: stakeFormState,
+            formDraftPrefix: 'stake',
+        });
 
     if (!account) return null;
 
@@ -69,6 +71,7 @@ export const useEarnForm = (accountKey: AccountKey) => {
         formDraft,
         formDraftKey,
         isFeeUnavailable,
+        isPrecomposeError,
         updateFeeLevelThunk,
     };
 };

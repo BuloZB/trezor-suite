@@ -4,15 +4,14 @@ import { useSelector } from 'react-redux';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 
 import { useServices } from '@suite-common/dependency-injection';
-import {
-    buildClaimWithdrawRequestData,
-    getEthereumStakingAddressByType,
-} from '@suite-common/staking';
+import { buildClaimWithdrawRequestData, getStakingContractAddress } from '@suite-common/staking';
 import { getNetworkDisplaySymbol } from '@suite-common/wallet-config';
 import { type AccountsRootState, selectAccountByKey } from '@suite-common/wallet-core';
 import {
     asAmountSubunit,
     getStakingLimitsByNetworkSymbol,
+    isSupportedEthStakingNetworkSymbol,
+    isSupportedSolStakingNetworkSymbol,
     subunitsToUnits,
 } from '@suite-common/wallet-utils';
 import { AccountDetailsCard } from '@suite-native/accounts';
@@ -32,10 +31,12 @@ import {
     selectClaimableAmountByAccountKey,
 } from '@suite-native/staking';
 import { FeeSelector } from '@suite-native/transaction-management';
+import { MAX_DEACTIVATE_ACCOUNTS_WITH_SPLIT } from '@trezor/network-solana/constants';
 import { BigNumber } from '@trezor/utils';
 
 import { useComposeEarnFees } from '../hooks/useComposeEarnFees';
 import { useNavigateBackAnalytics } from '../hooks/useNavigateBackAnalytics';
+import { useSolanaStakingLimit } from '../hooks/useSolanaStakingLimit';
 import { buildEarnComposeFormState } from '../utils';
 
 export const ClaimReviewScreen = () => {
@@ -51,10 +52,10 @@ export const ClaimReviewScreen = () => {
     const claimableAmount = useSelector((state: NativeStakingRootState) =>
         selectClaimableAmountByAccountKey(state, accountKey),
     );
-    const availableBalance = useSelector(
-        (state: AccountsRootState) =>
-            selectAccountByKey(state, accountKey)?.availableBalance ?? '0',
+    const account = useSelector((state: AccountsRootState) =>
+        selectAccountByKey(state, accountKey),
     );
+    const availableBalance = account?.availableBalance ?? '0';
 
     const feeBuffer = getStakingLimitsByNetworkSymbol(symbol)?.MIN_BALANCE_FOR_FEE_BUFFER;
     const availableBalanceInUnits = subunitsToUnits({
@@ -64,21 +65,32 @@ export const ClaimReviewScreen = () => {
     const isInsufficientFeeBalance = !!feeBuffer && availableBalanceInUnits.lt(feeBuffer);
     const formattedAvailableBalance = `${availableBalanceInUnits.toString()} ${displaySymbol}`;
 
-    const claimFormState = useMemo(
-        () =>
-            buildEarnComposeFormState(
-                getEthereumStakingAddressByType(symbol, 'claim'),
-                '0',
-                buildClaimWithdrawRequestData(),
-            ),
-        [symbol],
-    );
+    const claimFormState = useMemo(() => {
+        if (!account) return undefined;
 
-    const { formDraft, formDraftKey, isFeeUnavailable, updateFeeLevelThunk } = useComposeEarnFees({
-        accountKey,
-        formState: claimFormState,
-        formDraftPrefix: 'claim',
-    });
+        const contractAddress = getStakingContractAddress(account, 'claim');
+
+        // Ethereum claims via calldata, Solana via the claimable amount.
+        if (account.networkType === 'ethereum') {
+            return buildEarnComposeFormState(contractAddress, '0', buildClaimWithdrawRequestData());
+        }
+
+        if (account.networkType === 'solana') {
+            return buildEarnComposeFormState(contractAddress, claimableAmount ?? '0', '');
+        }
+
+        return buildEarnComposeFormState(contractAddress, '0', '');
+    }, [account, claimableAmount]);
+
+    const { formDraft, formDraftKey, isFeeUnavailable, isPrecomposeError, updateFeeLevelThunk } =
+        useComposeEarnFees({
+            accountKey,
+            formState: claimFormState,
+            formDraftPrefix: 'claim',
+        });
+
+    const { isLimitExceeded: isAccountLimitExceeded, formattedAmount: claimableLimitAmount } =
+        useSolanaStakingLimit({ accountKey, type: 'claim', amount: claimableAmount });
 
     const { analytics } = useServices(selectNativeAnalyticsDep);
     const registerNavigateBackAnalytics = useNavigateBackAnalytics({
@@ -122,7 +134,17 @@ export const ClaimReviewScreen = () => {
                 <Box paddingHorizontal="sp16" paddingBottom="sp16">
                     <Button
                         onPress={handleReviewAndSign}
-                        isDisabled={isInsufficientFeeBalance || isFeeUnavailable}
+                        isDisabled={
+                            !claimFormState ||
+                            !canClaimInstantly ||
+                            isInsufficientFeeBalance ||
+                            isFeeUnavailable ||
+                            isPrecomposeError ||
+                            !(
+                                isSupportedEthStakingNetworkSymbol(symbol) ||
+                                isSupportedSolStakingNetworkSymbol(symbol)
+                            )
+                        }
                     >
                         <Translation id="earn.claimReviewScreen.reviewAndSignButton" />
                     </Button>
@@ -146,7 +168,7 @@ export const ClaimReviewScreen = () => {
                 />
                 {isInsufficientFeeBalance && (
                     <FullAlertBox
-                        variant="critical"
+                        intent="critical"
                         iconName="warningCircle"
                         title={
                             <Translation
@@ -164,11 +186,26 @@ export const ClaimReviewScreen = () => {
                 )}
                 {canClaimInstantly && !isInsufficientFeeBalance && (
                     <InlineAlertBox
-                        variant="success"
+                        intent="brand"
                         title={
                             <Translation
                                 id="earn.claimReviewScreen.instantClaimBanner"
                                 values={{ displaySymbol }}
+                            />
+                        }
+                    />
+                )}
+                {isAccountLimitExceeded && (
+                    <InlineAlertBox
+                        intent="info"
+                        title={
+                            <Translation
+                                id="earn.claimReviewScreen.accountLimitBanner"
+                                values={{
+                                    limit: MAX_DEACTIVATE_ACCOUNTS_WITH_SPLIT,
+                                    amount: claimableLimitAmount,
+                                    symbol: displaySymbol,
+                                }}
                             />
                         }
                     />

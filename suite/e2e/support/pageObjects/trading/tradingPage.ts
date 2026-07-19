@@ -47,13 +47,14 @@ export class TradingPage {
     readonly setMax: Locator;
 
     // Transactions
+    readonly backButton: Locator;
     readonly transactionDetailStatus: Locator;
+    readonly transactionDetailHeader: Locator;
     readonly transactionDetail: Locator;
     readonly transactions: TradingTransactionsSection;
 
     // Swap toast notifications
-    readonly swapToastSendAccount: Locator;
-    readonly swapToastReceiveAccount: Locator;
+    readonly swapToastMessage: Locator;
     readonly swapToastSendAmount: Locator;
     readonly swapToastReceiveAmount: Locator;
 
@@ -85,13 +86,14 @@ export class TradingPage {
         this.sendBalance = this.page.getByTestId('outputs.0.token');
         this.setMax = this.page.getByTestId('outputs.0.setMax');
 
+        this.backButton = this.page.getByTestId('@account-subpage/back');
         this.transactionDetailStatus = this.page.getByTestId('@trading/transaction/detail/status');
+        this.transactionDetailHeader = this.page.getByTestId('@trading/transaction/detail/header');
         this.transactionDetail = this.page.getByTestId('@trading/transaction/detail');
         this.transactions = new TradingTransactionsSection(page);
 
         // Swap toast notifications
-        this.swapToastSendAccount = this.page.getByTestId('@toast/tx-exchange/send-account');
-        this.swapToastReceiveAccount = this.page.getByTestId('@toast/tx-exchange/receive-account');
+        this.swapToastMessage = this.page.getByTestId('@toast/tx-exchange/message');
         this.swapToastSendAmount = this.page.getByTestId('@toast/tx-exchange/send-amount');
         this.swapToastReceiveAmount = this.page.getByTestId('@toast/tx-exchange/receive-amount');
     }
@@ -105,6 +107,7 @@ export class TradingPage {
      * @param params.wantCrypto - Whether the amount is specified in crypto (true) or fiat (false). Default: false
      * @param params.fiatCurrencyCode - The fiat currency code (e.g., 'czk', 'eur', 'usd'). Default: 'czk'
      * @param params.country - The country code for residence (e.g., 'CZ', 'US', 'GB'). Default: 'CZ'
+     * @param params.countrySubdivision - Optional subdivision code, required for countries with subdivisions (e.g., 'CA', 'NY' for US states)
      * @param params.selectReceiveAddress - Optional async callback to select a custom receive address
      *
      * @example
@@ -131,12 +134,14 @@ export class TradingPage {
         wantCrypto = false,
         fiatCurrencyCode = 'czk',
         country = 'CZ',
+        countrySubdivision,
         selectReceiveAddress,
     }: {
         amount: string;
         wantCrypto?: boolean;
         fiatCurrencyCode?: BaseCurrencyCode;
         country?: TradingCountryCode;
+        countrySubdivision?: string;
         selectReceiveAddress?: () => Promise<void>;
     }) {
         const inputField = wantCrypto ? this.inputs.cryptoAmount : this.inputs.fiatAmount;
@@ -148,6 +153,9 @@ export class TradingPage {
         }
 
         await this.inputs.selectCountryOfResidence(country);
+        if (countrySubdivision) {
+            await this.inputs.selectCountrySubdivision(countrySubdivision);
+        }
         await this.inputs.selectFiatCurrency(fiatCurrencyCode);
 
         if (selectReceiveAddress) {
@@ -323,6 +331,34 @@ export class TradingPage {
         await this.inputs.cryptoAmount.fill(amount);
         await quotesResponsePromise;
         await this.quotes.waitForSync();
+    }
+
+    /**
+     * @param params.sendAccount - The account label the swap is sent from (e.g., 'Solana #1')
+     * @param params.receiveAccount - The account label the swap is received to (e.g., 'Bitcoin #1')
+     * @param params.sendAmount - The expected send amount (e.g., '0.001')
+     * @param params.receiveAmount - The expected receive amount (localized, e.g., '0.00002')
+     */
+    @step()
+    async verifySwapToast({
+        sendAccount,
+        receiveAccount,
+        sendAmount,
+        receiveAmount,
+    }: {
+        sendAccount: string;
+        receiveAccount: string;
+        sendAmount: string;
+        receiveAmount: string;
+    }) {
+        await expect(this.swapToastMessage).toHaveTranslation('TOAST_TX_EXCHANGE_BROADCASTED', {
+            values: {
+                sendAccount,
+                receiveAccount,
+            },
+        });
+        await expect(this.swapToastSendAmount).toHaveText(sendAmount);
+        await expect(this.swapToastReceiveAmount).toHaveText(receiveAmount);
     }
 
     @step()

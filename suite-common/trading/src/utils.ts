@@ -18,26 +18,24 @@ import {
     getNetwork,
     getNetworkByCoingeckoId,
     getNetworkByTradeCryptoId,
-    networksCollection,
 } from '@suite-common/wallet-config';
-import type { Account, AccountKey, FormStateTrading } from '@suite-common/wallet-types';
+import type {
+    Account,
+    AccountKey,
+    FormStateTrading,
+    TokenAddress,
+} from '@suite-common/wallet-types';
 import { getContractAddressForNetworkSymbol } from '@suite-common/wallet-utils';
 import { type TokenInfo } from '@trezor/connect';
 import { exhaustive } from '@trezor/type-utils';
-import { BigNumber } from '@trezor/utils';
 
-import {
-    CONTRACT_ADDRESS_FOR_NATIVE_TOKEN,
-    CRYPTO_PLATFORM_SEPARATOR,
-    TOKEN_SELECT_SELECTABLE_NETWORKS,
-} from './constants';
+import { CONTRACT_ADDRESS_FOR_NATIVE_TOKEN, CRYPTO_PLATFORM_SEPARATOR } from './constants';
 import { regional } from './regional';
 import {
     type TradingCountryCode,
     type TradingCountrySubdivisionOption,
     type TradingExchangeType,
     type TradingParsedCryptoIdProps,
-    type TradingPaymentMethodListProps,
     type TradingPaymentMethodProps,
     type TradingProviderInfo,
     type TradingSellType,
@@ -52,7 +50,7 @@ import { getCountrySubdivisionByCode } from './utils/countryUtils';
 
 type NetworkAndContractAddress = {
     network: Network | undefined;
-    contractAddress: string | undefined;
+    contractAddress: TokenAddress | undefined;
 };
 
 type TradingGetFormStateSellProps = {
@@ -98,8 +96,11 @@ export const isExchangeProvider = (provider: TradingProviderInfo) =>
 export const parseCryptoId = (cryptoId: CryptoId): TradingParsedCryptoIdProps => {
     const parts = cryptoId.split(CRYPTO_PLATFORM_SEPARATOR);
 
-    // TODO: This casting doesn't make any sense. Return new type called `NetworkId` instead of `CryptoId`
-    return { networkId: parts[0] as CryptoId, contractAddress: parts[1] };
+    return {
+        // TODO: This casting doesn't make any sense. Return new type called `NetworkId` instead of `CryptoId`
+        networkId: parts[0] as CryptoId,
+        contractAddress: parts[1] as TokenAddress | undefined,
+    };
 };
 
 export function composeCryptoId(coingeckoId: string, contractAddress?: string | null): CryptoId {
@@ -272,35 +273,6 @@ export const getNetworkDecimalsWithFallback = (
     fallback = getNetwork('btc').decimals,
 ): number => (symbol ? (getNetwork(symbol).decimals ?? fallback) : fallback);
 
-export const getTradingPaymentMethods = (
-    quotes: BuyTrade[] | SellFiatTrade[],
-): TradingPaymentMethodListProps[] => {
-    const uniqueMethods = new Map<string, TradingPaymentMethodListProps>();
-
-    quotes.forEach(quote => {
-        if (!quote.paymentMethod) return;
-        if (uniqueMethods.has(quote.paymentMethod)) return;
-        const amount = isBuyTrade(quote) ? quote.receiveStringAmount : quote.fiatStringAmount;
-        uniqueMethods.set(quote.paymentMethod, {
-            value: quote.paymentMethod,
-            label: quote.paymentMethodName ?? quote.paymentMethod,
-            receiveAmount: amount,
-            symbol: isBuyTrade(quote)
-                ? cryptoIdToSymbol(quote.receiveCurrency)
-                : (quote as SellFiatTrade).fiatCurrency,
-        });
-    });
-
-    const sortedMethods = Array.from(uniqueMethods.values()).sort((a, b) => {
-        const aAmount = new BigNumber(a.receiveAmount || '0');
-        const bAmount = new BigNumber(b.receiveAmount || '0');
-
-        return bAmount.minus(aAmount).toNumber();
-    });
-
-    return sortedMethods;
-};
-
 export const getTradingQuotesByPaymentMethod = <T extends TradingTradeBuySellType>(
     quotes: TradingTradeMapProps[T][],
     currentPaymentMethod: TradingPaymentMethodProps,
@@ -410,18 +382,6 @@ export const getTradingFormState = ({
             return exhaustive(activeSection);
     }
 };
-
-export const getTokenSelectableNetworks = (
-    isDebugMode = false,
-    allNetworks = networksCollection,
-): NetworkSymbol[] =>
-    allNetworks
-        .filter(
-            n =>
-                (!n.isDebugOnlyNetwork || isDebugMode) &&
-                TOKEN_SELECT_SELECTABLE_NETWORKS.includes(n.symbol),
-        )
-        .map(n => n.symbol);
 
 export const getTradingPrefilledFromAccountData = (
     { symbol, key }: Account,

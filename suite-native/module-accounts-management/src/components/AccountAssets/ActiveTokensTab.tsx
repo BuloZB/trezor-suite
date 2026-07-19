@@ -10,7 +10,7 @@ import {
     AccountsListTokenItem,
     type NativeAccountsRootState,
     type OnSelectAccount,
-    selectActiveTokensTabSections,
+    selectAccountListSectionsWithZeroBalanceGroup,
 } from '@suite-native/accounts';
 import { useStakingDetailNavigation } from '@suite-native/module-earn';
 
@@ -23,7 +23,7 @@ type ActiveTokensTabProps = {
     isStakingDisplayed: boolean;
 };
 
-type SectionItem = ReturnType<typeof selectActiveTokensTabSections>[number];
+type SectionItem = ReturnType<typeof selectAccountListSectionsWithZeroBalanceGroup>[number];
 type ActiveTokenListItem = SectionItem & { isLast: boolean };
 
 const getItemKey = (item: ActiveTokenListItem): string => {
@@ -46,8 +46,8 @@ export const ActiveTokensTab = ({
 }: ActiveTokensTabProps) => {
     const { navigateToStakingDetail } = useStakingDetailNavigation();
 
-    const sections = useSelector((state: NativeAccountsRootState) =>
-        selectActiveTokensTabSections(state, accountKey),
+    const activeTokensSections = useSelector((state: NativeAccountsRootState) =>
+        selectAccountListSectionsWithZeroBalanceGroup(state, accountKey),
     );
 
     const handleSelectAccount: OnSelectAccount = useCallback(
@@ -64,10 +64,10 @@ export const ActiveTokensTab = ({
 
     const listItems: ActiveTokenListItem[] = useMemo(
         () =>
-            sections
+            activeTokensSections
                 .filter(item => item.type !== 'staking' || isStakingDisplayed)
                 .map((item, index, arr) => ({ ...item, isLast: index === arr.length - 1 })),
-        [sections, isStakingDisplayed],
+        [activeTokensSections, isStakingDisplayed],
     );
 
     const renderItem = useCallback(
@@ -77,6 +77,7 @@ export const ActiveTokensTab = ({
                     return (
                         <AccountsListItem
                             {...item}
+                            isNativeCoinOnly
                             hasBackground
                             showDivider
                             onPress={handleSelectAccount}

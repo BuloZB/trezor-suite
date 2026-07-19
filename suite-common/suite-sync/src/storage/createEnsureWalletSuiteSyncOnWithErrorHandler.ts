@@ -26,21 +26,14 @@ export const createEnsureWalletSuiteSyncOnWithErrorHandler =
 
             switch (type) {
                 case 'SuiteSyncFirmwareUpgradeNeededDeviceErrorType':
+                case 'SuiteSyncUnavailableOnDeviceError':
                 case 'DeviceCancelled':
                 case 'DeviceError':
+                case 'DeviceNotConnectedError':
                     deps.dispatch(
                         setSuiteSyncError({
                             deviceStaticSessionId: params.deviceStaticSessionId,
                             error: result.error,
-                        }),
-                    );
-                    break;
-
-                case 'SuiteSyncUnavailableOnDeviceError':
-                    // This error is now not handled in the UI, so we don't need to set the error. It will probably be added as a follow up.
-                    deps.dispatch(
-                        resetSuiteSyncError({
-                            deviceStaticSessionId: params.deviceStaticSessionId,
                         }),
                     );
                     break;

@@ -1,6 +1,6 @@
 import { type NetworkSymbol } from '@suite-common/wallet-config';
 import { type TokenAddress } from '@suite-common/wallet-types';
-import { CryptoIcon, Icon, type IconName, type IconSize, icons } from '@suite-native/icons';
+import { Icon, type IconName, type IconSize, TokenIcon, icons } from '@suite-native/icons';
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 import { type Color } from '@trezor/theme';
 import { isNotNullOrUndefined } from '@trezor/utils';
@@ -73,13 +73,13 @@ export const CompoundRoundedIcon = ({
             {compoundIcons.map(({ name, color, size }) =>
                 name && name in icons ? (
                     <Icon
-                        name={name as IconName}
+                        name={name}
                         color={color}
                         size={size}
                         key={`${name}-${color ?? 'default'}-${size ?? 'default'}`}
                     />
                 ) : (
-                    symbol && <CryptoIcon symbol={symbol} contractAddress={contractAddress} />
+                    symbol && <TokenIcon symbol={symbol} contractAddress={contractAddress} />
                 ),
             )}
         </Box>

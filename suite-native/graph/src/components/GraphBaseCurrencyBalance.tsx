@@ -14,14 +14,12 @@ import { BigNumber } from '@trezor/utils';
 import { GraphDateFormatter } from './GraphDateFormatter';
 import { PriceChangeIndicator } from './PriceChangeIndicator';
 
-type BalanceProps = {
-    selectedPointAtom: Atom<FiatGraphPoint | null>;
-    latestValue?: BaseCurrencyAmount;
-};
-
-type GraphFiatBalanceProps = BalanceProps & {
+type GraphFiatBalanceProps = {
+    selectedPointFiatValueAtom: Atom<string>;
+    selectedPointTimestampAtom: Atom<number | null>;
     referencePointAtom: Atom<FiatGraphPoint | null>;
     percentageChangeAtom: Atom<number>;
+    isGestureActiveAtom: Atom<boolean>;
     showChange?: boolean;
     isLoading?: boolean;
     totalBaseCurrencyBalance?: BaseCurrencyAmount;
@@ -40,28 +38,49 @@ const Skeleton = () => (
     </VStack>
 );
 
-const Balance = ({ selectedPointAtom, latestValue }: BalanceProps) => {
-    const point = useAtomValue(selectedPointAtom);
+const FormattedBalance = ({ value }: { value: BaseCurrencyAmount }) => (
+    <DiscreetTextTrigger testID="@home/portfolio/fiat-balance-header/discreet-trigger">
+        <BaseCurrencyAmountLargeFormatter
+            value={value}
+            testID="@home/portfolio/fiat-balance-header"
+        />
+    </DiscreetTextTrigger>
+);
 
-    const baseCurrencyValue =
-        latestValue ??
-        point?.valueLatestTotal ??
-        asBaseCurrencyAmount(new BigNumber(point?.value ? String(point.value) : '0'));
+const SelectedPointFiatBalance = ({
+    selectedPointFiatValueAtom,
+}: Pick<GraphFiatBalanceProps, 'selectedPointFiatValueAtom'>) => {
+    const selectedPointFiatValue = useAtomValue(selectedPointFiatValueAtom);
+    const selectedPointFiatBalance = asBaseCurrencyAmount(new BigNumber(selectedPointFiatValue));
 
-    return (
-        <DiscreetTextTrigger testID="@home/portfolio/fiat-balance-header/discreet-trigger">
-            <BaseCurrencyAmountLargeFormatter
-                value={baseCurrencyValue}
-                testID="@home/portfolio/fiat-balance-header"
-            />
-        </DiscreetTextTrigger>
-    );
+    return <FormattedBalance value={selectedPointFiatBalance} />;
+};
+
+const Balance = ({
+    selectedPointFiatValueAtom,
+    isGestureActiveAtom,
+    totalBaseCurrencyBalance,
+}: Pick<
+    GraphFiatBalanceProps,
+    'selectedPointFiatValueAtom' | 'isGestureActiveAtom' | 'totalBaseCurrencyBalance'
+>) => {
+    const isGestureActive = useAtomValue(isGestureActiveAtom);
+
+    // While the user is not swiping the graph, the live total balance is displayed, because
+    // the last graph point is frozen at fetch time and its value goes stale as rates move.
+    if (!isGestureActive && totalBaseCurrencyBalance !== undefined) {
+        return <FormattedBalance value={totalBaseCurrencyBalance} />;
+    }
+
+    return <SelectedPointFiatBalance selectedPointFiatValueAtom={selectedPointFiatValueAtom} />;
 };
 
 export const GraphBaseCurrencyBalance = ({
-    selectedPointAtom,
+    selectedPointFiatValueAtom,
+    selectedPointTimestampAtom,
     referencePointAtom,
     percentageChangeAtom,
+    isGestureActiveAtom,
     showChange = true,
     isLoading = false,
     totalBaseCurrencyBalance,
@@ -82,8 +101,9 @@ export const GraphBaseCurrencyBalance = ({
         return (
             <Box style={applyStyle(wrapperStyle)}>
                 <Balance
-                    selectedPointAtom={selectedPointAtom}
-                    latestValue={totalBaseCurrencyBalance}
+                    selectedPointFiatValueAtom={selectedPointFiatValueAtom}
+                    isGestureActiveAtom={isGestureActiveAtom}
+                    totalBaseCurrencyBalance={totalBaseCurrencyBalance}
                 />
                 {showChange && (
                     <HStack alignItems="center">
@@ -103,12 +123,16 @@ export const GraphBaseCurrencyBalance = ({
 
     return (
         <Box style={applyStyle(wrapperStyle)}>
-            <Balance selectedPointAtom={selectedPointAtom} />
+            <Balance
+                selectedPointFiatValueAtom={selectedPointFiatValueAtom}
+                isGestureActiveAtom={isGestureActiveAtom}
+                totalBaseCurrencyBalance={totalBaseCurrencyBalance}
+            />
             {showChange && (
                 <HStack alignItems="center">
                     <GraphDateFormatter
                         firstPointDate={firstGraphPoint.date}
-                        selectedPointAtom={selectedPointAtom}
+                        selectedPointTimestampAtom={selectedPointTimestampAtom}
                     />
                     <PriceChangeIndicator percentageChangeAtom={percentageChangeAtom} />
                 </HStack>

@@ -26,14 +26,11 @@ import {
     isNftTokenTransfer,
 } from '@suite-common/wallet-utils';
 import { Icon } from '@trezor/components';
+import { TagFilledIcon } from '@trezor/icons';
 import { exhaustive } from '@trezor/type-utils';
 
-import {
-    AddressLabeling,
-    BaseCurrencyValue,
-    FormattedCryptoAmount,
-    Sign,
-} from 'src/components/suite';
+import { BaseCurrencyValue, FormattedCryptoAmount, Sign } from 'src/components/suite';
+import { AccountLabelForOwnAddress } from 'src/components/suite/labeling/AccountLabelForOwnAddress';
 import { useSelector } from 'src/hooks/suite';
 import { type WalletAccountTransaction } from 'src/types/wallet';
 
@@ -114,7 +111,6 @@ export const TransactionTarget = ({
                         value={amount}
                         symbol={transaction.symbol}
                         signValue={operation}
-                        signGrayscale
                     />
                 ) : undefined;
             case 'token':
@@ -123,7 +119,6 @@ export const TransactionTarget = ({
                         transfer={payload}
                         withLink={false}
                         withSign
-                        signGrayscale
                         alignMultitoken="flex-end"
                     />
                 );
@@ -190,7 +185,9 @@ export const TransactionTarget = ({
                     />
                 );
             case 'internal':
-                return <AddressLabeling address={payload.to} symbol={transaction.symbol} />;
+                return (
+                    <AccountLabelForOwnAddress address={payload.to} symbol={transaction.symbol} />
+                );
             default:
                 return exhaustive(type);
         }
@@ -208,7 +205,7 @@ export const TransactionTarget = ({
             addressLabel={
                 <Labeling
                     deviceStaticSessionId={transaction.deviceState}
-                    isDisabled={isActionDisabled}
+                    isDisabled={isActionDisabled || isPhishingTransaction}
                     displayValue={label}
                     placeholder={translationString('TR_LABELING_OUTPUT_LABEL')}
                     payload={{
@@ -223,7 +220,7 @@ export const TransactionTarget = ({
                     leftAddon={
                         outputLabel ? (
                             <Icon
-                                name="tagFilled"
+                                as={TagFilledIcon}
                                 size={14}
                                 intent="neutral"
                                 priority="secondary"

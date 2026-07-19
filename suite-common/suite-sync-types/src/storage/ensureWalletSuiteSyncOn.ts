@@ -1,5 +1,9 @@
 import { type SuiteSyncStorage } from '@suite-common/suite-sync-storage';
-import { type DeviceCancelledErrType, type DeviceErrorType } from '@suite-common/suite-types';
+import {
+    type DeviceCancelledErrType,
+    type DeviceErrorType,
+    type DeviceNotConnectedErrorType,
+} from '@suite-common/suite-types';
 import { type StaticSessionId } from '@trezor/connect-common';
 import { type Result } from '@trezor/type-utils';
 
@@ -28,6 +32,7 @@ export type EnsureWalletSuiteSyncOnErrors =
     | SuiteSyncFirmwareUpgradeNeededDeviceErrorType
     | DeviceErrorType
     | DeviceCancelledErrType
+    | DeviceNotConnectedErrorType
     | WriteModeRequiredForAllocationErrType
     | QuotaManagerCommunicationFailedErrType;
 
@@ -35,18 +40,18 @@ export type EnsureWalletSuiteSyncOn = (
     params: EnsureWalletSuiteSyncOnParams,
 ) => Promise<Result<SuiteSyncStorage, EnsureWalletSuiteSyncOnErrors>>;
 
-export type WalletSuiteSyncOnEnsuredParams = EnsureWalletSuiteSyncOnParams & {
+export type OnStorageEnsuredParams = EnsureWalletSuiteSyncOnParams & {
     storage: SuiteSyncStorage;
 };
 
-export type WalletSuiteSyncOnEnsuredListener = (
-    params: WalletSuiteSyncOnEnsuredParams,
-) => Promise<void> | void;
+/**
+ * Invoked after Suite Sync storage is ensured for a wallet (e.g. to run the legacy-labels
+ * migration). Defaults to a no-op when a platform does not need it (e.g. native).
+ */
+export type OnStorageEnsured = (params: OnStorageEnsuredParams) => Promise<void> | void;
 
-export type OnWalletSuiteSyncOnEnsured = (listener: WalletSuiteSyncOnEnsuredListener) => void;
-
-export type OnWalletSuiteSyncOnEnsuredDep = {
-    onWalletSuiteSyncOnEnsured: OnWalletSuiteSyncOnEnsured;
+export type OnStorageEnsuredDep = {
+    onStorageEnsured: OnStorageEnsured;
 };
 
 export type EnsureWalletSuiteSyncOnDep = { ensureWalletSuiteSyncOn: EnsureWalletSuiteSyncOn };
@@ -55,17 +60,13 @@ export const selectEnsureWalletSuiteSyncOnDep = (services: any): EnsureWalletSui
     ensureWalletSuiteSyncOn: services.suiteSync.ensureWalletSuiteSyncOn,
 });
 
-export type EnsureWalletSuiteSyncOnAsync = (params: EnsureWalletSuiteSyncOnParams) => Promise<void>;
+export type EnsureWalletSuiteSyncOnUncontrolled = (
+    params: EnsureWalletSuiteSyncOnParams,
+) => Promise<void>;
 
-export type EnsureWalletSuiteSyncOnAsyncDep = {
-    ensureWalletSuiteSyncOnAsync: EnsureWalletSuiteSyncOnAsync;
+export type EnsureWalletSuiteSyncOnUncontrolledDep = {
+    ensureWalletSuiteSyncOnUncontrolled: EnsureWalletSuiteSyncOnUncontrolled;
 };
-
-export const selectEnsureWalletSuiteSyncOnAsyncDep = (
-    services: any,
-): EnsureWalletSuiteSyncOnAsyncDep => ({
-    ensureWalletSuiteSyncOnAsync: services.suiteSync.ensureWalletSuiteSyncOnAsync,
-});
 
 export type SuiteSyncUserFacingErrorType =
     | 'SuiteSyncUnavailableOnDeviceError'

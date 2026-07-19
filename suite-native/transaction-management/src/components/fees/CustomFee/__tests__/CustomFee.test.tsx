@@ -1,6 +1,7 @@
 import { type NetworkSymbol } from '@suite-common/wallet-config';
 import { type AccountKey, type FormState } from '@suite-common/wallet-types';
 import { Form } from '@suite-native/forms';
+import { getTranslation } from '@suite-native/intl';
 import {
     act,
     renderHookWithStoreProvider,
@@ -8,7 +9,11 @@ import {
     userEvent,
 } from '@suite-native/test-utils-store';
 
-import { getWalletState } from '../../../../__fixtures__/walletState';
+import {
+    BTC_ACCOUNT_KEY,
+    ETH_ACCOUNT_KEY,
+    getWalletState,
+} from '../../../../__fixtures__/walletState';
 import { type FeesFormType } from '../../../../feesFormSchema';
 import { type CustomFeeParams, useFeesForm } from '../../../../hooks';
 import { useCustomFee } from '../../../../hooks/fees/useCustomFee';
@@ -30,7 +35,7 @@ type CustomFeeProps = {
 
 describe('CustomFee', () => {
     const defaultProps: CustomFeeProps = {
-        accountKey: 'eth-account-1' as AccountKey,
+        accountKey: ETH_ACCOUNT_KEY,
         symbol: 'eth' as NetworkSymbol,
         formDraft: null,
         onCustomFeeSet: jest.fn(),
@@ -40,9 +45,7 @@ describe('CustomFee', () => {
         wallet: getWalletState(),
     };
 
-    const renderUseFeesForm = (
-        accountKey: AccountKey = 'eth-account-1' as AccountKey, // Todo: create properly via `createAccountKey()`
-    ) => {
+    const renderUseFeesForm = (accountKey: AccountKey = ETH_ACCOUNT_KEY) => {
         const { result } = renderHookWithStoreProvider(
             () =>
                 useFeesForm({
@@ -109,7 +112,9 @@ describe('CustomFee', () => {
         });
 
         expect(getByTestId('@transactionManagement/fees-level-custom')).toBeTruthy();
-        expect(getByText('Add custom fee')).toBeTruthy();
+        expect(
+            getByText(getTranslation('transactionManagement.fees.custom.addButton')),
+        ).toBeTruthy();
     });
 
     it('should render custom fee card when custom fee is selected', () => {
@@ -125,8 +130,8 @@ describe('CustomFee', () => {
         });
 
         expect(getByText(/Custom/)).toBeTruthy();
-        expect(getByText('Cancel')).toBeTruthy();
-        expect(getByText('Edit')).toBeTruthy();
+        expect(getByText(getTranslation('generic.buttons.cancel'))).toBeTruthy();
+        expect(getByText(getTranslation('generic.buttons.edit'))).toBeTruthy();
     });
 
     it('should not render for solana network', () => {
@@ -173,7 +178,7 @@ describe('CustomFee', () => {
 
         // Verify that useCustomFee was called for Ethereum
         expect(mockUseCustomFee).toHaveBeenCalledWith({
-            accountKey: 'eth-account-1',
+            accountKey: ETH_ACCOUNT_KEY,
             formState: expect.any(Object),
         });
     });
@@ -214,19 +219,21 @@ describe('CustomFee', () => {
             form,
         });
 
-        await userEvent.press(getByText('Edit'));
+        await userEvent.press(getByText(getTranslation('generic.buttons.edit')));
 
-        expect(getByText('Gas limit')).toBeTruthy();
+        expect(
+            getByText(
+                getTranslation('transactionManagement.fees.custom.bottomSheet.label.gasLimit'),
+            ),
+        ).toBeTruthy();
     });
 
     it('should handle different account keys', () => {
-        const form = renderUseFeesForm(
-            'btc-account-1' as AccountKey, // Todo: create properly via `createAccountKey()`
-        );
+        const form = renderUseFeesForm(BTC_ACCOUNT_KEY);
         const { getByTestId } = renderCustomFee({
             form,
             props: {
-                accountKey: 'btc-account-1' as AccountKey,
+                accountKey: BTC_ACCOUNT_KEY,
             },
         });
 

@@ -7,7 +7,7 @@ import { CollapsibleBox, Column, H3 } from '@trezor/components';
 import { useSelector } from 'src/hooks/suite';
 
 import { EstimatedGains } from './EstimatedGains';
-import { EarnSupplyingInfo } from '../../EarnInANutshell/components/EarnSupplyingInfo';
+import { EarnStakingInfo } from '../../EarnInANutshell/components/EarnStakingInfo';
 
 type StakeInfoCardsProps = {
     account: Account;
@@ -15,12 +15,12 @@ type StakeInfoCardsProps = {
 };
 
 export const StakeInfoCards = ({ account, flow }: StakeInfoCardsProps) => {
-    const apy = useSelector(state => selectPoolStatsApy(state, { account }));
+    const apy = useSelector(state => selectPoolStatsApy(state, { networkSymbol: account.symbol }));
 
     const cards = [
         {
             heading: <Translation id="TR_STAKING_ONCE_YOU_CONFIRM" />,
-            content: <EarnSupplyingInfo account={account} flow={flow} />,
+            content: <EarnStakingInfo account={account} flow={flow} />,
             defaultIsOpen: true,
             isVisible: true,
         },

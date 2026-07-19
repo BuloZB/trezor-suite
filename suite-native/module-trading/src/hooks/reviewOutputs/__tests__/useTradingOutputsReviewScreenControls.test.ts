@@ -2,7 +2,7 @@ import { combineReducers } from '@reduxjs/toolkit';
 
 import { extraDependenciesCommonMock } from '@suite-common/test-utils';
 import { initialWalletSettingsState, sendFormActions } from '@suite-common/wallet-core';
-import { type AccountKey } from '@suite-common/wallet-types';
+import { mockAccountKey } from '@suite-common/wallet-types/mocks';
 import { localeReducer } from '@suite-native/intl';
 import {
     type TestStore,
@@ -13,7 +13,10 @@ import {
 } from '@suite-native/test-utils-store';
 import { getWalletState } from '@suite-native/trading-fixtures';
 import { tradingSlice } from '@suite-native/trading-state';
-import { sendFormSlice, transactionManagementActions } from '@suite-native/transaction-management';
+import {
+    prepareSendFormReducer,
+    transactionManagementActions,
+} from '@suite-native/transaction-management';
 
 import { type TradingExchangeSignAndSendTransactionProps } from '../../exchange/useExchangeFlow';
 import { useTradingOutputsReviewScreenControls } from '../useTradingOutputsReviewScreenControls';
@@ -65,7 +68,7 @@ describe('useTradingOutputsReviewScreenControls', () => {
         wallet: combineReducers({
             settings: createStaticReducer(initialWalletSettingsState),
             accounts: createStaticReducer(getWalletState({ tradeType: 'exchange' }).accounts),
-            send: sendFormSlice.prepareReducer(extraDependenciesCommonMock),
+            send: prepareSendFormReducer(extraDependenciesCommonMock),
             trading: tradingSlice.prepareReducer(extraDependenciesCommonMock),
         }),
     } as const;
@@ -86,7 +89,7 @@ describe('useTradingOutputsReviewScreenControls', () => {
             () =>
                 useTradingOutputsReviewScreenControls({
                     orderId: 'orderId',
-                    accountKey: 'btc-account-1' as AccountKey, // Todo: create properly via `createAccountKey()`
+                    accountKey: mockAccountKey({ symbol: 'btc', descriptor: 'btc1normal' }),
                     signAndSendTransaction: mockSignAndSendTransaction,
                     reportToAnalytics: mockReportToAnalytics,
                 }),

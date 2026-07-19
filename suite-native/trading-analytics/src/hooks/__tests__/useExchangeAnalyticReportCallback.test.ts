@@ -1,6 +1,7 @@
 import type { CryptoId } from 'invity-api';
 
-import { events } from '@suite-native/analytics';
+import { type NativeAnalyticsDep, events } from '@suite-native/analytics';
+import { mockNativeAnalytics } from '@suite-native/analytics/mocks';
 import {
     type PreloadedStatePartial,
     mergePreloadedState,
@@ -15,10 +16,8 @@ import {
 import { useExchangeAnalyticReportCallback } from '../useExchangeAnalyticReportCallback';
 
 const reportMock = jest.fn();
-const services = {
-    analytics: {
-        report: reportMock,
-    },
+const services: NativeAnalyticsDep = {
+    analytics: mockNativeAnalytics(reportMock),
 };
 
 describe('useExchangeAnalyticReportCallback', () => {

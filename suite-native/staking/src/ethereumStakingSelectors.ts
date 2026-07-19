@@ -1,4 +1,4 @@
-import { getDaysToAddToPool, getDaysToAddToPoolInitial } from '@suite-common/staking';
+import { getDaysToAddToPoolInitial } from '@suite-common/staking';
 import { type NetworkSymbol, getNetworkType } from '@suite-common/wallet-config';
 import {
     type AccountsRootState,
@@ -128,15 +128,7 @@ export const selectUnstakingPeriodInDaysBySymbol = (
     return getUnstakingPeriodInDays(symbol ? getNetworkType(symbol) : undefined, validatorsQueue);
 };
 
-export const selectEntryPeriodInDaysBySymbol = (
-    state: NativeStakingRootState,
-    symbol?: NetworkSymbol,
-) => {
-    // Solana has no validator queue; entry period is one epoch, same as unstaking
-    if (symbol && getNetworkType(symbol) === 'solana') {
-        return getUnstakingPeriodInDays('solana');
-    }
-
+export const selectEthereumEntryPeriodInDays = (state: NativeStakingRootState) => {
     const validatorsQueue = selectEthValidatorsQueue(state);
 
     if (
@@ -147,14 +139,4 @@ export const selectEntryPeriodInDaysBySymbol = (
     }
 
     return getDaysToAddToPoolInitial(validatorsQueue);
-};
-
-export const selectEntryPeriodRemainingInDaysByAccountKey = (
-    state: NativeStakingRootState,
-    accountKey: AccountKey,
-) => {
-    const validatorsQueue = selectEthValidatorsQueue(state);
-    const stakeTxs = selectAccountStakeTransactions(state, accountKey);
-
-    return getDaysToAddToPool(stakeTxs, validatorsQueue);
 };

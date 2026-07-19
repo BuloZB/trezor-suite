@@ -4,7 +4,7 @@ import { type DexApprovalType } from 'invity-api';
 
 import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { useServices } from '@suite-common/dependency-injection';
-import { KNOWN_VAULTS } from '@suite-common/suite-constants';
+import { useYieldOpportunity } from '@suite-common/earn-stablecoin-api';
 import { parseCryptoId, toTokenCryptoId } from '@suite-common/trading';
 import { type Account } from '@suite-common/wallet-types';
 import { getAssetLogoUrl } from '@trezor/asset-utils';
@@ -21,7 +21,7 @@ export type YieldApproveModalProps = {
     vaultId: string;
     spender: string;
     preapprovedAmount?: string;
-    txType: 'approve' | 'revoke' | 'revoke-only';
+    txType: 'approve' | 'revoke';
     onCancel: () => void;
     onSuccess: (txid: string) => void;
 };
@@ -46,7 +46,9 @@ export const YieldApproveModal = ({
     const handledTxidRef = useRef<string | null>(null);
     const cryptoId = toTokenCryptoId(account.symbol, contractAddress);
     const { networkId, contractAddress: parsedContract } = parseCryptoId(cryptoId);
-    const vaultName = KNOWN_VAULTS[spender.toLowerCase()];
+    const { data: vaultName } = useYieldOpportunity(vaultId, {
+        select: yieldOpportunity => yieldOpportunity.metadata.name,
+    });
 
     const provider = {
         name: vaultName,
@@ -66,7 +68,6 @@ export const YieldApproveModal = ({
 
                 break;
             case 'revoke':
-            case 'revoke-only':
                 openRevokeModal();
 
                 break;
@@ -151,22 +152,29 @@ export const YieldApproveModal = ({
                 account={account}
                 provider={provider}
                 spender={spender}
-                logoSourceType="url"
+                showSpender
+                preapprovedAmount={preapprovedAmount}
+                heading="TR_APPROVAL_APPROVE_TOKEN_SPENDING"
+                description="TR_EARN_YIELD_APPROVE_TOKEN_SPENDING_DESCRIPTION"
                 onCancel={handleOnApproveCancel}
                 onConfirm={handleOnApproveConfirm}
             />
         );
     }
 
-    if ((txType === 'revoke' || txType === 'revoke-only') && isRevokeModalOpen) {
+    if (txType === 'revoke' && isRevokeModalOpen) {
         return (
             <RevokeModal
                 cryptoId={cryptoId}
                 account={account}
                 provider={provider}
                 spender={spender}
-                logoSourceType="url"
+                showSpender
                 preapprovedAmount={preapprovedAmount}
+                approveAmount={amount}
+                followedByApproval={false}
+                heading="TR_APPROVAL_REVOKE_TOKEN_SPENDING"
+                description="TR_EARN_YIELD_REVOKE_TOKEN_SPENDING_DESCRIPTION"
                 onCancel={handleOnRevokeCancel}
                 onConfirm={handleOnRevokeConfirm}
             />

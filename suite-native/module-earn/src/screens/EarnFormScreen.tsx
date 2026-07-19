@@ -59,6 +59,7 @@ export const EarnFormScreen = () => {
         formDraft,
         formDraftKey,
         isFeeUnavailable,
+        isPrecomposeError,
         updateFeeLevelThunk,
     } = earnForm;
     const {
@@ -88,10 +89,9 @@ export const EarnFormScreen = () => {
             header={<EarnFormScreenHeader accountKey={accountKey} />}
             footer={
                 <EarnFormScreenFooter
-                    accountKey={accountKey}
                     symbol={account.symbol}
                     amountValue={amountValue}
-                    isDisabled={!isValid || isFeeUnavailable}
+                    isDisabled={!isValid || isFeeUnavailable || isPrecomposeError}
                     isDirty={isDirty}
                     onPress={() => handleSubmit()}
                 />

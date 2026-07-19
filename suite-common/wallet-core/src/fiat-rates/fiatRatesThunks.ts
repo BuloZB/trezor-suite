@@ -20,6 +20,7 @@ import {
 } from '@suite-common/wallet-types';
 import {
     fetchTransactionsRates,
+    getErc4626Contracts,
     groupTokensTransactionsByContractAddress,
     isTestnet,
 } from '@suite-common/wallet-utils';
@@ -147,8 +148,20 @@ export const updateTxsFiatRatesThunk = createThunk(
         );
 
         const groupedTokensTxs = groupTokensTransactionsByContractAddress(txs);
+        const erc4626Contracts = getErc4626Contracts(account.tokens);
 
         for (const token of typedObjectKeys(groupedTokensTxs)) {
+            // @ts-expect-error: indexing with noUncheckedIndexedAccess
+            const tokenTransactions: WalletAccountTransaction[] = groupedTokensTxs[token];
+            const tokenTimestamps = tokenTransactions
+                .map(tx => (tx.blockTime !== undefined ? asTimestamp(tx.blockTime) : undefined))
+                .filter(isNotUndefined);
+
+            // Historical ERC4626 rates cannot be calculated without historical share-to-asset ratios.
+            if (erc4626Contracts.has(token.toLowerCase())) {
+                continue;
+            }
+
             const hasCoinDefinitions = getNetworkFeatures(account.symbol).includes(
                 'coin-definitions',
             );
@@ -164,12 +177,6 @@ export const updateTxsFiatRatesThunk = createThunk(
                     continue;
                 }
             }
-
-            // @ts-expect-error: indexing with noUncheckedIndexedAccess
-            const tokenTransactions: WalletAccountTransaction[] = groupedTokensTxs[token];
-            const tokenTimestamps = tokenTransactions
-                .map(tx => (tx.blockTime !== undefined ? asTimestamp(tx.blockTime) : undefined))
-                .filter(isNotUndefined);
 
             await fetchTransactionsRates(
                 {
@@ -383,7 +390,7 @@ export const periodicFetchFiatRatesThunk = createThunk(
         const isWindowVisible = selectIsWindowVisible(getState());
 
         if (ratesTimeouts[rateType]) {
-            clearTimeout(ratesTimeouts[rateType]!);
+            clearTimeout(ratesTimeouts[rateType]);
         }
 
         if (isWindowVisible) {

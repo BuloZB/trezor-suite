@@ -6,12 +6,13 @@ import { Translation } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { useServices } from '@suite-common/dependency-injection';
 import { CardList, Column, IconCircle, Link, Modal, Paragraph, Row } from '@trezor/components';
+import { PlusIcon } from '@trezor/icons';
 import { HOW_TO_CHOOSE_RIGHT_NETWORK_URL } from '@trezor/urls';
 
 import { useModal } from 'src/components/suite/asset-picker/hooks/useModal';
 import { AddAccountModal } from 'src/components/suite/modals/ReduxModal/UserContextModal/AddAccountModal/AddAccountModal';
 import { useDiscovery, useDispatch, useSelector } from 'src/hooks/suite';
-import { globalSendReceiveFilters } from 'src/slices/wallet/globalSendReceiveFilters';
+import { globalSendReceiveFiltersSelectors } from 'src/slices/wallet/globalSendReceiveFilters';
 import { type Account, type AccountItemType } from 'src/types/wallet';
 
 import { GlobalReceiveAccountListItem } from './components/GlobalReceiveAccountListItem';
@@ -35,7 +36,7 @@ export const GlobalReceiveModal = ({ onCancel, onSubmit }: GlobalReceiveModalPro
     const listRef = useRef<HTMLDivElement>(null);
     const accountsOptions = useAccountsOptions();
     const filteredAccounts = useFilterAccounts(accountsOptions);
-    const filledSearch = useSelector(globalSendReceiveFilters.selectors.filledSearch);
+    const filledSearch = useSelector(globalSendReceiveFiltersSelectors.filledSearch);
 
     return (
         <>
@@ -116,7 +117,11 @@ export const GlobalReceiveModal = ({ onCancel, onSubmit }: GlobalReceiveModalPro
                                         }}
                                     >
                                         <Row gap={12}>
-                                            <IconCircle name="plus" size={40} intent="neutral" />
+                                            <IconCircle
+                                                icon={PlusIcon}
+                                                size={40}
+                                                intent="neutral"
+                                            />
                                             <Translation id="TR_ADD_ACCOUNT" />
                                         </Row>
                                     </CardList.Item>

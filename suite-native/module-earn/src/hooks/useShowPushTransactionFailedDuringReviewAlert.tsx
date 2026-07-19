@@ -13,7 +13,15 @@ import {
     type StackToStackCompositeNavigationProps,
 } from '@suite-native/navigation';
 
-type ReviewFormType = 'stake' | 'unstake' | 'claim' | 'yield-approval' | 'yield-deposit';
+type ReviewFormType =
+    | 'stake'
+    | 'unstake'
+    | 'claim'
+    | 'yield-approval'
+    | 'yield-deposit'
+    | 'yield-revoke'
+    | 'yield-withdraw'
+    | 'yield-claim';
 
 type NavigationProps = StackToStackCompositeNavigationProps<
     AppTabsParamList,
@@ -108,6 +116,52 @@ const translationKeys = {
         pendingConflict: {
             title: 'earn.yieldReview.alerts.deposit.pendingTransactionConflict.title',
             description: 'earn.yieldReview.alerts.deposit.pendingTransactionConflict.description',
+            primaryButton: 'earn.yieldReview.alerts.primaryButton',
+        },
+    },
+    'yield-revoke': {
+        pushFailed: {
+            title: 'earn.yieldReview.alerts.revoke.pushTransactionFailed.title',
+            description: 'earn.yieldReview.alerts.revoke.pushTransactionFailed.description',
+            primaryButton: 'earn.yieldReview.alerts.primaryButton',
+        },
+        pendingConflict: {
+            title: 'earn.yieldReview.alerts.revoke.pendingTransactionConflict.title',
+            description: 'earn.yieldReview.alerts.revoke.pendingTransactionConflict.description',
+            primaryButton: 'earn.yieldReview.alerts.primaryButton',
+        },
+    },
+    'yield-withdraw': {
+        signFailed: {
+            title: 'earn.yieldReview.alerts.withdraw.signTransactionFailed.title',
+            description: 'earn.yieldReview.alerts.withdraw.signTransactionFailed.description',
+            primaryButton: 'earn.yieldReview.alerts.primaryButton',
+        },
+        pushFailed: {
+            title: 'earn.yieldReview.alerts.withdraw.pushTransactionFailed.title',
+            description: 'earn.yieldReview.alerts.withdraw.pushTransactionFailed.description',
+            primaryButton: 'earn.yieldReview.alerts.primaryButton',
+        },
+        pendingConflict: {
+            title: 'earn.yieldReview.alerts.withdraw.pendingTransactionConflict.title',
+            description: 'earn.yieldReview.alerts.withdraw.pendingTransactionConflict.description',
+            primaryButton: 'earn.yieldReview.alerts.primaryButton',
+        },
+    },
+    'yield-claim': {
+        signFailed: {
+            title: 'earn.yieldReview.alerts.claim.signTransactionFailed.title',
+            description: 'earn.yieldReview.alerts.claim.signTransactionFailed.description',
+            primaryButton: 'earn.yieldReview.alerts.primaryButton',
+        },
+        pushFailed: {
+            title: 'earn.yieldReview.alerts.claim.pushTransactionFailed.title',
+            description: 'earn.yieldReview.alerts.claim.pushTransactionFailed.description',
+            primaryButton: 'earn.yieldReview.alerts.primaryButton',
+        },
+        pendingConflict: {
+            title: 'earn.yieldReview.alerts.claim.pendingTransactionConflict.title',
+            description: 'earn.yieldReview.alerts.claim.pendingTransactionConflict.description',
             primaryButton: 'earn.yieldReview.alerts.primaryButton',
         },
     },

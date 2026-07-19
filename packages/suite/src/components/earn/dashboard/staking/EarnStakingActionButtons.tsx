@@ -2,6 +2,7 @@ import { type MouseEvent, type ReactNode } from 'react';
 
 import { Translation } from '@suite/intl';
 import { Button, Tooltip } from '@trezor/components';
+import { InfoIcon } from '@trezor/icons';
 
 import { type StakingAccountStatus } from './hooks/useStakingAccountStatus';
 
@@ -9,6 +10,8 @@ type EarnStakingActionButtonsProps = {
     stakingStatus: StakingAccountStatus;
     isStakingDisabled: boolean | undefined;
     stakingMessageContent: ReactNode;
+    isVotingDisabled: boolean | undefined;
+    votingMessageContent: ReactNode;
     canClaim: boolean;
     isClaimButtonDisabled: boolean | undefined;
     claimingMessageContent: ReactNode;
@@ -16,6 +19,7 @@ type EarnStakingActionButtonsProps = {
     onStake: (event: MouseEvent<HTMLButtonElement>) => void;
     onStakeNow: (event: MouseEvent<HTMLButtonElement>) => void;
     onUpdateProvider: (event: MouseEvent<HTMLButtonElement>) => void;
+    onVote: (event: MouseEvent<HTMLButtonElement>) => void;
     onClaim: (event: MouseEvent<HTMLButtonElement>) => void;
 };
 
@@ -23,6 +27,8 @@ export const EarnStakingActionButtons = ({
     stakingStatus,
     isStakingDisabled,
     stakingMessageContent,
+    isVotingDisabled,
+    votingMessageContent,
     canClaim,
     isClaimButtonDisabled,
     claimingMessageContent,
@@ -30,6 +36,7 @@ export const EarnStakingActionButtons = ({
     onStake,
     onStakeNow,
     onUpdateProvider,
+    onVote,
     onClaim,
 }: EarnStakingActionButtonsProps) => (
     <>
@@ -42,7 +49,7 @@ export const EarnStakingActionButtons = ({
                         intent="brand"
                         size="small"
                         isDisabled={isClaimButtonDisabled}
-                        iconLeft={isClaimButtonDisabled ? 'info' : undefined}
+                        iconLeft={isClaimButtonDisabled ? InfoIcon : undefined}
                         onClick={onClaim}
                         data-testid="@account/staking/claim-button"
                     >
@@ -61,7 +68,7 @@ export const EarnStakingActionButtons = ({
                     intent="brand"
                     size="small"
                     isDisabled={isStakingDisabled}
-                    iconLeft={isStakingDisabled ? 'info' : undefined}
+                    iconLeft={isStakingDisabled ? InfoIcon : undefined}
                     onClick={onStake}
                 >
                     <Translation id="TR_EARN_STAKING_DASHBOARD_STAKE_MORE" />
@@ -75,7 +82,7 @@ export const EarnStakingActionButtons = ({
                     intent="brand"
                     size="small"
                     isDisabled={isStakingDisabled}
-                    iconLeft={isStakingDisabled ? 'info' : undefined}
+                    iconLeft={isStakingDisabled ? InfoIcon : undefined}
                     onClick={onStakeNow}
                 >
                     <Translation id="TR_EARN_STAKING_DASHBOARD_STAKE_NOW" />
@@ -89,10 +96,24 @@ export const EarnStakingActionButtons = ({
                     intent="brand"
                     size="small"
                     isDisabled={isStakingDisabled}
-                    iconLeft={isStakingDisabled ? 'info' : undefined}
+                    iconLeft={isStakingDisabled ? InfoIcon : undefined}
                     onClick={onUpdateProvider}
                 >
                     <Translation id="TR_EARN_UPDATE_PROVIDER" />
+                </Button>
+            </Tooltip>
+        )}
+
+        {stakingStatus === 'staking-remaining-votes' && (
+            <Tooltip content={votingMessageContent}>
+                <Button
+                    intent="brand"
+                    size="small"
+                    isDisabled={isVotingDisabled}
+                    iconLeft={isVotingDisabled ? InfoIcon : undefined}
+                    onClick={onVote}
+                >
+                    <Translation id="TR_EARN_TRON_VOTE" />
                 </Button>
             </Tooltip>
         )}

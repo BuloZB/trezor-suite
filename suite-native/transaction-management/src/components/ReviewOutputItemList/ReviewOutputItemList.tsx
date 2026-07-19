@@ -1,10 +1,6 @@
 import { useSelector } from 'react-redux';
 
-import {
-    type AccountsRootState,
-    selectAccountByKey,
-    selectAccountNetworkSymbol,
-} from '@suite-common/wallet-core';
+import { type AccountsRootState, selectAccountByKey } from '@suite-common/wallet-core';
 import {
     type AccountKey,
     type FormDraftWithSendKeyPrefix,
@@ -14,7 +10,7 @@ import { ErrorMessage, VStack } from '@suite-native/atoms';
 import { Translation } from '@suite-native/intl';
 import type { ExchangeFlowType } from '@suite-native/navigation';
 
-import { ReviewOutputItem } from './ReviewOutputItem';
+import { ReviewOutputItem, type ReviewOutputItemProps } from './ReviewOutputItem';
 import { ReviewOutputSummaryItem } from './ReviewOutputSummaryItem';
 import { LIST_VERTICAL_SPACING, useActiveStepOffset } from '../../hooks';
 import {
@@ -31,6 +27,7 @@ export type ReviewOutputItemListProps = {
     accountKey: AccountKey;
     tokenContract?: TokenAddress;
     flowType?: ExchangeFlowType;
+    contentBuilder?: ReviewOutputItemProps['contentBuilder'];
 };
 
 export const ReviewOutputItemList = ({
@@ -38,6 +35,7 @@ export const ReviewOutputItemList = ({
     accountKey,
     tokenContract,
     flowType,
+    contentBuilder,
 }: ReviewOutputItemListProps) => {
     const isTransactionAlreadySigned = useSelector(selectIsTransactionAlreadySigned);
     const activeStep = useSelector((state: TransactionReviewOutputsState) =>
@@ -51,22 +49,23 @@ export const ReviewOutputItemList = ({
         useSelector((state: TransactionReviewOutputsState) =>
             selectReviewSummaryOutput(state, prefix, accountKey, tokenContract),
         ) || undefined;
-    const accountSymbol = useSelector((state: AccountsRootState) =>
-        selectAccountNetworkSymbol(state, accountKey),
-    );
-    const isTron = useSelector(
-        (state: AccountsRootState) => selectAccountByKey(state, accountKey)?.networkType === 'tron',
+    const account = useSelector((state: AccountsRootState) =>
+        selectAccountByKey(state, accountKey),
     );
 
     const { activeStepBottomOffset, handleReadListItemHeight } = useActiveStepOffset(activeStep);
 
-    if (!accountSymbol) {
+    if (!account) {
         return (
             <ErrorMessage
                 errorMessage={<Translation id="transactionManagement.review.outputs.noAccount" />}
             />
         );
     }
+
+    const { symbol: accountSymbol, networkType } = account;
+    const isTron = networkType === 'tron';
+    const isSolana = networkType === 'solana';
 
     return (
         <>
@@ -80,11 +79,13 @@ export const ReviewOutputItemList = ({
                             onLayout={event => handleReadListItemHeight(event, index)}
                             tokenContract={tokenContract}
                             flowType={flowType}
+                            contentBuilder={contentBuilder}
                         />
                     ))}
                     {!isTron && (
                         <ReviewOutputSummaryItem
                             accountKey={accountKey}
+                            prefix={prefix}
                             summaryOutput={summaryOutput}
                             symbol={accountSymbol}
                             tokenContract={tokenContract}
@@ -96,7 +97,7 @@ export const ReviewOutputItemList = ({
                     )}
                 </VStack>
             )}
-            {!isTransactionAlreadySigned && (
+            {!isTransactionAlreadySigned && !isSolana && (
                 <SlidingFooterOverlay activeStepOffset={activeStepBottomOffset} />
             )}
         </>

@@ -90,6 +90,7 @@ export const getAccountState = (state: AppState): SelectedAccountStatus => {
         return {
             status: 'exception',
             loader: 'account-not-loaded',
+            account: matchedFailed,
             network,
             params,
         };
@@ -112,6 +113,7 @@ export const getAccountState = (state: AppState): SelectedAccountStatus => {
                 return {
                     status: 'exception',
                     loader: 'account-not-loaded',
+                    account,
                     network,
                     params,
                 };
@@ -135,6 +137,7 @@ export const getAccountState = (state: AppState): SelectedAccountStatus => {
         return {
             status: 'exception',
             loader: 'discovery-error',
+            account: account ?? undefined,
             network,
             params,
         };
@@ -173,7 +176,6 @@ const actions = new Set<Action['type']>([
     blockchainActions.synced.type,
     blockchainActions.connected.type,
     discoveryActions.updateDiscovery.type,
-    feesActions.updateFee.type,
     feesActions.updateMultipleFees.type,
 ]);
 

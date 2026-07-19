@@ -10,13 +10,11 @@ import {
     type TransactionsRootState,
     fetchAndUpdateAccountThunk,
     fetchTransactionsPageThunk,
-    selectAccountByKey,
-    selectBaseCurrency,
+    selectAreAllAccountTransactionsLoaded,
     selectIsLoadingAccountTransactions,
     selectIsPageAlreadyFetched,
-    updateMissingTxFiatRatesThunk,
 } from '@suite-common/wallet-core';
-import { type AccountKey, type TokenAddress } from '@suite-common/wallet-types';
+import { type Account, type AccountKey, type TokenAddress } from '@suite-common/wallet-types';
 import { type MonthKey, groupTransactionsByDate, isPending } from '@suite-common/wallet-utils';
 import { Box } from '@suite-native/atoms';
 import { useScrollDivider } from '@suite-native/scrollview';
@@ -35,10 +33,11 @@ import { TransactionListGroupTitle } from './TransactionListGroupTitle';
 import { TransactionListItem } from './TransactionListItem';
 import { TransactionsEmptyState } from './TransactionsEmptyState';
 import { TransactionsListFooter } from './TransactionsListFooter';
+import { useFetchMissingTransactionFiatRates } from '../hooks/useFetchMissingTransactionFiatRates';
 
 type AccountTransactionProps = {
     listHeaderComponent: JSX.Element;
-    accountKey: AccountKey;
+    account: Account;
     tokenContract?: TokenAddress;
     stakingOnly?: boolean;
 };
@@ -71,6 +70,10 @@ type TransactionListItem =
 
 const sectionListContainerStyle = prepareNativeStyle(utils => ({
     paddingTop: utils.spacings.sp8,
+}));
+
+const listFooterStyle = prepareNativeStyle(utils => ({
+    paddingBottom: utils.spacings.sp32,
 }));
 
 const sortKeysPendingFirst = (a: string, b: string) => {
@@ -127,10 +130,11 @@ const renderSectionHeader = ({ section: { monthKey } }: RenderSectionHeaderParam
 
 export const TransactionList = ({
     listHeaderComponent,
-    accountKey,
+    account,
     tokenContract,
     stakingOnly = false,
 }: AccountTransactionProps) => {
+    const accountKey = account.key;
     const dispatch = useDispatch();
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -139,12 +143,12 @@ export const TransactionList = ({
         utils: { colors },
     } = useNativeStyles();
 
-    const localCurrency = useSelector(selectBaseCurrency);
-    const account = useSelector((state: AccountsRootState) =>
-        selectAccountByKey(state, accountKey),
-    );
     const isLoadingTransactions = useSelector((state: TransactionsRootState) =>
         selectIsLoadingAccountTransactions(state, accountKey),
+    );
+    const shouldDeferEmptyState = useSelector(
+        (state: TransactionsRootState & AccountsRootState) =>
+            stakingOnly && !selectAreAllAccountTransactionsLoaded(state, accountKey),
     );
 
     const transactions = useSelector((state: TransactionsRootState & TokensRootState) =>
@@ -153,7 +157,7 @@ export const TransactionList = ({
             : selectAccountTransactionsWithTokenTransfers(state, accountKey),
     );
 
-    const txnsPerPage = account ? getTxsPerPage(account.networkType) : 25;
+    const txnsPerPage = getTxsPerPage(account.networkType);
 
     const isFirstPageAlreadyFetched = useSelector((state: TransactionsRootState) =>
         selectIsPageAlreadyFetched(state, accountKey, 1, txnsPerPage),
@@ -245,11 +249,7 @@ export const TransactionList = ({
         ]) as TransactionListItem[];
     }, [transactions, tokenContract]);
 
-    useEffect(() => {
-        if (data.length > 0) {
-            dispatch(updateMissingTxFiatRatesThunk({ localCurrency, accountKey }));
-        }
-    }, [data, dispatch, localCurrency, accountKey]);
+    useFetchMissingTransactionFiatRates({ accountKey, isEnabled: data.length > 0 });
 
     const renderItem = useCallback(
         ({ item, index }: { item: TransactionListItem; index: number }) => {
@@ -257,9 +257,7 @@ export const TransactionList = ({
                 // month with only month name and without token txn
                 const isEmptyMonth = typeof data.at(index + 1) === 'string' || !data.at(index + 1);
 
-                return isEmptyMonth
-                    ? null
-                    : renderSectionHeader({ section: { monthKey: item as MonthKey } });
+                return isEmptyMonth ? null : renderSectionHeader({ section: { monthKey: item } });
             }
 
             const isFirstInSection = typeof data.at(index - 1) === 'string';
@@ -294,7 +292,11 @@ export const TransactionList = ({
                 data={data}
                 renderItem={renderItem}
                 contentContainerStyle={applyStyle(sectionListContainerStyle)}
-                ListEmptyComponent={<TransactionsEmptyState accountKey={accountKey} />}
+                ListEmptyComponent={
+                    shouldDeferEmptyState ? null : (
+                        <TransactionsEmptyState accountKey={accountKey} />
+                    )
+                }
                 ListHeaderComponent={listHeaderComponent}
                 ListFooterComponent={
                     <TransactionsListFooter
@@ -303,6 +305,7 @@ export const TransactionList = ({
                         onButtonPress={handleOnLoadMore}
                     />
                 }
+                ListFooterComponentStyle={applyStyle(listFooterStyle)}
                 refreshControl={
                     <RefreshControl
                         refreshing={isRefreshing}

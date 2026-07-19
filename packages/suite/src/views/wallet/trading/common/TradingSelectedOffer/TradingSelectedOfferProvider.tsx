@@ -1,10 +1,9 @@
-import { type ReactNode, useState } from 'react';
-
-import { type BuyTrade, type ExchangeTrade, type SellFiatTrade } from 'invity-api';
+import { type ReactNode, useCallback, useState } from 'react';
 
 import { Translation } from '@suite/intl';
 import { type TradingTradeType, useProviderMetadataChangeEffect } from '@suite-common/trading';
-import { Column, GhostContainer, Icon, Row, SkeletonRectangle, Text } from '@trezor/components';
+import { Column, GhostContainer, Icon, Row, Skeleton, Text } from '@trezor/components';
+import { CaretRightIcon } from '@trezor/icons';
 
 import { useTradingFormContext } from 'src/hooks/wallet/trading/form/useTradingCommonForm';
 import {
@@ -12,7 +11,6 @@ import {
     getSelectedQuote,
     isTradingBuyContext,
     isTradingExchangeContext,
-    isTradingSellContext,
 } from 'src/utils/wallet/trading/tradingTypingUtils';
 
 import { TradingOffersModal } from '../TradingOffers/TradingOffersModal';
@@ -40,15 +38,13 @@ export const TradingSelectedOfferProvider = () => {
     const providers = getProvidersInfoProps(context);
     const quote = getSelectedQuote(context);
 
-    const onQuoteSelect = (selected: TradingTradeType) => {
-        if (isTradingBuyContext(context)) {
-            context.onQuoteSelected(selected as BuyTrade);
-        } else if (isTradingSellContext(context)) {
-            context.onQuoteSelected(selected as SellFiatTrade);
-        } else if (isTradingExchangeContext(context)) {
-            context.onQuoteSelected(selected as ExchangeTrade);
-        }
-    };
+    const onQuoteSelected = context.onQuoteSelected as (selected: TradingTradeType) => void;
+    const onQuoteSelect = useCallback(
+        (selected: TradingTradeType) => onQuoteSelected(selected),
+        [onQuoteSelected],
+    );
+
+    const handleModalClose = useCallback(() => setIsModalOpen(false), []);
 
     useProviderMetadataChangeEffect(
         type,
@@ -73,38 +69,38 @@ export const TradingSelectedOfferProvider = () => {
                 cursor="pointer"
                 data-testid="@trading/selected-offer-provider"
                 borderRadius={0}
+                isDisabled={form.state.isFormLoading}
             >
                 <Row alignItems="center" justifyContent="space-between" padding={20}>
-                    <Text typographyStyle="body-md">
+                    <Text typographyStyle="body-md" intent="neutral" priority="secondary">
                         <Translation id="TR_TRADING_PROVIDER" />
                     </Text>
                     <Row gap={16}>
-                        {form.state.isFormLoading ? (
-                            <SkeletonRectangle animate />
-                        ) : (
-                            <>
-                                <Text typographyStyle="body-md" as="div">
-                                    <TradingUtilsProvider
-                                        providers={providers}
-                                        exchange={quote.exchange}
+                        <Row gap={8}>
+                            {form.state.isFormLoading ? (
+                                <Skeleton animate />
+                            ) : (
+                                <>
+                                    <Text typographyStyle="body-md" as="div">
+                                        <TradingUtilsProvider
+                                            providers={providers}
+                                            exchange={quote.exchange}
+                                        />
+                                    </Text>
+                                    <Icon
+                                        as={CaretRightIcon}
+                                        size={20}
+                                        intent="neutral"
+                                        priority="secondary"
                                     />
-                                </Text>
-                                <Icon
-                                    name="caretRight"
-                                    size={20}
-                                    intent="neutral"
-                                    priority="secondary"
-                                />
-                            </>
-                        )}
+                                </>
+                            )}
+                        </Row>
                     </Row>
                 </Row>
             </GhostContainer>
             {isModalOpen && (
-                <TradingOffersModal
-                    onClose={() => setIsModalOpen(false)}
-                    onSelect={onQuoteSelect}
-                />
+                <TradingOffersModal onClose={handleModalClose} onSelect={onQuoteSelect} />
             )}
         </>
     );

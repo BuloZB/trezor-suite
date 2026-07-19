@@ -9,6 +9,7 @@ export * from './atomWithUnecryptedStorage';
 
 export * from './migrations/account/v2';
 export * from './migrations/account/v3';
+export * from './migrations/account/v4';
 export * from './migrations/device/v2';
 export * from './migrations/device/v3';
 export * from './migrations/device/v4';
@@ -17,6 +18,7 @@ export * from './migrations/wallet/transactions/v2';
 export * from './migrations/wallet/accounts/v2';
 export * from './migrations/wallet/accounts/v3';
 export * from './migrations/wallet/transactions/v3';
+export * from './migrations/biometrics/v1';
 export * from './migrations/walletSettings/v1';
 export * from './migrations/walletSettings/v2';
 export * from './migrations/locale/v2';

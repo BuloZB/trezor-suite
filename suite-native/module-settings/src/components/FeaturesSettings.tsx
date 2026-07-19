@@ -38,7 +38,7 @@ export const FeaturesSettings = () => {
                 />
             )}
             <AppSettingsCardWithIconLayout
-                icon="bookmarkSimple"
+                icon="eject"
                 title={<Translation id="moduleSettings.items.features.ejectWallets.title" />}
                 subtitle={<Translation id="moduleSettings.items.features.ejectWallets.subtitle" />}
                 onPress={() => navigateTo(SettingsStackRoutes.SettingsViewOnly)}
@@ -61,6 +61,13 @@ export const FeaturesSettings = () => {
                     testID="@settings/suite-sync"
                 />
             )}
+            <AppSettingsCardWithIconLayout
+                icon="shield"
+                title={<Translation id="moduleSettings.items.features.security.title" />}
+                subtitle={<Translation id="moduleSettings.items.features.security.subtitle" />}
+                onPress={() => navigateTo(SettingsStackRoutes.SettingsSecurity)}
+                testID="@settings/security"
+            />
             <AppSettingsCardWithIconLayout
                 icon="shieldWarning"
                 title={<Translation id="moduleSettings.items.features.advanced.title" />}

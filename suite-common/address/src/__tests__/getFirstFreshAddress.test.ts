@@ -8,7 +8,7 @@ describe(getFirstFreshAddress.name, () => {
         const account = mockWalletAccount({
             symbol: 'test',
             path: "m/84'/1'/0'",
-            descriptor: asAccountDescriptor('descriptor-test'),
+            descriptor: asAccountDescriptor('descriptorTest'),
             history: { total: 13, tokens: 0, unconfirmed: 0 },
             addresses: {
                 used: [],
@@ -49,7 +49,6 @@ describe(getFirstFreshAddress.name, () => {
                     {
                         path: "m/84'/1'/0'/0/1",
                         address: 'tb1q-first',
-                        isVerified: true,
                     },
                 ],
                 ['tb1q-third'],
@@ -71,7 +70,7 @@ describe(getFirstFreshAddress.name, () => {
         const account = mockWalletAccount({
             symbol: 'test',
             path: "m/84'/1'/0'",
-            descriptor: asAccountDescriptor('descriptor-test'),
+            descriptor: asAccountDescriptor('descriptorTest'),
             history: { total: 13, tokens: 0, unconfirmed: 0 },
             addresses: {
                 used: [],
@@ -104,7 +103,6 @@ describe(getFirstFreshAddress.name, () => {
                     {
                         path: "m/84'/1'/0'/0/1",
                         address: 'tb1q-first',
-                        isVerified: true,
                     },
                 ],
                 ['tb1q-first'],
@@ -114,6 +112,66 @@ describe(getFirstFreshAddress.name, () => {
             address: 'tb1q-second',
             balance: '0',
             path: "m/84'/1'/0'/0/2",
+            received: '0',
+            sent: '0',
+            transfers: 0,
+        });
+    });
+
+    it('returns the next address after a labeled unused address', () => {
+        const account = mockWalletAccount({
+            symbol: 'test',
+            path: "m/84'/1'/0'",
+            descriptor: asAccountDescriptor('descriptorTest'),
+            history: { total: 13, tokens: 0, unconfirmed: 0 },
+            addresses: {
+                used: [],
+                unused: [
+                    {
+                        address: 'tb1q-skipped',
+                        path: "m/84'/1'/0'/0/138",
+                        balance: '0',
+                        sent: '0',
+                        received: '0',
+                        transfers: 0,
+                    },
+                    {
+                        address: 'tb1q-labeled',
+                        path: "m/84'/1'/0'/0/140",
+                        balance: '0',
+                        sent: '0',
+                        received: '0',
+                        transfers: 0,
+                    },
+                    {
+                        address: 'tb1q-fresh',
+                        path: "m/84'/1'/0'/0/141",
+                        balance: '0',
+                        sent: '0',
+                        received: '0',
+                        transfers: 0,
+                    },
+                ],
+                change: [],
+            },
+        });
+
+        expect(
+            getFirstFreshAddress(
+                account,
+                [
+                    {
+                        path: "m/84'/1'/0'/0/140",
+                        address: 'tb1q-labeled',
+                    },
+                ],
+                [],
+                true,
+            ),
+        ).toEqual({
+            address: 'tb1q-fresh',
+            balance: '0',
+            path: "m/84'/1'/0'/0/141",
             received: '0',
             sent: '0',
             transfers: 0,
@@ -140,7 +198,7 @@ describe(getFirstFreshAddress.name, () => {
         const account = mockWalletAccount({
             symbol: 'test',
             path: "m/84'/1'/0'",
-            descriptor: asAccountDescriptor('descriptor-test'),
+            descriptor: asAccountDescriptor('descriptorTest'),
             history: { total: 13, tokens: 0, unconfirmed: 0 },
             addresses: {
                 used: [],
@@ -165,7 +223,6 @@ describe(getFirstFreshAddress.name, () => {
                     {
                         path: "m/84'/1'/0'/0/1",
                         address: 'tb1q-first',
-                        isVerified: true,
                     },
                 ],
                 ['tb1q-first'],

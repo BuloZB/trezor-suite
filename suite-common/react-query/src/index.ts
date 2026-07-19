@@ -2,11 +2,13 @@ export {
     QueryClient,
     QueryClientProvider,
     useQuery,
+    useInfiniteQuery,
     useMutation,
     useQueryClient,
     type MutationOptions,
     type QueryOptions,
     type UseQueryOptions,
+    type UseQueryResult,
     keepPreviousData,
 } from '@tanstack/react-query';
 export * from './constants/queryKeys';

@@ -3,17 +3,22 @@ import playwright from 'eslint-plugin-playwright';
 import globals from 'globals';
 
 import { globalNoExtraneousDependenciesDevDependencies, importConfig } from './importConfig.mjs';
-import { javascriptConfig } from './javascriptConfig.mjs';
+import { javascriptConfig, noCastedObjectHelpersSyntax } from './javascriptConfig.mjs';
 import { javascriptNodejsConfig } from './javascriptNodejsConfig.mjs';
 import { jestConfig } from './jestConfig.mjs';
 import { localRulesConfig } from './localRulesConfig.mjs';
 import { reactConfig } from './reactConfig.mjs';
+import { reactQueryConfig } from './reactQueryConfig.mjs';
 import { restrictedImportsPatterns, typescriptConfig } from './typescriptConfig.mjs';
 /**
  * @typedef {import('eslint').Linter.Config} Config
  */
 
-export { globalNoExtraneousDependenciesDevDependencies, restrictedImportsPatterns };
+export {
+    globalNoExtraneousDependenciesDevDependencies,
+    noCastedObjectHelpersSyntax,
+    restrictedImportsPatterns,
+};
 
 /** @type {Config[]} */
 export const eslint = [
@@ -29,7 +34,6 @@ export const eslint = [
             '**/build-webextension/*',
             '**/node_modules/*',
             '**/public/*',
-            '**/ci/',
             '**/.expo/*',
             '**/.cache/*',
             '**/playwright-report/*',
@@ -48,6 +52,7 @@ export const eslint = [
     },
 
     ...reactConfig,
+    ...reactQueryConfig,
     ...javascriptConfig,
     ...javascriptNodejsConfig,
     ...typescriptConfig,

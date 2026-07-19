@@ -1,6 +1,7 @@
 import { type NetworkSymbol } from '@suite-common/wallet-config';
 import { type AccountKey } from '@suite-common/wallet-types';
 import { Form } from '@suite-native/forms';
+import { getTranslation } from '@suite-native/intl';
 import {
     type TestStore,
     createStoreFromPreloadedState,
@@ -9,7 +10,7 @@ import {
 } from '@suite-native/test-utils-store';
 
 import { type FeesFormType } from '../../../..';
-import { getWalletState } from '../../../../__fixtures__/walletState';
+import { ETH_ACCOUNT_KEY, getWalletState } from '../../../../__fixtures__/walletState';
 import { useFeesForm } from '../../../../hooks';
 import { CustomFeeInputs, type CustomFeeInputsProps } from '../CustomFeeInputs';
 
@@ -33,9 +34,7 @@ describe('CustomFeeInputs', () => {
         wallet: getWalletState(),
     };
 
-    const renderUseFeesForm = (
-        accountKey: AccountKey = 'eth-account-1' as AccountKey, // Todo: create properly via `createAccountKey()`,
-    ) => {
+    const renderUseFeesForm = (accountKey: AccountKey = ETH_ACCOUNT_KEY) => {
         const { result } = renderHookWithStoreProvider(
             () =>
                 useFeesForm({
@@ -84,7 +83,11 @@ describe('CustomFeeInputs', () => {
             const { getByText, getByTestId } = renderCustomFeeInputs({
                 form,
             });
-            expect(getByText('Fee rate')).toBeTruthy();
+            expect(
+                getByText(
+                    getTranslation('transactionManagement.fees.custom.bottomSheet.label.feeRate'),
+                ),
+            ).toBeTruthy();
             expect(getByTestId('@transactionManagement/customFeePerUnit-input')).toBeTruthy();
         });
 
@@ -95,7 +98,11 @@ describe('CustomFeeInputs', () => {
                 props: { symbol: 'eth' },
             });
 
-            expect(getByText('Gas price')).toBeTruthy();
+            expect(
+                getByText(
+                    getTranslation('transactionManagement.fees.custom.bottomSheet.label.gasPrice'),
+                ),
+            ).toBeTruthy();
             expect(getByTestId('@transactionManagement/customFeePerUnit-input')).toBeTruthy();
         });
 
@@ -106,7 +113,11 @@ describe('CustomFeeInputs', () => {
                 props: { symbol: 'eth' },
             });
 
-            expect(getByText('Gas limit')).toBeTruthy();
+            expect(
+                getByText(
+                    getTranslation('transactionManagement.fees.custom.bottomSheet.label.gasLimit'),
+                ),
+            ).toBeTruthy();
             expect(getByTestId('@transactionManagement/customFeeLimit-input')).toBeTruthy();
         });
 
@@ -116,7 +127,11 @@ describe('CustomFeeInputs', () => {
                 form,
                 props: { symbol: 'btc' },
             });
-            expect(queryByText('Gas limit')).toBeNull();
+            expect(
+                queryByText(
+                    getTranslation('transactionManagement.fees.custom.bottomSheet.label.gasLimit'),
+                ),
+            ).toBeNull();
             expect(queryByTestId('@transactionManagement/customFeeLimit-input')).toBeNull();
         });
 
@@ -141,7 +156,13 @@ describe('CustomFeeInputs', () => {
                 form,
                 props: { symbol: 'btc' },
             });
-            expect(getByText('The minimum fee rate is 1 sat/vB')).toBeTruthy();
+            expect(
+                getByText(
+                    getTranslation('transactionManagement.fees.custom.bottomSheet.minimumLabel', {
+                        feePerUnit: '1 sat/vB',
+                    }),
+                ),
+            ).toBeTruthy();
         });
 
         it('should not show minimum fee hint for ethereum', () => {
@@ -150,7 +171,13 @@ describe('CustomFeeInputs', () => {
                 form,
                 props: { symbol: 'eth' },
             });
-            expect(queryByText('The minimum fee rate is 1 Gwei')).toBeNull();
+            expect(
+                queryByText(
+                    getTranslation('transactionManagement.fees.custom.bottomSheet.minimumLabel', {
+                        feePerUnit: '1 Gwei',
+                    }),
+                ),
+            ).toBeNull();
         });
     });
 });

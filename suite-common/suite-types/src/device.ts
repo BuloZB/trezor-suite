@@ -31,6 +31,9 @@ export type ButtonRequest = Omit<DeviceEvent['payload'], 'device' | 'code'> & {
         | 'ui-invalid_pin'
         | DeviceButtonRequest['payload']['code']
         | NonNullable<PROTO.PinMatrixRequest>['type'];
+    // Firmware screen identifier (e.g. 'confirm_payment_request'). Stored from the button request
+    // payload; used to distinguish screens that share the same generic code (ButtonRequest_Other).
+    name?: DeviceButtonRequest['payload']['name'];
 };
 
 /**
@@ -142,3 +145,5 @@ export type DeviceCancelledErrType = { type: 'DeviceCancelled' };
  * This is (generic) delegated error from the Device (from Firmware/Connect).
  */
 export type DeviceErrorType = { type: 'DeviceError'; message: string };
+
+export type DeviceNotConnectedErrorType = { type: 'DeviceNotConnectedError'; message: string };

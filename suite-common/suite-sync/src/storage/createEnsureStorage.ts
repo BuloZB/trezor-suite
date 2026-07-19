@@ -13,9 +13,13 @@ import {
     type SuiteSyncUnavailableOnDeviceErrorType,
     type WriteModeRequiredForAllocationErrType,
 } from '@suite-common/suite-sync-types';
-import { type DeviceCancelledErrType, type DeviceErrorType } from '@suite-common/suite-types';
-import { parseDeviceStaticSessionId } from '@suite-common/wallet-utils';
+import {
+    type DeviceCancelledErrType,
+    type DeviceErrorType,
+    type DeviceNotConnectedErrorType,
+} from '@suite-common/suite-types';
 import { type StaticSessionId } from '@trezor/connect';
+import { parseStaticSessionId } from '@trezor/device-utils';
 import { type Result, err, exhaustive, ok } from '@trezor/type-utils';
 import { isNotNull } from '@trezor/utils';
 
@@ -45,6 +49,7 @@ export type CreateEnsureStorage = (
         | SuiteSyncUnavailableOnDeviceErrorType
         | DeviceErrorType
         | DeviceCancelledErrType
+        | DeviceNotConnectedErrorType
         | WriteModeRequiredForAllocationErrType
         | QuotaManagerCommunicationFailedErrType
     >
@@ -63,7 +68,7 @@ export const createEnsureStorage =
     (deps: EnsureStorageDeps): CreateEnsureStorage =>
     async ({ deviceStaticSessionId, isWriteMode }): ReturnType<CreateEnsureStorage> => {
         const storageId = createStorageIdFromDeviceStaticSessionId(deviceStaticSessionId);
-        const { walletDescriptor } = parseDeviceStaticSessionId(deviceStaticSessionId);
+        const { walletDescriptor } = parseStaticSessionId(deviceStaticSessionId);
 
         const existingStorage = deps.suiteSyncStorageRepository.get(storageId);
 

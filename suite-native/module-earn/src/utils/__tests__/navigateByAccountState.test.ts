@@ -1,4 +1,5 @@
-import { type Account, type AccountKey } from '@suite-common/wallet-types';
+import { type Account } from '@suite-common/wallet-types';
+import { mockAccountKey } from '@suite-common/wallet-types/mocks';
 import {
     formatNetworkAmount,
     getAccountTotalStakingBalance,
@@ -33,7 +34,7 @@ const mockLimits = {
 
 const createMockAccount = (overrides: Partial<Account> = {}): Account =>
     ({
-        key: 'test-account-key' as AccountKey,
+        key: mockAccountKey({ descriptor: 'testAccountKey' }),
         symbol: 'eth',
         availableBalance: '1000000000000000000',
         formattedBalance: '1.0',
@@ -45,7 +46,7 @@ describe('navigateByAccountState', () => {
         jest.clearAllMocks();
     });
 
-    it('navigates to StakingManagement when account has staked balance', () => {
+    it('navigates to StakingManagement when an Ethereum account has staked balance', () => {
         const account = createMockAccount();
         mockGetAccountTotalStakingBalance.mockReturnValue('1000000000000000');
 
@@ -56,20 +57,49 @@ describe('navigateByAccountState', () => {
         });
     });
 
-    it('does not navigate Solana to StakingManagement even with a staked balance (no dashboard)', () => {
-        const account = createMockAccount({ symbol: 'sol', networkType: 'solana' });
+    it('navigates to StakingManagement when a Solana account has staked balance', () => {
+        const account = createMockAccount({ symbol: 'sol' });
         mockGetAccountTotalStakingBalance.mockReturnValue('1000000000');
-        mockGetStakingLimitsByNetworkSymbol.mockReturnValue(mockLimits);
-        mockFormatNetworkAmount.mockReturnValue('1.0');
 
         navigateByAccountState(account, mockNavigate);
 
-        expect(mockNavigate).not.toHaveBeenCalledWith(
-            RootStackRoutes.StakingManagement,
-            expect.anything(),
-        );
+        expect(mockNavigate).toHaveBeenCalledWith(RootStackRoutes.StakingManagement, {
+            accountKey: account.key,
+        });
+    });
+
+    it('navigates to HowStakeWorksScreen when a Solana account has a balance but no stake', () => {
+        const account = createMockAccount({ symbol: 'sol' });
+        mockGetAccountTotalStakingBalance.mockReturnValue('0');
+
+        navigateByAccountState(account, mockNavigate);
+
+        // A first-time Solana staker starts at the intro, not the empty dashboard.
         expect(mockNavigate).toHaveBeenCalledWith(RootStackRoutes.HowStakeWorksScreen, {
             symbol: 'sol',
+            accountKey: account.key,
+        });
+    });
+
+    it('navigates to HowStakeWorksScreen when a Solana account has insufficient balance and no stake', () => {
+        const account = createMockAccount({ symbol: 'sol', availableBalance: '100' });
+        mockGetAccountTotalStakingBalance.mockReturnValue(null);
+
+        navigateByAccountState(account, mockNavigate);
+
+        expect(mockNavigate).toHaveBeenCalledWith(RootStackRoutes.HowStakeWorksScreen, {
+            symbol: 'sol',
+            accountKey: account.key,
+        });
+    });
+
+    it('navigates to StakingDetail when a Cardano account has staked balance', () => {
+        const account = createMockAccount({ symbol: 'ada' });
+        mockGetAccountTotalStakingBalance.mockReturnValue('1000000');
+
+        navigateByAccountState(account, mockNavigate);
+
+        expect(mockNavigate).toHaveBeenCalledWith(RootStackRoutes.StakingDetail, {
             accountKey: account.key,
         });
     });

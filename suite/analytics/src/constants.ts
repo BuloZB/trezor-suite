@@ -53,7 +53,6 @@ export enum EventType {
     MenuGuide = 'menu/guide',
     MenuNotificationsToggle = 'menu/notifications/toggle',
     MenuToggleDiscreet = 'menu/toggle-discreet',
-    OnboardingStepViewed = 'onboarding/step-viewed',
     PromoDashboardBanner = 'promo/dashboard-banner',
     PromoDesktop = 'promo/desktop',
     PromoMobile = 'promo/mobile',
@@ -97,6 +96,7 @@ export enum EventType {
     SettingsGeneralLabelingProvider = 'settings/general/labeling-provider',
     SettingsGeneralMevProtection = 'settings/general/mev-protection',
     SettingsGeneralNetworkReserve = 'settings/general/network-reserve',
+    SettingsLoadNetworksClicked = 'settings/load-networks-clicked',
     SettingsTor = 'settings/tor',
     SettingsTorOnionLinks = 'settings/tor/onion-links',
     StakingChangeDelegate = 'staking/change-delegate',
@@ -125,8 +125,6 @@ export enum EventType {
     TradeApproval = 'trade/approval',
     // eslint-disable-next-line local-rules/analytics-event-name
     TradeBuy = 'trade/buy',
-    // eslint-disable-next-line local-rules/analytics-event-name
-    TradeCompareOffers = 'trade/compare-offers',
     // eslint-disable-next-line local-rules/analytics-event-name
     TradeConfirmTrade = 'trade/confirm-trade',
     // eslint-disable-next-line local-rules/analytics-event-name

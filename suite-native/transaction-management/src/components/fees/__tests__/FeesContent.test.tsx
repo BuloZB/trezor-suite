@@ -1,6 +1,8 @@
 import { yup } from '@suite-common/validators';
-import { type AccountKey, type FormState } from '@suite-common/wallet-types';
+import { type FormState } from '@suite-common/wallet-types';
+import { mockAccountKey } from '@suite-common/wallet-types/mocks';
 import { Form, useForm } from '@suite-native/forms';
+import { getTranslation } from '@suite-native/intl';
 import { renderWithStoreProvider } from '@suite-native/test-utils-store';
 
 import { createFeeLevels } from '../../../__fixtures__/feeLevels';
@@ -29,7 +31,7 @@ const TestFormWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 describe('FeesContent', () => {
-    const mockAccountKey: AccountKey = 'btc1' as AccountKey; // Todo: create properly via `createAccountKey()`
+    const accountKey = mockAccountKey({ symbol: 'btc', descriptor: 'btc1' });
     const mockOnSelectedFeeLevel = jest.fn();
     const mockOnCustomFeeSet = jest.fn();
 
@@ -45,7 +47,7 @@ describe('FeesContent', () => {
         feeLevels: createMockFeeLevels(),
         symbol: 'btc',
         networkType: 'bitcoin',
-        accountKey: mockAccountKey,
+        accountKey,
         areFeesLoading: false,
         onSelectedFeeLevel: mockOnSelectedFeeLevel,
         onCustomFeeSet: mockOnCustomFeeSet,
@@ -76,9 +78,11 @@ describe('FeesContent', () => {
     it('should render title and description', () => {
         const { getByText } = renderFeesContent();
 
-        expect(getByText('Transaction fee')).toBeTruthy();
         expect(
-            getByText('Fees are paid directly to validators for processing your transactions.'),
+            getByText(getTranslation('transactionManagement.fees.description.title.general')),
+        ).toBeTruthy();
+        expect(
+            getByText(getTranslation('transactionManagement.fees.description.body')),
         ).toBeTruthy();
     });
 
@@ -125,7 +129,9 @@ describe('FeesContent', () => {
             symbol: 'eth',
         });
 
-        expect(getByText('Transaction fee')).toBeTruthy();
+        expect(
+            getByText(getTranslation('transactionManagement.fees.description.title.general')),
+        ).toBeTruthy();
     });
 
     it('should render with form draft data', () => {

@@ -11,8 +11,9 @@ const legacyResults = {
     },
 };
 
-export default {
+const cardanoGetAddress: TestCase = {
     method: 'cardanoGetAddress',
+    enabledCoins: ['ada'] as const,
     setup: {
         mnemonic: 'mnemonic_all',
     },
@@ -505,4 +506,6 @@ export default {
             result: false,
         },
     ].map(test => ({ ...test, legacyResults: [legacyResults.minConnectVersion] })),
-} satisfies TestCase;
+};
+
+export default cardanoGetAddress;

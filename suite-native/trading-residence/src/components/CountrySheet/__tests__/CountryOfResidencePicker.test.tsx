@@ -2,6 +2,8 @@ import { combineReducers } from '@reduxjs/toolkit';
 
 import { useCountryFilteredData } from '@suite-common/trading';
 import { initialWalletSettingsState } from '@suite-common/wallet-core';
+import { type NativeAnalyticsDep } from '@suite-native/analytics';
+import { mockNativeAnalytics } from '@suite-native/analytics/mocks';
 import { Form, useForm } from '@suite-native/forms';
 import { getTranslation, localeReducer } from '@suite-native/intl';
 import { renderHookWithBasicProvider, renderWithBasicProvider } from '@suite-native/test-utils';
@@ -25,10 +27,8 @@ import {
 let mockUseCountryFilteredData: jest.Mock;
 
 const reportMock = jest.fn();
-const services = {
-    analytics: {
-        report: reportMock,
-    },
+const services: NativeAnalyticsDep = {
+    analytics: mockNativeAnalytics(reportMock),
 };
 
 jest.mock('@suite-common/trading', () => ({

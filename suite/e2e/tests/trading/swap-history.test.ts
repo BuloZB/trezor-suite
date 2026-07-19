@@ -4,7 +4,7 @@ import { type NetworkSymbol, getNetwork } from '@suite-common/wallet-config';
 import { localizeNumber } from '@suite-common/wallet-utils';
 
 import { invityEndpoint } from '../../fixtures/invity';
-import { SEEDED_TRADES } from '../../fixtures/invity/swap/swap-history';
+import { PENDING_TRADE, SEEDED_TRADES } from '../../fixtures/invity/swap/swap-history';
 import { expect, test } from '../../support/fixtures';
 
 test.describe('Trading - Swap history', { tag: ['@webOnly', '@T3T1', '@T3W1'] }, () => {
@@ -62,8 +62,8 @@ test.describe('Trading - Swap history', { tag: ['@webOnly', '@T3T1', '@T3W1'] },
             } as const;
 
             await expect(tradingPage.transactions.count).toHaveTranslation(
-                'TR_TRADING_SWAP_COUNTER',
-                { values: { totalSwaps: SEEDED_TRADES.length } },
+                'TR_TRADING_TRADE_HISTORY_COUNTER',
+                { values: { totalBuys: 0, totalSells: 0, totalSwaps: SEEDED_TRADES.length } },
             );
 
             for (const trade of SEEDED_TRADES) {
@@ -108,6 +108,7 @@ test.describe('Trading - Swap history', { tag: ['@webOnly', '@T3T1', '@T3W1'] },
                 await expect.soft(row.date).toHaveText(expectedDate);
             }
         });
+
         const detailStatusTranslationKeys = {
             SUCCESS: 'TR_EXCHANGE_DETAIL_SUCCESS_TITLE',
             ERROR: 'TR_EXCHANGE_DETAIL_ERROR_TITLE',
@@ -165,9 +166,36 @@ test.describe('Trading - Swap history', { tag: ['@webOnly', '@T3T1', '@T3W1'] },
             });
 
             await test.step(`Navigate back to transaction list`, async () => {
-                await tradingPage.transactions.menuButton.click();
+                await tradingPage.backButton.click();
                 await expect(tradingPage.transactions.heading).toBeVisible();
             });
         }
+    });
+
+    test('Ongoing swap detail shows the processing header', async ({ walletPage, tradingPage }) => {
+        await test.step('Navigate to swap/exchange trading section', async () => {
+            await walletPage.openSwapTrading({ symbol: 'btc' });
+        });
+
+        await test.step('Open trading transactions history', async () => {
+            await tradingPage.transactions.menuButton.click();
+            await expect(tradingPage.transactions.heading).toHaveTranslation(
+                'TR_TRADING_LAST_TRANSACTIONS',
+            );
+        });
+
+        await test.step('Open detail for the ongoing (CONFIRMING) trade', async () => {
+            await tradingPage.transactions
+                .swapTransactionRow(PENDING_TRADE.orderId)
+                .viewDetailsButton.click();
+            await expect(tradingPage.transactionDetail).toBeVisible();
+        });
+
+        await test.step('Verify the processing header is shown', async () => {
+            await expect(tradingPage.transactionDetailHeader).toHaveTranslation(
+                'TR_TRADING_HEADER_PROCESSING_TITLE',
+                { values: { type: 'swap' } },
+            );
+        });
     });
 });

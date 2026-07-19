@@ -1,9 +1,10 @@
 import { type PayloadAction, createSlice } from '@reduxjs/toolkit';
 
+import { type EarnYieldWorkerBaseUrl } from '@suite-common/earn-stablecoin-defs';
 import { isDetoxTestBuild } from '@suite-native/config';
 import { DEVICE } from '@trezor/connect';
 
-export type ExperimentalFeature = 'suite-sync' | 'testnet-networks';
+export type ExperimentalFeature = 'suite-sync';
 
 export interface AppSettingsState {
     isOnboardingFinished: boolean;
@@ -14,6 +15,7 @@ export interface AppSettingsState {
     areTestnetsEnabled: boolean;
     shouldShowAutoEjectAlert: boolean;
     hasAutoEjectAlertBeenDisplayed: boolean;
+    earnYieldWorkerBaseUrl?: EarnYieldWorkerBaseUrl;
 }
 
 export type SettingsSliceRootState = {
@@ -31,6 +33,7 @@ export const appSettingsInitialState: AppSettingsState = {
     areTestnetsEnabled: isDetoxTestBuild(),
     shouldShowAutoEjectAlert: false,
     hasAutoEjectAlertBeenDisplayed: false,
+    earnYieldWorkerBaseUrl: undefined,
 };
 
 export const appSettingsPersistWhitelist: Array<keyof AppSettingsState> = [
@@ -41,9 +44,10 @@ export const appSettingsPersistWhitelist: Array<keyof AppSettingsState> = [
     'areDeviceMetaChecksEnabled',
     'areTestnetsEnabled',
     'hasAutoEjectAlertBeenDisplayed',
+    'earnYieldWorkerBaseUrl',
 ];
 
-export const appSettingsSlice = createSlice({
+const appSettingsSlice = createSlice({
     name: 'appSettings',
     initialState: appSettingsInitialState,
     reducers: {
@@ -67,6 +71,9 @@ export const appSettingsSlice = createSlice({
         setHasAutoEjectAlertBeenDisplayed: (state, { payload }: PayloadAction<boolean>) => {
             state.hasAutoEjectAlertBeenDisplayed = payload;
         },
+        setEarnWorkerEnvironment: (state, { payload }: PayloadAction<EarnYieldWorkerBaseUrl>) => {
+            state.earnYieldWorkerBaseUrl = payload;
+        },
     },
     extraReducers: builder => {
         builder.addCase(DEVICE.CONNECT, state => {
@@ -88,6 +95,9 @@ export const selectAreTestnetsEnabled = (state: SettingsSliceRootState) =>
 
 export const selectHasAutoEjectAlertBeenDisplayed = (state: SettingsSliceRootState) =>
     state.appSettings.hasAutoEjectAlertBeenDisplayed;
+
+export const selectEarnYieldWorkerBaseUrl = (state: SettingsSliceRootState) =>
+    state.appSettings.earnYieldWorkerBaseUrl;
 
 export const selectIsFirmwareRevisionCheckEnabled = (state: SettingsSliceRootState) =>
     state.appSettings.isFirmwareRevisionCheckEnabled;
@@ -112,5 +122,6 @@ export const {
     toggleAreTestnetsEnabled,
     setShouldShowAutoEjectAlert,
     setHasAutoEjectAlertBeenDisplayed,
+    setEarnWorkerEnvironment,
 } = appSettingsSlice.actions;
 export const appSettingsReducer = appSettingsSlice.reducer;

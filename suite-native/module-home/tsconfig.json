@@ -3,11 +3,13 @@
     "compilerOptions": { "outDir": "libDev" },
     "references": [
         {
+            "path": "../../suite-common/analytics"
+        },
+        {
             "path": "../../suite-common/dependency-injection"
         },
         { "path": "../../suite-common/device" },
         { "path": "../../suite-common/feedback" },
-        { "path": "../../suite-common/graph" },
         {
             "path": "../../suite-common/message-system"
         },
@@ -29,14 +31,12 @@
         {
             "path": "../../suite-common/wallet-core"
         },
-        {
-            "path": "../../suite-common/wallet-types"
-        },
         { "path": "../accounts" },
         { "path": "../alerts" },
         { "path": "../analytics" },
         { "path": "../assets" },
         { "path": "../atoms" },
+        { "path": "../banner-flags" },
         { "path": "../blockchain" },
         { "path": "../bluetooth" },
         { "path": "../confirm-on-trezor" },
@@ -47,6 +47,7 @@
         { "path": "../feature-feedback" },
         { "path": "../firmware" },
         { "path": "../graph" },
+        { "path": "../icons" },
         { "path": "../intl" },
         { "path": "../link" },
         { "path": "../navigation" },

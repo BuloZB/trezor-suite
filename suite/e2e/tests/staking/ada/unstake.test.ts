@@ -84,6 +84,7 @@ test.describe('Staking - Cardano', { tag: ['@T3W1', '@T3T1'] }, () => {
                 atIndex: 0,
                 subAccount: 'staking',
             });
+
             await test.step('Verify staked account', async () => {
                 await walletPage.openAccount({ symbol: 'ada', type: 'normal', atIndex: 0 });
                 await stakingSection.stakingTabButton.click();
@@ -171,10 +172,11 @@ test.describe('Staking - Cardano', { tag: ['@T3W1', '@T3T1'] }, () => {
             });
 
             await test.step('Verify unstaked account', async () => {
-                await expect(stakingSection.unstakedToastAccount).toContainText('Cardano #1');
-                await expect(stakingSection.unstakedToastAmount).toContainText(
-                    unstakedAmountFormatted,
-                );
+                await stakingSection.verifyStakingToast({
+                    type: 'unstaked',
+                    account: 'Cardano #1',
+                    amount: unstakedAmountFormatted,
+                });
                 await expect(walletPage.topPanelBalanceWithSymbol).toHaveText(
                     finalBalanceFormatted,
                 );

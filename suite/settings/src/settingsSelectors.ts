@@ -1,4 +1,5 @@
 import { type ExperimentalFeature } from '@suite/experimental';
+import { defaultEarnYieldWorkerBaseUrl } from '@suite-common/earn-stablecoin-api';
 
 import { type SuiteSettingsRootState } from './settingsSlice';
 
@@ -15,16 +16,18 @@ export const selectTorOnionLinks = (state: SuiteSettingsRootState) =>
     state.suiteSettings.torOnionLinks;
 export const selectIsCoinjoinReceiveWarningHidden = (state: SuiteSettingsRootState) =>
     state.suiteSettings.isCoinjoinReceiveWarningHidden;
-export const selectIsDebugModeActive = (state: SuiteSettingsRootState) =>
-    state.suiteSettings.debug.showDebugMenu;
 export const selectIsUnlockedBootloaderAllowed = (state: SuiteSettingsRootState) =>
     state.suiteSettings.debug.isUnlockedBootloaderAllowed;
 export const selectDebugTransports = (state: SuiteSettingsRootState) =>
     state.suiteSettings.debug.transports;
 export const selectShowConnectLogs = (state: SuiteSettingsRootState) =>
     state.suiteSettings.debug.showConnectLogs;
+export const selectDefinitionsChannel = (state: SuiteSettingsRootState) =>
+    state.suiteSettings.debug.definitionsChannel;
 export const selectInvityServerEnvironment = (state: SuiteSettingsRootState) =>
     state.suiteSettings.debug.invityServerEnvironment;
+export const selectEarnYieldWorkerBaseUrl = (state: SuiteSettingsRootState) =>
+    state.suiteSettings.debug.earnYieldWorkerBaseUrl ?? defaultEarnYieldWorkerBaseUrl;
 export const selectOAuthServerEnvironment = (state: SuiteSettingsRootState) =>
     state.suiteSettings.debug.oauthServerEnvironment;
 export const selectExperimentalFeatures = (state: SuiteSettingsRootState) =>
@@ -34,6 +37,10 @@ export const selectIsExperimentalEnabled = (state: SuiteSettingsRootState) =>
 export const selectHasExperimentalFeature =
     (feature: ExperimentalFeature) => (state: SuiteSettingsRootState) =>
         state.suiteSettings.experimental?.includes(feature) ?? false;
+export const selectIsTestnetNetworksEnabled = (state: SuiteSettingsRootState) =>
+    state.suiteSettings.isTestnetNetworksEnabled;
+export const selectIsNftSectionEnabled = (state: SuiteSettingsRootState) =>
+    state.suiteSettings.isNftSectionEnabled;
 export const selectIsDeviceAuthenticityCheckEnabled = (state: SuiteSettingsRootState) =>
     state.suiteSettings.enabledSecurityChecks.deviceAuthenticity;
 export const selectIsEntropyCheckEnabled = (state: SuiteSettingsRootState) =>

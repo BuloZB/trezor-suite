@@ -7,7 +7,6 @@ import { type EnsureDelegatedIdentityKeyDep } from '@suite-common/delegated-iden
 import { type PlatformEncryptionDep } from '@suite-common/platform-encryption';
 import {
     type SuiteSyncAnalyticsDep,
-    type SuiteSyncAsyncErrorHandlerDep,
     createSuiteSyncCompositionRoot,
 } from '@suite-common/suite-sync';
 import {
@@ -18,17 +17,16 @@ import {
 } from '@suite-common/suite-sync-evolu';
 import { type FetchDep } from '@suite-common/suite-sync-quota-manager';
 import { type SuiteSync } from '@suite-common/suite-sync-types';
-import { type TrezorConnect } from '@trezor/connect';
+import { type TrezorConnectPrivilegedAPI } from '@trezor/connect';
 
 type SuiteSyncNativeCompositionRootDeps = {
     getState: () => any;
     dispatch: Dispatch;
-    trezorConnect: TrezorConnect;
+    trezorConnect: TrezorConnectPrivilegedAPI;
 } & SuiteSyncAnalyticsDep &
     PlatformEncryptionDep &
     EnsureDelegatedIdentityKeyDep &
-    FetchDep &
-    SuiteSyncAsyncErrorHandlerDep;
+    FetchDep;
 
 export const createSuiteSyncNativeCompositionRoot = (
     deps: SuiteSyncNativeCompositionRootDeps,
@@ -47,11 +45,14 @@ export const createSuiteSyncNativeCompositionRoot = (
             createEvoluInstance: createEvoluInstanceFactory({ run }),
         }),
         createSuiteSyncOwner: evoluCreateSuiteSyncOwner,
+        getIsTorEnabled: () => false,
         subscribeError: errorHandler => {
             evoluDeps.evoluError.subscribe(
                 createEvoluErrorHandler(evoluDeps.evoluError, errorHandler),
             );
         },
-        suiteSyncAsyncErrorHandler: deps.suiteSyncAsyncErrorHandler,
+        // Todo: we need to reuse useSuiteSyncErrorHandler somehow, but we do not have showAlert here.
+        suiteSyncUncontrolledErrorHandler: () => {},
+        onStorageEnsured: () => {},
     });
 };

@@ -4,7 +4,8 @@ import { goto } from '@suite/router';
 import { type TrezorDevice } from '@suite-common/suite-types';
 import { selectEnabledNetworks } from '@suite-common/wallet-core';
 import { Button, Card, Column, H3, Paragraph, Row } from '@trezor/components';
-import { CoinLogo } from '@trezor/product-components';
+import { PlusIcon } from '@trezor/icons';
+import { TokenIcon } from '@trezor/product-components';
 import { spacings } from '@trezor/theme';
 
 import { useNetworkSupport } from 'src/hooks/settings/useNetworkSupport';
@@ -90,14 +91,14 @@ const PassphraseWalletIsEmptyContent = ({
                             </Paragraph>
                             <Row gap={spacings.xxs} flexWrap="wrap">
                                 {enabledNetworks.map(network => (
-                                    <CoinLogo key={network} symbol={network} size={16} />
+                                    <TokenIcon key={network} symbol={network} size={16} />
                                 ))}
                             </Row>
                             {onCancel && (
                                 <Button
                                     intent="neutral"
                                     priority="secondary"
-                                    iconLeft="plus"
+                                    iconLeft={PlusIcon}
                                     size="small"
                                     onClick={() => {
                                         onCancel();

@@ -20,19 +20,19 @@ test.describe('Labeling migration', { tag: ['@T3W1', '@T3T1', '@desktopOnly'] },
     test.use({ wipeEvoluRelay: true });
 
     test.beforeEach(async ({ onboardingPage, settingsPage, metadataPage }) => {
-        await onboardingPage.completeOnboarding({ keepDebugModeEnabled: true });
+        await onboardingPage.completeOnboarding();
+        await settingsPage.navigateTo('application');
+        await settingsPage.toggleDebugModeInSettings();
         await settingsPage.changeNetworks({ enableNetworks: ['btc'] });
         await metadataPage.enableLegacyLabeling(MetadataProvider.LOCAL);
     });
 
     test('Migration from local file', async ({
         page,
+        dashboardPage,
         walletPage,
         metadataPage,
-        device,
-        devicePrompt,
         evoluClient,
-        settingsPage,
     }) => {
         await test.step('Set up local file labeling', async () => {
             await walletPage.accountLabel({ symbol: 'btc', type: 'normal', atIndex: 0 }).click();
@@ -83,11 +83,6 @@ test.describe('Labeling migration', { tag: ['@T3W1', '@T3T1', '@desktopOnly'] },
 
         await test.step('Switch to Suite Sync labeling and confirm legacy label is migrated', async () => {
             await metadataPage.enableSuiteSync();
-            await settingsPage.navigateTo('application');
-            await metadataPage.migrateLabelsButton.click();
-            await metadataPage.migrateFromLocalFileButton.click();
-            await devicePrompt.confirmOnDevicePromptIsShown({ timeout: 30_000 });
-            await device.pressYes();
             await expect(
                 page.getByTestId('@toast/legacy-labeling-migration-success'),
             ).toHaveTranslation('TR_LABELING_MIGRATION_SUCCESS', {
@@ -98,6 +93,17 @@ test.describe('Labeling migration', { tag: ['@T3W1', '@T3T1', '@desktopOnly'] },
             await expect(
                 walletPage.accountLabel({ symbol: 'btc', type: 'normal', atIndex: 0 }),
             ).toHaveText(localLabel);
+        });
+
+        await test.step('Change wallet label to trigger device prompt for Suite Sync keys', async () => {
+            await dashboardPage.openDeviceSwitcher();
+            await metadataPage.wallet.changeLabel({
+                index: 0,
+                label: 'label4key',
+                confirmSuiteSync: true,
+            });
+            await expect.soft(metadataPage.wallet.walletLabel(0)).toHaveText('label4key');
+            await dashboardPage.deviceSwitchingCloseButton.click();
         });
 
         await test.step('Verify output label is synced', async () => {

@@ -1,4 +1,5 @@
-import type { AccountKey } from '@suite-common/wallet-types';
+import { mockAccountKey } from '@suite-common/wallet-types/mocks';
+import { getTranslation } from '@suite-native/intl';
 import { eth1NormalAccount, mercuryoFixedWorstQuote } from '@suite-native/trading-fixtures';
 
 import { renderWithTradingProvider } from '../../../../__tests__/tradingTestUtils';
@@ -40,7 +41,7 @@ describe('ExchangeFromAccountTradePreviewCard', () => {
     it('should render nothing when account is not found', () => {
         const { toJSON } = renderExchangeFromAccountTradePreviewCard(
             { quote: mercuryoFixedWorstQuote },
-            'unknown-account-key' as AccountKey,
+            mockAccountKey({ descriptor: 'unknownAccountKey' }),
         );
 
         expect(toJSON()).toBeNull();
@@ -51,16 +52,11 @@ describe('ExchangeFromAccountTradePreviewCard', () => {
             quote: mercuryoFixedWorstQuote,
         });
 
-        expect(getByText('From')).toBeOnTheScreen();
+        expect(
+            getByText(getTranslation('moduleTrading.tradingExchangePreviewScreen.fromAccount')),
+        ).toBeOnTheScreen();
         expect(getByText('ETH Account #1')).toBeOnTheScreen();
         expect(getByText('-100 USDC')).toBeOnTheScreen();
         expect(getByText(`100-${mercuryoFixedWorstQuote.send}`)).toBeOnTheScreen();
-    });
-
-    it('should display correct account name', () => {
-        const { getByText } = renderExchangeFromAccountTradePreviewCard({
-            quote: mercuryoFixedWorstQuote,
-        });
-        expect(getByText('ETH Account #1')).toBeOnTheScreen();
     });
 });

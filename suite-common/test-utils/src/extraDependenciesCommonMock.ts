@@ -1,3 +1,4 @@
+import type { AnalyticsSharedEvents } from '@suite-common/analytics';
 import { type Bip329 } from '@suite-common/bip329-types';
 import {
     type EncryptableBranded,
@@ -18,15 +19,16 @@ import type { SuiteSync } from '@suite-common/suite-sync-types';
 import { type ReportSecurityCheckParams, asDelegatedIdentityKey } from '@suite-common/suite-types';
 import { type SelectedAccountLoaded, asAccountDescriptor } from '@suite-common/wallet-types';
 import { mockWalletAccount } from '@suite-common/wallet-types/mocks';
-import { type Analytics } from '@trezor/analytics-uploader';
+import { mockAnalytics } from '@trezor/analytics-uploader/mocks';
 import { err, ok } from '@trezor/type-utils';
 
 const suiteSyncMock: SuiteSync = {
     changeRelayUrl: () => Promise.resolve(),
+    disconnectAllRelays: () => Promise.resolve(),
+    reconnectAllRelays: () => Promise.resolve(),
     ensureWalletSuiteSyncOn: () =>
         Promise.resolve(err({ type: 'SuiteSyncUnavailableOnDeviceError' })),
-    ensureWalletSuiteSyncOnAsync: () => Promise.resolve(),
-    onWalletSuiteSyncOnEnsured: () => {},
+    ensureWalletSuiteSyncOnUncontrolled: () => Promise.resolve(),
     turnOffSuiteSyncForWallet: () => Promise.resolve(),
     turnOnSuiteSync: () => Promise.resolve(ok()),
     turnOffSuiteSync: () => Promise.resolve(),
@@ -46,21 +48,13 @@ const bip329Mock: Bip329 = {
 
 const platformEncryptionMock: PlatformEncryption = {
     encrypt: <T extends EncryptableBranded>({ value }: { value: T }) =>
-        Promise.resolve(ok(asEncryptedHex(value as T))),
+        Promise.resolve(ok(asEncryptedHex(value))),
 
     decrypt: <T extends EncryptableBranded>({ value }: { value: EncryptedHex<T> }) =>
         Promise.resolve(ok(value as unknown as T)),
 };
 
-export const analyticsMock: Analytics<any> = {
-    report: () => {},
-    isEnabled: () => true,
-    disable: () => {},
-    enable: () => {},
-    setUrl: () => {},
-    setLoggerEnabled: () => {},
-    init: () => {},
-};
+const analyticsMock = mockAnalytics<AnalyticsSharedEvents>();
 
 const connectInitSettings: ConnectInitSettings = {
     debug: false,
@@ -87,11 +81,14 @@ export const extraDependenciesCommonMock: ExtraDependencies = {
         analytics: analyticsMock,
         reportSecurityCheck: ({ level, checkType }: ReportSecurityCheckParams) =>
             console.warn(`Mock reporting ${checkType} check ${level} to Sentry.`),
+        reloadApp: () => {},
         saveAs: (data, fileName) =>
             console.warn(
                 `Save data: ${data} into file: ${fileName}. Implementation on phone not ready.`,
             ),
         connectInitSettings,
+        connectInitHooks: { deviceEvent: {}, uiEvent: {} },
+        createTransports: () => [],
         migrateSuiteSyncLabelsForRbfTransaction: () => Promise.resolve([[], []]),
     },
     selectors: {
@@ -120,6 +117,7 @@ export const extraDependenciesCommonMock: ExtraDependencies = {
         ),
         selectIsWindowVisible: notImplementedSelector('selectIsWindowVisible', true),
         selectTradingEnvironment: notImplementedSelector('selectTradingEnvironment', 'localhost'),
+        selectTradedAccountKeys: notImplementedSelector('selectTradedAccountKeys', []),
         selectIsViewOnlyByDefaultEnabled: notImplementedSelector(
             'selectIsViewOnlyByDefaultEnabled',
             true,
@@ -158,5 +156,6 @@ export const extraDependenciesCommonMock: ExtraDependencies = {
         storageLoadBioAuth: notImplementedReducer('storageLoadBioAuth'),
         storageLoadFlags: notImplementedReducer('storageLoadFlags'),
         storageLoadSuiteSettings: notImplementedReducer('storageLoadSuiteSettings'),
+        storageLoadReceiveAccounts: notImplementedReducer('storageLoadReceiveAccounts'),
     },
 };

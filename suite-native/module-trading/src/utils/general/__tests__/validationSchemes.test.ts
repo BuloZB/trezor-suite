@@ -243,16 +243,16 @@ describe('validationSchemes', () => {
                 );
             });
 
-            it('falls back to balance when maxSpendableAmount is undefined', async () => {
+            it('passes when maxSpendableAmount is undefined and value is within balance', async () => {
                 const context = createContext({
                     sendSymbol: 'btc',
                     balance: '100',
                     maxSpendableAmount: undefined,
                 });
 
-                await expect(
-                    validate(sendCryptoAmountValidationSchema, 100, context),
-                ).resolves.toBe(100);
+                await expect(validate(sendCryptoAmountValidationSchema, 50, context)).resolves.toBe(
+                    50,
+                );
             });
         });
     });

@@ -1,5 +1,12 @@
 export * from './currentsApi';
 export { BackendWebsocketServerMock } from './mocks/backendServer';
+export { SolanaRpcServerMock, PASSTHROUGH } from './mocks/solanaRpcServerMock';
+export type { SolanaRpcHandler } from './mocks/solanaRpcServerMock';
+export { BlockbookProxyMock } from './mocks/blockbookProxyMock';
+export type { BlockbookWsHandler } from './mocks/blockbookProxyMock';
+export { TorSimulator } from './mocks/torSimulator';
+export type { RecordedConnection, SocksFault, SocksFaultRule } from './mocks/torSimulator';
+export { captureInterceptedGlobals } from './mocks/captureInterceptedGlobals';
 export { DropboxMock } from './mocks/dropbox';
 export { GoogleMock } from './mocks/google';
 export { GitHubReporterBase, InitializationState } from './githubReporter/gitHubReporterBase';

@@ -8,7 +8,7 @@ import { createTestAnnotation } from '../../../support/reporters/annotations';
 const stakedAmount = solStakingAccountFirst.stakeInSol;
 const stakedAndRentFormatted = `${solStakingAccountFirst.stakeAndRentInSol} SOL`;
 
-test.describe('sol staking', { tag: ['@webOnly', '@T3W1', '@T3T1'] }, () => {
+test.describe('sol staking', { tag: ['@T3W1', '@T3T1'] }, () => {
     test.use({
         deviceSetup: {
             mnemonic: 'access juice claim special truth ugly swarm rabbit hair man error bar',
@@ -16,9 +16,8 @@ test.describe('sol staking', { tag: ['@webOnly', '@T3W1', '@T3T1'] }, () => {
     });
 
     test.beforeEach(async ({ onboardingPage, settingsPage, solanaStakingMock }) => {
-        await solanaStakingMock.routeSolana();
         await onboardingPage.completeOnboarding();
-        await settingsPage.changeNetworks({ enableNetworks: ['sol'] });
+        await settingsPage.enableNetworkWithCustomBackend('sol', 'solana', solanaStakingMock.url);
     });
 
     test(
@@ -102,21 +101,24 @@ test.describe('sol staking', { tag: ['@webOnly', '@T3W1', '@T3T1'] }, () => {
             });
 
             await test.step('Stake', async () => {
-                solanaStakingMock.enableRoutesForTransactions();
-                await solanaStakingMock.setProgramAccounts([solStakingAccountFirst.payload]);
+                solanaStakingMock.confirmTransaction();
+                solanaStakingMock.setStakeAccounts([solStakingAccountFirst.payload]);
                 await devicePrompt.sendButton.click();
-                await expect(stakingSection.stakedToastAccount).toContainText('Solana #1');
-                await expect(stakingSection.stakedToastAmount).toContainText(
-                    stakedAndRentFormatted,
-                );
+                await stakingSection.verifyStakingToast({
+                    type: 'staked',
+                    account: 'Solana #1',
+                    amount: stakedAndRentFormatted,
+                });
             });
 
             await test.step('Verify pending on dashboard', async () => {
                 await stakingSection.expectStakingAmounts({
-                    pending: stakedAmount,
-                    staked: '0',
-                    rewards: '0',
-                    unstaking: 'hidden',
+                    expected: {
+                        pending: stakedAmount,
+                        staked: '0',
+                        rewards: '0',
+                        unstaking: 'hidden',
+                    },
                 });
                 await expect(stakingSection.stakeMoreButton).toBeEnabled();
                 await expect(stakingSection.unstakeToClaimButton).toBeDisabled();
@@ -124,13 +126,15 @@ test.describe('sol staking', { tag: ['@webOnly', '@T3W1', '@T3T1'] }, () => {
             });
 
             await test.step('Wait an epoch and amount moved from pending to staked', async () => {
-                await solanaStakingMock.advanceEpoch();
+                solanaStakingMock.advanceEpoch();
                 await page.clock.fastForward(stakingSection.solanaEpochCachePeriod);
                 await stakingSection.expectStakingAmounts({
-                    pending: 'hidden',
-                    staked: stakedAmount,
-                    rewards: '0',
-                    unstaking: 'hidden',
+                    expected: {
+                        pending: 'hidden',
+                        staked: stakedAmount,
+                        rewards: '0',
+                        unstaking: 'hidden',
+                    },
                 });
                 await expect(stakingSection.stakeMoreButton).toBeEnabled();
                 await expect(stakingSection.unstakeToClaimButton).toBeEnabled();

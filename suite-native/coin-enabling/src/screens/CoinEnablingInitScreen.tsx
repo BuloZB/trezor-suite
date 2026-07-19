@@ -1,38 +1,35 @@
-import { useState } from 'react';
-import Animated, { LinearTransition, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import { useCallback } from 'react';
+import { LinearTransition } from 'react-native-reanimated';
 import { useDispatch } from 'react-redux';
 
 import { useNavigation } from '@react-navigation/native';
 
+import { events as commonEvents } from '@suite-common/analytics';
 import { useServices } from '@suite-common/dependency-injection';
 import { changeCoinVisibility } from '@suite-common/wallet-core';
 import { events, selectNativeAnalyticsDep } from '@suite-native/analytics';
-import {
-    AnimatedBox,
-    AnimatedInlineAlertBox,
-    Box,
-    Button,
-    ScreenFooterGradient,
-    VStack,
-} from '@suite-native/atoms';
+import { AnimatedBox } from '@suite-native/atoms';
 import { Form, useForm } from '@suite-native/forms';
 import { Translation } from '@suite-native/intl';
 import {
     type AuthorizeDeviceStackParamList,
     AuthorizeDeviceStackRoutes,
-    DynamicScreenHeader,
     type RootStackParamList,
     RootStackRoutes,
     Screen,
     type StackToStackCompositeNavigationProps,
     useInterceptNativeNavigation,
 } from '@suite-native/navigation';
+import { useScreenHeaderSearch } from '@suite-native/search';
 
 import {
     type CoinEnablingFormValues,
-    coinEnablingFormValidationSchema,
-} from '../coinEnablingSchema';
+    getNetworkSymbolsFromEnabledCoins,
+} from '../coinEnablingFormUtils';
+import { coinEnablingFormValidationSchema } from '../coinEnablingSchema';
+import { CoinEnablingInitFooter } from '../components/CoinEnablingInitFooter';
 import { DiscoveryCoinsFilter } from '../components/DiscoveryCoinsFilter';
+import { useHasEnabledCoin } from '../hooks/useHasEnabledCoin';
 
 type NavigationProps = StackToStackCompositeNavigationProps<
     AuthorizeDeviceStackParamList,
@@ -46,26 +43,40 @@ export const CoinEnablingInitScreen = () => {
     const navigation = useNavigation<NavigationProps>();
     useInterceptNativeNavigation();
 
-    const [isAlertDismissed, setIsAlertDismissed] = useState(false);
+    const reportSearchAnalytics = useCallback(
+        () =>
+            analytics.report({
+                type: commonEvents.settingsNetworkSearchUsedEvent.name,
+                payload: { platform: 'mobile', origin: 'add-networks' },
+            }),
+        [analytics],
+    );
+
+    const { header, searchQuery } = useScreenHeaderSearch({
+        title: <Translation id="networks.initialSetup.title" />,
+        subtitle: <Translation id="networks.initialSetup.subtitle" />,
+        closeActionType: 'close',
+        onSearchUsed: reportSearchAnalytics,
+    });
 
     const form = useForm<CoinEnablingFormValues>({
         defaultValues: {
-            enabledCoins: [],
+            enabledCoins: {},
         },
         validation: coinEnablingFormValidationSchema,
     });
-    const {
-        formState: { isValid },
-    } = form;
+    const hasEnabledCoin = useHasEnabledCoin(form.control);
 
-    const handleSubmit = form.handleSubmit(values => {
-        values.enabledCoins.forEach(symbol => {
+    const handleSubmit = form.handleSubmit((values: CoinEnablingFormValues) => {
+        const enabledCoins = getNetworkSymbolsFromEnabledCoins(values.enabledCoins);
+
+        enabledCoins.forEach(symbol => {
             dispatch(changeCoinVisibility({ symbol, shouldBeVisible: true }));
         });
 
         analytics.report({
             type: events.coinEnablingInitStateEvent.name,
-            payload: { enabledNetworks: values.enabledCoins },
+            payload: { enabledNetworks: enabledCoins },
         });
 
         navigation.popTo(RootStackRoutes.AuthorizeDeviceStack, {
@@ -75,41 +86,14 @@ export const CoinEnablingInitScreen = () => {
 
     return (
         <Screen
-            header={
-                <DynamicScreenHeader
-                    title={<Translation id="networks.initialSetup.title" />}
-                    subtitle={<Translation id="networks.initialSetup.subtitle" />}
-                    closeActionType="close"
-                />
-            }
-            footer={
-                isValid && (
-                    <Animated.View entering={SlideInDown} exiting={SlideOutDown}>
-                        <ScreenFooterGradient />
-                        <Box marginHorizontal="sp16" marginBottom="sp16">
-                            <Button onPress={handleSubmit} testID="@coin-enabling/button-save">
-                                <Translation id="generic.buttons.confirm" />
-                            </Button>
-                        </Box>
-                    </Animated.View>
-                )
-            }
+            header={header}
+            footer={hasEnabledCoin && <CoinEnablingInitFooter onSubmit={handleSubmit} />}
         >
-            <VStack spacing="sp16">
-                {!isAlertDismissed && (
-                    <AnimatedInlineAlertBox
-                        title={<Translation id="networks.initialSetup.banner" />}
-                        variant="neutral"
-                        buttonIcon="x"
-                        onButtonPress={() => setIsAlertDismissed(true)}
-                    />
-                )}
-                <AnimatedBox layout={LinearTransition}>
-                    <Form form={form}>
-                        <DiscoveryCoinsFilter />
-                    </Form>
-                </AnimatedBox>
-            </VStack>
+            <AnimatedBox layout={LinearTransition} flex={1}>
+                <Form form={form}>
+                    <DiscoveryCoinsFilter searchQuery={searchQuery} />
+                </Form>
+            </AnimatedBox>
         </Screen>
     );
 };

@@ -34,6 +34,48 @@ export const webComponents: Record<PageName, LazyExoticComponent<ComponentType>>
             }),
         ),
     ),
+    'earn-tron': lazy(() =>
+        import(/* webpackChunkName: "earn" */ 'src/views/earn/tron/index').then(
+            ({ EarnTronRedirect }) => ({
+                default: EarnTronRedirect,
+            }),
+        ),
+    ),
+    'earn-tron-stake': lazy(() =>
+        import(/* webpackChunkName: "earn" */ 'src/views/earn/tron/index').then(
+            ({ EarnTronStake }) => ({
+                default: EarnTronStake,
+            }),
+        ),
+    ),
+    'earn-tron-vote': lazy(() =>
+        import(/* webpackChunkName: "earn" */ 'src/views/earn/tron/index').then(
+            ({ EarnTronVote }) => ({
+                default: EarnTronVote,
+            }),
+        ),
+    ),
+    'earn-tron-unstake': lazy(() =>
+        import(/* webpackChunkName: "earn" */ 'src/views/earn/tron/index').then(
+            ({ EarnTronUnstake }) => ({
+                default: EarnTronUnstake,
+            }),
+        ),
+    ),
+    'earn-tron-withdraw': lazy(() =>
+        import(/* webpackChunkName: "earn" */ 'src/views/earn/tron/index').then(
+            ({ EarnTronWithdraw }) => ({
+                default: EarnTronWithdraw,
+            }),
+        ),
+    ),
+    'earn-tron-claim': lazy(() =>
+        import(/* webpackChunkName: "earn" */ 'src/views/earn/tron/index').then(
+            ({ EarnTronClaim }) => ({
+                default: EarnTronClaim,
+            }),
+        ),
+    ),
     'suite-connect-popup': lazy(() =>
         import(/* webpackChunkName: "connect-popup" */ 'src/views/connect-popup/index').then(
             ({ ConnectPopup }) => ({ default: ConnectPopup }),
@@ -80,7 +122,7 @@ export const webComponents: Record<PageName, LazyExoticComponent<ComponentType>>
     ),
     'wallet-trading-buy-detail': lazy(() =>
         import(
-            /* webpackChunkName: "trading" */ 'src/views/wallet/trading/buy/TradingBuyDetail'
+            /* webpackChunkName: "trading" */ 'src/views/wallet/trading/buy/TradingBuyDetail/TradingBuyDetail'
         ).then(({ TradingBuyDetail }) => ({ default: TradingBuyDetail })),
     ),
     'wallet-trading-buy-confirm': lazy(() =>
@@ -95,7 +137,7 @@ export const webComponents: Record<PageName, LazyExoticComponent<ComponentType>>
     ),
     'wallet-trading-sell-detail': lazy(() =>
         import(
-            /* webpackChunkName: "trading" */ 'src/views/wallet/trading/sell/TradingSellDetail'
+            /* webpackChunkName: "trading" */ 'src/views/wallet/trading/sell/TradingSellDetail/TradingSellDetail'
         ).then(({ TradingSellDetail }) => ({ default: TradingSellDetail })),
     ),
     'wallet-trading-sell-confirm': lazy(() =>
@@ -110,7 +152,7 @@ export const webComponents: Record<PageName, LazyExoticComponent<ComponentType>>
     ),
     'wallet-trading-exchange-detail': lazy(() =>
         import(
-            /* webpackChunkName: "trading" */ 'src/views/wallet/trading/exchange/TradingExchangeDetail'
+            /* webpackChunkName: "trading" */ 'src/views/wallet/trading/exchange/TradingExchangeDetail/TradingExchangeDetail'
         ).then(({ TradingExchangeDetail }) => ({ default: TradingExchangeDetail })),
     ),
     'wallet-trading-exchange-confirm': lazy(() =>

@@ -1,17 +1,18 @@
 import { type AccountWithSuiteSyncLabel } from '@suite-common/suite-sync';
 import {
     type Account,
-    type AccountKey,
     type TokenInfoBranded,
     asAccountDescriptor,
 } from '@suite-common/wallet-types';
+import { mockAccountKey } from '@suite-common/wallet-types/mocks';
 
-import { getAccountListSections, selectFreshAccountAddress } from '../selectors';
 import {
-    groupAccountsByNetworkAccountType,
-    isFilterValueMatchingAccount,
-    sortAccountsByNetworksAndAccountTypes,
-} from '../utils';
+    getAccountListSections,
+    selectFreshAccountAddress,
+    selectHasDeviceAnyFailedAccountForNetworkSymbol,
+    selectIsAccountDiscoveryFailed,
+} from '../selectors';
+import { isFilterValueMatchingAccount, sortAccountsByNetworksAndAccountTypes } from '../utils';
 
 let mockStakingBalance = '0';
 
@@ -71,34 +72,6 @@ describe('isFilterValueMatchingAccountLabelOrNetworkName', () => {
     });
 });
 
-describe('groupAccountsByNetworkAccountType', () => {
-    it('groups accounts by network and account type', () => {
-        const fixtureAccounts = [
-            { symbol: 'btc', accountType: 'normal' },
-            { symbol: 'btc', accountType: 'normal' },
-            { symbol: 'btc', accountType: 'segwit' },
-            { symbol: 'btc', accountType: 'legacy' },
-            { symbol: 'btc', accountType: 'taproot' },
-            { symbol: 'eth', accountType: 'normal' },
-            { symbol: 'ltc', accountType: 'segwit' },
-        ] as unknown as Account[];
-
-        const result = groupAccountsByNetworkAccountType(fixtureAccounts);
-
-        expect(result).toEqual({
-            'Bitcoin default accounts': [
-                { symbol: 'btc', accountType: 'normal' },
-                { symbol: 'btc', accountType: 'normal' },
-            ],
-            'Bitcoin Legacy Segwit accounts': [{ symbol: 'btc', accountType: 'segwit' }],
-            'Bitcoin Legacy accounts': [{ symbol: 'btc', accountType: 'legacy' }],
-            'Bitcoin Taproot accounts': [{ symbol: 'btc', accountType: 'taproot' }],
-            'Ethereum default accounts': [{ symbol: 'eth', accountType: 'normal' }],
-            'Litecoin Legacy Segwit accounts': [{ symbol: 'ltc', accountType: 'segwit' }],
-        });
-    });
-});
-
 describe('sortAccountsByNetworksAndAccountTypes', () => {
     it('accounts sorted by network and account type', () => {
         const fixtureAccounts = [
@@ -130,7 +103,7 @@ describe('sortAccountsByNetworksAndAccountTypes', () => {
 describe('selectFreshAccountAddress', () => {
     const mockAccount = {
         symbol: 'btc',
-        key: 'btc-1' as AccountKey, // Todo: create properly via `createAccountKey()`,
+        key: mockAccountKey({ symbol: 'btc', descriptor: 'btc1' }),
         addresses: {
             unused: [
                 {
@@ -212,7 +185,7 @@ describe('selectFreshAccountAddress', () => {
     it('should return null when account is not provided', () => {
         const result = selectFreshAccountAddress(
             mockState,
-            'non-existent-key' as AccountKey, // Todo: create properly via `createAccountKey()`
+            mockAccountKey({ descriptor: 'nonExistentKey' }),
         );
         expect(result).toBeNull();
     });
@@ -314,8 +287,8 @@ describe('getAccountListSections', () => {
 
         const sections = getAccountListSections(mockAccount, mockTokenDefinitions);
 
-        // Should have section title, account section, and two token sections (for Token1 and Token3)
-        expect(sections).toHaveLength(4);
+        // Should have account section and two token sections (for Token1 and Token3)
+        expect(sections).toHaveLength(3);
 
         // Verify token sections only include tokens with positive balance
         const tokenSections = sections.filter(section => section.type === 'token');
@@ -333,10 +306,9 @@ describe('getAccountListSections', () => {
 
         const sections = getAccountListSections(accountWithoutTokens, mockTokenDefinitions);
 
-        // Should only have section title and account section
-        expect(sections).toHaveLength(2);
-        expect(sections[0]?.type).toBe('sectionTitle');
-        expect(sections[1]?.type).toBe('account');
+        // Should only have account section
+        expect(sections).toHaveLength(1);
+        expect(sections[0]?.type).toBe('account');
     });
 
     it('should handle account with only zero balance tokens', () => {
@@ -364,10 +336,9 @@ describe('getAccountListSections', () => {
 
         const sections = getAccountListSections(accountWithZeroBalanceTokens, mockTokenDefinitions);
 
-        // Should only have section title and account section
-        expect(sections).toHaveLength(2);
-        expect(sections[0]?.type).toBe('sectionTitle');
-        expect(sections[1]?.type).toBe('account');
+        // Should only have account section
+        expect(sections).toHaveLength(1);
+        expect(sections[0]?.type).toBe('account');
     });
 
     it('should handle account with staking balance', () => {
@@ -375,12 +346,84 @@ describe('getAccountListSections', () => {
 
         const sections = getAccountListSections(mockAccount, mockTokenDefinitions);
 
-        // Should have section title, account section, staking section, and two token sections
-        expect(sections).toHaveLength(5);
-        expect(sections[0]?.type).toBe('sectionTitle');
-        expect(sections[1]?.type).toBe('account');
-        expect(sections[2]?.type).toBe('staking');
+        // Should have account section, staking section, and two token sections
+        expect(sections).toHaveLength(4);
+        expect(sections[0]?.type).toBe('account');
+        expect(sections[1]?.type).toBe('staking');
+        expect(sections[2]?.type).toBe('token');
         expect(sections[3]?.type).toBe('token');
-        expect(sections[4]?.type).toBe('token');
+    });
+});
+
+describe('selectIsAccountDiscoveryFailed', () => {
+    const staticSessionId = 'mvbu1Gdy8SUjTenqerxUaZyYjmveZvt33q@ABC123:1';
+
+    const failedAccount = {
+        key: `failed:0:sol:normal-sol-${staticSessionId}`,
+        descriptor: 'failed:0:sol:normal',
+        symbol: 'sol',
+        accountType: 'normal',
+        index: 0,
+        deviceState: staticSessionId,
+        visible: true,
+        failed: true,
+        error: 'Network request failed',
+    } as unknown as Account;
+
+    const normalAccount = {
+        key: `descriptor1-sol-${staticSessionId}`,
+        descriptor: 'descriptor1',
+        symbol: 'sol',
+        accountType: 'normal',
+        index: 0,
+        deviceState: staticSessionId,
+        visible: true,
+    } as unknown as Account;
+
+    const getState = (accounts: Account[]) =>
+        ({
+            wallet: { accounts },
+            device: { selectedDevice: { state: { staticSessionId } }, devices: [] },
+        }) as any;
+
+    it('returns true for a failed account', () => {
+        expect(selectIsAccountDiscoveryFailed(getState([failedAccount]), failedAccount.key)).toBe(
+            true,
+        );
+    });
+
+    it('returns false for a normal account', () => {
+        expect(selectIsAccountDiscoveryFailed(getState([normalAccount]), normalAccount.key)).toBe(
+            false,
+        );
+    });
+
+    it('returns false for an unknown account key', () => {
+        expect(selectIsAccountDiscoveryFailed(getState([normalAccount]), failedAccount.key)).toBe(
+            false,
+        );
+    });
+
+    describe('selectHasDeviceAnyFailedAccountForNetworkSymbol', () => {
+        it('returns true when any account of the network failed', () => {
+            expect(
+                selectHasDeviceAnyFailedAccountForNetworkSymbol(
+                    getState([normalAccount, failedAccount]),
+                    'sol',
+                ),
+            ).toBe(true);
+        });
+
+        it('returns false when no account of the network failed', () => {
+            expect(
+                selectHasDeviceAnyFailedAccountForNetworkSymbol(getState([normalAccount]), 'sol'),
+            ).toBe(false);
+        });
+
+        it('returns false for another network', () => {
+            expect(
+                selectHasDeviceAnyFailedAccountForNetworkSymbol(getState([failedAccount]), 'btc'),
+            ).toBe(false);
+        });
     });
 });

@@ -1,12 +1,14 @@
 import { createHttpClient } from '@suite-common/http-client';
 
 import {
+    reportStakingTxIdsResponse,
     stakingBatchResponse,
     stakingCardanoPoolsResponse,
     stakingEthereumValidatorsQueueResponse,
     stakingSolanaRewardsHistoryResponse,
     stakingSolanaRewardsTotalResponse,
     stakingStatsResponse,
+    stakingTrxStatsResponse,
 } from '../../api/schemas';
 import { EARN_API_BASE_URL } from '../../constants';
 
@@ -22,6 +24,11 @@ export const getStakingBatch = earnHttpClient('/', {
 export const getStakingStats = earnHttpClient('/:networkSymbol/stats', {
     method: 'GET',
     schema: stakingStatsResponse,
+});
+
+export const getTronStakingStats = earnHttpClient('/trx/stats', {
+    method: 'GET',
+    schema: stakingTrxStatsResponse,
 });
 
 export const getEthereumValidatorsQueue = earnHttpClient('/eth/validators-queue', {
@@ -42,4 +49,10 @@ export const getSolanaRewardsHistory = earnHttpClient('/sol/rewards/:address', {
 export const getSolanaRewardsTotal = earnHttpClient('/sol/rewards/:address/total', {
     method: 'GET',
     schema: stakingSolanaRewardsTotalResponse,
+});
+
+export const reportStakingTxIds = earnHttpClient('/report', {
+    method: 'POST',
+    schema: reportStakingTxIdsResponse,
+    timeout: 60_000,
 });

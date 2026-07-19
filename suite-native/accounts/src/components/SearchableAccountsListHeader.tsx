@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode } from 'react';
 import { View } from 'react-native';
 import Animated, {
     type EntryExitAnimationFunction,
@@ -10,16 +10,17 @@ import Animated, {
 
 import { Box, HStack, IconButton, Text } from '@suite-native/atoms';
 import { type AddCoinFlowType, type CloseActionType, GoBackIcon } from '@suite-native/navigation';
+import { SEARCH_INPUT_ANIMATION_DURATION, SearchForm } from '@suite-native/search';
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 
-import { AccountsSearchForm, SEARCH_INPUT_ANIMATION_DURATION } from './AccountsSearchForm';
 import { AddAccountButton } from './AddAccountsButton';
 import { FilterCountBadge } from './FilterCountBadge';
 
 type SearchableAccountsListHeaderProps = {
     title: ReactNode;
     onSearchInputChange: (value: string) => void;
-    searchValue?: string;
+    isSearchActive: boolean;
+    onSearchActiveChange: (value: boolean) => void;
     flowType?: AddCoinFlowType;
     closeActionType?: CloseActionType;
     closeAction?: () => void;
@@ -30,15 +31,14 @@ type SearchableAccountsListHeaderProps = {
 const HEADER_ANIMATION_DURATION = 100;
 
 const searchFormContainerStyle = prepareNativeStyle(({ spacings }) => ({
-    height: 48,
     marginBottom: spacings.sp8,
-    paddingTop: spacings.sp4,
 }));
 
 export const SearchableAccountsListHeader = ({
     title,
     onSearchInputChange,
-    searchValue,
+    isSearchActive,
+    onSearchActiveChange,
     flowType,
     closeActionType,
     closeAction,
@@ -48,16 +48,8 @@ export const SearchableAccountsListHeader = ({
     const isFirstRender = useSharedValue(true);
     const { applyStyle } = useNativeStyles();
 
-    const [isSearchActive, setIsSearchActive] = useState(false);
-
-    useEffect(() => {
-        if (searchValue === '') {
-            setIsSearchActive(false);
-        }
-    }, [searchValue]);
-
     const handleHideFilter = () => {
-        setIsSearchActive(false);
+        onSearchActiveChange(false);
         onSearchInputChange('');
     };
 
@@ -86,7 +78,8 @@ export const SearchableAccountsListHeader = ({
     return (
         <Box style={applyStyle(searchFormContainerStyle)}>
             {isSearchActive ? (
-                <AccountsSearchForm
+                <SearchForm
+                    placeholder="accounts.searchForm.placeholder"
                     onPressCancel={handleHideFilter}
                     onInputChange={onSearchInputChange}
                 />
@@ -105,7 +98,8 @@ export const SearchableAccountsListHeader = ({
                             )}
                             <IconButton
                                 iconName="magnifyingGlass"
-                                onPress={() => setIsSearchActive(true)}
+                                onPress={() => onSearchActiveChange(true)}
+                                size="medium"
                                 intent="neutral"
                                 priority="secondary"
                             />
@@ -123,6 +117,7 @@ export const SearchableAccountsListHeader = ({
                                 <View>
                                     <IconButton
                                         iconName="funnelSimple"
+                                        size="medium"
                                         onPress={onFilterPress}
                                         intent="neutral"
                                         priority="secondary"

@@ -8,6 +8,7 @@ import {
     selectRememberedHiddenWalletsCount,
     selectRememberedStandardWalletsCount,
 } from '@suite-common/device';
+import { useDiscreetMode } from '@suite-common/discreet-mode';
 import { UNIT_ABBREVIATIONS } from '@suite-common/suite-constants';
 import { selectIsSuiteSyncEnabled } from '@suite-common/suite-sync';
 import {
@@ -16,8 +17,7 @@ import {
     selectEnabledNetworks,
 } from '@suite-common/wallet-core';
 import { events, selectNativeAnalyticsDep } from '@suite-native/analytics';
-import { useDiscreetMode } from '@suite-native/atoms';
-import { useIsBiometricsEnabled } from '@suite-native/biometrics';
+import { selectIsBiometricsEnabled } from '@suite-native/biometrics';
 import { selectLocale } from '@suite-native/intl';
 import { selectIsOnboardingFinished } from '@suite-native/settings';
 import { selectIsAppReady } from '@suite-native/state';
@@ -33,7 +33,7 @@ export const useReportAppInitToAnalytics = (appLaunchTimestamp: number) => {
     const { isDiscreetMode } = useDiscreetMode();
     const currencyCode = useSelector(selectBaseCurrency);
     const bitcoinUnit = useSelector(selectBitcoinAmountUnit);
-    const { isBiometricsOptionEnabled } = useIsBiometricsEnabled();
+    const isBiometricsOptionEnabled = useSelector(selectIsBiometricsEnabled);
     const rememberedStandardWallets = useSelector(selectRememberedStandardWalletsCount);
     const rememberedHiddenWallets = useSelector(selectRememberedHiddenWalletsCount);
     const enabledNetworks = useSelector(selectEnabledNetworks);

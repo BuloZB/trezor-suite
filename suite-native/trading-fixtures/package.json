@@ -20,10 +20,11 @@
         "@suite-native/feature-flags": "workspace:*",
         "@suite-native/trading-consts": "workspace:*",
         "@trezor/connect": "workspace:*",
+        "@trezor/device-utils": "workspace:*",
         "@trezor/utils": "workspace:*"
     },
     "devDependencies": {
         "@suite-native/trading-types": "workspace:*",
-        "@types/invity-api": "^1.1.15"
+        "@types/invity-api": "^1.1.19"
     }
 }

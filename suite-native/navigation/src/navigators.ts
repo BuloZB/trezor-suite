@@ -49,7 +49,7 @@ import {
 } from './routes';
 import { type NavigateParameters } from './types';
 
-type AddCoinFlowParams = RequireAllOrNone<
+type AccountIdentityParams = RequireAllOrNone<
     { networkSymbol: NetworkSymbol; accountType: AccountType; accountIndex: number },
     'networkSymbol' | 'accountType' | 'accountIndex'
 >;
@@ -64,7 +64,7 @@ export type DeviceSuspicionCause =
     | 'securitySeal'
     | 'packaging';
 
-export type DeviceCompromisedModalFailedCheck =
+type DeviceCompromisedModalFailedCheck =
     | 'device-id'
     | 'device-invariability'
     | 'device-authenticity'
@@ -75,7 +75,7 @@ type AccountDetailParams = {
     accountKey?: AccountKey;
     tokenContract?: TokenAddress;
     closeActionType: CloseActionType;
-} & AddCoinFlowParams;
+} & AccountIdentityParams;
 
 export type AccountsStackParamList = {
     [AccountsStackRoutes.Accounts]: { networksFilter?: NetworkSymbol[] } | undefined;
@@ -91,19 +91,51 @@ export type YieldFlowParams = {
     yieldId?: string;
 };
 
-export type YieldDepositApprovalReviewParams = YieldFlowParams & {
+export type YieldClaimParams = {
+    accountKey: AccountKey;
+};
+
+export type YieldInsufficientBalanceParams = {
+    accountKey: AccountKey;
+    tokenContract: TokenAddress;
+    yieldId: string;
+};
+
+type YieldDepositApprovalReviewParams = YieldFlowParams & {
     amount: string;
     approvalLimitType: 'per-deposit' | 'unlimited';
+};
+
+export type YieldDepositRevokeParams = YieldFlowParams & {
+    amount?: string;
+    shouldShowLowLimitWarning?: boolean;
+};
+
+export type YieldDepositRevokeReviewParams = YieldFlowParams & {
+    amount: string;
+    isAmountUnlimited: boolean;
+};
+
+export type YieldWithdrawParams = YieldFlowParams & {
+    withdrawFlowType?: 'withdraw' | 'redeem';
 };
 
 export type YieldStackParamList = {
     [YieldStackRoutes.HowYieldWorks]: YieldFlowParams;
     [YieldStackRoutes.YieldConsents]: YieldFlowParams;
+    [YieldStackRoutes.YieldClaim]: YieldClaimParams;
+    [YieldStackRoutes.YieldClaimReview]: YieldClaimParams;
+    [YieldStackRoutes.YieldClaimComplete]: YieldClaimParams;
     [YieldStackRoutes.YieldDepositApproval]: YieldFlowParams;
     [YieldStackRoutes.YieldDeposit]: YieldFlowParams;
+    [YieldStackRoutes.YieldDepositRevoke]: YieldDepositRevokeParams;
+    [YieldStackRoutes.YieldWithdraw]: YieldWithdrawParams;
     [YieldStackRoutes.YieldDepositApprovalReview]: YieldDepositApprovalReviewParams;
+    [YieldStackRoutes.YieldDepositRevokeReview]: YieldDepositRevokeReviewParams;
     [YieldStackRoutes.YieldDepositReview]: YieldFlowParams;
+    [YieldStackRoutes.YieldWithdrawReview]: YieldWithdrawParams;
     [YieldStackRoutes.YieldDepositComplete]: YieldFlowParams;
+    [YieldStackRoutes.YieldWithdrawComplete]: YieldWithdrawParams;
 };
 
 export type HomeStackParamList = {
@@ -124,13 +156,16 @@ export type SettingsStackParamList = {
     [SettingsStackRoutes.SettingsSupport]: undefined;
     [SettingsStackRoutes.SettingsAppLog]: undefined;
     [SettingsStackRoutes.SettingsNetworks]: undefined;
+    [SettingsStackRoutes.SettingsNetworkBackends]: {
+        networkSymbol: NetworkSymbol;
+    };
     [SettingsStackRoutes.SettingsSuiteSync]: undefined;
+    [SettingsStackRoutes.SettingsSecurity]: undefined;
     [SettingsStackRoutes.SettingsAdvanced]: undefined;
     [SettingsStackRoutes.SettingsDustPhishing]: undefined;
     [SettingsStackRoutes.SettingsExperimental]: undefined;
     [SettingsStackRoutes.TurnOffDeviceAuthenticityCheck]: undefined;
     [SettingsStackRoutes.TurnOffFirmwareAuthenticityCheck]: undefined;
-    [SettingsStackRoutes.BitcoinBackends]: undefined;
     [SettingsStackRoutes.SettingsTradingLocation]: undefined;
 };
 
@@ -145,6 +180,8 @@ export type SendStackParamList = {
         accountKey: AccountKey;
         tokenContract?: TokenAddress;
         postNavigationAction?: 'deviceDisconnectedAlert';
+        initialAddress?: string;
+        initialAmount?: string;
     };
     [SendStackRoutes.SendUtxo]: {
         accountKey: AccountKey;
@@ -405,11 +442,12 @@ export type RootStackParamList = {
     [RootStackRoutes.AccountSettings]: { accountKey: AccountKey };
     [RootStackRoutes.TransactionDetailStack]: NavigatorScreenParams<TransactionDetailStackParamList>;
     [RootStackRoutes.DevUtils]: undefined;
+    [RootStackRoutes.MessageSystemManager]: undefined;
     [RootStackRoutes.AccountAssets]: {
         accountKey: AccountKey;
         tab?: AccountAssetsTab;
         flowType?: AccountAssetsFlow;
-    };
+    } & AccountIdentityParams;
     [RootStackRoutes.AccountDetail]: AccountDetailParams;
     [RootStackRoutes.StakingDetail]: { accountKey: AccountKey };
     [RootStackRoutes.StakingManagement]: { accountKey: AccountKey };
@@ -419,6 +457,7 @@ export type RootStackParamList = {
         symbol: NetworkSymbol;
     };
     [RootStackRoutes.YieldNavigator]: NavigatorScreenParams<YieldStackParamList>;
+    [RootStackRoutes.YieldInsufficientBalance]: YieldInsufficientBalanceParams;
     [RootStackRoutes.EarnForm]: {
         accountKey: AccountKey;
     };
@@ -495,6 +534,7 @@ export type RootStackParamList = {
         tradingType: Exclude<TradingType, 'sell'>;
     };
     [RootStackRoutes.TradingHistory]: undefined;
+    [RootStackRoutes.TradingBuyPreview]: undefined;
 };
 
 export type TransactionDetailStackParamList = {

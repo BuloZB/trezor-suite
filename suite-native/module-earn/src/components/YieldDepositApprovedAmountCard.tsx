@@ -1,21 +1,23 @@
 import { type NetworkSymbol } from '@suite-common/wallet-config';
 import { Card, HStack, PressableOpacity, Text } from '@suite-native/atoms';
-import { CryptoIcon, Icon } from '@suite-native/icons';
+import { Icon, TokenIcon } from '@suite-native/icons';
 import { Translation } from '@suite-native/intl';
 
 type YieldDepositApprovedAmountCardProps = {
+    actionType?: 'edit' | 'revoke';
     approvedAmount: string | null;
     isApprovedAmountUnlimited: boolean;
     networkSymbol: NetworkSymbol;
-    onEditApprovalPress: () => void;
+    onActionPress?: () => void;
     tokenContract: string;
 };
 
 export const YieldDepositApprovedAmountCard = ({
+    actionType,
     approvedAmount,
     isApprovedAmountUnlimited,
     networkSymbol,
-    onEditApprovalPress,
+    onActionPress,
     tokenContract,
 }: YieldDepositApprovedAmountCardProps) => (
     <Card>
@@ -24,7 +26,7 @@ export const YieldDepositApprovedAmountCard = ({
                 <Translation id="earn.yieldDepositFlowScreen.approvedAmount" />
             </Text>
             <HStack alignItems="center" spacing="sp8">
-                <CryptoIcon symbol={networkSymbol} contractAddress={tokenContract} size={20} />
+                <TokenIcon symbol={networkSymbol} contractAddress={tokenContract} size={20} />
                 <Text variant="body-sm-strong" numberOfLines={1}>
                     {isApprovedAmountUnlimited ? (
                         <Translation id="earn.yieldDepositFlowScreen.approvalLimitSheet.unlimited.title" />
@@ -32,13 +34,21 @@ export const YieldDepositApprovedAmountCard = ({
                         approvedAmount
                     )}
                 </Text>
-                {!isApprovedAmountUnlimited && (
+                {actionType !== undefined && onActionPress !== undefined && (
                     <PressableOpacity
                         accessibilityRole="button"
-                        accessibilityLabel="Edit approval amount"
-                        onPress={onEditApprovalPress}
+                        accessibilityLabel={
+                            actionType === 'edit'
+                                ? 'Edit approval amount'
+                                : 'Revoke approval amount'
+                        }
+                        onPress={onActionPress}
                     >
-                        <Icon name="pencilSimple" size="mediumLarge" color="contentPrimary" />
+                        <Icon
+                            name={actionType === 'edit' ? 'pencilSimple' : 'x'}
+                            size="mediumLarge"
+                            color="contentPrimary"
+                        />
                     </PressableOpacity>
                 )}
             </HStack>

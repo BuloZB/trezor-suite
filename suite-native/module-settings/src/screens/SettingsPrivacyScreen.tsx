@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 
 import { selectIsAnalyticsEnabled } from '@suite-common/analytics-redux';
 import { useServices } from '@suite-common/dependency-injection';
+import { useDiscreetMode } from '@suite-common/discreet-mode';
 import { events, selectNativeAnalyticsDep } from '@suite-native/analytics';
 import {
     Box,
@@ -10,9 +11,8 @@ import {
     TouchableSwitchRow,
     TouchableSwitchRowDescription,
     VStack,
-    useDiscreetMode,
 } from '@suite-native/atoms';
-import { useBiometricsSettings, useIsBiometricsEnabled } from '@suite-native/biometrics';
+import { selectIsBiometricsEnabled, useBiometricsSettings } from '@suite-native/biometrics';
 import { Translation } from '@suite-native/intl';
 import { DynamicScreenHeader, Screen } from '@suite-native/navigation';
 import { useNativeStyles } from '@trezor/styles-native';
@@ -90,12 +90,12 @@ const AnalyticsSwitchRow = () => {
 };
 
 const BiometricsSwitchRow = () => {
-    const { isBiometricsOptionEnabled } = useIsBiometricsEnabled();
+    const isBiometricsEnabled = useSelector(selectIsBiometricsEnabled);
     const { toggleBiometricsOption } = useBiometricsSettings();
 
     return (
         <TouchableSwitchRow
-            isChecked={isBiometricsOptionEnabled}
+            isChecked={isBiometricsEnabled}
             onChange={toggleBiometricsOption}
             accessibilityLabel="biometrics"
             text={<Translation id="moduleSettings.privacyAndSecurity.biometrics.title" />}

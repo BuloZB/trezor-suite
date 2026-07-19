@@ -1,10 +1,10 @@
 import { type ReactNode } from 'react';
 
-import { type TokenDto } from '@suite-common/earn-stablecoin-api';
+import { type TokenDtoV2 } from '@suite-common/earn-stablecoin-api';
 import { type NetworkSymbol } from '@suite-common/wallet-config';
 import { type Account } from '@suite-common/wallet-types';
 import { Column, Row } from '@trezor/components';
-import { AssetLogo, CoinLogo } from '@trezor/product-components';
+import { TokenIcon } from '@trezor/product-components';
 
 import { EarnAccountCellDetails } from './EarnAccountCellDetails';
 import { type EarnTokenBalance } from './types';
@@ -12,7 +12,7 @@ import { type EarnTokenBalance } from './types';
 type EarnAccountCellProps = {
     account?: Account;
     symbol?: NetworkSymbol;
-    iconToken?: TokenDto;
+    iconToken?: TokenDtoV2;
     showAssetNetworkIcon?: boolean;
     tokenBalance?: EarnTokenBalance;
     subtitle?: ReactNode;
@@ -34,7 +34,7 @@ export const EarnAccountCell = ({
         <Row gap={16} cursor="inherit">
             <Column alignItems="center">
                 {iconToken ? (
-                    <AssetLogo
+                    <TokenIcon
                         placeholder={iconToken.symbol || iconToken.name || ''}
                         symbol={networkSymbol}
                         contractAddress={iconToken.address ?? null}
@@ -43,7 +43,7 @@ export const EarnAccountCell = ({
                         isBordered={false}
                     />
                 ) : (
-                    <CoinLogo symbol={networkSymbol} type="token" size={32} />
+                    <TokenIcon symbol={networkSymbol} size={32} />
                 )}
             </Column>
 

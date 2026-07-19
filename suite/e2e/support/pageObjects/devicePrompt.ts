@@ -5,6 +5,7 @@ import { DeviceFixture } from '../device';
 
 export class DevicePrompt {
     readonly confirmOnDevicePrompt: Locator;
+    readonly confirmOnDevicePromptSuccess: Locator;
     readonly connectDevicePrompt: Locator;
     readonly modal: Locator;
     readonly modalCloseButton: Locator;
@@ -13,7 +14,16 @@ export class DevicePrompt {
     readonly chunkedText: Locator;
     readonly outputValue: Locator;
     readonly outputValueOf = (
-        section: 'default' | 'address' | 'data' | 'amount' | 'fee' | 'total' | 'contract',
+        section:
+            | 'default'
+            | 'address'
+            | 'data'
+            | 'amount'
+            | 'fee'
+            | 'total'
+            | 'contract'
+            | 'swap_intent'
+            | 'recipient_name',
     ) => this.page.getByTestId(`@modal/output-${section}`).getByTestId('@modal/output-value');
     readonly cryptoAmountWithSymbolOf = (section: 'amount' | 'fee' | 'total') =>
         this.page
@@ -23,6 +33,9 @@ export class DevicePrompt {
         this.page.getByTestId(`@modal/output-${section}`).getByTestId('@modal/crypto-amount');
     readonly fiatAmountOf = (section: 'amount' | 'fee' | 'total') =>
         this.page.getByTestId(`@modal/output-${section}`).getByTestId('@modal/fiat-amount');
+    readonly assetsSendCryptoAmount: Locator;
+    readonly assetsReceiveCryptoAmount: Locator;
+    readonly assetsReceiveAddress: Locator;
     readonly reviewAmount: Locator;
     readonly sendButton: Locator;
     readonly header: Locator;
@@ -39,6 +52,7 @@ export class DevicePrompt {
         private device: DeviceFixture,
     ) {
         this.confirmOnDevicePrompt = page.getByTestId('@prompts/confirm-on-device');
+        this.confirmOnDevicePromptSuccess = page.getByTestId('@prompts/confirm-on-device/success');
         this.connectDevicePrompt = page.getByTestId('@connect-device-prompt');
         this.modalCloseButton = page.getByTestId('@modal/close-button');
         this.modal = page.modal;
@@ -46,6 +60,9 @@ export class DevicePrompt {
         this.paginatedTextSeparator = page.getByTestId('@device-display/paginated-text/separator');
         this.chunkedText = page.getByTestId('@device-display/chunked-text');
         this.outputValue = page.getByTestId('@modal/output-value');
+        this.assetsSendCryptoAmount = page.getByTestId('@modal/assets/send/crypto');
+        this.assetsReceiveCryptoAmount = page.getByTestId('@modal/assets/receive/crypto');
+        this.assetsReceiveAddress = page.getByTestId('@modal/assets/receive/address');
         this.reviewAmount = page.getByTestId('@modal/transaction-review/amount');
         this.sendButton = page.getByTestId('@modal/send');
         this.header = page.getByTestId('@modal/header');
@@ -73,7 +90,8 @@ export class DevicePrompt {
     @step()
     async confirmOnDeviceIsCompleted() {
         await this.confirmOnDevicePromptIsShown();
-        await expect(this.confirmOnDevicePrompt).toHaveText('Confirm on TrezorConfirmed');
+        await expect(this.confirmOnDevicePrompt).toContainText('Confirm on Trezor');
+        await expect(this.confirmOnDevicePromptSuccess).toHaveText('Confirmed');
     }
 
     @step()

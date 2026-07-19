@@ -1,4 +1,4 @@
-import { forwardRef, useRef } from 'react';
+import { forwardRef, useLayoutEffect, useRef } from 'react';
 import { View, type ViewProps } from 'react-native';
 import Animated, {
     interpolateColor,
@@ -16,12 +16,13 @@ import { useNativeStyles } from '@trezor/styles-native';
 import { Text } from './Text';
 
 const FLASH_DURATION = 300;
-// set these to true if you are debugging rerenders locally
-const FLASH_ON_RERENDER = false;
-const RERENDER_COUNT_ENABLED = false;
 
-const isFlashOnRerenderEnabledAtom = atom(FLASH_ON_RERENDER);
-const isRerenderCountEnabledAtom = atom(RERENDER_COUNT_ENABLED);
+const isFlashOnRerenderEnabledAtom = atom(
+    process.env.EXPO_PUBLIC_IS_FLASH_ON_RERENDER_ENABLED === 'true',
+);
+const isRerenderCountEnabledAtom = atom(
+    process.env.EXPO_PUBLIC_IS_RERENDER_COUNT_ENABLED === 'true',
+);
 
 export const useDebugView = () => {
     const [isFlashOnRerenderEnabled, setIsFlashOnRerenderEnabled] = useAtom(
@@ -34,9 +35,9 @@ export const useDebugView = () => {
 
     return {
         isFlashOnRerenderEnabled,
-        toggleRerenderCount,
-        isRerenderCountEnabled,
         toggleFlashOnRerender,
+        isRerenderCountEnabled,
+        toggleRerenderCount,
     };
 };
 
@@ -62,7 +63,9 @@ export const DebugView = forwardRef<View, ViewProps>(({ style, children, ...prop
         }),
     );
 
-    flashState.value = flashState.value === 0 ? 1 : 0;
+    useLayoutEffect(() => {
+        flashState.value = flashState.value === 0 ? 1 : 0;
+    });
 
     const rStyle = useAnimatedStyle(() => {
         const backgroundColor = interpolateColor(

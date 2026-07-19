@@ -1,7 +1,10 @@
+import { ContextMessage } from '@suite/message-system';
 import { Context } from '@suite-common/message-system';
 import {
+    isSupportedAdaStakingNetworkSymbol,
     isSupportedEthStakingNetworkSymbol,
     isSupportedSolStakingNetworkSymbol,
+    isSupportedTronStakingNetworkSymbol,
 } from '@suite-common/wallet-utils';
 import { Column } from '@trezor/components';
 
@@ -12,7 +15,6 @@ import { AccountImported } from './AccountImported';
 import { AccountOutOfSync } from './AccountOutOfSync';
 import { BackendDisconnected } from './BackendDisconnected';
 import { CardanoLegacyBanner } from './CardanoLegacyBanner';
-import { ContextMessage } from './ContextMessage';
 import { DeviceUnavailable } from './DeviceUnavailable';
 import { EvmExplanationBanner } from './EvmExplanationBanner';
 import { ReserveBanner } from './ReserveBanner';
@@ -39,6 +41,16 @@ export const AccountBanners = ({ account }: AccountBannersProps) => {
                 isSupportedSolStakingNetworkSymbol(account.symbol) &&
                 route?.name === 'wallet-staking' && (
                     <ContextMessage context={Context.getStaking('sol')} />
+                )}
+            {account?.symbol &&
+                isSupportedTronStakingNetworkSymbol(account.symbol) &&
+                route?.name === 'wallet-staking' && (
+                    <ContextMessage context={Context.getStaking('trx')} />
+                )}
+            {account?.symbol &&
+                isSupportedAdaStakingNetworkSymbol(account.symbol) &&
+                route?.name === 'wallet-staking' && (
+                    <ContextMessage context={Context.getStaking('ada')} />
                 )}
             <BackendDisconnected />
             <DeviceUnavailable />

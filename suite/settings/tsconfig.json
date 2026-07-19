@@ -3,6 +3,12 @@
     "compilerOptions": { "outDir": "libDev" },
     "references": [
         {
+            "path": "../../suite-common/earn-stablecoin-api"
+        },
+        {
+            "path": "../../suite-common/earn-stablecoin-defs"
+        },
+        {
             "path": "../../suite-common/metadata-types"
         },
         {
@@ -16,7 +22,9 @@
         },
         { "path": "../../suite-common/trading" },
         { "path": "../experimental" },
-        { "path": "../../packages/connect" },
+        {
+            "path": "../../packages/connect-common"
+        },
         { "path": "../../packages/env-utils" },
         {
             "path": "../../packages/suite-desktop-api"

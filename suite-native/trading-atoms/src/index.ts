@@ -20,6 +20,7 @@ export * from './components/BottomSheetSectionList';
 export * from './components/CardTitle';
 export * from './components/EmptyComponent';
 export * from './components/FilterTabs';
+export * from './components/IconByCryptoId';
 export * from './components/NetworkBadge';
 export * from './components/OverviewRow';
 export * from './components/OverviewValueSkeleton';
@@ -28,11 +29,17 @@ export * from './components/SearchableSheetHeader';
 export * from './components/SheetHeaderTitle';
 export { IconWithSpinner, type IconWithSpinnerProps } from './components/IconWithSpinner';
 export { WaitingCard, type WaitingCardProps } from './components/WaitingCard';
+export {
+    PaymentMethodTranslation,
+    type PaymentMethodTranslationProps,
+} from './components/PaymentMethodTranslation';
+export { KYCWarning } from './components/KYCWarning';
 
 export * from './hooks/useAnimatedBorderStyle';
 export * from './hooks/useBottomSheetBackButtonSubscription';
 export * from './hooks/useBottomSheetControls';
 export * from './hooks/useSectionList';
+export { useFormatCryptoValue } from './hooks/useFormatCryptoValue';
 
 export * from './utils/general/cryptoIdUtils';
 export * from './utils/general/receiveAccountUtils';

@@ -1,5 +1,7 @@
 import { A, pipe } from '@mobily/ts-belt';
 
+import { redactNumericalSubstring } from '@suite-common/discreet-mode';
+import { LANGUAGES, type Locale } from '@suite-common/suite-types';
 import {
     type NetworkSymbol,
     getNetworkOptional,
@@ -10,7 +12,7 @@ import { type TokenSymbol } from '@suite-common/wallet-types';
 import {
     convertAmountSubunitsToUnits,
     convertAmountUnitsToSubunits,
-    redactNumericalSubstring,
+    localizeNumber,
 } from '@suite-common/wallet-utils';
 import { PROTO } from '@trezor/connect';
 
@@ -30,6 +32,10 @@ export type CryptoAmountFormatterDataContext = {
 };
 
 export const BASE_CRYPTO_MAX_DISPLAYED_DECIMALS = 8;
+
+const DEFAULT_LOCALE: Locale = 'en-US';
+
+const isLocale = (value: string): value is Locale => Object.hasOwn(LANGUAGES, value);
 
 const appendEllipsis = ({
     value,
@@ -58,12 +64,11 @@ const localizedNumber = ({
     config: FormatterConfig;
     formatterContext: Partial<CryptoAmountFormatterDataContext>;
 }) => {
-    const { intl } = config;
+    const { locale } = config;
     const { maxDisplayedDecimals = BASE_CRYPTO_MAX_DISPLAYED_DECIMALS } = formatterContext;
 
-    const formattedValue = intl.formatNumber(Number(value), {
-        maximumFractionDigits: maxDisplayedDecimals,
-    });
+    const safeLocale: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+    const formattedValue = localizeNumber(value, safeLocale, 0, maxDisplayedDecimals);
 
     const [_, unformattedDecimalsPart] = value.split('.');
     const wasResultRounded = (unformattedDecimalsPart?.length ?? 0) > maxDisplayedDecimals;

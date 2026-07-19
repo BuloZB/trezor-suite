@@ -34,7 +34,7 @@ const SIGNATURES_2_OF_3 = [
     '304502210089153ad97c0d69656cd9bd9eb2056552acaec91365dd7ab31250f3f707123baa02200f884de63041d73bd20fbe8804c6036968d8149b7f46963a82b561cd8211ab08',
 ];
 
-export default {
+const signTransactionMultisig: TestCase = {
     method: 'signTransaction',
     setup: {
         mnemonic: 'mnemonic_all',
@@ -44,7 +44,7 @@ export default {
         {
             description: 'Testnet (multisig): 2 of 3 (sign with 1st key)',
             params: {
-                coin: 'testnet',
+                coin: 'test',
                 inputs: [
                     {
                         address_n: "m/48'/1'/1'/0'/0/0",
@@ -77,7 +77,7 @@ export default {
         {
             description: 'Testnet (multisig): 2 of 3 (sign with 3rd key)',
             params: {
-                coin: 'testnet',
+                coin: 'test',
                 inputs: [
                     {
                         address_n: "m/48'/1'/3'/0'/0/0",
@@ -112,7 +112,7 @@ export default {
         {
             description: 'Testnet (multisig): 15 of 15 (sign with 15th key)',
             params: {
-                coin: 'testnet',
+                coin: 'test',
                 inputs: [
                     {
                         address_n: "m/48'/1'/1'/0'/0/14",
@@ -165,7 +165,7 @@ export default {
                 mnemonic: 'mnemonic_12',
             },
             params: {
-                coin: 'testnet',
+                coin: 'test',
                 inputs: [
                     {
                         address_n: "m/48'/1'/1'/0'/0/0",
@@ -206,7 +206,7 @@ export default {
                     'solar segment strike patrol broccoli witness praise tennis fat elegant yellow menu favorite upgrade grace pulp subject tribe impact head west museum pulse term',
             },
             params: {
-                coin: 'testnet',
+                coin: 'test',
                 inputs: [
                     {
                         address_n: [2147483696, 2147483649, 2147483648, 2147483650, 0, 13],
@@ -279,4 +279,6 @@ export default {
             },
         },
     ],
-} satisfies TestCase;
+};
+
+export default signTransactionMultisig;

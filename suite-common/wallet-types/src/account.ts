@@ -12,10 +12,10 @@ import type {
     StakingPool,
     TronAccountExtraData,
 } from '@trezor/blockchain-link-types';
-import type { AccountInfo, PROTO, StaticSessionId, TokenInfo } from '@trezor/connect';
+import type { AccountInfo, PROTO, TokenInfo } from '@trezor/connect';
+import type { StaticSessionId } from '@trezor/device-utils';
 import { type Branded } from '@trezor/type-utils';
 
-export type MetadataItem = string;
 export type XpubAddress = string;
 
 export type TokenSymbol = string & Branded<'TokenSymbol'>;
@@ -105,7 +105,7 @@ type AccountNetworkSpecific =
       }
     | {
           networkType: 'stellar';
-          misc: { stellarSequence: string; reserve: string };
+          misc: { stellarSequence: string; reserve: string; baseReserve: string };
           marker: undefined;
           stellarCursor: AccountInfo['stellarCursor'];
           page: undefined;
@@ -138,7 +138,7 @@ export type AccountFailureSpecific =
 export type AccountKey = `${AccountDescriptor}-${NetworkSymbol}-${StaticSessionId}` &
     Branded<'AccountKey'>;
 
-export type CreateAccountKeyParams = {
+type CreateAccountKeyParams = {
     accountDescriptor: AccountDescriptor;
     networkSymbol: NetworkSymbol;
     deviceStaticSessionId: StaticSessionId;
@@ -148,8 +148,25 @@ export const createAccountKey = ({
     accountDescriptor,
     networkSymbol,
     deviceStaticSessionId,
-}: CreateAccountKeyParams): AccountKey =>
-    `${accountDescriptor}-${networkSymbol}-${deviceStaticSessionId}` as AccountKey;
+}: CreateAccountKeyParams): AccountKey => {
+    if (accountDescriptor.includes('-')) {
+        throw new Error(
+            `accountDescriptor must not contain '-' (got: '${accountDescriptor}'); '-' is the AccountKey separator and would break parseAccountKey.`,
+        );
+    }
+    if (networkSymbol.includes('-')) {
+        throw new Error(
+            `networkSymbol must not contain '-' (got: '${networkSymbol}'); '-' is the AccountKey separator and would break parseAccountKey.`,
+        );
+    }
+    if (deviceStaticSessionId.includes('-')) {
+        throw new Error(
+            `deviceStaticSessionId must not contain '-' (got: '${deviceStaticSessionId}'); '-' is the AccountKey separator and would break parseAccountKey.`,
+        );
+    }
+
+    return `${accountDescriptor}-${networkSymbol}-${deviceStaticSessionId}` as AccountKey;
+};
 
 /**
  * Descriptor or xpub/zpub/..
@@ -199,8 +216,6 @@ export type Account = AccountBase &
 export type FailedAccount = Extract<Account, { failed: true }>;
 export type SuccessfulAccount = Extract<Account, { failed?: false }>;
 
-export type UppercaseAccountType = Uppercase<AccountType>;
-
 export type WalletParams =
     | NonNullable<{
           symbol: NetworkSymbol;
@@ -213,7 +228,6 @@ export type WalletParams =
 export interface ReceiveInfo {
     path: string;
     address: string;
-    isVerified: boolean;
 }
 
 export interface StakingPoolExtended extends StakingPool {

@@ -1,10 +1,10 @@
-import { useCallback } from 'react';
+import { memo, useCallback } from 'react';
 
 import { type ExchangeTrade } from 'invity-api';
 import styled from 'styled-components';
 
 import { type TradingTradeType } from '@suite-common/trading';
-import { CardList, Column, Row, SkeletonRectangle, Text } from '@trezor/components';
+import { CardList, Column, Row, Skeleton, Text } from '@trezor/components';
 
 import { useTradingFormContext } from 'src/hooks/wallet/trading/form/useTradingCommonForm';
 import {
@@ -29,7 +29,7 @@ const ProviderWrapper = styled.div`
     justify-content: center;
 `;
 
-export const TradingOffersModalItem = ({ quote, onSelect }: TradingOffersModalItemProps) => {
+const TradingOffersModalItemInner = ({ quote, onSelect }: TradingOffersModalItemProps) => {
     const context = useTradingFormContext();
     const providers = getProvidersInfoProps(context);
     const {
@@ -76,7 +76,7 @@ export const TradingOffersModalItem = ({ quote, onSelect }: TradingOffersModalIt
                         )}
                     </ProviderWrapper>
 
-                    {isFormLoading && <SkeletonRectangle animate width={200} />}
+                    {isFormLoading && <Skeleton animate width={200} />}
                     {!isFormLoading && formattedRate && (
                         <Text typographyStyle="body-sm-strong">{formattedRate}</Text>
                     )}
@@ -85,3 +85,5 @@ export const TradingOffersModalItem = ({ quote, onSelect }: TradingOffersModalIt
         </CardList.Item>
     );
 };
+
+export const TradingOffersModalItem = memo(TradingOffersModalItemInner);

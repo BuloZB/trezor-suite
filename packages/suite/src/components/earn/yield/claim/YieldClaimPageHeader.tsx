@@ -1,12 +1,13 @@
+import { AccountLabel } from '@suite/account';
 import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
 import { goto } from '@suite/router';
 import { useServices } from '@suite-common/dependency-injection';
 import { type Account } from '@suite-common/wallet-types';
 import { IconButton, Row } from '@trezor/components';
-import { CoinLogo } from '@trezor/product-components';
+import { CaretLeftIcon } from '@trezor/icons';
+import { TokenIcon } from '@trezor/product-components';
 
-import { AccountLabel } from 'src/components/suite/AccountLabel';
 import { PageHeader } from 'src/components/suite/layouts/SuiteLayout';
 import { BasicName } from 'src/components/suite/layouts/SuiteLayout/PageHeader/PageNames/BasicName';
 import { useDispatch } from 'src/hooks/suite';
@@ -37,7 +38,7 @@ export const YieldClaimPageHeader = ({ account }: YieldClaimPageHeaderProps) => 
         <PageHeader>
             <Row width="100%" gap={16} alignItems="center">
                 <IconButton
-                    icon="caretLeft"
+                    icon={CaretLeftIcon}
                     intent="neutral"
                     priority="secondary"
                     size="large"
@@ -47,7 +48,7 @@ export const YieldClaimPageHeader = ({ account }: YieldClaimPageHeaderProps) => 
                 />
                 {account ? (
                     <Row gap={12} alignItems="center" flex="1" overflow="hidden">
-                        <CoinLogo symbol={account.symbol} type="token" size={32} />
+                        <TokenIcon symbol={account.symbol} size={32} />
                         <AccountLabel
                             account={account}
                             showAccountTypeBadge

@@ -1,6 +1,8 @@
 import { type RouteProp } from '@react-navigation/native';
 
-import { events } from '@suite-native/analytics';
+import { type NativeAnalyticsDep, events } from '@suite-native/analytics';
+import { mockNativeAnalytics } from '@suite-native/analytics/mocks';
+import { getTranslation } from '@suite-native/intl';
 import { type RootStackParamList, type RootStackRoutes } from '@suite-native/navigation';
 import { renderWithStoreProvider, screen, userEvent } from '@suite-native/test-utils-store';
 
@@ -8,10 +10,8 @@ import { TradingLocationScreen } from '../TradingLocationScreen';
 
 const mockExitOnboardingFlow = jest.fn();
 const reportMock = jest.fn();
-const services = {
-    analytics: {
-        report: reportMock,
-    },
+const services: NativeAnalyticsDep = {
+    analytics: mockNativeAnalytics(reportMock),
 };
 
 jest.mock('@react-navigation/native', () => ({
@@ -58,11 +58,17 @@ describe('TradingLocationOnboardingScreen', () => {
     it('should render all components', () => {
         const { getByText, getByLabelText } = renderTradingLocationScreen();
 
-        expect(getByText('Trading is now available')).toBeOnTheScreen();
-        expect(getByText('Confirm location')).toBeOnTheScreen();
-        expect(getByText('Not now')).toBeOnTheScreen();
+        expect(
+            getByText(getTranslation('tradingResidence.locationSettings.title')),
+        ).toBeOnTheScreen();
+        expect(
+            getByText(getTranslation('tradingResidence.locationSettings.confirmButton')),
+        ).toBeOnTheScreen();
+        expect(
+            getByText(getTranslation('tradingResidence.locationSettings.skipButton')),
+        ).toBeOnTheScreen();
 
-        expect(getByLabelText('Go back')).toBeOnTheScreen();
+        expect(getByLabelText(getTranslation('generic.buttons.goBack'))).toBeOnTheScreen();
     });
 
     it('should log analytics event on country change', async () => {

@@ -1,4 +1,5 @@
-import { type AccountKey } from '@suite-common/wallet-types';
+import { mockAccountKey } from '@suite-common/wallet-types/mocks';
+import { getTranslation } from '@suite-native/intl';
 import { btc1NormalAccount, mercuryoFixedWorstQuote } from '@suite-native/trading-fixtures';
 
 import { renderWithTradingProvider } from '../../../../__tests__/tradingTestUtils';
@@ -40,7 +41,7 @@ describe('ExchangeToAccountTradePreviewCard', () => {
     it('should render nothing when account is not found', () => {
         const { toJSON } = renderExchangeToAccountTradePreviewCard(
             { quote: mercuryoFixedWorstQuote },
-            'unknown-account-key' as AccountKey,
+            mockAccountKey({ descriptor: 'unknownAccountKey' }),
         );
 
         expect(toJSON()).toBeNull();
@@ -51,16 +52,11 @@ describe('ExchangeToAccountTradePreviewCard', () => {
             quote: mercuryoFixedWorstQuote,
         });
 
-        expect(getByText('To')).toBeOnTheScreen();
+        expect(
+            getByText(getTranslation('moduleTrading.tradingExchangePreviewScreen.toAccount')),
+        ).toBeOnTheScreen();
         expect(getByText('+0.00083554 BTC')).toBeOnTheScreen();
-        expect(getByText(`0.00083554-${mercuryoFixedWorstQuote.receive}`)).toBeOnTheScreen();
-    });
-
-    it('should render correct account name', () => {
-        const { getByText } = renderExchangeToAccountTradePreviewCard({
-            quote: mercuryoFixedWorstQuote,
-        });
-
         expect(getByText('BTC Account #1')).toBeOnTheScreen();
+        expect(getByText(`0.00083554-${mercuryoFixedWorstQuote.receive}`)).toBeOnTheScreen();
     });
 });

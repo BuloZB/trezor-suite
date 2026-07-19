@@ -1,66 +1,28 @@
-import { type RewardDto } from '@suite-common/earn-stablecoin-api';
-import { tokenSupportsIncreasingAllowance } from '@suite-common/trading';
-import { YIELD_FLOW_STEPS, type YieldFlowStepId } from '@suite-common/wallet-core';
+import { type YieldDtoV2 } from '@suite-common/earn-stablecoin-api';
+import {
+    YIELD_FLOW_STEP_SEQUENCES,
+    type YieldFlowStepId,
+    type YieldFlowType,
+} from '@suite-common/wallet-core';
 import { getApyPercent } from '@suite-common/wallet-utils';
-import type { BulletListItemState } from '@trezor/components';
+import type { StepListItemState } from '@trezor/components';
 import { BigNumber } from '@trezor/utils';
 
-interface AmountComparisonParams {
+export { getYieldApprovalAction, type YieldApprovalAction } from '@suite-common/wallet-core';
+
+type AmountComparisonParams = {
     amount?: string;
     threshold?: string;
-}
+};
 
-interface YieldModifyAmountInputParams {
+type YieldModifyAmountInputParams = {
     liveAmount?: string;
     actionAmount?: string | null;
     maxAmount: string;
-}
-
-type GetYieldApprovalActionParams = {
-    liveAmount: string;
-    allowanceAmount?: string | null;
-    isModifyMode: boolean;
-    isRevokeRequired: boolean;
-    tokenContractAddress?: string | null;
 };
-
-export type YieldApprovalAction = 'approve' | 'continue' | 'increase' | 'revoke';
 
 export const isAmountGreaterThan = ({ amount, threshold }: AmountComparisonParams): boolean =>
     !!amount && !!threshold && new BigNumber(amount).gt(threshold);
-
-export const getYieldApprovalAction = ({
-    liveAmount,
-    allowanceAmount,
-    isModifyMode,
-    isRevokeRequired,
-    tokenContractAddress,
-}: GetYieldApprovalActionParams): YieldApprovalAction => {
-    if (!isModifyMode) {
-        return 'approve';
-    }
-
-    const allowanceAmountValue = new BigNumber(allowanceAmount || '0');
-    const liveAmountValue = new BigNumber(liveAmount || '0');
-    const hasAllowanceAmount = !!allowanceAmount && !allowanceAmountValue.isZero();
-    const isIncreasing = hasAllowanceAmount && liveAmountValue.gt(allowanceAmountValue);
-    const needsZeroApprovalReset =
-        !!tokenContractAddress && !tokenSupportsIncreasingAllowance(tokenContractAddress);
-
-    if (isRevokeRequired || (isIncreasing && needsZeroApprovalReset)) {
-        return 'revoke';
-    }
-
-    if (isIncreasing) {
-        return 'increase';
-    }
-
-    if (hasAllowanceAmount) {
-        return 'continue';
-    }
-
-    return 'approve';
-};
 
 export const getYieldModifyAmountInput = ({
     liveAmount,
@@ -80,7 +42,9 @@ export const getYieldModifyAmountInput = ({
  * component is emitted as-is — symbols repeating across components are not
  * merged. Returns an empty string when there are no usable components.
  */
-export const getApyBreakdown = (components: RewardDto[] | undefined): string =>
+export const getApyBreakdown = (
+    components: YieldDtoV2['rewardRate']['components'] | undefined,
+): string =>
     (components ?? [])
         .map(component => {
             if (!Number.isFinite(component.rate)) return null;
@@ -95,13 +59,33 @@ export const getApyBreakdown = (components: RewardDto[] | undefined): string =>
         .flatMap(([symbol, componentApy]) => [symbol, String(componentApy)])
         .join(',');
 
-export const getBulletListItemStates = (
-    currentStep: YieldFlowStepId,
-): Record<YieldFlowStepId, BulletListItemState> => {
-    const currentStepIndex = YIELD_FLOW_STEPS.indexOf(currentStep);
+export type YieldFlowStepView = {
+    state: StepListItemState;
+    /**
+     * 1-based position within the flow's step list. Steps that are not list items of
+     * the flow get index 0 — they are never rendered in the StepList.
+     */
+    indicator: { index: number; total: number };
+};
 
-    const getStepState = (stepId: YieldFlowStepId): BulletListItemState => {
-        const stepIndex = YIELD_FLOW_STEPS.indexOf(stepId);
+/** `listSteps` are the steps rendered as list items; they default to the flow's sequence without 'complete'. */
+export const getYieldFlowSteps = (
+    flowType: YieldFlowType,
+    currentStep: YieldFlowStepId,
+    listSteps?: readonly YieldFlowStepId[],
+): Record<YieldFlowStepId, YieldFlowStepView> => {
+    // Both annotations widen the per-flow tuples (and the filter's inferred type predicate)
+    // so indexOf below accepts any step id.
+    const sequence: readonly YieldFlowStepId[] = YIELD_FLOW_STEP_SEQUENCES[flowType];
+    const effectiveListSteps: readonly YieldFlowStepId[] =
+        listSteps ?? sequence.filter(stepId => stepId !== 'complete');
+    const currentStepIndex = sequence.indexOf(currentStep);
+
+    const getStepState = (stepIndex: number): StepListItemState => {
+        // Steps outside the flow's sequence are never rendered for it; report them as passed.
+        if (stepIndex === -1) {
+            return 'done';
+        }
 
         if (stepIndex < currentStepIndex) {
             return 'done';
@@ -114,11 +98,17 @@ export const getBulletListItemStates = (
         return 'pending';
     };
 
-    const stepStates = {
-        approve: getStepState('approve'),
-        action: getStepState('action'),
-        complete: getStepState('complete'),
-    } satisfies Record<YieldFlowStepId, BulletListItemState>;
+    const getStepView = (stepId: YieldFlowStepId): YieldFlowStepView => ({
+        state: getStepState(sequence.indexOf(stepId)),
+        indicator: {
+            index: effectiveListSteps.indexOf(stepId) + 1,
+            total: effectiveListSteps.length,
+        },
+    });
 
-    return stepStates;
+    return {
+        approve: getStepView('approve'),
+        action: getStepView('action'),
+        complete: getStepView('complete'),
+    };
 };

@@ -5,7 +5,8 @@ import {
     selectTradingProviderMetadata,
     tradingExchangeActions,
 } from '@suite-common/trading';
-import { events } from '@suite-native/analytics';
+import { type NativeAnalyticsDep, events } from '@suite-native/analytics';
+import { mockNativeAnalytics } from '@suite-native/analytics/mocks';
 import {
     type TestStore,
     act,
@@ -35,12 +36,34 @@ import { createTradingLightStore } from '../../../__tests__/tradingTestUtils';
 import { clearExchangeFormQuoteData, useExchangeForm } from '../useExchangeForm';
 
 const mockReport = jest.fn();
-const services = {
-    analytics: {
-        report: mockReport,
-    },
+const services: NativeAnalyticsDep = {
+    analytics: mockNativeAnalytics(mockReport),
 };
 type PrefetchDexQuoteApprovalThunk = typeof exchangeThunks.prefetchDexQuoteApprovalThunk;
+
+jest.mock('@suite-native/transaction-management', () => ({
+    ...jest.requireActual('@suite-native/transaction-management'),
+    useMaxSpendableAmount: jest.fn(({ accountKey, symbol, tokenContract }) => {
+        if (!accountKey || !symbol) {
+            return { maxSpendableAmount: undefined };
+        }
+
+        if (tokenContract) {
+            const maxSpendableAmountByTokenContract: Record<string, string | undefined> = {
+                '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': '1',
+                '0xdac17f958d2ee523a2206206994597c13d831ec7': '1',
+            };
+
+            return { maxSpendableAmount: maxSpendableAmountByTokenContract[tokenContract] };
+        }
+
+        if (symbol === 'btc') {
+            return { maxSpendableAmount: '0.01' };
+        }
+
+        return { maxSpendableAmount: undefined };
+    }),
+}));
 
 const createPrefetchDexQuoteApprovalThunkMock = (
     arg: Parameters<PrefetchDexQuoteApprovalThunk>[0],
@@ -566,7 +589,7 @@ describe('useExchangeForm', () => {
         it.each([
             ['0.00001', 'Minimum is 0.0001 BTC'],
             ['100', 'Maximum is 50 BTC'],
-            ['1', 'Insufficient balance'],
+            ['1', 'Insufficient funds'],
         ])('should display error for crypto amount %s BTC', async (amount, expectedValue) => {
             const { result } = renderUseExchangeForm();
 
@@ -594,7 +617,7 @@ describe('useExchangeForm', () => {
         it.each([
             ['100', 'Minimum is 10,000 sat'],
             ['10000000000', 'Maximum is 5,000,000,000 sat'],
-            ['10000000', 'Insufficient balance'],
+            ['10000000', 'Insufficient funds'],
         ])('should display error for crypto amount %s SATS', async (amount, expectedValue) => {
             store = getInitializedStore(PROTO.AmountUnit.SATOSHI);
             const { result } = renderUseExchangeForm();
@@ -713,7 +736,7 @@ describe('useExchangeForm', () => {
                 });
 
                 expect(result.current.getValues('generalAlert')).toEqual(
-                    'No offers available for your request. Change amount or currency.',
+                    'No offers found. Adjust the currency, assets, or amounts.',
                 );
             });
 

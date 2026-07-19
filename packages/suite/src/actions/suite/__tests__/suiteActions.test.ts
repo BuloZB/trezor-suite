@@ -3,6 +3,7 @@
 import { flagsInitialState, prepareFlagsReducer } from '@suite/flags';
 import { modalReducer } from '@suite/modal';
 import { routerReducer } from '@suite/router';
+import { type RouterStateOverrides, createRouterStateMock } from '@suite/router/mocks';
 import { torReducer } from '@suite/tor';
 import { connectInitThunk } from '@suite-common/connect-init';
 import { deviceActions, prepareDeviceReducer } from '@suite-common/device';
@@ -31,43 +32,14 @@ const firmwareReducer = prepareFirmwareReducer(extraDependencies);
 const deviceReducer = prepareDeviceReducer(extraDependencies);
 const flagsReducer = prepareFlagsReducer(extraDependencies);
 
-const TrezorConnect = testMocks.getTrezorConnectMock();
-
-const setTrezorConnectFixtures = (fixture: any) => {
-    jest.spyOn(TrezorConnect, 'getFeatures').mockImplementation(
-        () =>
-            fixture || {
-                success: true,
-            },
-    );
-    jest.spyOn(TrezorConnect, 'getDeviceState').mockImplementation(
-        ({ device }: any) =>
-            fixture || {
-                success: true,
-                payload: {
-                    state: {
-                        staticSessionId: `state@device-id:${device ? device.instance : undefined}`,
-                    },
-                },
-            },
-    );
-    jest.spyOn(TrezorConnect, 'applySettings').mockImplementation(
-        () =>
-            fixture || {
-                success: true,
-            },
-    );
-};
-
 type SuiteState = ReturnType<typeof suiteReducer>;
 type DevicesState = ReturnType<typeof deviceReducer>;
-type RouterState = ReturnType<typeof routerReducer>;
 type FirmwareState = ReturnType<typeof firmwareReducer>;
 
 const getInitialState = (
     suite?: Partial<SuiteState>,
     device?: Partial<DevicesState>,
-    router?: RouterState,
+    router?: RouterStateOverrides,
     firmware?: Partial<FirmwareState>,
     suiteSyncData?: Partial<ReturnType<typeof suiteSyncReducer>>,
 ) => ({
@@ -76,15 +48,13 @@ const getInitialState = (
         ...suite,
     },
     tor: torReducer(undefined, { type: 'foo' } as any),
+    discreetMode: { isActive: false },
     flags: flagsInitialState,
     device: {
         ...deviceReducer(undefined, { type: 'foo' } as any),
         ...device,
     },
-    router: {
-        ...routerReducer(undefined, { type: 'foo' } as any),
-        ...router,
-    },
+    router: createRouterStateMock(router),
     modal: modalReducer(undefined, { type: 'foo' } as any),
     firmware: {
         ...firmwareReducer(undefined, { type: 'foo' } as any),
@@ -207,7 +177,7 @@ describe('Suite Actions', () => {
 
     fixtures.acquireDevice.forEach(f => {
         it(`acquireDevice: ${f.description}`, async () => {
-            setTrezorConnectFixtures(f.getFeatures);
+            testMocks.setTrezorConnectFixtures(f.getFeatures || { success: true });
             const state = getInitialState(undefined, f.state.device);
             const store = initStore(state);
             store.dispatch(connectInitThunk()); // trezorConnectActions.connectInitThunk needs to be called in order to wrap "getFeatures" with lockUi action

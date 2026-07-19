@@ -1,17 +1,17 @@
 import '@suite-common/test-utils/src/globalOverrides';
 
+import { coinjoinReducer } from '@suite/coinjoin';
 import { initialRunCompleted, prepareFlagsReducer } from '@suite/flags';
 import { initialMetadataState, metadataReducer } from '@suite/metadata';
-import { receiveReducer } from '@suite/receive';
 import { suiteSettingsInitialState } from '@suite/settings';
-import { suiteSyncSlice } from '@suite/suite-sync';
+import { prepareSuiteSyncReducer } from '@suite/suite-sync';
 import { deviceActions, selectDevices, selectDevicesCount } from '@suite-common/device';
 import { asEncryptedHex } from '@suite-common/platform-encryption';
+import { prepareReceiveReducer } from '@suite-common/receive';
 import { setSuiteSyncOwner } from '@suite-common/suite-sync';
 import { type SuiteSyncOwnerSerialized } from '@suite-common/suite-sync-storage';
 import { mockSuiteDevice } from '@suite-common/suite-types/mocks';
-import { testMocks } from '@suite-common/test-utils';
-import { asWalletDescriptor } from '@suite-common/wallet';
+import { testMocks, wireEnabledNetworksMock } from '@suite-common/test-utils';
 import {
     changeCoinVisibility,
     prepareDiscoveryReducer,
@@ -19,17 +19,17 @@ import {
     transactionsActions,
 } from '@suite-common/wallet-core';
 import * as discoveryActions from '@suite-common/wallet-core';
-import { type AccountKey, asAccountDescriptor } from '@suite-common/wallet-types';
-import { mockWalletAccount } from '@suite-common/wallet-types/mocks';
+import { asAccountDescriptor } from '@suite-common/wallet-types';
+import { mockAccountKey, mockWalletAccount } from '@suite-common/wallet-types/mocks';
 import { getAccountIdentifier, getAccountTransactions } from '@suite-common/wallet-utils';
+import { type StaticSessionId, asWalletDescriptor } from '@trezor/device-utils';
 
-import { deviceSlice } from 'src/actions/device/deviceSlice';
+import { prepareDesktopDeviceReducer } from 'src/actions/device/deviceSlice';
 import { suiteSyncQuotaManagerSlice } from 'src/actions/suiteSyncQuotaManager/suiteSyncQuotaManagerSlice';
 import { SETTINGS } from 'src/config/suite';
 import storageMiddleware from 'src/middlewares/wallet/storageMiddleware';
 import suiteReducer from 'src/reducers/suite/suiteReducer';
 import { accountsReducer, fiatRatesReducer, transactionsReducer } from 'src/reducers/wallet';
-import { coinjoinReducer } from 'src/reducers/wallet/coinjoinReducer';
 import graphReducer from 'src/reducers/wallet/graphReducer';
 import { db } from 'src/storage';
 import { extraDependencies } from 'src/support/extraDependencies';
@@ -42,12 +42,13 @@ import * as storageActions from '../storageActions';
 const { getWalletTransaction } = testMocks;
 
 const discoveryReducer = prepareDiscoveryReducer(extraDependencies);
-const deviceReducer = deviceSlice.prepareReducer(extraDependencies);
+const deviceReducer = prepareDesktopDeviceReducer(extraDependencies);
 const flagsReducer = prepareFlagsReducer(extraDependencies);
 const sendFormReducer = prepareSendFormReducer(extraDependencies);
 const walletSettingsReducer = discoveryActions.prepareWalletSettingsReducer(extraDependencies);
 const quotaManagerSliceReducer = suiteSyncQuotaManagerSlice.prepareReducer(extraDependencies);
-const suiteSyncReducer = suiteSyncSlice.prepareReducer(extraDependencies);
+const suiteSyncReducer = prepareSuiteSyncReducer(extraDependencies);
+const receiveReducer = prepareReceiveReducer(extraDependencies);
 
 // TODO: add method in suite-storage for deleting all stored data (done as a static method on SuiteDB), call it after each test
 // TODO: test deleting device instances on parent device forget
@@ -104,6 +105,7 @@ type PartialState = Pick<
     | 'suiteSyncQuotaManager'
     | 'flags'
     | 'metadata'
+    | 'receive'
 > & {
     wallet: Partial<
         Pick<
@@ -113,7 +115,6 @@ type PartialState = Pick<
             | 'settings'
             | 'discovery'
             | 'send'
-            | 'receive'
             | 'transactions'
             | 'graph'
             | 'fiat'
@@ -147,6 +148,7 @@ const getInitialState = (prevState?: Partial<PartialState>, action?: any) => ({
         prevState ? prevState.device : undefined,
         action || ({ type: 'foo' } as any),
     ),
+    receive: receiveReducer(prevState?.receive, action || ({ type: 'foo' } as any)),
     wallet: {
         accounts: accountsReducer(prevState?.wallet?.accounts, action || ({ type: 'foo' } as any)),
         coinjoin: coinjoinReducer(prevState?.wallet?.coinjoin, action || ({ type: 'foo' } as any)),
@@ -159,7 +161,6 @@ const getInitialState = (prevState?: Partial<PartialState>, action?: any) => ({
             action || ({ type: 'foo' } as any),
         ),
         send: sendFormReducer(prevState?.wallet?.send, action || ({ type: 'foo' } as any)),
-        receive: receiveReducer(prevState?.wallet?.receive, action || ({ type: 'foo' } as any)),
         transactions: transactionsReducer(
             prevState?.wallet?.transactions,
             action || ({ type: 'foo' } as any),
@@ -228,7 +229,7 @@ describe('Storage actions', () => {
         const f = global.fetch;
         global.fetch = mockFetch({ TR_ID: 'Message' });
         await store.dispatch(storageActions.saveSuiteSettings());
-        await store.dispatch(initialRunCompleted());
+        await store.dispatch(initialRunCompleted({ isFreshDeviceSetup: true }));
         store.dispatch(await preloadStore());
 
         expect(store.getState().flags.initialRun).toEqual(false);
@@ -239,17 +240,19 @@ describe('Storage actions', () => {
         let store = mockStore(getInitialState());
         updateStore(store);
 
-        // @ts-expect-error partial params
-        await storageActions.saveDraft({ address: 'a' }, 'account-key');
-        store.dispatch(await preloadStore());
-        expect(store.getState().wallet.send.drafts).toEqual({ 'account-key': { address: 'a' } });
+        const accountKey = mockAccountKey({ descriptor: 'accountKey' });
 
         // @ts-expect-error partial params
-        await storageActions.saveDraft({ address: 'b' }, 'account-key');
+        await storageActions.saveDraft({ address: 'a' }, accountKey);
         store.dispatch(await preloadStore());
-        expect(store.getState().wallet.send.drafts).toEqual({ 'account-key': { address: 'b' } });
+        expect(store.getState().wallet.send.drafts).toEqual({ [accountKey]: { address: 'a' } });
 
-        await storageActions.removeDraft('account-key' as AccountKey); // Todo: create properly via `createAccountKey()`
+        // @ts-expect-error partial params
+        await storageActions.saveDraft({ address: 'b' }, accountKey);
+        store.dispatch(await preloadStore());
+        expect(store.getState().wallet.send.drafts).toEqual({ [accountKey]: { address: 'b' } });
+
+        await storageActions.removeDraft(accountKey);
         store = mockStore(getInitialState());
         updateStore(store);
         store.dispatch(await preloadStore());
@@ -474,6 +477,8 @@ describe('Storage actions', () => {
         store.dispatch(await preloadStore());
         expect(store.getState().wallet.graph.data.length).toBe(2);
 
+        // changeCoinVisibility awaits updateConnectSettings; mock it as a no-op success.
+        wireEnabledNetworksMock();
         // disable btc network, enable ltc, triggering ACCOUNT.REMOVE
         await store.dispatch(changeCoinVisibility({ symbol: 'ltc', shouldBeVisible: true }));
         await store.dispatch(changeCoinVisibility({ symbol: 'btc', shouldBeVisible: false }));
@@ -507,7 +512,7 @@ describe('Storage actions', () => {
     });
 
     it('should remove legacy labels migration flag on forgetDevice', async () => {
-        const forgottenDeviceStaticSessionId = 'forgotten-wallet@device_a_id:0';
+        const forgottenDeviceStaticSessionId: StaticSessionId = 'forgotten-wallet@device_a_id:0';
         const forgottenWalletDescriptor = asWalletDescriptor('forgotten-wallet');
         const keptWalletDescriptor = asWalletDescriptor('kept-wallet');
 

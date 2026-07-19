@@ -1,8 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 
-import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
-import { useServices } from '@suite-common/dependency-injection';
 import {
     TRADING_FORM_OUTPUT_AMOUNT,
     TRADING_FORM_OUTPUT_FIAT,
@@ -11,15 +9,19 @@ import {
     TRADING_FORM_SEND_CRYPTO_CURRENCY_SELECT,
     type TradingExchangeFormProps,
     type TradingExchangeType,
+    getDisplayComposedLevels,
     selectTradingExchangeBuyCryptoIds,
+    selectTradingExchangeQuotes,
+    selectTradingExchangeSelectedQuote,
     selectTradingExchangeSellCryptoIds,
     selectTradingLoadingAndTimestamp,
     tradingActions,
 } from '@suite-common/trading';
 import { type TokenAddress } from '@suite-common/wallet-types';
-import { convertAmountSubunitsToUnits } from '@suite-common/wallet-utils';
-import { Column, FractionButton, Row } from '@trezor/components';
+import { asAmountSubunit, subunitsToUnits } from '@suite-common/wallet-utils';
+import { Column, Row } from '@trezor/components';
 import { useCurrentRef } from '@trezor/react-utils';
+import { BigNumber } from '@trezor/utils';
 
 import { useDispatch, useSelector } from 'src/hooks/suite';
 import { useTradingAssetDecimals } from 'src/hooks/wallet/trading/form/common/useTradingAssetDecimals';
@@ -41,14 +43,17 @@ import {
     type TradingFormInputSellAssetProps,
 } from './TradingFormInput/TradingFormInputSellAsset/TradingFormInputSellAsset';
 import { TradingFormSection } from './TradingFormSection';
+import { TradingFractionButtons } from './TradingFractionButtons';
 import { TradingNetworkReserveBanner } from './TradingNetworkReserveBanner';
-import { generateFractionButtons } from './tradingFormInputsUtils';
 
 export const TradingExchangeFormInputs = () => {
     const context = useTradingFormContext<TradingExchangeType>();
-    const { analytics } = useServices(selectDesktopAnalyticsDep);
 
     const { isLoading } = useSelector(selectTradingLoadingAndTimestamp);
+    const exchangeBuySupportedCryptoIds = useSelector(selectTradingExchangeBuyCryptoIds);
+    const exchangeSellSupportedCryptoIds = useSelector(selectTradingExchangeSellCryptoIds);
+    const quotes = useSelector(selectTradingExchangeQuotes);
+    const selectedQuote = useSelector(selectTradingExchangeSelectedQuote);
 
     const {
         feeInfo,
@@ -61,6 +66,11 @@ export const TradingExchangeFormInputs = () => {
         resetSelectedOffer,
         setAmountLimits,
     } = context;
+
+    const displayComposedLevels = useMemo(
+        () => getDisplayComposedLevels(selectedQuote, composedLevels),
+        [selectedQuote, composedLevels],
+    );
     const { getValues, setValue } = useFormContext<TradingExchangeFormProps>();
     const {
         [TRADING_FORM_SEND_CRYPTO_CURRENCY_SELECT]: sendCryptoSelect,
@@ -84,7 +94,10 @@ export const TradingExchangeFormInputs = () => {
     );
     const outputAmount =
         shouldSendInSats && output?.amount
-            ? convertAmountSubunitsToUnits(output.amount, sendAssetDecimals)
+            ? subunitsToUnits({
+                  value: asAmountSubunit(new BigNumber(output.amount)),
+                  decimals: sendAssetDecimals,
+              }).toString()
             : output?.amount;
 
     const dispatch = useDispatch();
@@ -117,9 +130,6 @@ export const TradingExchangeFormInputs = () => {
         [dispatch, setAmountLimitsRef, setValueRef, resetSelectedOfferRef],
     );
 
-    const exchangeBuySupportedCryptoIds = useSelector(selectTradingExchangeBuyCryptoIds);
-    const exchangeSellSupportedCryptoIds = useSelector(selectTradingExchangeSellCryptoIds);
-
     return (
         <Column gap={20}>
             <TradingFormCard>
@@ -130,7 +140,6 @@ export const TradingExchangeFormInputs = () => {
                         inputBottomText={
                             <AssetPickerInputBalance
                                 name={TRADING_FORM_SEND_CRYPTO_CURRENCY_SELECT}
-                                showOnlyAmount
                             />
                         }
                         includedCryptoIds={exchangeSellSupportedCryptoIds}
@@ -146,31 +155,8 @@ export const TradingExchangeFormInputs = () => {
                             cryptoCurrencyLabel={sendCryptoSelect?.id}
                         />
                         {amountInCrypto && (
-                            <Row justifyContent="space-between" alignItems="flex-start">
-                                <Row gap={8} data-testid="@trading/form/fraction-buttons">
-                                    {generateFractionButtons(helpers).map(button => {
-                                        const { percentValue, ...buttonProps } = button;
-
-                                        return (
-                                            <FractionButton
-                                                key={buttonProps.id}
-                                                {...buttonProps}
-                                                onClick={() => {
-                                                    analytics.report({
-                                                        type: events.appFormPercentButtonsEvent
-                                                            .name,
-                                                        payload: {
-                                                            type: 'swap',
-                                                            value: percentValue,
-                                                        },
-                                                    });
-                                                    button.onClick();
-                                                    context.resetSelectedOffer();
-                                                }}
-                                            />
-                                        );
-                                    })}
-                                </Row>
+                            <Row justifyContent="space-between" alignItems="center" gap={8}>
+                                <TradingFractionButtons />
                                 <TradingBalance
                                     balance={outputAmount}
                                     displaySymbol={sendCryptoSelect?.displaySymbol}
@@ -201,16 +187,21 @@ export const TradingExchangeFormInputs = () => {
                     />
                 </TradingFormSection>
             </TradingFormCard>
-            <TradingFormCard>
-                {receiveCryptoSelect && !isLoading && <TradingReceiveAddress />}
-                <TradingFormFees
-                    feeInfo={feeInfo}
-                    account={account}
-                    composedLevels={composedLevels}
-                    changeFeeLevel={changeFeeLevel}
-                />
-                <TradingSelectedOfferProvider />
-            </TradingFormCard>
+
+            {receiveCryptoSelect && (
+                <TradingFormCard>
+                    {!isLoading && <TradingReceiveAddress />}
+                    {!!quotes.length && (
+                        <TradingFormFees
+                            feeInfo={feeInfo}
+                            account={account}
+                            composedLevels={displayComposedLevels}
+                            changeFeeLevel={changeFeeLevel}
+                        />
+                    )}
+                    <TradingSelectedOfferProvider />
+                </TradingFormCard>
+            )}
         </Column>
     );
 };

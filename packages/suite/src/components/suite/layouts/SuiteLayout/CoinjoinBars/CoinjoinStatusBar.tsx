@@ -1,5 +1,7 @@
 import styled, { css } from 'styled-components';
 
+import { selectRoundsDurationInHours, selectSessionProgressByAccountKey } from '@suite/coinjoin';
+import { type CoinjoinSession } from '@suite/coinjoin';
 import { Translation } from '@suite/intl';
 import { goto, selectRouterParams } from '@suite/router';
 import { selectDevices, selectSelectedDevice } from '@suite-common/device';
@@ -9,15 +11,10 @@ import { ProgressPie } from '@trezor/components';
 import { typography } from '@trezor/theme';
 
 import { CountdownTimer } from 'src/components/suite/CountdownTimer';
-import { WalletLabeling } from 'src/components/suite/labeling';
+import { WalletLabeling } from 'src/components/suite/labeling/WalletLabeling';
 import { ROUND_PHASE_MESSAGES } from 'src/constants/suite/coinjoin';
 import { useDispatch } from 'src/hooks/suite';
 import { useSelector } from 'src/hooks/suite/useSelector';
-import {
-    selectRoundsDurationInHours,
-    selectSessionProgressByAccountKey,
-} from 'src/reducers/wallet/coinjoinReducer';
-import { type CoinjoinSession } from 'src/types/wallet/coinjoin';
 
 const SPACING = 6;
 

@@ -1,14 +1,8 @@
 import { useMemo } from 'react';
-import Animated, {
-    SlideInDown,
-    SlideOutDown,
-    useAnimatedStyle,
-    withTiming,
-} from 'react-native-reanimated';
+import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 
 import { useFormatters } from '@suite-common/formatters';
 import { type NetworkSymbol } from '@suite-common/wallet-config';
-import { type AccountKey } from '@suite-common/wallet-types';
 import { calculateRewards } from '@suite-common/wallet-utils';
 import { Box, Button, ScreenFooterGradient, Text, VStack } from '@suite-native/atoms';
 import { Translation, useTranslate } from '@suite-native/intl';
@@ -21,22 +15,26 @@ const screenFooterStyle = prepareNativeStyle(utils => ({
     backgroundColor: utils.colors.surfaceFillPage,
 }));
 
-const rewardsBoxStyle = prepareNativeStyle(utils => ({
-    backgroundColor: utils.colors.legacyBackgroundPrimarySubtleOnElevationNegative,
-    borderTopLeftRadius: utils.borders.radii.r16,
-    borderTopRightRadius: utils.borders.radii.r16,
-    borderBottomLeftRadius: utils.borders.radii.r24,
-    borderBottomRightRadius: utils.borders.radii.r24,
-    paddingBottom: utils.spacings.sp48,
-}));
+const rewardsBoxStyle = prepareNativeStyle<{ hasValidationError: boolean }>(
+    (utils, { hasValidationError }) => ({
+        backgroundColor: utils.colors.legacyBackgroundPrimarySubtleOnElevationNegative,
+        borderTopLeftRadius: utils.borders.radii.r16,
+        borderTopRightRadius: utils.borders.radii.r16,
+        borderBottomLeftRadius: utils.borders.radii.r24,
+        borderBottomRightRadius: utils.borders.radii.r24,
+        paddingBottom: utils.spacings.sp48,
+        opacity: hasValidationError ? 0 : 1,
+    }),
+);
 
-const continueButtonStyle = prepareNativeStyle(utils => ({
-    borderRadius: utils.borders.radii.round,
-    marginTop: -utils.spacings.sp32,
-}));
+const continueButtonStyle = prepareNativeStyle<{ isEstimatedRewardsVisible: boolean }>(
+    (utils, { isEstimatedRewardsVisible }) => ({
+        borderRadius: utils.borders.radii.round,
+        marginTop: isEstimatedRewardsVisible ? -utils.spacings.sp32 : 0,
+    }),
+);
 
 type EarnFormScreenFooterProps = {
-    accountKey: AccountKey;
     symbol: NetworkSymbol;
     amountValue: string;
     isDisabled: boolean;
@@ -45,7 +43,6 @@ type EarnFormScreenFooterProps = {
 };
 
 export const EarnFormScreenFooter = ({
-    accountKey,
     symbol,
     amountValue,
     isDisabled,
@@ -56,7 +53,7 @@ export const EarnFormScreenFooter = ({
     const { translate } = useTranslate();
     const { CryptoAmountFormatter } = useFormatters();
 
-    const apy = useSelector(state => selectApy(state, { accountKey, networkSymbol: symbol }));
+    const apy = useSelector(state => selectApy(state, { networkSymbol: symbol }));
 
     const estimatedRewards = useMemo(() => {
         if (!amountValue) return null;
@@ -75,27 +72,24 @@ export const EarnFormScreenFooter = ({
     const buttonIntent = isDisabled ? 'neutral' : 'brand';
     const buttonPriority = isDisabled ? 'secondary' : 'primary';
     const hasValidationError = isDirty && isDisabled;
-
-    const rewardsAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: withTiming(hasValidationError ? 0 : 1, { duration: 100 }),
-    }));
+    const isEstimatedRewardsVisible = estimatedRewards !== null;
 
     return (
         <Animated.View entering={SlideInDown} exiting={SlideOutDown}>
             <ScreenFooterGradient />
             <Box style={applyStyle(screenFooterStyle)}>
-                <Animated.View style={[applyStyle(rewardsBoxStyle), rewardsAnimatedStyle]}>
-                    <VStack spacing="sp4" paddingTop="sp12" alignItems="center">
-                        <Text variant="body-sm" color="contentPrimary">
-                            <Translation id="earn.earnFormScreen.estimatedRewardsLabel" />
-                        </Text>
-                        <Text variant="headline-sm" color="contentBrand">
-                            {estimatedRewards ?? (
-                                <Translation id="earn.earnFormScreen.estimatedRewardsPlaceholder" />
-                            )}
-                        </Text>
-                    </VStack>
-                </Animated.View>
+                {isEstimatedRewardsVisible && (
+                    <Box style={applyStyle(rewardsBoxStyle, { hasValidationError })}>
+                        <VStack spacing="sp4" paddingTop="sp12" alignItems="center">
+                            <Text variant="body-sm" color="contentPrimary">
+                                <Translation id="earn.earnFormScreen.estimatedRewardsLabel" />
+                            </Text>
+                            <Text variant="headline-sm" color="contentBrand">
+                                {estimatedRewards}
+                            </Text>
+                        </VStack>
+                    </Box>
+                )}
                 <Button
                     key={`${buttonIntent}-${buttonPriority}`}
                     accessibilityRole="button"
@@ -104,7 +98,7 @@ export const EarnFormScreenFooter = ({
                     priority={buttonPriority}
                     onPress={onPress}
                     isDisabled={isDisabled}
-                    style={applyStyle(continueButtonStyle)}
+                    style={applyStyle(continueButtonStyle, { isEstimatedRewardsVisible })}
                 >
                     <Translation id="generic.buttons.continue" />
                 </Button>

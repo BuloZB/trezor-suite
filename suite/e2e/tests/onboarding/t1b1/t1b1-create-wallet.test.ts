@@ -47,11 +47,11 @@ test.describe('Onboarding - create wallet', { tag: ['@firmware-ready', '@T1B1'] 
 
                 await page.getByTestId('@onboarding/create-backup-button').click();
 
+                // Do you want to create wallet? > Yes
                 await page.waitForTimeout(1_000);
                 await device.pressYes();
-                await page.waitForTimeout(1_000);
-                await device.pressYes();
-                // Emulator needs to initialize the seed first
+
+                // Confirm 2 x 24 words
                 await page.waitForTimeout(1_000);
                 for (let i = 0; i < 48; i++) {
                     await device.pressYes();
@@ -75,7 +75,7 @@ test.describe('Onboarding - create wallet', { tag: ['@firmware-ready', '@T1B1'] 
             await test.step('Finish wallet creation', async () => {
                 await onboardingPage.finalButton.click();
                 await expect(onboardingPage.suiteLoadedIndicator).toBeVisible();
-                await expect(dashboardPage.walletReady).toBeVisible();
+                await expect(dashboardPage.discoveryEmptyHeader).toBeVisible({ timeout: 20_000 });
             });
         },
     );

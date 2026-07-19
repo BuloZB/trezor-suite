@@ -1,8 +1,9 @@
 import { type RouteProp } from '@react-navigation/native';
 import type { ExchangeTrade } from 'invity-api';
 
-import { type AccountKey } from '@suite-common/wallet-types';
-import { events } from '@suite-native/analytics';
+import { asAccountDescriptor } from '@suite-common/wallet-types';
+import { type NativeAnalyticsDep, events } from '@suite-native/analytics';
+import { mockNativeAnalytics } from '@suite-native/analytics/mocks';
 import { getTranslation } from '@suite-native/intl';
 import { type RootStackParamList, RootStackRoutes } from '@suite-native/navigation';
 import {
@@ -15,6 +16,8 @@ import {
     createPrecomposedTxFinal,
     exchangeQuotes,
     getBtcAccount,
+    getEthAccount,
+    mercuryoDexQuote,
     mercuryoFixedWorstQuote,
     oneInchFusionPlusWithEip712SignDataQuote,
 } from '@suite-native/trading-fixtures';
@@ -24,6 +27,9 @@ import {
     TradingExchangePreviewScreen,
     type TradingExchangePreviewScreenProps,
 } from '../TradingExchangePreviewScreen';
+
+const btc1Account = getBtcAccount({ descriptor: asAccountDescriptor('btc1normal') });
+const eth1Account = getEthAccount({ descriptor: asAccountDescriptor('eth1normal') });
 
 // useDebounce adds a 300ms real setTimeout before calling the function. Mocking it to be
 // immediate makes tests deterministic and avoids flaky failures in slow CI environments.
@@ -51,7 +57,7 @@ jest.mock('@suite-common/device', () => ({
 }));
 
 const mockConfirmTrade = jest.fn().mockResolvedValue(Promise.resolve());
-const mockFetchFeesAndCompose = jest.fn();
+const mockComposeTradingTransaction = jest.fn();
 const mockSignAndSendTransaction = jest.fn();
 const mockResolveConsent = jest.fn();
 const mockAbortConfirmTrade = jest.fn();
@@ -61,7 +67,7 @@ jest.mock('../../hooks/exchange/useExchangeFlow', () => ({
     useExchangeFlow: () => ({
         abortConfirmTrade: mockAbortConfirmTrade,
         confirmTrade: mockConfirmTrade,
-        fetchFeesAndCompose: mockFetchFeesAndCompose,
+        composeTradingTransaction: mockComposeTradingTransaction,
         signAndSendTransaction: mockSignAndSendTransaction,
         signDataAndConfirm: jest.fn(),
         isConsentRequested: false,
@@ -91,9 +97,9 @@ const createStore = (quote?: ExchangeTrade) =>
                 trading: {
                     exchange: {
                         quotes: exchangeQuotes,
-                        tradingAccountKey: 'eth-account-1' as AccountKey, // Todo: create properly via `createAccountKey()`
-                        receiveAccountKey: 'btc-account-1' as AccountKey, // Todo: create properly via `createAccountKey()`
-                        receiveAddress: getBtcAccount().addresses?.used[0]?.address,
+                        tradingAccountKey: eth1Account.key,
+                        receiveAccountKey: btc1Account.key,
+                        receiveAddress: btc1Account.addresses?.used[0]?.address,
                         selectedQuote: quote ?? mercuryoFixedWorstQuote,
                     },
                 },
@@ -129,10 +135,8 @@ describe('TradingExchangePreviewScreen', () => {
     ) => {
         const testStore = customStore ?? store;
         const reportMock = jest.fn();
-        const services = {
-            analytics: {
-                report: reportMock,
-            },
+        const services: NativeAnalyticsDep = {
+            analytics: mockNativeAnalytics(reportMock),
         };
         jest.clearAllMocks();
 
@@ -205,11 +209,12 @@ describe('TradingExchangePreviewScreen', () => {
     });
 
     it('should render transaction details section', () => {
-        const { result } = renderTradingExchangePreviewScreen();
+        const {
+            result: { getByText },
+        } = renderTradingExchangePreviewScreen();
 
-        expect(
-            result.getByText(getTranslation('moduleTrading.tradingExchangePreviewScreen.details')),
-        ).toBeOnTheScreen();
+        // 1st line of trade info is provider
+        expect(getByText(getTranslation('moduleTrading.tradingScreen.provider'))).toBeOnTheScreen();
     });
 
     describe('Error Alert Functionality', () => {
@@ -331,7 +336,9 @@ describe('TradingExchangePreviewScreen', () => {
         const { result, reportMock } = renderTradingExchangePreviewScreen();
         reportMock.mockClear();
 
-        await userEvent.press(result.getByText('Continue'));
+        await userEvent.press(
+            result.getByText(getTranslation('moduleTrading.tradingScreen.buttons.continue')),
+        );
 
         expect(reportMock).toHaveBeenCalledTimes(1);
         expect(reportMock).toHaveBeenCalledWith({
@@ -447,5 +454,24 @@ describe('TradingExchangePreviewScreen', () => {
             expect(result.getByText('Transaction error occurred')).toBeOnTheScreen();
             expect(result.queryByText('Quote error message')).toBeNull();
         });
+    });
+
+    it('should not confirm DEX quote without slippage', async () => {
+        const testStore = createStore({ ...mercuryoDexQuote, swapSlippage: undefined });
+
+        renderTradingExchangePreviewScreen(false, testStore);
+
+        await waitFor(() => {
+            expect(mockConfirmTrade).toHaveBeenCalled();
+        });
+
+        expect(mockConfirmTrade).toHaveBeenCalledTimes(1);
+        expect(mockConfirmTrade).toHaveBeenCalledWith(
+            expect.objectContaining({
+                trade: expect.objectContaining({
+                    swapSlippage: '1',
+                }),
+            }),
+        );
     });
 });

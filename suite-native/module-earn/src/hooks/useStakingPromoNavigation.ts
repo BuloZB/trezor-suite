@@ -64,6 +64,7 @@ export const useStakingPromoNavigation = () => {
             chooseAccountContinuedRef.current = true;
             closeChooseAccountModal();
             reportStakingNavigate(account);
+
             navigateByAccountState(account, navigation.navigate);
         },
         [closeChooseAccountModal, navigation.navigate, reportStakingNavigate],
@@ -138,13 +139,13 @@ export const useStakingPromoNavigation = () => {
                 return;
             }
 
+            const accountsForSymbol = accounts.filter(acc => acc.symbol === item.symbol);
+
             if (isPortfolioTrackerDevice) {
                 openPortfolioTrackerSheet();
 
                 return;
             }
-
-            const accountsForSymbol = accounts.filter(acc => acc.symbol === item.symbol);
 
             if (accountsForSymbol.length === 0) {
                 setPendingEnableSymbol(item.symbol);

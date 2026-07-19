@@ -1,8 +1,8 @@
 import { DELEGATED_IDENTITY_KEY } from '@suite-common/delegated-identity-key-types/mocks';
 import { mock } from '@suite-common/dependency-injection';
 import { asSuiteSyncOwnerId } from '@suite-common/suite-sync-storage';
-import { type WalletDescriptor, asWalletDescriptor } from '@suite-common/wallet';
 import { type StaticSessionId } from '@trezor/connect-common';
+import { type WalletDescriptor, asWalletDescriptor } from '@trezor/device-utils';
 import { err, ok } from '@trezor/type-utils';
 
 import { createEnsureOwnerHasAllocatedQuotaDepsMock } from '../device/mocks/createEnsureOwnerHasAllocatedQuotaDepsMock';
@@ -13,7 +13,7 @@ import { createEnsureOwnerHasAllocatedQuota } from '../owner/createEnsureOwnerHa
 const ownerId = asSuiteSyncOwnerId('owner-id');
 const walletDescriptor: WalletDescriptor = asWalletDescriptor('descriptor');
 const deviceId = 'device-123';
-const deviceStaticSessionId = `${walletDescriptor}@${deviceId}` as StaticSessionId;
+const deviceStaticSessionId: StaticSessionId = `${walletDescriptor}@${deviceId}:0`;
 
 describe(createEnsureOwnerHasAllocatedQuota.name, () => {
     it('dispatches owner fetched when storage already exists', async () => {

@@ -1,3 +1,5 @@
+import { type YieldDtoV2 } from '@suite-common/earn-stablecoin-api';
+import { type Account } from '@suite-common/wallet-types';
 import {
     BottomSheetModal,
     type BottomSheetModalRef,
@@ -9,35 +11,46 @@ import {
 } from '@suite-native/atoms';
 import { Translation } from '@suite-native/intl';
 
+import { useApyBreakdownAlert } from '../hooks/useApyBreakdownAlert';
 import { HowEarnWorksBenefitsSection } from './HowEarnWorks/HowEarnWorksBenefitsSection';
 import { HowEarnWorksTimelineCard } from './HowEarnWorks/HowEarnWorksTimelineCard';
 import { createHowYieldWorksPreset } from '../presets/HowEarnWorks/yieldPresets';
 
 type YieldDepositInfoBottomSheetProps = {
     apy: number | null;
+    bonusRewardTokenName?: string | null;
     onClose: () => void;
     ref: BottomSheetModalRef;
     tokenSymbol: string;
-    vaultTokenName: string;
+    vaultTokenSymbol: string;
+    account: Account;
+    vault: YieldDtoV2;
 };
 
 export const YieldDepositInfoBottomSheet = ({
     apy,
+    bonusRewardTokenName,
     onClose,
     ref,
     tokenSymbol,
-    vaultTokenName,
+    vaultTokenSymbol,
+    account,
+    vault,
 }: YieldDepositInfoBottomSheetProps) => {
+    const apyBreakdownAlert = useApyBreakdownAlert({ account, vault, apy });
+
     const { benefitItems, timelineSections } = createHowYieldWorksPreset({
         apy,
+        onApyPress: apyBreakdownAlert.onPress,
+        bonusRewardTokenName,
         tokenSymbol,
-        vaultTokenName,
+        vaultTokenSymbol,
     });
 
     return (
         <BottomSheetModal
             ref={ref}
-            title={<Translation id="earn.howYieldWorksScreen.title" />}
+            title={<Translation id="earn.howYieldWorksScreen.defiYieldTitle" />}
             isCloseDisplayed
             onClose={onClose}
             footer={
@@ -50,7 +63,7 @@ export const YieldDepositInfoBottomSheet = ({
         >
             <VStack spacing="sp32">
                 <Text variant="body-sm" color="contentSecondary">
-                    <Translation id="earn.howYieldWorksScreen.subtitle" />
+                    <Translation id="earn.howYieldWorksScreen.defiYieldSubtitle" />
                 </Text>
                 <HowEarnWorksBenefitsSection items={benefitItems} />
                 <HowEarnWorksTimelineCard

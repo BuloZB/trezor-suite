@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { type UseFormReturn } from 'react-hook-form';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { type UseFormReturn, useWatch } from 'react-hook-form';
 
 import { isTranslationKey, useTranslation } from '@suite/intl';
 import { selectSelectedDevice } from '@suite-common/device';
@@ -12,6 +12,7 @@ import {
 } from '@suite-common/trading';
 import { COMPOSE_ERROR_TYPES } from '@suite-common/wallet-constants';
 import {
+    deriveTronColdRecipient,
     selectAccounts,
     selectAddressDisplayType,
     selectRawNetworkFeeInfo,
@@ -36,9 +37,9 @@ export const useTradingComposeTransaction = <T extends TradingSellExchangeFormPr
     type,
     account,
     network,
-    values,
     methods,
     setShowReserveBanner,
+    shouldSuppressComposeErrors,
 }: TradingUseComposeTransactionProps<T>): TradingUseComposeTransactionReturnProps => {
     const dispatch = useDispatch();
     const accounts = useSelector(selectAccounts);
@@ -46,9 +47,8 @@ export const useTradingComposeTransaction = <T extends TradingSellExchangeFormPr
     const addressDisplayType = useSelector(selectAddressDisplayType);
     const { translationString } = useTranslation();
 
-    const { getValues, setValue, setError, clearErrors } = methods as unknown as UseFormReturn<
-        TradingSellFormProps | TradingExchangeFormProps
-    >;
+    const { getValues, setValue, setError, clearErrors, control } =
+        methods as unknown as UseFormReturn<TradingSellFormProps | TradingExchangeFormProps>;
     const chunkify = addressDisplayType === AddressDisplayOptions.CHUNKED;
     const { symbol, networkType } = account;
     const rawFeeInfo = useSelector(state => selectRawNetworkFeeInfo(state, symbol));
@@ -61,8 +61,55 @@ export const useTradingComposeTransaction = <T extends TradingSellExchangeFormPr
         [networkType, rawFeeInfo],
     );
     const initState = useMemo(() => ({ account, network, feeInfo }), [account, network, feeInfo]);
-    const outputAddress = values?.outputs?.[0]?.address;
+    const outputAddress = useWatch({ control, name: TRADING_FORM_OUTPUT_ADDRESS });
     const [state, setState] = useState<TradingUseComposeTransactionStateProps>(initState);
+
+    // Tron: derive a cold recipient for the offers fee estimate, passed via compose context.
+    // Keyed on device?.state (not the device object) so signing doesn't re-fire the device call.
+    const accountsRef = useRef(accounts);
+    accountsRef.current = accounts;
+    const deviceRef = useRef(device);
+    deviceRef.current = device;
+    const [feeEstimationRecipient, setFeeEstimationRecipient] = useState<string | undefined>(
+        undefined,
+    );
+
+    useEffect(() => {
+        const currentDevice = deviceRef.current;
+        if (networkType !== 'tron' || !currentDevice) {
+            setFeeEstimationRecipient(undefined);
+
+            return;
+        }
+        let cancelled = false;
+        deriveTronColdRecipient({
+            account,
+            network,
+            accounts: accountsRef.current,
+            device: currentDevice,
+            chunkify,
+        }).then(recipient => {
+            if (!cancelled) setFeeEstimationRecipient(recipient);
+        });
+
+        return () => {
+            cancelled = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        account.descriptor,
+        account.symbol,
+        account.accountType,
+        networkType,
+        device?.state,
+        network,
+        chunkify,
+    ]);
+
+    const composeContext = useMemo(
+        () => ({ ...state, feeEstimationRecipient }),
+        [state, feeEstimationRecipient],
+    );
 
     // sub-hook, Composing transaction
     const {
@@ -73,7 +120,7 @@ export const useTradingComposeTransaction = <T extends TradingSellExchangeFormPr
         setComposedLevels,
     } = useCompose({
         ...methods,
-        state,
+        state: composeContext,
     });
 
     // sub-hook, FeeLevels handler
@@ -95,8 +142,10 @@ export const useTradingComposeTransaction = <T extends TradingSellExchangeFormPr
                 chunkify,
             );
 
-            if (values?.outputs?.[0] && typeof address === 'string') {
-                if (!values.outputs[0].address) {
+            const currentOutput = getValues('outputs')?.[0];
+
+            if (currentOutput && typeof address === 'string') {
+                if (!currentOutput.address) {
                     setValue(TRADING_FORM_OUTPUT_ADDRESS, address);
                 }
                 setState(initState);
@@ -145,11 +194,18 @@ export const useTradingComposeTransaction = <T extends TradingSellExchangeFormPr
 
         if (!composed) return;
 
-        if (composed.type === 'error' && isTranslationKey(composed.errorMessage?.id)) {
-            setError(TRADING_FORM_OUTPUT_AMOUNT, {
-                type: COMPOSE_ERROR_TYPES.COMPOSE,
-                message: translationString(composed.errorMessage.id, composed.errorMessage.values),
-            });
+        if (composed.type === 'error') {
+            if (shouldSuppressComposeErrors) {
+                clearErrors(TRADING_FORM_OUTPUT_AMOUNT);
+            } else if (isTranslationKey(composed.errorMessage?.id)) {
+                setError(TRADING_FORM_OUTPUT_AMOUNT, {
+                    type: COMPOSE_ERROR_TYPES.COMPOSE,
+                    message: translationString(
+                        composed.errorMessage.id,
+                        composed.errorMessage.values,
+                    ),
+                });
+            }
         }
 
         if (composed.type === 'final' || composed.type === 'nonfinal') {
@@ -189,6 +245,7 @@ export const useTradingComposeTransaction = <T extends TradingSellExchangeFormPr
         setError,
         setValue,
         translationString,
+        shouldSuppressComposeErrors,
     ]);
 
     return {
