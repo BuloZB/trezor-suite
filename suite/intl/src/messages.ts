@@ -3206,6 +3206,15 @@ export const messages = defineMessages({
         description: 'Subheading in recover page. Basic info about recovery',
         id: 'TR_RECOVER_SUBHEADING_BUTTONS',
     },
+    TR_RECOVERY_SOURCE_WARNING_TITLE: {
+        defaultMessage: 'Was this wallet created on a Trezor?',
+        id: 'TR_RECOVERY_SOURCE_WARNING_TITLE',
+    },
+    TR_RECOVERY_SOURCE_WARNING_DESCRIPTION: {
+        defaultMessage:
+            'A wallet created elsewhere may not have the same security as one created on your Trezor. If you are unsure, we recommend setting up a new wallet here and moving your funds to it.',
+        id: 'TR_RECOVERY_SOURCE_WARNING_DESCRIPTION',
+    },
     TR_RECOVERY_ERROR: {
         defaultMessage: 'Wallet recovery failed: {error}',
         description: 'Error during recovery. For example wrong word retyped or device disconnected',
@@ -4172,6 +4181,14 @@ export const messages = defineMessages({
         id: 'TOAST_TX_EXCHANGE_BROADCASTED',
         defaultMessage:
             'Swap transaction from {sendAccount} to {receiveAccount} has been broadcast',
+    },
+    TOAST_TX_WRAP_BROADCASTED: {
+        id: 'TOAST_TX_WRAP_BROADCASTED',
+        defaultMessage: 'Wrap transaction has been broadcast',
+    },
+    TOAST_TX_UNWRAP_BROADCASTED: {
+        id: 'TOAST_TX_UNWRAP_BROADCASTED',
+        defaultMessage: 'Unwrap transaction has been broadcast',
     },
     TOAST_TX_RECEIVED: {
         id: 'TOAST_TX_RECEIVED',
@@ -9854,7 +9871,7 @@ export const messages = defineMessages({
     },
     TR_ONBOARDING_FEEDBACK_BANNER_DESCRIPTION: {
         id: 'TR_ONBOARDING_FEEDBACK_BANNER_DESCRIPTION',
-        defaultMessage: 'Share onboarding feedback, get a 50 USD e-shop voucher',
+        defaultMessage: 'Share onboarding feedback and get a 50 USD e-shop voucher',
     },
     TR_ONBOARDING_FEEDBACK_BANNER_BUTTON: {
         id: 'TR_ONBOARDING_FEEDBACK_BANNER_BUTTON',
@@ -10100,6 +10117,11 @@ export const messages = defineMessages({
         id: 'TR_EARN_YIELD_AVAILABLE_TO_WRAP',
         defaultMessage: 'Available to wrap',
     },
+    TR_EARN_YIELD_WRAP_RESERVE_RECOMMENDED: {
+        id: 'TR_EARN_YIELD_WRAP_RESERVE_RECOMMENDED',
+        defaultMessage:
+            "It's recommended to leave {amount} {nativeSymbol} so you can pay for withdrawal fees.",
+    },
     TR_EARN_YIELD_WRAP_RECEIVING: {
         id: 'TR_EARN_YIELD_WRAP_RECEIVING',
         defaultMessage: 'Receiving',
@@ -10153,6 +10175,10 @@ export const messages = defineMessages({
         id: 'TR_EARN_YIELD_SELECT_AMOUNT_AND_APPROVE',
         defaultMessage: 'Select amount & approve',
     },
+    TR_EARN_YIELD_APPROVE: {
+        id: 'TR_EARN_YIELD_APPROVE',
+        defaultMessage: 'Approve',
+    },
     TR_EARN_YIELD_DEPOSIT: {
         id: 'TR_EARN_YIELD_DEPOSIT',
         defaultMessage: 'Deposit',
@@ -10200,6 +10226,10 @@ export const messages = defineMessages({
     TR_EARN_YIELD_AMOUNT_TO_WITHDRAW: {
         id: 'TR_EARN_YIELD_AMOUNT_TO_WITHDRAW',
         defaultMessage: 'Withdrawal amount',
+    },
+    TR_EARN_YIELD_WITHDRAWN: {
+        id: 'TR_EARN_YIELD_WITHDRAWN',
+        defaultMessage: 'Withdrawn',
     },
     TR_EARN_YIELD_ENTER_AMOUNT_IN_TOKEN: {
         id: 'TR_EARN_YIELD_ENTER_AMOUNT_IN_TOKEN',
@@ -11406,11 +11436,11 @@ export const messages = defineMessages({
     },
     TR_TX_WRAP: {
         id: 'TR_TX_WRAP',
-        defaultMessage: 'Wrap {nativeAmount} into {wrappedAmount}',
+        defaultMessage: 'Wrap {nativeSymbol} into {wrappedAmount}',
     },
     TR_TX_UNWRAP: {
         id: 'TR_TX_UNWRAP',
-        defaultMessage: 'Unwrap {wrappedAmount} into {nativeAmount}',
+        defaultMessage: 'Unwrap {wrappedAmount} to {nativeSymbol}',
     },
     TR_WRAP_NATIVE_TOKEN: {
         id: 'TR_WRAP_NATIVE_TOKEN',
@@ -11641,14 +11671,6 @@ export const messages = defineMessages({
     TOAST_TX_YIELD_CLAIM: {
         id: 'TOAST_TX_YIELD_CLAIM',
         defaultMessage: 'Claim transaction from {account} has been broadcast',
-    },
-    TOAST_TX_WRAP: {
-        id: 'TOAST_TX_WRAP',
-        defaultMessage: 'Wrap transaction from {account} has been broadcast',
-    },
-    TOAST_TX_UNWRAP: {
-        id: 'TOAST_TX_UNWRAP',
-        defaultMessage: 'Unwrap transaction from {account} has been broadcast',
     },
     TOAST_SUCCESSFUL_CLAIM: {
         id: 'TOAST_SUCCESSFUL_CLAIM',
