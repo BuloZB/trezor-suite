@@ -7,7 +7,7 @@ import type {
 } from '@suite-common/suite-types';
 import type { AccountType, NetworkSymbol, StakingNetworkSymbol } from '@suite-common/wallet-config';
 
-type EarnDashboardType = 'staking' | 'yield';
+export type EarnDashboardType = 'staking' | 'yield';
 
 export type MessageState = { [key in Category]: boolean };
 
@@ -55,6 +55,7 @@ export const Feature = {
         trx: 'trx.staking.claim',
     },
     vote: {
+        ada: 'ada.staking.vote',
         trx: 'trx.staking.vote',
     },
     withdraw: {

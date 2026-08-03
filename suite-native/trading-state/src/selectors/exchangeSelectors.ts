@@ -1,3 +1,4 @@
+import { type NetworkSymbol } from '@suite-common/networks';
 import {
     selectGroupedTradingExchangeQuotes,
     selectTradingExchangeBuyCryptoIds,
@@ -53,30 +54,23 @@ export const selectExchangeSelectedReceiveAccount = createMemoizedSelectorWithAc
 
 export const selectExchangeBuyTradeableAssets = createTradingWithFeatureFlagsMemoizedSelector(
     [
-        selectTradingExchangeBuyCryptoIds as unknown as (
-            state: TradingRootState,
-        ) => ReturnType<typeof selectTradingExchangeBuyCryptoIds>,
+        (state: TradingRootState, supportedCoins: readonly NetworkSymbol[]) =>
+            selectTradingExchangeBuyCryptoIds(state, supportedCoins),
         ({ wallet }) => wallet.trading.info.coins,
-        (_state: TradingRootState, forbiddenCryptoId?: string) => forbiddenCryptoId,
         state => selectIsFeatureFlagEnabled(state, FeatureFlag.AreDebugOnlyNetworksEnabled),
         state => selectIsFeatureFlagEnabled(state, FeatureFlag.AreExperimentalOnlyNetworksEnabled),
     ],
-    (
-        cryptoIds,
-        coins,
-        forbiddenCryptoId,
-        areDebugOnlyNetworksEnabled,
-        areExperimentalOnlyNetworksEnabled,
-    ) => {
+    (cryptoIds, coins, areDebugOnlyNetworksEnabled, areExperimentalOnlyNetworksEnabled) => {
         if (!coins || !cryptoIds) {
             return [];
         }
 
         return cryptoIds
-            .filter(cryptoId => cryptoId !== forbiddenCryptoId)
             .flatMap(cryptoId => {
                 const coinInfo = coins[cryptoId];
-                if (!coinInfo) return [];
+                if (!coinInfo) {
+                    return [];
+                }
 
                 return [coinInfoToTradeableAsset(cryptoId, coinInfo)];
             })

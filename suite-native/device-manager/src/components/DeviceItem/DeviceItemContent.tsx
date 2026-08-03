@@ -73,7 +73,7 @@ export const DeviceItemContent = React.memo(
                 isConnected: d.connected,
                 label: selectDeviceLabelOrNameById(state, d.id),
                 walletNumber: d.walletNumber,
-                isDeviceInBootloaderMode: !state && selectShouldFactoryResetBeVisible(state),
+                isDeviceInBootloaderMode: !device && selectShouldFactoryResetBeVisible(state),
                 useEmptyPassphrase: d.useEmptyPassphrase,
                 staticSessionId: d.state?.staticSessionId,
             };
@@ -82,8 +82,9 @@ export const DeviceItemContent = React.memo(
         const isPortfolioTrackerDevice = deviceItem?.id === PORTFOLIO_TRACKER_DEVICE_ID;
 
         const deviceHeader =
-            (isPortfolioTrackerDevice ? deviceItem?.name : deviceItem?.label) ??
-            translate('deviceManager.defaultHeader');
+            (isPortfolioTrackerDevice
+                ? translate('deviceManager.portfolioTrackerHeader')
+                : deviceItem?.label) ?? translate('deviceManager.defaultHeader');
 
         // todo: only makes sense device is already authorized (has state)
         const fallbackLabel = deviceItem?.useEmptyPassphrase ? (

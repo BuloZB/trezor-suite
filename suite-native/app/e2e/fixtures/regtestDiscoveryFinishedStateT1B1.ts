@@ -113,7 +113,6 @@ export const regtestDiscoveryFinishedStateT1B1: PreloadedState = {
                 metadata: {
                     key: 'tpubDCKpwiaxUvejaVwzGE9mjZQ5rHm2DwCTYDM3cYDYW5eG5V99uc34W4YZz1PYsWndPMD9PwcrBPV6C92zgP8Z1PHwrMEGFDeGp5YvFLxtP2P',
                 },
-                ts: 1758269690638,
                 networkType: 'bitcoin',
                 page: {
                     index: 1,
@@ -235,7 +234,6 @@ export const regtestDiscoveryFinishedStateT1B1: PreloadedState = {
                 },
                 unavailableCapabilities: {
                     ada: 'no-support',
-                    bnb: 'no-support',
                     dsol: 'no-support',
                     sol: 'no-support',
                     tada: 'no-support',
@@ -243,9 +241,6 @@ export const regtestDiscoveryFinishedStateT1B1: PreloadedState = {
                     xmr: 'no-support',
                     xrp: 'no-support',
                     xtz: 'no-support',
-                    maid: 'no-capability',
-                    omni: 'no-capability',
-                    usdt: 'no-capability',
                     tutorial: 'no-support',
                     chunkify: 'no-support',
                     evmApproval: 'no-support',

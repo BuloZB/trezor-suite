@@ -19,6 +19,7 @@ import { FeeSelector } from '@suite-native/transaction-management';
 
 import { EarnFormScreenFooter } from '../components/EarnFormScreenFooter';
 import { EarnFormScreenHeader } from '../components/EarnFormScreenHeader';
+import { EarnInsufficientBalanceBanner } from '../components/EarnInsufficientBalanceBanner';
 import { EarnOutputFields } from '../components/EarnOutputFields';
 import { useEarnForm } from '../hooks/useEarnForm';
 import { useNavigateBackAnalytics } from '../hooks/useNavigateBackAnalytics';
@@ -63,7 +64,7 @@ export const EarnFormScreen = () => {
         updateFeeLevelThunk,
     } = earnForm;
     const {
-        formState: { isValid, isDirty },
+        formState: { isValid },
     } = form;
 
     const handleSubmit = form.handleSubmit(() => {
@@ -92,7 +93,6 @@ export const EarnFormScreen = () => {
                     symbol={account.symbol}
                     amountValue={amountValue}
                     isDisabled={!isValid || isFeeUnavailable || isPrecomposeError}
-                    isDirty={isDirty}
                     onPress={() => handleSubmit()}
                 />
             }
@@ -106,6 +106,7 @@ export const EarnFormScreen = () => {
                     />
                 </Form>
             </Box>
+            <EarnInsufficientBalanceBanner accountKey={accountKey} />
             {isValid && (
                 <Box marginTop="sp24">
                     <FeeSelector

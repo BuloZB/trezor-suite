@@ -15,6 +15,7 @@ import {
     selectDeviceFirmwareVersion,
     selectDeviceUnavailableCapabilities,
 } from '@suite-common/device';
+import { type NetworkSymbol } from '@suite-common/networks';
 import { createWeakMapSelector, returnStableArrayIfEmpty } from '@suite-common/redux-utils';
 import {
     type TokenDefinitionsRootState,
@@ -37,11 +38,11 @@ import {
     type AccountKey,
     type SelectedAccountStatus,
 } from '@suite-common/wallet-types';
-import { getSupportedCoins } from '@trezor/address-validator';
 import { exhaustive } from '@trezor/type-utils';
 import { unique, versionUtils } from '@trezor/utils';
 
 import {
+    TRADING_EXCHANGE_FORM_DEX,
     TRADING_SLIP24_MIN_FIRMWARE_VERSION,
     TRADING_SLIP24_SUPPORTED_NETWORK_TYPES,
 } from '../constants';
@@ -56,11 +57,14 @@ import { type ExchangeInfo, type TradingExchangeState } from '../reducers/exchan
 import { type SellInfo, type TradingSellState } from '../reducers/sellReducer';
 import type { TradingRootState, TradingState } from '../reducers/tradingCommonReducer';
 import {
+    type SelectedTradingAsset,
     type TradingBuyPaymentMethodProps,
+    type TradingExchangeFormType,
     type TradingFiatCurrenciesProps,
     type TradingPaymentMethodListProps,
     type TradingPaymentMethodProps,
     type TradingSellPaymentMethodProps,
+    type TradingTradeMapProps,
     type TradingTransaction,
     type TradingTransactionExchange,
     type TradingTransactionSell,
@@ -68,7 +72,9 @@ import {
 } from '../types';
 import {
     cryptoIdToNetwork,
+    cryptoIdToNetworkSymbolAndContractAddress,
     getTradingQuotesByPaymentMethod,
+    getTradingQuotesDedupedByProvider,
     isBuyTrade,
     isExchangeProvider,
     testnetToProdCryptoId,
@@ -81,11 +87,9 @@ import {
     getTradingPlatformsInfoByCryptoId,
     getTradingSymbolAndContractAddressByCryptoId,
 } from '../utils/infoUtils';
-import { isAccountEligibleForTrade, pickFallbackAccount } from '../utils/tradingAccountUtils';
+import { isAccountEligibleForTrade } from '../utils/tradingAccountUtils';
 
 export { EMPTY_GROUPED_TRADING_EXCHANGE_QUOTES, type GroupedTradingExchangeQuotes };
-
-const supportedAddressValidatorSymbols = new Set(getSupportedCoins());
 
 type SelectedAccountRootState = {
     wallet: {
@@ -520,12 +524,14 @@ const getFilteredCryptoIds = (
     supportedCryptoIds: CryptoId[],
     coins: Coins | undefined,
     platforms: Platforms | undefined,
+    supportedCoins: readonly NetworkSymbol[],
 ) => {
     if (!coins || !platforms) {
         return [];
     }
 
     const uniqueSupportedCryptoIds = unique(supportedCryptoIds);
+    const supportedAddressValidatorSymbols = new Set(supportedCoins);
 
     return uniqueSupportedCryptoIds
         .filter(cryptoId => !!coins[cryptoId])
@@ -552,9 +558,10 @@ export const selectTradingBuySupportedCryptoIds = createMemoizedSelector(
             returnStableArrayIfEmpty<CryptoId>(
                 wallet.trading.buy.buyInfo?.supportedCryptoCurrencies,
             ),
+        (_: TradingRootState, supportedCoins: readonly NetworkSymbol[]) => supportedCoins,
     ],
-    (coins, platforms, supportedCryptoIds) =>
-        getFilteredCryptoIds(supportedCryptoIds, coins, platforms),
+    (coins, platforms, supportedCryptoIds, supportedCoins) =>
+        getFilteredCryptoIds(supportedCryptoIds, coins, platforms, supportedCoins),
 );
 
 export const selectTradingSellSupportedCryptoIds = createMemoizedSelector(
@@ -565,9 +572,10 @@ export const selectTradingSellSupportedCryptoIds = createMemoizedSelector(
             returnStableArrayIfEmpty<CryptoId>(
                 wallet.trading.sell.sellInfo?.supportedCryptoCurrencies,
             ),
+        (_: TradingRootState, supportedCoins: readonly NetworkSymbol[]) => supportedCoins,
     ],
-    (coins, platforms, supportedCryptoIds) =>
-        getFilteredCryptoIds(supportedCryptoIds, coins, platforms),
+    (coins, platforms, supportedCryptoIds, supportedCoins) =>
+        getFilteredCryptoIds(supportedCryptoIds, coins, platforms, supportedCoins),
 );
 
 const createExchangeCryptoIdsSelector = (key: 'buyCryptoIds' | 'sellCryptoIds') =>
@@ -577,8 +585,10 @@ const createExchangeCryptoIdsSelector = (key: 'buyCryptoIds' | 'sellCryptoIds') 
             ({ wallet }) => wallet.trading.info.platforms,
             ({ wallet }) =>
                 returnStableArrayIfEmpty<CryptoId>(wallet.trading.exchange.exchangeInfo?.[key]),
+            (_: TradingRootState, supportedCoins: readonly NetworkSymbol[]) => supportedCoins,
         ],
-        (coins, platforms, cryptoIds) => getFilteredCryptoIds(cryptoIds, coins, platforms),
+        (coins, platforms, cryptoIds, supportedCoins) =>
+            getFilteredCryptoIds(cryptoIds, coins, platforms, supportedCoins),
     );
 
 export const selectTradingExchangeSellCryptoIds = createExchangeCryptoIdsSelector('sellCryptoIds');
@@ -589,12 +599,14 @@ export const selectTradingSellSellCryptoIds = createMemoizedSelector(
         selectTradingCoins,
         ({ wallet }) => wallet.trading.info.platforms,
         ({ wallet }) => wallet.trading.sell.sellInfo?.supportedCryptoCurrencies,
+        (_: TradingRootState, supportedCoins: readonly NetworkSymbol[]) => supportedCoins,
     ],
-    (coins, platforms, supportedCryptoIds) =>
+    (coins, platforms, supportedCryptoIds, supportedCoins) =>
         getFilteredCryptoIds(
             returnStableArrayIfEmpty<CryptoId>(supportedCryptoIds),
             coins,
             platforms,
+            supportedCoins,
         ),
 );
 
@@ -616,6 +628,11 @@ export const selectTradingBuyQuotesByPaymentMethod = createMemoizedSelector(
         returnStableArrayIfEmpty(
             paymentMethod ? getTradingQuotesByPaymentMethod<'buy'>(quotes, paymentMethod) : [],
         ),
+);
+
+export const selectTradingBuyOfferQuotes = createMemoizedSelector(
+    [selectTradingBuyQuotesByPaymentMethod],
+    quotes => returnStableArrayIfEmpty(getTradingQuotesDedupedByProvider(quotes)),
 );
 
 export const selectTradingBuyQuoteByOrderId = (
@@ -692,6 +709,54 @@ export const selectTradingSellQuotesByPaymentMethod = createMemoizedSelector(
             paymentMethod ? getTradingQuotesByPaymentMethod<'sell'>(quotes, paymentMethod) : [],
         ),
 );
+
+export const selectTradingSellOfferQuotes = createMemoizedSelector(
+    [selectTradingSellQuotesByPaymentMethod],
+    quotes => returnStableArrayIfEmpty(getTradingQuotesDedupedByProvider(quotes)),
+);
+
+type TradingSelectedQuoteFormValues = {
+    provider?: string;
+    paymentMethod?: TradingPaymentMethodProps;
+    exchangeType?: TradingExchangeFormType;
+};
+
+const selectedQuoteByFormValuesResolvers: {
+    [T in TradingType]: (
+        state: TradingRootState,
+        formValues: TradingSelectedQuoteFormValues,
+    ) => TradingTradeMapProps[T] | undefined;
+} = {
+    buy: (state, { provider, paymentMethod }) => {
+        const quotes = selectTradingBuyQuotesByPaymentMethod(state, paymentMethod);
+
+        return provider === undefined
+            ? quotes[0]
+            : quotes.find(quote => quote.exchange === provider);
+    },
+    sell: (state, { provider, paymentMethod }) => {
+        const quotes = selectTradingSellQuotesByPaymentMethod(state, paymentMethod);
+
+        return provider === undefined
+            ? quotes[0]
+            : quotes.find(quote => quote.exchange === provider);
+    },
+    exchange: (state, { provider, exchangeType }) => {
+        const quotes =
+            exchangeType === TRADING_EXCHANGE_FORM_DEX
+                ? selectTradingExchangeDexQuotes(state)
+                : selectTradingExchangeCexQuotes(state);
+
+        return quotes.find(quote => !provider || quote.exchange === provider) ?? quotes[0];
+    },
+};
+
+export const selectTradingSelectedQuoteByFormValues = <T extends TradingType>(
+    state: TradingRootState,
+    type: T,
+    formValues: TradingSelectedQuoteFormValues,
+): TradingTradeMapProps[T] | undefined =>
+    selectedQuoteByFormValuesResolvers[type](state, formValues);
 
 export const selectTradingExchangeFormStep = (state: TradingRootState) =>
     state.wallet.trading.exchange.formStep;
@@ -897,9 +962,12 @@ export const selectTradingActiveSection = (state: TradingRootState) =>
 
 export const selectTradingSupportedSymbols = createMemoizedSelector(
     [
-        selectTradingBuySupportedCryptoIds,
-        selectTradingExchangeSellCryptoIds,
-        selectTradingSellSupportedCryptoIds,
+        (state: TradingRootState, _type: TradingType, supportedCoins: readonly NetworkSymbol[]) =>
+            selectTradingBuySupportedCryptoIds(state, supportedCoins),
+        (state: TradingRootState, _type: TradingType, supportedCoins: readonly NetworkSymbol[]) =>
+            selectTradingExchangeSellCryptoIds(state, supportedCoins),
+        (state: TradingRootState, _type: TradingType, supportedCoins: readonly NetworkSymbol[]) =>
+            selectTradingSellSupportedCryptoIds(state, supportedCoins),
         (_: TradingRootState, type: TradingType) => type,
     ],
     (buyCryptoIds, exchangeCryptoIds, sellCryptoIds, type) => {
@@ -967,8 +1035,8 @@ const selectPreferredTradingAccount = (
  * Selection priority:
  * 1) Preferred account (selected trading account key OR prefilled.key) if eligible.
  * 2) First account with the same symbol as the preferred account that is eligible.
- * 3) Fallback (pickFallbackAccount): first eligible account, otherwise the first
- *    available account as a last resort.
+ * 3) First eligible visible account (default preselect once discovery is done).
+ * 4) Otherwise undefined — no eligible account exists, the form renders empty.
  */
 export const selectTradingFormAccount = createMemoizedFormAccountSelector(
     [
@@ -978,7 +1046,13 @@ export const selectTradingFormAccount = createMemoizedFormAccountSelector(
         selectPreferredTradingAccount,
         (_state: TradingFormAccountRootState, tradingType: TradingType) => tradingType,
     ],
-    (visibleDeviceAccounts, tokenDefinitions, prefilled, preferredAccount, tradingType) => {
+    (
+        visibleDeviceAccounts,
+        tokenDefinitions,
+        prefilled,
+        preferredAccount,
+        tradingType,
+    ): Account | undefined => {
         const eligibilityCryptoId = prefilled.key ? prefilled.cryptoId : undefined;
 
         const isEligible = (account: Account, cryptoId?: CryptoId) =>
@@ -998,13 +1072,17 @@ export const selectTradingFormAccount = createMemoizedFormAccountSelector(
             return sameSymbolAccount;
         }
 
-        return pickFallbackAccount(visibleDeviceAccounts, tradingType, tokenDefinitions);
+        return visibleDeviceAccounts.find(account => isEligible(account, eligibilityCryptoId));
     },
 );
 
 export const selectTradingFormCryptoId = createMemoizedFormAccountSelector(
     [selectTradingFormAccount, selectPreferredTradingAccount, selectTradingPrefilledFromAccount],
-    (account, preferredAccount, prefilled): CryptoId => {
+    (account, preferredAccount, prefilled): CryptoId | undefined => {
+        if (!account) {
+            return undefined;
+        }
+
         if (prefilled.cryptoId && account.key === preferredAccount?.key) {
             return prefilled.cryptoId;
         }
@@ -1035,6 +1113,25 @@ const selectTradingActiveTradeSendAccount = (
 export const selectTradingSendAccount = createMemoizedFormAccountSelector(
     [selectTradingActiveTradeSendAccount, selectTradingFormAccount],
     (tradeSendAccount, formAccount) => tradeSendAccount ?? formAccount,
+);
+
+export const selectSelectedTradingAsset = createMemoizedFormAccountSelector(
+    [selectTradingSendAccount, selectTradingFormCryptoId],
+    (account, cryptoId): SelectedTradingAsset | undefined => {
+        if (!account || !cryptoId) {
+            return undefined;
+        }
+
+        return {
+            symbol: account.symbol,
+            decimals: getNetwork(account.symbol).decimals,
+            balance: account.balance,
+            formattedBalance: account.formattedBalance,
+            tokens: account.tokens,
+            cryptoId,
+            isToken: !!cryptoIdToNetworkSymbolAndContractAddress(cryptoId).contractAddress,
+        };
+    },
 );
 
 export const selectTradingBuyTransactionId = (state: TradingRootState) =>

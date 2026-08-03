@@ -1,6 +1,6 @@
 import { type Dispatch, useCallback } from 'react';
 
-import type { FieldPathValue, Path, UseFormReturn } from '@suite-native/forms';
+import { type FieldPathValue, type Path, type UseFormReturn, useWatch } from '@suite-native/forms';
 import { useBottomSheetControls } from '@suite-native/trading-atoms';
 import {
     type BuyFormValues,
@@ -10,7 +10,8 @@ import {
 
 type BottomSheetControls = ReturnType<typeof useBottomSheetControls>;
 type FormUnion = BuyFormValues | ExchangeFormValues | SellFormValues;
-// explicit return type declaration, because typescript reaches its limits when trying to infer type
+// [typescript-performace]: Keep this explicit type to prevent TypeScript from expanding the
+// inferred type in the emitted declaration.
 type SheetControls<
     FormValues extends FormUnion,
     Key extends Path<FormValues>,
@@ -20,12 +21,12 @@ type SheetControls<
 };
 
 export const useSheetControls = <FormValues extends FormUnion, Key extends Path<FormValues>>(
-    { setValue, watch }: UseFormReturn<FormValues>,
+    { setValue, control }: UseFormReturn<FormValues>,
     key: Key,
 ): SheetControls<FormValues, Key> => {
     const bottomSheetControls = useBottomSheetControls();
 
-    const selectedValue = watch(key);
+    const selectedValue = useWatch({ name: key, control });
 
     const setSelectedValue = useCallback(
         (value: typeof selectedValue) => setValue(key, value),

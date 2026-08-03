@@ -28,7 +28,23 @@ export class TradingQuotesSection {
     async waitForSync() {
         await expect(this.loadingSpinner).toBeHidden({ timeout: 30000 });
         // Even though the offer sync is finished, the best offer might not be displayed correctly yet and show 0 BTC
-        await expect(this.bestOfferAmount).not.toHaveText(/^0( w+)?$/);
+        await expect(this.bestOfferAmount).not.toHaveText(/^0( \w+)?$/);
+    }
+
+    @step()
+    async getBestOfferAmount(): Promise<string> {
+        await expect(this.bestOfferAmount).toHaveText(/^(?=[\d,.]*[1-9])[\d,]+(\.\d+)?\s+\w+$/);
+        const rawText = await this.bestOfferAmount.textContent();
+        if (!rawText) {
+            throw new Error('Best offer amount did not have any text content');
+        }
+
+        const [amount] = rawText.trim().split(/\s+/);
+        if (!amount) {
+            throw new Error(`Best offer amount could not be parsed from "${rawText}"`);
+        }
+
+        return amount;
     }
 
     @step()

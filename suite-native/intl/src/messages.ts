@@ -17,6 +17,7 @@ export const messages = {
             enable: 'Enable',
             gotIt: 'Got it',
             next: 'Next',
+            retry: 'Retry',
             tryAgain: 'Try again',
             edit: 'Edit',
             yes: 'Yes',
@@ -612,7 +613,6 @@ export const messages = {
             read_address: 'View receive addresses',
             read_xpub: 'Access extended public keys (XPUBs)',
             read_account_info: 'View account balances and transaction history',
-            read_settings: 'Read device settings',
             read_features: 'Read device features',
             sign: 'Allow transaction and data signing on Trezor',
             sign_message: 'Allow message signing on Trezor',
@@ -968,54 +968,37 @@ export const messages = {
             "When sending {coinSymbol} to Trezor, your online exchange may require a memo/destination tag, but Trezor doesn't. Enter any random number to proceed. <link>Learn more</link>",
         receiveAddressCard: {
             alert: {
-                success: 'The receive address has been confirmed on your Trezor.',
                 longCardanoAddress:
                     "This Cardano (ADA) address is too long to fit on your Trezor's screen. Scroll on both screens to view and confirm it.",
                 token: 'Your receive address is your {networkName} address',
             },
-            unverifiedWarning: {
-                portfolioTracker: {
-                    title: 'receive address',
-                    subtitle:
-                        'For added security, connect your Trezor to verify the receive address.',
-                },
-                viewOnly: {
-                    title: 'Verify the receive address on your Trezor',
-                    subtitle:
-                        'To prevent phishing attacks, verify the receive address on your Trezor.',
-                },
-            },
-            viewOnlyWarning: {
-                title: 'Receive address can’t be verified',
-                description: 'To confirm the receive address, connect your Trezor.',
-                primaryButton: 'Continue without verifying',
-                secondaryButton: 'Back',
-            },
-            deviceHint: {
-                description:
-                    'Verify that this receive address matches the address on your Trezor exactly.',
-            },
-            showAddress: {
-                button: 'Show full address',
-                buttonTracker: 'Show address',
-                learnMore: 'Learn more about verifying addresses',
-            },
-        },
-        bottomSheets: {
-            addressMismatch: {
-                title: "Address doesn't match?",
-                description:
-                    'The receive address shown on the app should match the one on your Trezor device.',
-                remember: 'Keep in mind:',
-                trustDevice:
-                    "Always trust your Trezor's screen, it never lies. Your mobile may be vulnerable to hacks and security breaches.",
-                contactSupport:
-                    'For any security concerns about your app or device, contact Trezor Support.',
-                reportIssueButton: 'Report security issue',
-            },
         },
         deviceCompromisedScreen: {
             title: 'Receiving is disabled',
+        },
+        addressActions: {
+            verify: 'Verify',
+        },
+        addressCopiedBottomSheet: {
+            title: 'Address copied.',
+            subtitle: 'Verify before you receive.',
+            steps: {
+                pasteAddress:
+                    'Paste the address into the exchange or app from where you will receive the funds.',
+                verifyAddress: 'Verify the pasted address against your Trezor for maximum safety.',
+            },
+            buttons: {
+                verifyOnTrezor: 'Verify on Trezor',
+                skipVerification: 'Skip verification',
+            },
+        },
+        addressSharedBottomSheet: {
+            title: 'Verify the shared address',
+            subtitle: 'Verify the address you just shared against your Trezor for maximum safety.',
+        },
+        addressVerificationScreen: {
+            pastedTitle: 'Compare the pasted address against your Trezor',
+            sharedTitle: 'Compare the shared address against your Trezor',
         },
     },
     moduleSettings: {
@@ -1294,7 +1277,7 @@ export const messages = {
         networkBackends: {
             title: '{networkName} backend',
             description: 'Connect to a custom backend server for enhanced privacy.',
-            servers: {
+            server: {
                 title: 'Backend server',
                 status: {
                     connected: 'Connected',
@@ -1314,6 +1297,23 @@ export const messages = {
                     clearnet: 'Unable to connect to the server. Check the address and connection.',
                     tor: 'Can’t connect to the server. Check the address and make sure Orbot is running.',
                 },
+            },
+            explorer: {
+                title: 'Explorer',
+                badge: {
+                    default: 'Default explorer',
+                    custom: 'Custom explorer',
+                },
+                labels: {
+                    base: 'Root URL',
+                    tx: 'Transaction path',
+                    address: 'Address path',
+                    nft: 'NFT path',
+                    token: 'Address path',
+                    queryString: 'Query string',
+                },
+                setToDefaultButton: 'Set to default',
+                invalidValue: 'Invalid value',
             },
             closeAction: {
                 title: 'Discard changes?',
@@ -2177,6 +2177,7 @@ export const messages = {
             bootloader: 'Bootloader mode',
         },
         defaultHeader: 'Hi there!',
+        portfolioTrackerHeader: 'Portfolio Tracker',
         wallet: {
             standard: 'Standard wallet',
             defaultPassphrase: 'Passphrase wallet #{index}',
@@ -2580,12 +2581,15 @@ export const messages = {
                 stepWithdrawalPeriod:
                     'Withdrawal period (~{days, plural, one {# day} other {# days}})',
                 stepReadyToClaim: 'Ready to claim',
+                sol: {
+                    stepWarmUpPeriod:
+                        'Warm-up period (~{days, plural, one {# day} other {# days}})',
+                    stepStakedReceivingRewards: 'Staked & receiving rewards',
+                    stepCoolDownPeriod:
+                        'Cool-down period (~{days, plural, one {# day} other {# days}})',
+                    stepUnstakedReadyToClaim: 'Unstaked and ready to claim',
+                },
             },
-        },
-        stakingInsufficientBalance: {
-            title: "You don't have enough {displaySymbol}",
-            subtitle: 'Minimum amount to stake is {minAmount} {displaySymbol}.',
-            getButton: 'Get more {displaySymbol}',
         },
         yieldInsufficientBalance: {
             title: "You don't have enough {tokenSymbol}",
@@ -2669,8 +2673,11 @@ export const messages = {
             amountLabel: 'Amount',
             stakeMaxButton: 'Stake max',
             unstakeMaxButton: 'Unstake max',
-            withdrawalFeesBanner:
-                "We've left {amount} {displaySymbol} in your account so you can pay withdrawal fees.",
+            withdrawalFeesRecommendation:
+                "It's recommended to leave {amount} {displaySymbol} so you can pay for withdrawal fees.",
+            insufficientBalanceBanner:
+                'Not enough {displaySymbol}. Staking requires at least {minAmount} {displaySymbol} plus network fees.',
+            insufficientBalanceBannerButton: 'Buy {displaySymbol}',
             estimatedRewardsLabel: 'Estimated yearly rewards',
             validation: {
                 amountIsZero: 'Amount must be greater than 0.',
@@ -2687,7 +2694,10 @@ export const messages = {
             validation: {
                 amountIsZero: 'Amount must be greater than 0.',
                 amountExceedsMax: 'The amount exceeds the maximum allowed value of {maxAmount}.',
-                amountBelowMin: 'The minimum amount to unstake is {minAmount} {networkSymbol}.',
+                invalidUnstakeAmount:
+                    "Due to recent Solana blockchain changes, this amount can't be unstaked.\n\nTry {higher}{higherFiat},\n\nor {lower}{lowerFiat}.",
+                invalidUnstakeAmountHigherOnly:
+                    "Due to recent Solana blockchain changes, this amount can't be unstaked.\n\nTry {higher}{higherFiat}.",
                 insufficientBalance: 'You don’t have enough staked balance to unstake this amount.',
                 tooManyDecimals: 'Too many decimals places.',
             },
@@ -2712,6 +2722,7 @@ export const messages = {
                 networkStaking: '{networkName} staking',
                 availableRewards: 'Available rewards',
                 claimRewardsButton: 'Claim rewards',
+                incompleteFiatTotal: 'Some fiat rates couldn’t load. Total may be incomplete.',
             },
             activeSheet: {
                 stakingTitle: 'Your stakes',
@@ -2828,8 +2839,9 @@ export const messages = {
                     description: 'This is your vault position.',
                 },
                 fourth: {
-                    title: 'You will also earn {bonusRewardTokenName} tokens as rewards.',
-                    description: 'These must be claimed separately.',
+                    title: "You'll earn {bonusRewardTokenSymbol} as rewards.",
+                    description:
+                        'They may only be offered for a limited time, but once earned, you can claim them in the Earn tab.',
                 },
             },
             timelineCardTitle: 'Deposit timeline',
@@ -2857,6 +2869,17 @@ export const messages = {
                 },
                 second: {
                     title: 'Receive {tokenSymbol} in account',
+                    description: 'Instantly',
+                },
+            },
+            claimTimelineTitle: 'Claim rewards',
+            claimTimeline: {
+                first: {
+                    title: 'Sign claim transaction',
+                    description: 'Network fee',
+                },
+                second: {
+                    title: 'Receive {bonusRewardTokenSymbol} in account',
                     description: 'Instantly',
                 },
             },
@@ -3205,6 +3228,11 @@ export const messages = {
         apyPercentage: '~{apy}% APY',
         aprPercentage: '~{apy}% APR',
         notAvailableShort: 'N/A',
+        messageSystem: {
+            depositDisabled: 'Deposit is currently disabled.',
+            withdrawDisabled: 'Withdrawal is currently disabled.',
+            claimDisabled: 'Claim is currently disabled.',
+        },
         stakePendingCard: {
             totalStakePending: 'Total stake pending',
             addingToStakingPool: 'Adding to staking pool',
@@ -3448,6 +3476,30 @@ export const messages = {
             youPay: 'You pay',
             youGet: 'You get',
         },
+        transactionSimulation: {
+            title: 'Simulation powered by Blockaid',
+            simulating: 'Simulating transaction',
+            continueAnyway: 'Continue anyway',
+            backToTradeForm: 'Back to trade form',
+            issues: {
+                priceImpact: {
+                    title: "You'll lose {percent} in value",
+                    bullet: "You'll lose {percent} in value.",
+                    description:
+                        'Low market liquidity is affecting this swap. Try another provider or wait for the market to stabilize.',
+                },
+                highRisk: {
+                    title: 'High-risk swap detected',
+                    description:
+                        "This swap was flagged as unsafe. The provider's contract interaction may put your funds at risk. Choose another provider.",
+                },
+                slippageTooLow: {
+                    title: 'Slippage is too low',
+                    description:
+                        'This swap might fail with your current slippage. Your funds are safe, but the network fee won’t be refunded. Increase slippage or choose another provider.',
+                },
+            },
+        },
         tradingExchangePreviewScreen: {
             title: 'Swap',
             fromAccount: 'From',
@@ -3465,7 +3517,6 @@ export const messages = {
                 bullet3:
                     'Your swap may be completed in multiple parts, depending on market conditions',
             },
-            fiatDeviationWarning: 'Receiving {percent} less in estimated value.',
         },
         tradingSellPreviewScreen: {
             title: 'Sell',
@@ -3558,6 +3609,29 @@ export const messages = {
             },
             button: {
                 title: 'Trade history',
+            },
+            tabs: {
+                all: 'All trades',
+                exchange: 'Swaps',
+                buy: 'Buys',
+                sell: 'Sells',
+            },
+            filteredEmptyState: {
+                exchange: 'No swaps yet',
+                buy: 'No buys yet',
+                sell: 'No sells yet',
+                showAll: 'Show all trades',
+            },
+            emptyState: {
+                title: 'No trades yet',
+                description: 'Your trades will appear here and you can track their status.',
+                button: 'Back to trade form',
+            },
+            statusIcon: {
+                success: 'Successful trade',
+                error: 'Failed trade',
+                warning: 'Trade requires attention',
+                pending: 'Trade in progress',
             },
             timeAt: '{date} at {time}',
             status: {

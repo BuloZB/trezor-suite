@@ -110,8 +110,12 @@ export const StakingCard = ({
     const {
         isStakingDisabled,
         isUnstakingDisabled,
+        isClaimingDisabled,
+        isVotingDisabled,
         stakingMessageContent,
         unstakingMessageContent,
+        claimingMessageContent,
+        votingMessageContent,
     } = useMessageSystemStaking(account.symbol);
 
     const {
@@ -185,7 +189,7 @@ export const StakingCard = ({
     };
 
     const openClaimModal = () => {
-        if (canClaimRewards) {
+        if (canClaimRewards && !isClaimingDisabled) {
             dispatch(openModal({ type: 'claim', account }));
 
             analytics.report({
@@ -215,7 +219,8 @@ export const StakingCard = ({
     };
 
     const openChangeDelegateModal = () => {
-        if (!isCardanoNetworkType || !isStakingActive || isStakeConfirming) return;
+        if (!isCardanoNetworkType || !isStakingActive || isStakeConfirming || isVotingDisabled)
+            return;
 
         dispatch(openModal({ type: 'change-delegate' }));
 
@@ -392,14 +397,17 @@ export const StakingCard = ({
                             </Button>
                         </Tooltip>
                     ) : (
-                        <Button
-                            onClick={openClaimModal}
-                            isDisabled={!canClaimRewards}
-                            intent="brand"
-                            data-testid="@account/staking/claim-rewards-button"
-                        >
-                            <Translation id="TR_EARN_CLAIM_REWARDS" />
-                        </Button>
+                        <Tooltip content={claimingMessageContent}>
+                            <Button
+                                onClick={openClaimModal}
+                                isDisabled={!canClaimRewards || isClaimingDisabled}
+                                iconLeft={isClaimingDisabled ? InfoIcon : undefined}
+                                intent="brand"
+                                data-testid="@account/staking/claim-rewards-button"
+                            >
+                                <Translation id="TR_EARN_CLAIM_REWARDS" />
+                            </Button>
+                        </Tooltip>
                     )}
                     <Tooltip content={unstakingMessageContent}>
                         <Button
@@ -420,14 +428,19 @@ export const StakingCard = ({
                         </Button>
                     </Tooltip>
                     {isCardanoNetworkType && (
-                        <Button
-                            onClick={openChangeDelegateModal}
-                            isDisabled={!isStakingActive || isStakeConfirming}
-                            intent="neutral"
-                            priority="secondary"
-                        >
-                            <Translation id="TR_STAKE_CHANGE_DELEGATE" />
-                        </Button>
+                        <Tooltip content={votingMessageContent}>
+                            <Button
+                                onClick={openChangeDelegateModal}
+                                isDisabled={
+                                    !isStakingActive || isStakeConfirming || isVotingDisabled
+                                }
+                                iconLeft={isVotingDisabled ? InfoIcon : undefined}
+                                intent="neutral"
+                                priority="secondary"
+                            >
+                                <Translation id="TR_STAKE_CHANGE_DELEGATE" />
+                            </Button>
+                        </Tooltip>
                     )}
                 </Row>
             </Column>

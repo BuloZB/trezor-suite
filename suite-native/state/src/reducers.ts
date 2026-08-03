@@ -17,7 +17,9 @@ import { suiteSyncQuotaManagerReducer } from '@suite-common/suite-sync-quota-man
 import { prepareThpReducer } from '@suite-common/thp';
 import { createNotificationsReducer } from '@suite-common/toast-notifications';
 import { prepareTokenDefinitionsReducer } from '@suite-common/token-definitions';
+import { networkSymbolCollection } from '@suite-common/wallet-config';
 import {
+    accountsRefreshTimeReducer,
     feesReducer,
     formDraftReducer,
     prepareAccountsReducer,
@@ -57,6 +59,7 @@ import {
     bluetoothPersistTransform,
     deriveAccountTypeFromPaymentType,
     devicePersistTransform,
+    explorerPersistTransform,
     initialMigrateAppSettingsAndDiscoveryConfig,
     migrateAccountBnbToBsc,
     migrateAccountLabel,
@@ -117,10 +120,20 @@ export const prepareRootReducers = (deps: PrepareRootReducersDeps) => {
 
     const blockchainPersistedReducer = preparePersistReducer({
         reducer: blockchainReducer,
-        persistedKeys: ['btc'],
+        persistedKeys: networkSymbolCollection,
         key: 'blockchain',
         version: 1,
         transforms: [blockchainPersistTransform],
+        storage: deps.mmkvStorage,
+    });
+
+    const explorerPersistedReducer = preparePersistReducer({
+        reducer: explorerReducer,
+        persistedKeys: networkSymbolCollection,
+        key: 'explorer',
+        version: 1,
+        transforms: [explorerPersistTransform],
+        mergeLevel: 2,
         storage: deps.mmkvStorage,
     });
 
@@ -221,8 +234,9 @@ export const prepareRootReducers = (deps: PrepareRootReducersDeps) => {
 
     const walletReducers = combineReducers({
         accounts: accountsReducer,
+        accountsRefreshTime: accountsRefreshTimeReducer,
         blockchain: blockchainPersistedReducer,
-        explorer: explorerReducer,
+        explorer: explorerPersistedReducer,
         fiat: fiatRatesReducer,
         transactions: transactionsReducer,
         phishing: phishingPersistedReducer,

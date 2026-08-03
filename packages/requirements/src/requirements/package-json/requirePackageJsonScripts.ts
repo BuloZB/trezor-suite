@@ -1,8 +1,9 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { typedObjectEntries } from '@trezor/utils';
 
+import { walkDirectory } from '../../fileSystem';
 import type { Requirement } from '../Requirement';
 
 const PACKAGE_JSON_FILE = 'package.json';
@@ -22,23 +23,15 @@ const IGNORED_TEST_FILE_DIRECTORIES = new Set([
 ]);
 
 const hasUnitTestFile = (directoryPath: string): boolean => {
-    for (const entry of readdirSync(directoryPath, { withFileTypes: true })) {
-        if (entry.isDirectory()) {
-            if (IGNORED_TEST_FILE_DIRECTORIES.has(entry.name)) {
-                continue;
-            }
+    const walkDirectoryGenerator = walkDirectory(directoryPath, {
+        shouldEnterDirectory: ({ entry: directory }) =>
+            !IGNORED_TEST_FILE_DIRECTORIES.has(directory.name),
+        fileFilter: ({ entry }) => entry.isFile() && entry.name.endsWith('.test.ts'),
+    });
+    // generator yielded no items, equivalent to Array.length === 0
+    const isEmpty = walkDirectoryGenerator.next().done === true;
 
-            if (hasUnitTestFile(join(directoryPath, entry.name))) {
-                return true;
-            }
-        }
-
-        if (entry.isFile() && entry.name.endsWith('.test.ts')) {
-            return true;
-        }
-    }
-
-    return false;
+    return !isEmpty;
 };
 
 const REQUIRED_SCRIPTS: Record<string, RequiredScriptConfig> = {

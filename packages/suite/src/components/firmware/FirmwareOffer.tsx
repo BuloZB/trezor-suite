@@ -10,7 +10,6 @@ import { Column, Icon, Row, Text, TextButton, Tooltip } from '@trezor/components
 import { type FirmwareType } from '@trezor/connect';
 import { getFirmwareVersion } from '@trezor/device-utils';
 import { ArrowRightIcon } from '@trezor/icons';
-import { spacings } from '@trezor/theme';
 
 import { MarkdownWithComponents } from 'src/components/suite';
 import { useSelector } from 'src/hooks/suite';
@@ -45,7 +44,7 @@ export const FirmwareOffer = ({ isCustomFirmware, targetFirmwareType }: Firmware
 
     const CurrentVersion = () => (
         <>
-            <Column alignItems="center" gap={spacings.xxs}>
+            <Column alignItems="center" gap={4}>
                 <Text typographyStyle="body-xs" intent="neutral" priority="secondary">
                     <Translation id="TR_ONBOARDING_CURRENT_VERSION" />
                 </Text>
@@ -62,7 +61,7 @@ export const FirmwareOffer = ({ isCustomFirmware, targetFirmwareType }: Firmware
             justifyContent={currentVersion ? 'space-between' : 'center'}
             maxWidth={360}
             width="100%"
-            margin={{ vertical: spacings.md, horizontal: 'auto' }}
+            margin={{ vertical: 16, horizontal: 'auto' }}
         >
             {currentVersion &&
                 (isDebugModeActive ? (
@@ -79,7 +78,7 @@ export const FirmwareOffer = ({ isCustomFirmware, targetFirmwareType }: Firmware
                     <CurrentVersion />
                 ))}
             {currentVersion && <Icon as={ArrowRightIcon} size={16} />}
-            <Column alignItems="center" gap={spacings.xxs}>
+            <Column alignItems="center" gap={4}>
                 <Text typographyStyle="body-xs" intent="neutral" priority="secondary">
                     <Translation id="TR_ONBOARDING_NEW_VERSION" />
                 </Text>
@@ -89,11 +88,7 @@ export const FirmwareOffer = ({ isCustomFirmware, targetFirmwareType }: Firmware
                         <Column padding={4} gap={4}>
                             {parsedChangelog && (
                                 <Row justifyContent="space-between">
-                                    <Text
-                                        typographyStyle="body-sm-strong"
-                                        isInverse
-                                        intent="neutral"
-                                    >
+                                    <Text typographyStyle="body-sm-strong" intent="neutral">
                                         <Translation
                                             id="TR_VERSION"
                                             values={{ version: parsedChangelog.versionString }}
@@ -104,7 +99,6 @@ export const FirmwareOffer = ({ isCustomFirmware, targetFirmwareType }: Firmware
                                         intent="neutral"
                                         priority="secondary"
                                         href={changelogUrl}
-                                        isInverse
                                     >
                                         <Translation id="TR_VIEW_ALL" />
                                     </TextButton>

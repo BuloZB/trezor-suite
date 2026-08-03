@@ -23,6 +23,10 @@ const getPendingTransactionLabel = (kind: YieldPendingTransactionState['type']):
         case 'withdraw':
         case 'redeem':
             return 'TR_EARN_YIELD_PENDING_WITHDRAW';
+        case 'wrap':
+            return 'TR_EARN_YIELD_PENDING_WRAP';
+        case 'unwrap':
+            return 'TR_EARN_YIELD_PENDING_UNWRAP';
         case 'claim':
             return 'TR_EARN_YIELD_PENDING_CLAIM';
     }

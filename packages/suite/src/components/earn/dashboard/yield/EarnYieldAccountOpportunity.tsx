@@ -3,6 +3,7 @@ import { FirmwareUpgradeNeededModal } from '@suite/firmware-upgrade';
 import { useTranslation } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { goto } from '@suite/router';
+import { events as sharedEvents } from '@suite-common/analytics';
 import { useServices } from '@suite-common/dependency-injection';
 import { selectSelectedDevice } from '@suite-common/device';
 import { useFormatters } from '@suite-common/formatters';
@@ -16,7 +17,10 @@ import {
     getYieldVaultContractAddress,
     isStablecoinYieldSupported,
 } from '@suite-common/wallet-core';
-import { getContractAddressForNetworkSymbol } from '@suite-common/wallet-utils';
+import {
+    getContractAddressForNetworkSymbol,
+    isWrappedNativeToken,
+} from '@suite-common/wallet-utils';
 import { Card, Column, Icon, Row, Table } from '@trezor/components';
 import { ArrowDownIcon, ArrowRightIcon } from '@trezor/icons';
 import { BigNumber } from '@trezor/utils';
@@ -33,6 +37,7 @@ import { EarnYieldYearlyRewards } from './EarnYieldYearlyRewards';
 import { type YieldAccountOpportunity } from './types';
 import { getEarnRouteParams } from '../../utils/getEarnRouteParams';
 import { EarnAccountCell } from '../common/EarnAccountCell';
+import { useYieldAccountOpportunityAnchor } from './hooks/useYieldAccountOpportunityAnchor';
 
 type EarnYieldAccountOpportunityProps = {
     opportunity: YieldAccountOpportunity;
@@ -52,6 +57,8 @@ export const EarnYieldAccountOpportunity = ({
     const isFirmwareOutdated = !isStablecoinYieldSupported(selectedDevice);
     const { isFirmwareModalOpen, openFirmwareModal, closeFirmwareModal, updateFirmware } =
         useFirmwareUpgradeModal();
+
+    const { setAnchorElement, shouldHighlight } = useYieldAccountOpportunityAnchor(opportunity);
 
     const vaultContractAddress = getYieldVaultContractAddress(opportunity.vault);
     const depositMessageSystem = useMessageSystemYield('deposit', { vaultContractAddress });
@@ -94,7 +101,11 @@ export const EarnYieldAccountOpportunity = ({
         const networkSymbol = opportunity.account?.symbol ?? opportunity.networkSymbol;
         const accountIndex = opportunity.account?.index ?? 0;
         const accountType = opportunity.account?.accountType ?? 'normal';
-        const tokenAddress = opportunity.vault.token.address;
+        // A wrapped-native (WETH) vault deposit spends the native asset (wrapped on the way in),
+        // so prefill a native buy rather than the wrapped ERC-20, which on-ramps don't sell.
+        const tokenAddress = isWrappedNativeToken(networkSymbol, opportunity.vault.token.address)
+            ? undefined
+            : opportunity.vault.token.address;
 
         if (opportunity.account) {
             const tokenCryptoId = tokenAddress
@@ -141,7 +152,7 @@ export const EarnYieldAccountOpportunity = ({
 
         if (isFirmwareOutdated) {
             analytics.report({
-                type: events.yieldDepositEvent.name,
+                type: sharedEvents.yieldDepositEvent.name,
                 payload: {
                     action: 'continue',
                     type: 'firmware-upgrade-needed-modal',
@@ -155,7 +166,7 @@ export const EarnYieldAccountOpportunity = ({
         }
 
         analytics.report({
-            type: events.yieldNavigateEvent.name,
+            type: sharedEvents.yieldNavigateEvent.name,
             payload: {
                 action: 'continue',
                 from: 'earn-dashboard',
@@ -187,7 +198,7 @@ export const EarnYieldAccountOpportunity = ({
 
         if (isFirmwareOutdated) {
             analytics.report({
-                type: events.yieldDepositEvent.name,
+                type: sharedEvents.yieldDepositEvent.name,
                 payload: {
                     action: 'continue',
                     type: 'firmware-upgrade-needed-modal',
@@ -201,7 +212,7 @@ export const EarnYieldAccountOpportunity = ({
         }
 
         analytics.report({
-            type: events.yieldNavigateEvent.name,
+            type: sharedEvents.yieldNavigateEvent.name,
             payload: {
                 action: 'continue',
                 from: 'earn-dashboard',
@@ -230,7 +241,7 @@ export const EarnYieldAccountOpportunity = ({
 
         if (isFirmwareOutdated) {
             analytics.report({
-                type: events.yieldWithdrawEvent.name,
+                type: sharedEvents.yieldWithdrawEvent.name,
                 payload: {
                     action: 'continue',
                     type: 'firmware-upgrade-needed-modal',
@@ -244,7 +255,7 @@ export const EarnYieldAccountOpportunity = ({
         }
 
         analytics.report({
-            type: events.yieldNavigateEvent.name,
+            type: sharedEvents.yieldNavigateEvent.name,
             payload: {
                 action: 'continue',
                 from: 'earn-dashboard',
@@ -341,7 +352,10 @@ export const EarnYieldAccountOpportunity = ({
         return (
             <>
                 {firmwareModal}
-                <Card paddingType="small">
+                <Card
+                    paddingType="small"
+                    data-testid={`@earn/dashboard/row/${opportunity.vault.id}`}
+                >
                     <Column gap={12} width="100%">
                         <Row justifyContent="space-between" alignItems="flex-start">
                             {accountCell}
@@ -407,7 +421,11 @@ export const EarnYieldAccountOpportunity = ({
     return (
         <>
             {firmwareModal}
-            <Table.Row>
+            <Table.Row
+                ref={setAnchorElement}
+                isHighlighted={shouldHighlight}
+                data-testid={`@earn/dashboard/row/${opportunity.vault.id}`}
+            >
                 <Table.Cell>{accountCell}</Table.Cell>
 
                 <Table.Cell>{apyCell}</Table.Cell>

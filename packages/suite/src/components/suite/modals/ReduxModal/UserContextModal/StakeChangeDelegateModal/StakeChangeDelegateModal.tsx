@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { FormProvider } from 'react-hook-form';
 
+import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
+import { useServices } from '@suite-common/dependency-injection';
 import { CARDANO_EVERSTAKE_DREP } from '@suite-common/wallet-constants';
 import {
     DEFAULT_VOTING_OPTION,
@@ -16,6 +18,7 @@ import { Card, Column, Modal, Tooltip } from '@trezor/components';
 import { VotingDelegationsOptions } from 'src/components/earn';
 import { Fees } from 'src/components/wallet/Fees/Fees';
 import { useDispatch, useSelector } from 'src/hooks/suite';
+import { useMessageSystemStaking } from 'src/hooks/suite/useMessageSystemStaking';
 import {
     ChangeDelegateFormContext,
     useChangeDelegateForm,
@@ -33,9 +36,12 @@ export const StakeChangeDelegateModalLoaded = ({
     selectedAccount,
 }: StakeChangeDelegateModalProps) => {
     const dispatch = useDispatch();
+    const { analytics } = useServices(selectDesktopAnalyticsDep);
     const selectedVotingDelegation = useSelector(selectVotingDelegationOption);
 
     const { account } = selectedAccount;
+
+    const { isVotingDisabled, votingMessageContent } = useMessageSystemStaking(account.symbol);
 
     const changeDelegateContextValues = useChangeDelegateForm({ selectedAccount });
 
@@ -60,9 +66,33 @@ export const StakeChangeDelegateModalLoaded = ({
         dispatch(stakeActions.setVotingDelegationOption(DEFAULT_VOTING_OPTION));
 
         onCancel?.();
+
+        analytics.report({
+            type: events.stakingChangeDelegateEvent.name,
+            payload: {
+                action: 'cancel',
+                step: 'change-delegate-form-modal',
+                networkSymbol: account.symbol,
+            },
+        });
     };
 
-    const { isDisabled, errorType } = useMemo(() => {
+    const handleContinue = () => {
+        handleSubmit(() => {
+            analytics.report({
+                type: events.stakingChangeDelegateEvent.name,
+                payload: {
+                    action: 'continue',
+                    step: 'change-delegate-form-modal',
+                    networkSymbol: account.symbol,
+                },
+            });
+
+            signTx();
+        })();
+    };
+
+    const { isDisabled: isSelectionInvalid, errorType } = useMemo(() => {
         switch (selectedVotingDelegation.type) {
             case 'everstake': {
                 if (isEverstake) {
@@ -89,6 +119,20 @@ export const StakeChangeDelegateModalLoaded = ({
         return { isDisabled: false };
     }, [selectedVotingDelegation, currentDrepId, isEverstake]);
 
+    const isDisabled = isSelectionInvalid || isVotingDisabled;
+
+    const tooltipContent = useMemo(() => {
+        if (isVotingDisabled) {
+            return votingMessageContent;
+        }
+
+        if (isSelectionInvalid && errorType === 'current_delegate') {
+            return <Translation id="TR_STAKE_CHANGE_DELEGATE_DISABLED_TOOLTIP" />;
+        }
+
+        return undefined;
+    }, [isVotingDisabled, votingMessageContent, isSelectionInvalid, errorType]);
+
     return (
         <ChangeDelegateFormContext.Provider value={changeDelegateContextValues}>
             <FormProvider {...methods}>
@@ -96,14 +140,8 @@ export const StakeChangeDelegateModalLoaded = ({
                     heading={<Translation id="TR_STAKE_CHANGE_DELEGATE" />}
                     onCancel={handleCancel}
                     bottomContent={
-                        <Tooltip
-                            isActive={isDisabled && errorType === 'current_delegate'}
-                            content={<Translation id="TR_STAKE_CHANGE_DELEGATE_DISABLED_TOOLTIP" />}
-                        >
-                            <Modal.Button
-                                isDisabled={isDisabled}
-                                onClick={() => handleSubmit(signTx)()}
-                            >
+                        <Tooltip content={tooltipContent}>
+                            <Modal.Button isDisabled={isDisabled} onClick={handleContinue}>
                                 <Translation id="TR_CONTINUE" />
                             </Modal.Button>
                         </Tooltip>

@@ -14,13 +14,16 @@ import { type HandshakeElectron } from '@trezor/suite-desktop-api';
 import { bytesToHumanReadable, serializeError } from '@trezor/utils';
 
 import { type ModuleInit, mainThreadEmitter } from './module';
+import { parseCustomFeedURL } from '../libs/parseCustomFeedURL';
 import { getSwitchValue, hasSwitch } from '../libs/process-switches';
 import { getSignatureFile, verifySignature } from '../libs/update-checker';
 import { b2t } from '../libs/utils';
 import { app, ipcMain } from '../typed-electron';
 
-const defaultFeedURL = {
-    // This should correspond with the value in electron-builder-config.js file.
+export const SERVICE_NAME = 'auto-updater';
+
+const defaultFeedURLs = {
+    // This should correspond with the publish.url value in electron-builder-config.js file.
     latest: 'https://data.trezor.io/suite/releases/desktop/latest',
     preRelease: 'https://data.trezor.io/suite/releases/desktop/canary',
 };
@@ -29,9 +32,14 @@ const defaultFeedURL = {
 const enableUpdater = hasSwitch('enable-updater');
 const disableUpdater = hasSwitch('disable-updater');
 const preReleaseFlag = hasSwitch('pre-release');
-const updaterURL = getSwitchValue('updater-url');
+const customFeedURL = getSwitchValue('updater-url');
 
-export const SERVICE_NAME = 'auto-updater';
+const getFeedURL = ({ allowPrerelease = false }) => {
+    const defaultFeedURL = defaultFeedURLs[allowPrerelease ? 'preRelease' : 'latest'];
+    const warn = (message: string) => global.logger.warn(SERVICE_NAME, message);
+
+    return parseCustomFeedURL({ customFeedURL, defaultFeedURL, warn });
+};
 
 export const init: ModuleInit = ({ mainWindowProxy, store }) => {
     const { logger } = global;
@@ -85,7 +93,7 @@ export const init: ModuleInit = ({ mainWindowProxy, store }) => {
     const updateSettings = store.getUpdateSettings();
     let allowPrerelease = preReleaseFlag || updateSettings.allowPrerelease;
     let { isAutomaticUpdateEnabled } = updateSettings;
-    let feedURL = updaterURL || defaultFeedURL[allowPrerelease ? 'preRelease' : 'latest'];
+    let feedURL = getFeedURL({ allowPrerelease });
 
     autoUpdater.logger = null;
 
@@ -186,7 +194,17 @@ export const init: ModuleInit = ({ mainWindowProxy, store }) => {
 
     autoUpdater.on('update-downloaded', async (info: UpdateDownloadedEvent) => {
         const { version, releaseDate, downloadedFile, releaseNotes } = info;
-        // Disable installation of the downloaded file before verification is complete
+
+        // Need to make the event handler async before setting `autoInstallOnAppQuit = false` here, because the Node.js
+        // EventEmitter is synchronous, and it would cause a macOS specific bug during app update, see upstream code:
+        // https://github.com/electron-userland/electron-builder/blob/a5121de49582eaa8870d4c05e6ae55eff160a592/packages/electron-updater/src/MacUpdater.ts#L253-L255
+        // autoInstallOnAppQuit is considered a permanent setting, not something that can toggle on/off during the process.
+        // → we need to make sure the MacUpdater code finishes with previous `autoInstallOnAppQuit` value.
+        await Promise.resolve();
+
+        // Disable installation of the downloaded file before our own verification is complete, it's quite hacky but
+        // electron-updater doesn't have an interface to delay the installation with an arbitrary async function.
+        // TODO refactor https://github.com/electron-userland/electron-builder/issues/10010
         const previousAutoInstallOnAppQuit = autoUpdater.autoInstallOnAppQuit;
         autoUpdater.autoInstallOnAppQuit = false;
 
@@ -301,7 +319,7 @@ export const init: ModuleInit = ({ mainWindowProxy, store }) => {
         store.setUpdateSettings({ ...settings, allowPrerelease: value });
         allowPrerelease = value;
 
-        feedURL = value ? defaultFeedURL.preRelease : defaultFeedURL.latest;
+        feedURL = getFeedURL({ allowPrerelease });
         autoUpdater.setFeedURL(feedURL);
         logger.info(SERVICE_NAME, `New feed url: ${feedURL}`);
     });

@@ -4,8 +4,8 @@ import {
     type TokenDtoV2,
     sortRewardsByUnderlyingToken,
 } from '@suite-common/earn-stablecoin-api';
-import { type NetworkSymbol } from '@suite-common/wallet-config';
-import { getApyPercent } from '@suite-common/wallet-utils';
+import { type NetworkSymbol, getNetworkDisplaySymbol } from '@suite-common/wallet-config';
+import { getApyPercent, isWrappedNativeToken } from '@suite-common/wallet-utils';
 import { Column, Icon, Row, Text } from '@trezor/components';
 import { ChartLineIcon } from '@trezor/icons';
 import { TokenIcon } from '@trezor/product-components';
@@ -73,6 +73,11 @@ export const EarnYieldApyBreakdown = ({
                 const hasRatePercent = ratePercent !== null && ratePercent > 0;
                 const descriptionId = getYieldSourceDescriptionId(reward.yieldSource);
                 const rateTranslationId = getRateTranslationId(reward.yieldSource);
+                // A wrapped-native reward (e.g. WETH in an ETH vault) is presented as its native
+                // asset (#29881), matching how the vault itself is labelled across the earn UI.
+                const displaySymbol = isWrappedNativeToken(networkSymbol, reward.token.address)
+                    ? getNetworkDisplaySymbol(networkSymbol)
+                    : reward.token.symbol;
 
                 let rateNode;
                 if (!hasRatePercent) {
@@ -88,21 +93,27 @@ export const EarnYieldApyBreakdown = ({
                 return (
                     <Row key={index} gap={8} alignItems="center">
                         <TokenIcon
-                            placeholder={reward.token.symbol || reward.token.name || 'token'}
+                            placeholder={displaySymbol || reward.token.name || 'token'}
                             symbol={networkSymbol}
                             contractAddress={reward.token.address}
                             showNetworkIcon
+                            wrappedTokenIcon="network"
                             size={20}
                             isBordered={false}
                         />
                         <Column flex="1">
-                            <Text typographyStyle="body-sm">{reward.token.symbol}</Text>
+                            <Text
+                                data-testid="@earn/dashboard/apy-breakdown/symbol"
+                                typographyStyle="body-sm"
+                            >
+                                {displaySymbol}
+                            </Text>
                             {descriptionId && (
                                 <Text
                                     typographyStyle="body-sm"
                                     intent="neutral"
                                     priority="secondary"
-                                    isInverse
+                                    data-testid="@earn/dashboard/apy-breakdown/description"
                                 >
                                     <Translation id={descriptionId} />
                                 </Text>
@@ -112,7 +123,7 @@ export const EarnYieldApyBreakdown = ({
                             typographyStyle="body-sm"
                             intent={hasRatePercent ? 'brand' : 'neutral'}
                             priority={hasRatePercent ? 'primary' : 'secondary'}
-                            isInverse
+                            data-testid="@earn/dashboard/apy-breakdown/rate-percent"
                         >
                             {rateNode}
                         </Text>
@@ -120,14 +131,13 @@ export const EarnYieldApyBreakdown = ({
                 );
             })}
             <Row gap={4} alignItems="center" margin={{ top: 4 }}>
-                <Icon
-                    as={ChartLineIcon}
-                    size={14}
+                <Icon as={ChartLineIcon} size={14} intent="neutral" priority="secondary" />
+                <Text
+                    data-testid="@earn/dashboard/apy-breakdown/footer"
+                    typographyStyle="body-sm"
                     intent="neutral"
                     priority="secondary"
-                    isInverse
-                />
-                <Text typographyStyle="body-sm" intent="neutral" priority="secondary" isInverse>
+                >
                     <Translation id={footerId} />
                 </Text>
             </Row>

@@ -1,17 +1,20 @@
 import { Calldata, type EvmAddress } from '@suite-common/calldata';
 import { type YieldDtoV2 } from '@suite-common/earn-stablecoin-api';
-import type { NetworkSymbol } from '@suite-common/wallet-config';
+import { type NetworkSymbol, getNetworkByYieldXyzId } from '@suite-common/wallet-config';
+import { WETH_WRAP_GAS_RESERVE } from '@suite-common/wallet-constants';
 import { type AccountKey, type EvmSelectedFee } from '@suite-common/wallet-types';
 import {
     asAmountUnit,
     fromGwei,
     fromIntegerString,
     getContractAddressForNetworkSymbol,
+    isWrappedNativeToken,
     unitsToSubunits,
 } from '@suite-common/wallet-utils';
+import { type TokenInfo } from '@trezor/blockchain-link-types';
 import { BigNumber } from '@trezor/utils';
 
-import { YIELD_FLOW_STEP_SEQUENCES } from './stablecoinYieldConstants';
+import { YIELD_FLOW_AVAILABLE_STEPS } from './stablecoinYieldConstants';
 import type {
     YieldFlowDisplayToken,
     YieldFlowResolvedData,
@@ -94,6 +97,8 @@ type BuildYieldUnsignedTransactionParams = {
     gasLimit: string;
     nonce: number;
     to: string;
+    /** Native value carried by the transaction (hex). Non-zero for wraps; defaults to `0x0`. */
+    value?: string;
 };
 
 type BuildEvmFeeFieldsParams = {
@@ -111,16 +116,42 @@ export const getStablecoinYieldFlowKey = ({
 export const isYieldWithdrawFlow = (flowType: YieldFlowType): flowType is YieldWithdrawFlowType =>
     flowType === 'withdraw' || flowType === 'redeem';
 
-/**
- * Returns the step that follows `step` in the flow's step sequence. Stays on `step`
- * when it is the last one or not part of the flow at all.
- */
+type GetYieldFlowStepSequenceParams<TFlowType extends YieldFlowType> = {
+    flowType: TFlowType;
+    isWrappedNativeVault?: boolean;
+};
+
+type YieldFlowStepOf<TFlowType extends YieldFlowType> =
+    (typeof YIELD_FLOW_AVAILABLE_STEPS)[TFlowType][number];
+
+type YieldFlowStepSequence<TFlowType extends YieldFlowType> = readonly [
+    YieldFlowStepOf<TFlowType>,
+    ...YieldFlowStepOf<TFlowType>[],
+];
+
+export const getYieldFlowStepSequence = <TFlowType extends YieldFlowType>({
+    flowType,
+    isWrappedNativeVault = false,
+}: GetYieldFlowStepSequenceParams<TFlowType>): YieldFlowStepSequence<TFlowType> => {
+    const availableSteps: readonly YieldFlowStepOf<TFlowType>[] =
+        YIELD_FLOW_AVAILABLE_STEPS[flowType];
+
+    const sequence: readonly YieldFlowStepOf<TFlowType>[] = availableSteps.filter(step =>
+        step === 'wrap' || step === 'unwrap' ? isWrappedNativeVault : true,
+    );
+
+    // Every flow keeps its unconditional 'action' and 'complete' steps, so the
+    // filtered sequence is never empty.
+    return sequence as YieldFlowStepSequence<TFlowType>;
+};
+
+/** Returns the next step in the sequence selected for the current vault. */
 export const getNextYieldFlowStep = (
     flowType: YieldFlowType,
     step: YieldFlowStepId,
+    isWrappedNativeVault = false,
 ): YieldFlowStepId => {
-    // Widened so indexOf accepts any step id across the per-flow tuples.
-    const sequence: readonly YieldFlowStepId[] = YIELD_FLOW_STEP_SEQUENCES[flowType];
+    const sequence = getYieldFlowStepSequence({ flowType, isWrappedNativeVault });
     const stepIndex = sequence.indexOf(step);
 
     if (stepIndex === -1) {
@@ -254,13 +285,14 @@ export const buildYieldUnsignedTransaction = ({
     gasLimit,
     nonce,
     to,
+    value = '0x0',
 }: BuildYieldUnsignedTransactionParams) => {
     const feeFields = buildEvmFeeFields({ feeLevel, gasLimit });
     const commonFields = {
         from,
         to,
         data,
-        value: '0x0',
+        value,
         nonce,
         chainId,
         gasLimit: feeFields.gasLimit,
@@ -280,6 +312,112 @@ export const buildYieldUnsignedTransaction = ({
         gasPrice: feeFields.gasPrice,
     };
 };
+
+type BuildYieldWrapTransactionDataParams = {
+    wrapAmount: string;
+    decimals: number;
+};
+
+// WETH `deposit()` carries the wrapped amount in the transaction value, not in calldata.
+export const buildYieldWrapTransactionData = ({
+    wrapAmount,
+    decimals,
+}: BuildYieldWrapTransactionDataParams) => {
+    const builderResult = Calldata.evm.weth.deposit.encode({});
+
+    if (!builderResult.isValid || !builderResult.data) {
+        throw new Error('Failed to encode WETH deposit calldata.');
+    }
+
+    const valueSubunits = unitsToSubunits({
+        value: asAmountUnit(new BigNumber(wrapAmount)),
+        decimals,
+    });
+
+    return {
+        data: builderResult.data,
+        value: fromIntegerString(valueSubunits.toFixed(0)).toHex(),
+    };
+};
+
+type BuildYieldUnwrapTransactionDataParams = {
+    unwrapAmount: string;
+    decimals: number;
+};
+
+export const buildYieldUnwrapTransactionData = ({
+    unwrapAmount,
+    decimals,
+}: BuildYieldUnwrapTransactionDataParams) => {
+    const wadSubunits = unitsToSubunits({
+        value: asAmountUnit(new BigNumber(unwrapAmount)),
+        decimals,
+    });
+
+    const builderResult = Calldata.evm.weth.withdraw.encode({ wad: wadSubunits });
+
+    if (!builderResult.isValid || !builderResult.data) {
+        const issues = builderResult.errors.map(issue => issue.code).join(', ');
+
+        throw new Error(`Failed to encode WETH withdraw calldata${issues ? `: ${issues}` : '.'}`);
+    }
+
+    return { data: builderResult.data };
+};
+
+type GetYieldDepositableBalanceParams = {
+    networkSymbol: NetworkSymbol;
+    /** Native coin balance in display units, NOT subunits. */
+    nativeFormattedBalance: string;
+    vaultTokenAddress?: string | null;
+    matchedTokenBalance?: string | null;
+};
+
+/**
+ * Native balance that can be wrapped, after keeping `WETH_WRAP_GAS_RESERVE` aside to cover the
+ * follow-up wrap + approve + deposit (+ exit) fees.
+ */
+export const getWrappableNativeBalance = (nativeFormattedBalance: string): string =>
+    BigNumber.max(
+        0,
+        new BigNumber(nativeFormattedBalance || '0').minus(WETH_WRAP_GAS_RESERVE),
+    ).toString();
+
+/**
+ * Balance available for a yield deposit. For a wrapped-native (WETH) vault the native balance can
+ * be wrapped, so it counts in after keeping `WETH_WRAP_GAS_RESERVE` aside to cover the follow-up
+ * wrap + approve + deposit (+ exit) fees.
+ */
+export const getYieldDepositableBalance = ({
+    networkSymbol,
+    nativeFormattedBalance,
+    vaultTokenAddress,
+    matchedTokenBalance,
+}: GetYieldDepositableBalanceParams): string => {
+    // Normal deposit: only the already-held vault-token balance is spendable.
+    const tokenDepositBalance = matchedTokenBalance ?? '0';
+
+    if (!isWrappedNativeToken(networkSymbol, vaultTokenAddress)) {
+        return tokenDepositBalance;
+    }
+
+    // Native-asset deposit: the wrappable native balance also counts in.
+    return new BigNumber(tokenDepositBalance)
+        .plus(getWrappableNativeBalance(nativeFormattedBalance))
+        .toString();
+};
+
+type GetYieldWrapAmountParams = {
+    totalAmount: string;
+    matchedWethBalance?: string | null;
+};
+
+/** Native portion of a deposit that must be wrapped — the total minus already-held WETH. */
+export const getYieldWrapAmount = ({
+    totalAmount,
+    matchedWethBalance,
+}: GetYieldWrapAmountParams): string =>
+    BigNumber.max(0, new BigNumber(totalAmount || '0').minus(matchedWethBalance || '0')).toString();
 
 type YieldTxReviewFlowIdentity = {
     accountKey?: AccountKey;
@@ -420,6 +558,76 @@ const getVaultAddressFromYieldId = (yieldId: string) =>
 
 export const getYieldVaultContractAddress = (vault: Pick<YieldDtoV2, 'id' | 'outputToken'>) =>
     vault.outputToken?.address ?? getVaultAddressFromYieldId(vault.id);
+
+export const isYieldVaultOperational = (vault: Pick<YieldDtoV2, 'metadata'>): boolean =>
+    !vault.metadata.underMaintenance && !vault.metadata.deprecated;
+
+type YieldVaultMatchFields = Pick<
+    YieldDtoV2,
+    'metadata' | 'network' | 'status' | 'token' | 'outputToken'
+>;
+
+type GetYieldVaultsForTokenParams<TVault extends YieldVaultMatchFields> = {
+    vaults: TVault[] | undefined;
+    networkSymbol: NetworkSymbol;
+    token: TokenLike;
+};
+
+const isYieldVaultOnNetwork = (vault: YieldVaultMatchFields, networkSymbol: NetworkSymbol) =>
+    getNetworkByYieldXyzId(vault.network)?.symbol === networkSymbol;
+
+// Input-token matching invites a deposit, so it also requires deposits to be open.
+export const getYieldVaultsForInputToken = <TVault extends YieldVaultMatchFields>({
+    vaults,
+    networkSymbol,
+    token,
+}: GetYieldVaultsForTokenParams<TVault>): TVault[] =>
+    (vaults ?? []).filter(
+        vault =>
+            isYieldVaultOperational(vault) &&
+            vault.status.enter &&
+            isYieldVaultOnNetwork(vault, networkSymbol) &&
+            doTokensMatch({ networkSymbol, firstToken: token, secondToken: vault.token }),
+    );
+
+export const getYieldVaultForOutputToken = <TVault extends YieldVaultMatchFields>({
+    vaults,
+    networkSymbol,
+    token,
+}: GetYieldVaultsForTokenParams<TVault>): TVault | undefined =>
+    vaults?.find(
+        vault =>
+            isYieldVaultOperational(vault) &&
+            isYieldVaultOnNetwork(vault, networkSymbol) &&
+            doTokensMatch({ networkSymbol, firstToken: token, secondToken: vault.outputToken }),
+    );
+
+type YieldVaultPositionParams = {
+    networkSymbol: NetworkSymbol;
+    vault: Pick<YieldDtoV2, 'outputToken'>;
+    accountTokens: Pick<TokenInfo, 'contract' | 'symbol' | 'decimals' | 'balance'>[] | undefined;
+};
+
+/** Whether the account already holds the vault's receipt token, i.e. has deposited into it. */
+export const hasYieldVaultPosition = ({
+    networkSymbol,
+    vault,
+    accountTokens,
+}: YieldVaultPositionParams): boolean =>
+    (accountTokens ?? []).some(
+        accountToken =>
+            accountToken.symbol !== undefined &&
+            doTokensMatch({
+                networkSymbol,
+                firstToken: {
+                    address: accountToken.contract,
+                    symbol: accountToken.symbol,
+                    decimals: accountToken.decimals,
+                },
+                secondToken: vault.outputToken,
+            }) &&
+            new BigNumber(accountToken.balance ?? '0').gt(0),
+    );
 
 export const getAllowanceSpender = (flowData: YieldFlowResolvedData) =>
     flowData.receiptToken.contractAddress ?? getYieldVaultContractAddress(flowData.vault);

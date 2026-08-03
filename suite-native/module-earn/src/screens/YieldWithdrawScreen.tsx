@@ -3,18 +3,23 @@ import { useDispatch } from 'react-redux';
 
 import { type RouteProp, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 
+import { events } from '@suite-common/analytics';
+import { useServices } from '@suite-common/dependency-injection';
 import { useFormatters } from '@suite-common/formatters';
+import { Context } from '@suite-common/message-system';
 import { getNetwork } from '@suite-common/wallet-config';
 import {
     type YieldWithdrawFlowType,
     getConvertedOutputTokenBalanceToInputTokenAmount,
     getWithdrawRequestAmount,
+    getYieldVaultContractAddress,
     getYieldWithdrawInputToken,
     splitYieldPendingTransaction,
     stablecoinYieldActions,
 } from '@suite-common/wallet-core';
 import { toTokenAddress, toTokenSymbol } from '@suite-common/wallet-types';
-import { asAmountSubunit, subunitsToUnits } from '@suite-common/wallet-utils';
+import { asAmountSubunit, getApyBreakdown, subunitsToUnits } from '@suite-common/wallet-utils';
+import { selectNativeAnalyticsDep } from '@suite-native/analytics';
 import {
     AnimatedDoubleInput,
     Box,
@@ -32,6 +37,7 @@ import {
 import { useCryptoFiatConverters } from '@suite-native/formatters';
 import { decimalTransformer } from '@suite-native/helpers';
 import { Translation, useTranslate } from '@suite-native/intl';
+import { ContextMessage } from '@suite-native/message-system';
 import {
     Screen,
     type StackNavigationProps,
@@ -44,9 +50,13 @@ import { BigNumber } from '@trezor/utils';
 
 import { YieldDepositFlowScreenHeader } from '../components/YieldDepositFlowScreenHeader';
 import { YieldDepositInfoBottomSheet } from '../components/YieldDepositInfoBottomSheet';
+import { YieldDisabledAlert } from '../components/YieldDisabledAlert';
 import { YieldFeeEstimationErrorAlert } from '../components/YieldFeeEstimationErrorAlert';
 import { YieldPendingTransactionModal } from '../components/YieldPendingTransactionModal';
 import { YieldWithdrawWarning } from '../components/YieldWithdrawWarning';
+import { AMOUNT_INPUT_UNFOCUSED_OFFSET, AMOUNT_INPUT_WRAPPER_HEIGHT } from '../constants';
+import { useMessageSystemYield } from '../hooks/useMessageSystemYield';
+import { useNavigateBackAnalytics } from '../hooks/useNavigateBackAnalytics';
 import { useResolvedYieldFlowData } from '../hooks/useResolvedYieldFlowData';
 import { useShowYieldTransactionFailureAlert } from '../hooks/useShowYieldTransactionFailureAlert';
 import { useYieldPendingTransactionTracking } from '../hooks/useYieldPendingTransactionTracking';
@@ -84,6 +94,7 @@ export const YieldWithdrawScreen = () => {
     const { applyStyle } = useNativeStyles();
     const { CryptoAmountFormatter } = useFormatters();
     const { translate } = useTranslate();
+    const { analytics } = useServices(selectNativeAnalyticsDep);
 
     const [assetAmount, setAssetAmount] = useState('');
     const [sharesAmount, setSharesAmount] = useState('');
@@ -110,7 +121,7 @@ export const YieldWithdrawScreen = () => {
     const {
         account,
         apy,
-        bonusRewardTokenName,
+        bonusRewardTokenSymbol,
         flowData,
         flowKey,
         resolutionStatus,
@@ -120,6 +131,24 @@ export const YieldWithdrawScreen = () => {
         vaultTokenName,
     } = useResolvedYieldFlowData(route.params);
 
+    const vaultContractAddress = vault ? getYieldVaultContractAddress(vault) : undefined;
+    const {
+        isDisabled: isWithdrawDisabled,
+        content: withdrawDisabledContent,
+        variant: withdrawDisabledVariant,
+    } = useMessageSystemYield('withdraw', { vaultContractAddress });
+
+    useNavigateBackAnalytics({
+        type: events.yieldNavigateEvent.name,
+        payload: {
+            action: 'cancel',
+            from: 'withdraw-form',
+            to: 'withdraw-form',
+            networkSymbol: account?.symbol,
+            vaultId: vault?.id,
+        },
+    });
+
     const activeInputToken = flowData
         ? getYieldWithdrawInputToken({ flowData, flowType })
         : undefined;
@@ -127,6 +156,8 @@ export const YieldWithdrawScreen = () => {
         amount,
         decimals: activeInputToken?.decimals,
     });
+
+    const isAmountValidationErrorDisplayed = !!amountValidationError;
 
     const depositedAmount = useMemo(() => {
         if (resolutionStatus !== 'resolved') {
@@ -174,7 +205,7 @@ export const YieldWithdrawScreen = () => {
             resolutionStatus === 'resolved' &&
             !!amount &&
             !isAmountTooHigh &&
-            !amountValidationError,
+            !isAmountValidationErrorDisplayed,
     });
     const feeFiatConverters = useCryptoFiatConverters({
         symbol: account?.symbol ?? null,
@@ -191,7 +222,7 @@ export const YieldWithdrawScreen = () => {
     const shouldShowNetworkFeeWarning = useMemo(() => {
         if (
             !amount ||
-            amountValidationError ||
+            isAmountValidationErrorDisplayed ||
             !withdrawFee ||
             resolutionStatus !== 'resolved' ||
             preparedAction?.amount !== amount ||
@@ -211,7 +242,7 @@ export const YieldWithdrawScreen = () => {
     }, [
         account,
         amount,
-        amountValidationError,
+        isAmountValidationErrorDisplayed,
         amountFiatConverters,
         feeFiatConverters,
         preparedAction,
@@ -242,10 +273,11 @@ export const YieldWithdrawScreen = () => {
         !amount ||
         isWithdrawPending ||
         isAmountTooHigh ||
-        !!amountValidationError ||
+        isAmountValidationErrorDisplayed ||
         !isWithdrawReviewReady ||
         isComposingWithdrawFee ||
-        isFeeUnavailable;
+        isFeeUnavailable ||
+        isWithdrawDisabled;
 
     useShowYieldTransactionFailureAlert({
         error: session?.error,
@@ -259,6 +291,7 @@ export const YieldWithdrawScreen = () => {
         flowKey,
         flowType,
         pendingTransaction: actionPendingTransaction,
+        vault,
     });
 
     useEffect(() => {
@@ -323,6 +356,16 @@ export const YieldWithdrawScreen = () => {
             return;
         }
 
+        analytics.report({
+            type: events.yieldInteractionEvent.name,
+            payload: {
+                element: 'withdraw-max',
+                value: isSharesInput ? 'shares' : 'asset',
+                networkSymbol: account?.symbol,
+                vaultId: vault?.id,
+            },
+        });
+
         setAssetAmount(depositedAmount);
         setSharesAmount(depositedSharesAmount);
     };
@@ -370,15 +413,42 @@ export const YieldWithdrawScreen = () => {
         }
     }, [closeInfoBottomSheet, isWithdrawPending, openPendingBottomSheet]);
 
-    const handleInputSwitch = useCallback((activeView: 'primary' | 'secondary') => {
-        setIsMaxSelected(false);
-        setSelectedFlowType(getYieldWithdrawFlowTypeByInputView(activeView));
-    }, []);
+    const handleInputSwitch = useCallback(
+        (activeView: 'primary' | 'secondary') => {
+            analytics.report({
+                type: events.yieldInteractionEvent.name,
+                payload: {
+                    element: 'withdraw-unit-toggle',
+                    value: activeView === 'secondary' ? 'shares' : 'asset',
+                    networkSymbol: account?.symbol,
+                    vaultId: vault?.id,
+                },
+            });
+
+            setIsMaxSelected(false);
+            setSelectedFlowType(getYieldWithdrawFlowTypeByInputView(activeView));
+        },
+        [account?.symbol, analytics, vault?.id],
+    );
 
     const handleContinue = useCallback(() => {
-        if (!flowKey || !isWithdrawReviewReady || !preparedAction) {
+        if (!flowKey || !isWithdrawReviewReady || !preparedAction || isWithdrawDisabled) {
             return;
         }
+
+        const apyBreakdown = getApyBreakdown(vault?.rewardRate?.components);
+
+        analytics.report({
+            type: events.yieldWithdrawEvent.name,
+            payload: {
+                action: 'continue',
+                type: 'withdraw',
+                operation: flowType,
+                networkSymbol: account?.symbol,
+                vaultId: vault?.id,
+                ...(apyBreakdown && { apyBreakdown }),
+            },
+        });
 
         dispatch(stablecoinYieldActions.discardTransaction());
         dispatch(
@@ -395,14 +465,31 @@ export const YieldWithdrawScreen = () => {
             withdrawFlowType: flowType,
         });
     }, [
+        account?.symbol,
+        analytics,
         dispatch,
         flowType,
         flowKey,
+        isWithdrawDisabled,
         isWithdrawReviewReady,
         navigation,
         preparedAction,
         route.params,
+        vault,
     ]);
+
+    const handleOpenInfoBottomSheet = useCallback(() => {
+        analytics.report({
+            type: events.yieldInteractionEvent.name,
+            payload: {
+                element: 'in-a-nutshell-process-tab',
+                value: 'withdraw',
+                networkSymbol: account?.symbol,
+                vaultId: vault?.id,
+            },
+        });
+        openInfoBottomSheet();
+    }, [account?.symbol, analytics, openInfoBottomSheet, vault?.id]);
 
     if (resolutionStatus !== 'resolved' || !activeInputToken) {
         return null;
@@ -440,7 +527,7 @@ export const YieldWithdrawScreen = () => {
                 <YieldDepositFlowScreenHeader
                     account={account}
                     closeAction={handleClose}
-                    onInfoPress={openInfoBottomSheet}
+                    onInfoPress={handleOpenInfoBottomSheet}
                     tokenContract={headerTokenContract}
                     vaultName={vaultTokenName}
                 />
@@ -461,6 +548,14 @@ export const YieldWithdrawScreen = () => {
                 paddingHorizontal="sp16"
                 pointerEvents={isWithdrawPending ? 'none' : 'auto'}
             >
+                <ContextMessage context={Context.getEarnYield('withdraw')} />
+                {isWithdrawDisabled && (
+                    <YieldDisabledAlert
+                        type="withdraw"
+                        content={withdrawDisabledContent}
+                        variant={withdrawDisabledVariant}
+                    />
+                )}
                 <Card style={applyStyle(withdrawFormCardStyle)}>
                     <VStack spacing="sp12">
                         <HStack justifyContent="space-between" alignItems="center">
@@ -478,6 +573,8 @@ export const YieldWithdrawScreen = () => {
                         <AnimatedDoubleInput
                             activeView={isSharesInput ? 'secondary' : 'primary'}
                             onInputSwitch={handleInputSwitch}
+                            unfocusedOffset={AMOUNT_INPUT_UNFOCUSED_OFFSET}
+                            wrapperHeight={AMOUNT_INPUT_WRAPPER_HEIGHT}
                             renderPrimary={({ inputRef, isDisabled, onPress }) => (
                                 <Input
                                     ref={inputRef}
@@ -488,7 +585,7 @@ export const YieldWithdrawScreen = () => {
                                     editable={!isMaxSelected && !isDisabled}
                                     onChangeText={handleAmountChange}
                                     onPress={onPress}
-                                    hasError={!isDisabled && !!amountValidationError}
+                                    hasError={!isDisabled && isAmountValidationErrorDisplayed}
                                     accessibilityLabel={translate(
                                         'earn.yieldWithdrawFlowScreen.amountToWithdraw',
                                     )}
@@ -515,7 +612,7 @@ export const YieldWithdrawScreen = () => {
                                     onChangeText={handleAmountChange}
                                     onPress={onPress}
                                     style={applyStyle(withdrawOutputAmountInputStyle)}
-                                    hasError={!isDisabled && !!amountValidationError}
+                                    hasError={!isDisabled && isAmountValidationErrorDisplayed}
                                     accessibilityLabel={translate(
                                         'earn.yieldWithdrawFlowScreen.amountToWithdraw',
                                     )}
@@ -568,10 +665,10 @@ export const YieldWithdrawScreen = () => {
                 )}
 
                 <YieldWithdrawWarning
-                    isAmountTooHigh={!amountValidationError && isAmountTooHigh}
+                    isAmountTooHigh={!isAmountValidationErrorDisplayed && isAmountTooHigh}
                     isMaxWithdrawInfoVisible={isMaxWithdrawInfoVisible}
                     shouldShowNetworkFeeWarning={
-                        !amountValidationError && shouldShowNetworkFeeWarning
+                        !isAmountValidationErrorDisplayed && shouldShowNetworkFeeWarning
                     }
                     vaultTokenSymbol={vaultTokenSymbol}
                 />
@@ -598,7 +695,7 @@ export const YieldWithdrawScreen = () => {
             <YieldDepositInfoBottomSheet
                 ref={infoBottomSheetRef}
                 apy={apy}
-                bonusRewardTokenName={bonusRewardTokenName}
+                bonusRewardTokenSymbol={bonusRewardTokenSymbol}
                 onClose={handleCloseInfoBottomSheet}
                 tokenSymbol={underlyingTokenSymbol}
                 vaultTokenSymbol={resolvedVaultTokenSymbol}

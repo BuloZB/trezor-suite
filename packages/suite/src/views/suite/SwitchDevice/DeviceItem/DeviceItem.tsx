@@ -18,7 +18,6 @@ import {
 } from '@trezor/components';
 import { EjectIcon } from '@trezor/icons';
 import { mapTrezorModelToIcon } from '@trezor/product-components';
-import { spacings } from '@trezor/theme';
 
 import {
     addDeviceIdToSeenDisconnectNotification,
@@ -38,17 +37,12 @@ type DeviceItemProps = {
 };
 
 const ListItem = ({ children, icon }: { children: ReactNode; icon: IconComponent }) => (
-    <List.Item
-        bulletComponent={
-            <Icon as={icon} intent="neutral" priority="secondary" isInverse size={20} />
-        }
-    >
+    <List.Item bulletComponent={<Icon as={icon} intent="neutral" priority="secondary" size={20} />}>
         <Paragraph
             typographyStyle="body-md"
             intent="neutral"
             priority="secondary"
             textWrap="pretty"
-            isInverse
         >
             {children}
         </Paragraph>
@@ -108,10 +102,10 @@ export const DeviceItem = ({ device, instances, onCancel }: DeviceItemProps) => 
                                 content={
                                     <Column
                                         padding={{
-                                            horizontal: spacings.sm,
-                                            vertical: spacings.xs,
+                                            horizontal: 12,
+                                            vertical: 8,
                                         }}
-                                        gap={spacings.md}
+                                        gap={16}
                                     >
                                         <Paragraph
                                             typographyStyle="body-md-strong"
@@ -119,7 +113,7 @@ export const DeviceItem = ({ device, instances, onCancel }: DeviceItemProps) => 
                                         >
                                             <Translation id="TR_DEVICE_DISCONNECTED_TOOLTIP_TITLE" />
                                         </Paragraph>
-                                        <List bulletGap={spacings.sm}>
+                                        <List bulletGap={12}>
                                             <ListItem icon={EjectIcon}>
                                                 <Translation id="TR_DEVICE_DISCONNECTED_TOOLTIP_ITEM_1" />
                                             </ListItem>
@@ -129,18 +123,13 @@ export const DeviceItem = ({ device, instances, onCancel }: DeviceItemProps) => 
                                                 <Translation id="TR_DEVICE_DISCONNECTED_TOOLTIP_ITEM_2" />
                                             </ListItem>
                                         </List>
-                                        <Row
-                                            gap={spacings.sm}
-                                            margin={{ top: spacings.xs }}
-                                            flexWrap="wrap"
-                                        >
+                                        <Row gap={12} margin={{ top: 8 }} flexWrap="wrap">
                                             <Button
                                                 size="small"
                                                 onClick={() => {
                                                     onTooltipClose();
                                                     onCancel?.();
                                                 }}
-                                                isInverse
                                             >
                                                 <Translation id="TR_DEVICE_DISCONNECTED_TOOLTIP_BUTTON_PRIMARY" />
                                             </Button>
@@ -148,7 +137,6 @@ export const DeviceItem = ({ device, instances, onCancel }: DeviceItemProps) => 
                                                 size="small"
                                                 intent="neutral"
                                                 priority="secondary"
-                                                isInverse
                                                 onClick={() => {
                                                     onTooltipClose();
                                                     dispatch(

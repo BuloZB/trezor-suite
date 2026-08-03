@@ -5,10 +5,14 @@ import { type CryptoId, type DexApprovalType } from 'invity-api';
 import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Calldata } from '@suite-common/calldata';
 import { useServices } from '@suite-common/dependency-injection';
-import { invityAPI } from '@suite-common/trading';
-import { useCurrentRef } from '@trezor/react-utils';
+import {
+    invityAPI,
+    selectTradingExchangeSelectedQuote,
+    selectTradingSendAccount,
+} from '@suite-common/trading';
 
 import { ApproveModal } from 'src/components/suite/modals/ReduxModal/UserContextModal/AllowanceModals/ApproveModal';
+import { useSelector } from 'src/hooks/suite';
 import { useAllowanceContext } from 'src/hooks/wallet/allowance';
 import { useModalLastValidParams } from 'src/hooks/wallet/trading/form/useModalLastValidParams';
 import { useTradingFormContext } from 'src/hooks/wallet/trading/form/useTradingCommonForm';
@@ -26,11 +30,10 @@ interface TradingApproveModalProps {
 export const TradingApproveModal = ({ amount, cryptoId }: TradingApproveModalProps) => {
     const { state } = useAllowanceContext();
     const context = useTradingFormContext();
+    const account = useSelector(reduxState => selectTradingSendAccount(reduxState, context.type));
     const { analytics } = useServices(selectDesktopAnalyticsDep);
     const getCryptoInfo = useTradingExchangeCryptoAndProviderInfo();
-
-    const contextRef = useCurrentRef(context);
-    const getCryptoInfoRef = useCurrentRef(getCryptoInfo);
+    const selectedQuote = useSelector(selectTradingExchangeSelectedQuote);
 
     const handleCancel = useCallback(async () => {
         analytics.report({
@@ -38,22 +41,21 @@ export const TradingApproveModal = ({ amount, cryptoId }: TradingApproveModalPro
             payload: {
                 type: 'approve-modal',
                 action: 'cancel',
-                ...getCryptoInfoRef.current(),
+                ...getCryptoInfo(),
             },
         });
 
-        const ctx = contextRef.current;
-        if (isTradingExchangeContext(ctx)) {
-            ctx.setIsApproval(false);
+        if (isTradingExchangeContext(context)) {
+            context.setIsApproval(false);
 
-            if (ctx.selectedQuote?.receiveAddress) {
-                await ctx.confirmApproval({
-                    trade: { ...ctx.selectedQuote, approvalType: undefined },
-                    receiveAddress: ctx.selectedQuote.receiveAddress,
+            if (selectedQuote?.receiveAddress) {
+                await context.confirmApproval({
+                    trade: { ...selectedQuote, approvalType: undefined },
+                    receiveAddress: selectedQuote.receiveAddress,
                 });
             }
         }
-    }, [analytics, getCryptoInfoRef, contextRef]);
+    }, [analytics, getCryptoInfo, context, selectedQuote]);
 
     const onConfirm = useCallback(() => {
         analytics.report({
@@ -61,10 +63,10 @@ export const TradingApproveModal = ({ amount, cryptoId }: TradingApproveModalPro
             payload: {
                 type: 'approve-modal',
                 action: 'continue',
-                ...getCryptoInfoRef.current(),
+                ...getCryptoInfo(),
             },
         });
-    }, [analytics, getCryptoInfoRef]);
+    }, [analytics, getCryptoInfo]);
 
     const onSelectApprovalType = useCallback(
         (approvalType: DexApprovalType) => {
@@ -75,20 +77,19 @@ export const TradingApproveModal = ({ amount, cryptoId }: TradingApproveModalPro
                 payload: {
                     type: 'approve-modal',
                     action: approvalType === 'MINIMAL' ? 'limit-exact' : 'limit-unlimited',
-                    ...getCryptoInfoRef.current(),
+                    ...getCryptoInfo(),
                 },
             });
         },
-        [analytics, getCryptoInfoRef],
+        [analytics, getCryptoInfo],
     );
 
-    const selectedQuote = isTradingExchangeContext(context) ? context.selectedQuote : undefined;
-
     const approveParams = useMemo(() => {
-        const ctx = contextRef.current;
-        if (!isTradingExchangeContext(ctx)) return null;
+        if (!isTradingExchangeContext(context)) {
+            return null;
+        }
 
-        const providersInfo = getProvidersInfoProps(ctx);
+        const providersInfo = getProvidersInfoProps(context);
         const exchange = selectedQuote?.exchange;
         const provider = exchange ? providersInfo?.[exchange] : null;
 
@@ -97,12 +98,12 @@ export const TradingApproveModal = ({ amount, cryptoId }: TradingApproveModalPro
         const preapprovedAmount = selectedQuote?.preapprovedStringAmount;
 
         return provider && spender ? { provider, spender, preapprovedAmount } : null;
-    }, [selectedQuote, contextRef]);
+    }, [context, selectedQuote]);
 
     const { provider, spender, preapprovedAmount } =
         useModalLastValidParams(approveParams, state.isApproveModalOpen) ?? {};
 
-    if (!state.isApproveModalOpen || !provider || !spender) {
+    if (!state.isApproveModalOpen || !provider || !spender || !account) {
         return null;
     }
 
@@ -112,7 +113,7 @@ export const TradingApproveModal = ({ amount, cryptoId }: TradingApproveModalPro
         <ApproveModal
             amount={amount}
             cryptoId={cryptoId}
-            account={context.account}
+            account={account}
             provider={{
                 ...provider,
                 logo: providerLogo,

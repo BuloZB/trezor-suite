@@ -2,12 +2,12 @@ import styled from 'styled-components';
 
 import { Translation, type TranslationKey } from '@suite/intl';
 import { CardList, Column, Image, Row, Text } from '@trezor/components';
-import { borders } from '@trezor/theme';
+import { TokenIcon, type TokenIconProps } from '@trezor/product-components';
 
 export type AllowanceModalProvider = {
     name?: string;
     companyName?: string;
-    logo?: string;
+    logo?: string | TokenIconProps;
     label: TranslationKey;
 };
 
@@ -21,7 +21,7 @@ const Logo = styled.div`
     display: grid;
     grid-template-columns: 1.25rem auto;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
 `;
 
 export const AllowanceModalProviderInfo = ({
@@ -40,11 +40,11 @@ export const AllowanceModalProviderInfo = ({
                 <Logo>
                     {provider.logo && (
                         <Row alignItems="center" justifyContent="center">
-                            <Image
-                                imageSrc={provider.logo}
-                                maxHeight={20}
-                                borderRadius={borders.radii.xxxs}
-                            />
+                            {typeof provider.logo === 'string' ? (
+                                <Image imageSrc={provider.logo} maxHeight={20} borderRadius={4} />
+                            ) : (
+                                <TokenIcon {...provider.logo} />
+                            )}
                         </Row>
                     )}
                     <Text typographyStyle="body-sm">{providerName}</Text>

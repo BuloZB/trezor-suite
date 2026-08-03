@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 
 import { Address, copyAddressToClipboard, showCopyAddressModal } from '@suite/address';
 import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
@@ -10,6 +10,7 @@ import { Translation } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { showAddressThunk } from '@suite/receive';
 import { goto } from '@suite/router';
+import { events as sharedEvents } from '@suite-common/analytics';
 import { useServices } from '@suite-common/dependency-injection';
 import { selectSelectedDevice } from '@suite-common/device';
 import { type YieldDtoV2 } from '@suite-common/earn-stablecoin-api';
@@ -28,12 +29,17 @@ import {
     tradingActions,
 } from '@suite-common/trading';
 import { type Explorer, type Network } from '@suite-common/wallet-config';
-import { selectExplorer, sendFormActions } from '@suite-common/wallet-core';
+import {
+    getYieldVaultForOutputToken,
+    selectExplorer,
+    sendFormActions,
+} from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
 import {
     getContractAddressForNetworkSymbol,
     getTokenExplorerUrl,
     isErc4626,
+    isWrappedNativeToken,
 } from '@suite-common/wallet-utils';
 import {
     Button,
@@ -48,6 +54,7 @@ import {
 } from '@trezor/components';
 import {
     ArrowDownIcon,
+    ArrowUUpLeftIcon,
     ArrowUpIcon,
     ArrowUpRightIcon,
     CurrencyCircleDollarIcon,
@@ -117,13 +124,18 @@ const TokenRowBasicActions = ({
     const canSellToken = !!tokenTradingOptions && tokenTradingOptions.sell;
     const canReceiveToken = !isDeviceLocked && !isDeviceCompromised;
 
-    const availableVault = yieldOpportunities?.find(
-        vault =>
-            !vault.metadata.underMaintenance &&
-            !vault.metadata.deprecated &&
-            vault.outputToken?.address !== undefined &&
-            getContractAddressForNetworkSymbol(account.symbol, vault.outputToken.address) ===
-                getContractAddressForNetworkSymbol(account.symbol, token.contract),
+    const availableVault = useMemo(
+        () =>
+            getYieldVaultForOutputToken({
+                vaults: yieldOpportunities,
+                networkSymbol: account.symbol,
+                token: {
+                    address: token.contract,
+                    symbol: token.symbol ?? '',
+                    decimals: token.decimals,
+                },
+            }),
+        [yieldOpportunities, account.symbol, token.contract, token.symbol, token.decimals],
     );
 
     const isDepositButtonDisabled = !availableVault?.status.enter;
@@ -148,7 +160,7 @@ const TokenRowBasicActions = ({
         const contractAddress = availableVault.token.address;
 
         analytics.report({
-            type: events.yieldNavigateEvent.name,
+            type: sharedEvents.yieldNavigateEvent.name,
             payload: {
                 action: 'continue',
                 from: 'account-defi-tokens',
@@ -177,7 +189,7 @@ const TokenRowBasicActions = ({
         const contractAddress = availableVault.token.address;
 
         analytics.report({
-            type: events.yieldNavigateEvent.name,
+            type: sharedEvents.yieldNavigateEvent.name,
             payload: {
                 action: 'continue',
                 from: 'account-defi-tokens',
@@ -413,6 +425,23 @@ const TokenRowBasicActions = ({
                             (tokenStatusType === TokenManagementAction.HIDE
                                 ? !isBelowTablet
                                 : true),
+                    },
+                    {
+                        label: <Translation id="TR_UNWRAP_NATIVE_TOKEN" />,
+                        icon: ArrowUUpLeftIcon,
+                        onClick: () =>
+                            dispatch(
+                                goto({
+                                    routeName: 'earn-yield-unwrap',
+                                    params: {
+                                        symbol: account.symbol,
+                                        accountIndex: account.index,
+                                        accountType: account.accountType,
+                                    },
+                                }),
+                            ),
+                        isDisabled: token.balance === '0',
+                        isHidden: !isWrappedNativeToken(account.symbol, token.contract),
                     },
                     {
                         label: <Translation id="TR_EARN_YIELD_DEPOSIT" />,

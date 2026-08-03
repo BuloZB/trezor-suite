@@ -18,6 +18,7 @@ export enum EventType {
     SettingsDeviceWipe = 'settings/device/wipe',
     SettingsGeneralLabeling = 'settings/general/labeling',
     SettingsNetworkSearchUsed = 'settings/network-search-used',
+    SettingsNetworksExplorer = 'settings/network-explorer',
     SettingsTestnetNetworksToggle = 'settings/testnet-networks-toggle',
     // eslint-disable-next-line local-rules/analytics-event-name
     SuiteSyncLabelCreated = 'suite-sync/label',
@@ -33,4 +34,10 @@ export enum EventType {
     OnboardingFeedbackBannerClicked = 'onboarding/feedback-banner',
     PromoNoDeviceEshopCta = 'promo/no-device-eshop-cta',
     GuideSupportChatOpened = 'guide/support-chat-opened',
+    YieldEarnDashboardReady = 'yield/earn-dashboard-ready',
+    YieldInteraction = 'yield/interaction',
+    YieldNavigate = 'yield/navigate',
+    YieldDeposit = 'yield/deposit',
+    YieldWithdraw = 'yield/withdraw',
+    YieldClaim = 'yield/claim',
 }

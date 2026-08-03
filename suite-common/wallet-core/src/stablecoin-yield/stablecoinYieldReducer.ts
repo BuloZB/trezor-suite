@@ -9,9 +9,11 @@ import {
 } from '@suite-common/wallet-types';
 import { isSafeObjectKey } from '@trezor/utils';
 
-import { STABLECOIN_YIELD_PREFIX, YIELD_FLOW_STEP_SEQUENCES } from './stablecoinYieldConstants';
+import { STABLECOIN_YIELD_PREFIX } from './stablecoinYieldConstants';
 import {
     type StablecoinYieldClaimUnsignedTransaction,
+    type WrappedNativeStepId,
+    YIELD_FLOW_TYPES,
     type YieldApproveModalState,
     type YieldFlowCompleteRewardItem,
     type YieldFlowStepId,
@@ -19,7 +21,7 @@ import {
     type YieldPendingTransactionState,
     type YieldPositionFlowType,
 } from './stablecoinYieldTypes';
-import { getNextYieldFlowStep } from './stablecoinYieldUtils';
+import { getNextYieldFlowStep, getYieldFlowStepSequence } from './stablecoinYieldUtils';
 import { transactionsActions } from '../transactions/transactionsActions';
 
 // Message ids must exist in the desktop `suite/intl` messages — the desktop app renders
@@ -78,6 +80,7 @@ export type StablecoinYieldTxReviewState = {
 
 export type StablecoinYieldSessionState = {
     step: YieldFlowStepId;
+    isWrappedNativeVault: boolean;
     error: StablecoinYieldTranslationKey | null;
     approval: {
         allowanceAmount: string | null;
@@ -98,6 +101,7 @@ export type StablecoinYieldSessionState = {
         completedAmount: string;
         completedReceiptAmount: string;
         completedRewards: YieldFlowCompleteRewardItem[];
+        unwrappedAmount: string | null;
     };
 };
 
@@ -118,6 +122,7 @@ type StablecoinYieldSessionActionPayload = {
 
 export const initialStablecoinYieldSessionState: StablecoinYieldSessionState = {
     step: 'approve',
+    isWrappedNativeVault: false,
     error: null,
     approval: {
         allowanceAmount: null,
@@ -138,6 +143,7 @@ export const initialStablecoinYieldSessionState: StablecoinYieldSessionState = {
         completedAmount: '0',
         completedReceiptAmount: '0',
         completedRewards: [],
+        unwrappedAmount: null,
     },
 };
 
@@ -162,9 +168,11 @@ export const initialStablecoinYieldState: StablecoinYieldState = {
 
 const createInitialStablecoinYieldSessionState = (
     flowType: YieldFlowType,
+    isWrappedNativeVault = false,
 ): StablecoinYieldSessionState => ({
     ...initialStablecoinYieldSessionState,
-    step: YIELD_FLOW_STEP_SEQUENCES[flowType][0],
+    step: getYieldFlowStepSequence({ flowType, isWrappedNativeVault })[0],
+    isWrappedNativeVault,
     approval: { ...initialStablecoinYieldSessionState.approval },
     action: { ...initialStablecoinYieldSessionState.action },
     result: {
@@ -199,9 +207,11 @@ const stablecoinYieldSlice = createSlice({
     reducers: {
         initSession(
             state: StablecoinYieldState,
-            action: PayloadAction<StablecoinYieldSessionActionPayload>,
+            action: PayloadAction<
+                StablecoinYieldSessionActionPayload & { isWrappedNativeVault?: boolean }
+            >,
         ) {
-            const { flowType, flowKey } = action.payload;
+            const { flowType, flowKey, isWrappedNativeVault } = action.payload;
 
             if (!isSafeObjectKey(flowKey)) {
                 return;
@@ -210,7 +220,10 @@ const stablecoinYieldSlice = createSlice({
             const sessionKey = getStablecoinYieldSessionKey(flowKey);
 
             if (!state[flowType][sessionKey]) {
-                state[flowType][sessionKey] = createInitialStablecoinYieldSessionState(flowType);
+                state[flowType][sessionKey] = createInitialStablecoinYieldSessionState(
+                    flowType,
+                    isWrappedNativeVault,
+                );
             }
         },
         disposeSession(
@@ -227,7 +240,9 @@ const stablecoinYieldSlice = createSlice({
         },
         resetSession(
             state: StablecoinYieldState,
-            action: PayloadAction<StablecoinYieldSessionActionPayload>,
+            action: PayloadAction<
+                StablecoinYieldSessionActionPayload & { isWrappedNativeVault?: boolean }
+            >,
         ) {
             const { flowType, flowKey } = action.payload;
 
@@ -235,8 +250,16 @@ const stablecoinYieldSlice = createSlice({
                 return;
             }
 
-            state[flowType][getStablecoinYieldSessionKey(flowKey)] =
-                createInitialStablecoinYieldSessionState(flowType);
+            const sessionKey = getStablecoinYieldSessionKey(flowKey);
+            const isWrappedNativeVault =
+                action.payload.isWrappedNativeVault ??
+                state[flowType][sessionKey]?.isWrappedNativeVault ??
+                false;
+
+            state[flowType][sessionKey] = createInitialStablecoinYieldSessionState(
+                flowType,
+                isWrappedNativeVault,
+            );
         },
         setError(
             state: StablecoinYieldState,
@@ -364,13 +387,24 @@ const stablecoinYieldSlice = createSlice({
             >,
         ) {
             withSession(state, action.payload, session => {
+                // Approval completion only ever originates from the approve step (modify mode
+                // regresses there first) — the guard keeps a stray dispatch from yanking the
+                // flow out of another step.
+                if (session.step !== 'approve') {
+                    return;
+                }
+
                 session.approval.isModifyMode = false;
                 session.approval.modalState = null;
                 session.approval.isRevokeRequired = false;
                 session.action.amount = action.payload.amount;
                 session.action.pendingTransaction = null;
                 session.action.review = null;
-                session.step = getNextYieldFlowStep(action.payload.flowType, 'approve');
+                session.step = getNextYieldFlowStep(
+                    action.payload.flowType,
+                    'approve',
+                    session.isWrappedNativeVault,
+                );
             });
         },
         skipApprovalStep(
@@ -378,7 +412,70 @@ const stablecoinYieldSlice = createSlice({
             action: PayloadAction<StablecoinYieldSessionActionPayload>,
         ) {
             withSession(state, action.payload, session => {
-                session.step = getNextYieldFlowStep(action.payload.flowType, 'approve');
+                if (session.step !== 'approve') {
+                    return;
+                }
+
+                session.step = getNextYieldFlowStep(
+                    action.payload.flowType,
+                    'approve',
+                    session.isWrappedNativeVault,
+                );
+            });
+        },
+        resolveWrappedNativeStep(
+            state: StablecoinYieldState,
+            action: PayloadAction<
+                StablecoinYieldSessionActionPayload & {
+                    step: WrappedNativeStepId;
+                    amount?: string;
+                }
+            >,
+        ) {
+            withSession(state, action.payload, session => {
+                if (session.step !== action.payload.step) {
+                    return;
+                }
+
+                session.action.pendingTransaction = null;
+                if (action.payload.step === 'unwrap') {
+                    session.result.unwrappedAmount = action.payload.amount ?? null;
+                }
+
+                if (action.payload.step === 'wrap' && action.payload.amount) {
+                    session.action.amount = action.payload.amount;
+                }
+                session.step = getNextYieldFlowStep(
+                    action.payload.flowType,
+                    action.payload.step,
+                    session.isWrappedNativeVault,
+                );
+            });
+        },
+        returnToWrapStep(
+            state: StablecoinYieldState,
+            action: PayloadAction<StablecoinYieldSessionActionPayload>,
+        ) {
+            withSession(state, action.payload, session => {
+                // Editing the finished wrap step offers another wrap round. Only meaningful for
+                // a wrapped-native deposit, from a later pre-complete step, and never while an
+                // approval or action operation is in flight — a regression during e.g.
+                // `submitYieldApproveThunk` would let its completion yank the flow out of the
+                // re-entered wrap step.
+                if (
+                    action.payload.flowType !== 'deposit' ||
+                    !session.isWrappedNativeVault ||
+                    (session.step !== 'approve' && session.step !== 'action') ||
+                    session.approval.isSubmitting ||
+                    session.approval.modalState !== null ||
+                    session.approval.allowanceStatus === 'loading' ||
+                    session.action.isSubmitting ||
+                    session.action.pendingTransaction !== null
+                ) {
+                    return;
+                }
+
+                session.step = 'wrap';
             });
         },
         revokeSuccess(
@@ -414,6 +511,18 @@ const stablecoinYieldSlice = createSlice({
         ) {
             withSession(state, action.payload, session => {
                 session.action.isSubmitting = false;
+            });
+        },
+        // Unlike `startSubmittingAction`, a wrap/unwrap submit must not touch `action.amount` —
+        // that field holds the deposit/withdraw amount the later steps default to. The shared
+        // `finishSubmittingAction` closes both.
+        startSubmittingWrappedNative(
+            state: StablecoinYieldState,
+            action: PayloadAction<StablecoinYieldSessionActionPayload>,
+        ) {
+            withSession(state, action.payload, session => {
+                session.action.isSubmitting = true;
+                session.error = null;
             });
         },
         storeActionReviewData(
@@ -473,7 +582,11 @@ const stablecoinYieldSlice = createSlice({
 
                 session.action.pendingTransaction = null;
                 session.action.review = null;
-                session.step = getNextYieldFlowStep(action.payload.flowType, 'action');
+                session.step = getNextYieldFlowStep(
+                    action.payload.flowType,
+                    'action',
+                    session.isWrappedNativeVault,
+                );
             });
         },
         transactionFailed(
@@ -525,7 +638,7 @@ const stablecoinYieldSlice = createSlice({
     extraReducers: builder => {
         builder.addCase(transactionsActions.replaceTransaction, (state, { payload }) => {
             const { txid: prevTxid, tx } = payload;
-            (['deposit', 'withdraw', 'redeem', 'claim'] as const).forEach(flowType => {
+            YIELD_FLOW_TYPES.forEach(flowType => {
                 const bucket = state[flowType];
                 Object.values(bucket).forEach(session => {
                     if (session.action.pendingTransaction?.txid === prevTxid) {

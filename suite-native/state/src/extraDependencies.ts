@@ -3,9 +3,14 @@ import RNRestart from 'react-native-restart';
 
 import * as Device from 'expo-device';
 
+import { createAddressValidator } from '@suite-common/address';
 import { createBip329CompositionRoot } from '@suite-common/bip329';
 import { delegatedIdentityKeyCompositionRoot } from '@suite-common/delegated-identity-key';
 import { toGetter } from '@suite-common/dependency-injection';
+import {
+    createNetworkModuleRepository,
+    createNetworksCompositionRoot,
+} from '@suite-common/networks';
 import { createNativePlatformEncryption } from '@suite-common/platform-encryption-native';
 import {
     type ExtraDependenciesStatic,
@@ -17,6 +22,7 @@ import {
 } from '@suite-common/redux-utils';
 import { createMigrateSuiteSyncLabelsForRbfTransactionCompositionRoot } from '@suite-common/suite-rbf-labels-migrations';
 import { selectAllLabelsForAccount, selectIsSuiteSyncEnabled } from '@suite-common/suite-sync';
+import { createAccountRefreshThrottle } from '@suite-common/wallet-core';
 import { analytics } from '@suite-native/analytics';
 import { forgetBluetoothDeviceThunk } from '@suite-native/bluetooth';
 import { selectTokenDefinitionsEnabledNetworks } from '@suite-native/discovery';
@@ -27,10 +33,7 @@ import type { EnsureEncryptionKeyDep, MMKVStorageDep } from '@suite-native/stora
 import { createSuiteSyncNativeCompositionRoot } from '@suite-native/suite-sync';
 import { selectTradedAccountKeys, selectTradingEnvironment } from '@suite-native/trading-state';
 import TrezorConnect, { type ConnectSettings, initLog } from '@trezor/connect';
-// Deep import bypasses the `@trezor/transport` barrel so Metro does not
-// resolve sibling node-only modules (`UdpTransport`/`dgram`,
-// `NodeUsbTransport`/`usb`).
-import { BridgeTransport } from '@trezor/transport/src/transports/bridge';
+import { BridgeTransport } from '@trezor/transport-common';
 import { NativeBluetoothTransport } from '@trezor/transport-native-bluetooth';
 import { NativeUsbTransport } from '@trezor/transport-native-usb';
 
@@ -84,6 +87,9 @@ export const createNativeCompositionRoot = (deps: NativeAppDeps): NativeServices
         updateAddressLabel: suiteSync.labeling.updateAddressLabel,
         updateOutputLabel: suiteSync.labeling.updateOutputLabel,
     });
+    const networkModules = createNetworksCompositionRoot();
+    const networkModuleRepository = createNetworkModuleRepository({ networkModules });
+    const addressValidator = createAddressValidator({ networkModuleRepository });
 
     const createLogger: ConnectSettings['createLogger'] = (prefix: string) =>
         initLog(prefix, false);
@@ -91,6 +97,8 @@ export const createNativeCompositionRoot = (deps: NativeAppDeps): NativeServices
     const logger = createLogger('native-transport');
 
     return {
+        networkModuleRepository,
+        addressValidator,
         suiteSync,
         bip329,
         ensureDelegatedIdentityKey,
@@ -127,6 +135,7 @@ export const createNativeCompositionRoot = (deps: NativeAppDeps): NativeServices
                         return new NativeBluetoothTransport({ id: 'native-bluetooth', logger });
                 }
             }),
+        accountRefreshThrottle: createAccountRefreshThrottle(deps.getState),
         migrateSuiteSyncLabelsForRbfTransaction:
             createMigrateSuiteSyncLabelsForRbfTransactionCompositionRoot({
                 dispatch: deps.dispatch,

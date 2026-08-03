@@ -3,7 +3,11 @@ import { useSelector } from 'react-redux';
 
 import { useNavigation } from '@react-navigation/native';
 
-import { type AddressCorrection, autocorrectAddress, isAddressValid } from '@suite-common/address';
+import {
+    type AddressCorrection,
+    autocorrectAddress,
+    selectAddressValidatorDep,
+} from '@suite-common/address';
 import { useServices } from '@suite-common/dependency-injection';
 import { type DeviceRootState } from '@suite-common/device';
 import { getNetworkSymbolForProtocol } from '@suite-common/suite-utils';
@@ -23,7 +27,7 @@ import { type NativeAccountsRootState, selectFreshAccountAddress } from '@suite-
 import { events, selectNativeAnalyticsDep } from '@suite-native/analytics';
 import { Button, HStack, Text, VStack } from '@suite-native/atoms';
 import { isDebugEnv } from '@suite-native/config';
-import { TextInputField, useFormContext } from '@suite-native/forms';
+import { TextInputField, useFormContext, useWatch } from '@suite-native/forms';
 import { Translation, type TxKeyPath } from '@suite-native/intl';
 import {
     type RootStackParamList,
@@ -64,8 +68,11 @@ export const AddressInput = ({ index, accountKey, onQrNetworkMismatch }: Address
     const utxoLabelFieldName = getOutputFieldName(index, 'label');
     const amountFieldName = getOutputFieldName(index, 'amount');
     const tokenFieldName = getOutputFieldName(index, 'token');
-    const { setValue, watch } = useFormContext<SendOutputsFormValues>();
-    const { analytics } = useServices(selectNativeAnalyticsDep);
+    const { setValue, control } = useFormContext<SendOutputsFormValues>();
+    const { analytics, addressValidator } = useServices(
+        selectNativeAnalyticsDep,
+        selectAddressValidatorDep,
+    );
     const symbol = useSelector((state: AccountsRootState) =>
         selectAccountNetworkSymbol(state, accountKey),
     );
@@ -112,7 +119,7 @@ export const AddressInput = ({ index, accountKey, onQrNetworkMismatch }: Address
     const correctAddress = (value: string): string => {
         if (!symbol) return value;
 
-        const correction = autocorrectAddress(value, symbol);
+        const correction = autocorrectAddress({ addressValidator, address: value, symbol });
         if (correction) {
             showAutocorrectMessage(autocorrectMessageKeys[correction.type]);
 
@@ -208,7 +215,7 @@ export const AddressInput = ({ index, accountKey, onQrNetworkMismatch }: Address
         onQrNetworkMismatch?.(null);
         const corrected = correctAddress(qrCodeData);
         setValue(addressFieldName, corrected, { shouldValidate: true });
-        if (symbol && isAddressValid(corrected, symbol)) {
+        if (symbol && addressValidator.isAddressValid(corrected, symbol)) {
             analytics.report({
                 type: events.sendAddressFilledEvent.name,
                 payload: { method: 'qr' },
@@ -222,7 +229,7 @@ export const AddressInput = ({ index, accountKey, onQrNetworkMismatch }: Address
         if (corrected !== newValue) {
             setValue(addressFieldName, corrected, { shouldValidate: true });
         }
-        if (symbol && isAddressValid(corrected, symbol)) {
+        if (symbol && addressValidator.isAddressValid(corrected, symbol)) {
             analytics.report({
                 type: events.sendAddressFilledEvent.name,
                 payload: { method: 'manual' },
@@ -243,8 +250,8 @@ export const AddressInput = ({ index, accountKey, onQrNetworkMismatch }: Address
             });
     };
 
-    const utxoLabel = watch(utxoLabelFieldName);
-    const outputToken = watch(tokenFieldName);
+    const utxoLabel = useWatch({ control, name: utxoLabelFieldName });
+    const outputToken = useWatch({ control, name: tokenFieldName });
 
     return (
         <VStack spacing="sp12">

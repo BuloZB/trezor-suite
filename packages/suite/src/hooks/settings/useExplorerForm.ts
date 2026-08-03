@@ -1,10 +1,10 @@
-import { useCallback, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useMemo } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { useTranslation } from '@suite/intl';
 import { type Explorer, type NetworkSymbol } from '@suite-common/wallet-config';
-import { explorerActions } from '@suite-common/wallet-core';
-import { isUrl, typedObjectKeys } from '@trezor/utils';
+import { explorerActions, selectNetworkExplorers } from '@suite-common/wallet-core';
+import { isUrl } from '@trezor/utils';
 
 import { useDispatch, useSelector } from '../suite';
 
@@ -13,11 +13,16 @@ const useExplorerInput = (currentValues: Explorer) => {
         register,
         formState: { errors },
         trigger,
-        watch,
+        control,
         setValue,
     } = useForm<Explorer>({
         mode: 'onChange',
         defaultValues: currentValues,
+    });
+
+    const [base, tx, address, token, nft, queryString] = useWatch({
+        control,
+        name: ['base', 'tx', 'address', 'token', 'nft', 'queryString'],
     });
 
     const { translationString } = useTranslation();
@@ -68,37 +73,37 @@ const useExplorerInput = (currentValues: Explorer) => {
         fields: {
             base: {
                 ref: baseInputRef,
-                value: watch('base'),
+                value: base,
                 field: baseInputField,
                 error: errors.base?.message,
             },
             tx: {
                 ref: txInputRef,
-                value: watch('tx'),
+                value: tx,
                 field: txInputField,
                 error: errors.tx?.message,
             },
             address: {
                 ref: addressInputRef,
-                value: watch('address'),
+                value: address,
                 field: addressInputField,
                 error: errors.address?.message,
             },
             token: {
                 ref: tokenInputRef,
-                value: watch('token'),
+                value: token,
                 field: tokenInputField,
                 error: errors.token?.message,
             },
             nft: {
                 ref: nftInputRef,
-                value: watch('nft'),
+                value: nft,
                 field: nftInputField,
                 error: errors.nft?.message,
             },
             queryString: {
                 ref: queryStringInputRef,
-                value: watch('queryString'),
+                value: queryString,
                 field: queryStringInputField,
                 error: errors.queryString?.message,
             },
@@ -109,7 +114,7 @@ const useExplorerInput = (currentValues: Explorer) => {
 export const useExplorerForm = (symbol: NetworkSymbol) => {
     const dispatch = useDispatch();
 
-    const explorerConfig = useSelector(state => state.wallet.explorer[symbol]);
+    const explorerConfig = useSelector(state => selectNetworkExplorers(state, symbol));
 
     const input = useExplorerInput(explorerConfig.custom ?? explorerConfig.default);
     const { base, tx, address, token, nft, queryString } = input.fields;
@@ -126,33 +131,8 @@ export const useExplorerForm = (symbol: NetworkSymbol) => {
         [base, tx, address, token, nft, queryString],
     );
 
-    const normalizeExplorer = (explorer: Explorer) => {
-        const stripSlashes = (value: string): string => value.replace(/^\/+|\/+$/g, '');
-
-        typedObjectKeys(explorer).forEach(key => {
-            if (!explorer[key]) return;
-            explorer[key] = stripSlashes(explorer[key]).trim();
-        });
-
-        return explorer;
-    };
-
-    const usesDefaultExplorer = useCallback(
-        (explorer: Explorer) =>
-            Object.keys(explorerConfig.default).every(
-                key =>
-                    explorer[key as keyof Explorer] ===
-                    explorerConfig.default[key as keyof Explorer],
-            ),
-        [explorerConfig.default],
-    );
-
     const save = () => {
-        const normalizedExplorer = normalizeExplorer(explorer);
-        const newExplorer = usesDefaultExplorer(normalizedExplorer)
-            ? undefined
-            : normalizedExplorer;
-        dispatch(explorerActions.setExplorer({ symbol, explorer: newExplorer }));
+        dispatch(explorerActions.setExplorer({ symbol, explorer }));
     };
 
     const setDefaultValues = () => {
@@ -177,7 +157,7 @@ export const useExplorerForm = (symbol: NetworkSymbol) => {
     return {
         save,
         setDefaultValues,
-        usesDefaultExplorer: usesDefaultExplorer(explorer),
+        usesDefaultExplorer: explorerConfig.custom === undefined,
         explorerConfig,
         input,
         isValid,

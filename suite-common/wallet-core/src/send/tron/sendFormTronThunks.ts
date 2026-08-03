@@ -11,8 +11,8 @@ import {
     subunitsToUnits,
     unitsToSubunits,
 } from '@suite-common/wallet-utils';
-import { tronUtils } from '@trezor/blockchain-link-utils';
 import TrezorConnect from '@trezor/connect';
+import * as tronUtils from '@trezor/network-tron/utils';
 import { BigNumber } from '@trezor/utils';
 
 import { SEND_MODULE_PREFIX } from '../sendFormConstants';
@@ -139,7 +139,9 @@ export const composeTronTransactionFeeLevelsThunk = createThunk<
         }
 
         const isNewAccount =
-            calldata.data === null && (await isNewTronAccount(firstComposeOutput.address, account));
+            calldata.data === null &&
+            to !== account.descriptor &&
+            (await isNewTronAccount(to, account));
 
         const feeLevel =
             calldata.data !== null

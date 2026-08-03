@@ -23,6 +23,28 @@ export default [
     },
     {
         blockchain: {
+            name: 'HyperEVM',
+            worker: 'js/blockbook-worker.js',
+            server: ['https://hype.trezor.io'],
+            debug: true,
+        },
+        data: {
+            address: '',
+            accountInfoOptions: {
+                page: 1,
+                pageSize: 25,
+                contractFilter: undefined,
+            },
+            estimateFeeOptions: {
+                blocks: [1, 2, 10],
+            },
+            txid: '',
+            tx: '',
+            subscribe: '',
+        },
+    },
+    {
+        blockchain: {
             name: 'Ripple',
             worker: 'js/ripple-worker.js',
             server: [
@@ -203,6 +225,28 @@ export default [
             name: 'Arbitrum One',
             worker: 'js/blockbook-worker.js',
             server: ['https://arb.trezor.io'],
+            debug: true,
+        },
+        data: {
+            address: '',
+            accountInfoOptions: {
+                page: 1,
+                pageSize: 25,
+                contractFilter: undefined,
+            },
+            estimateFeeOptions: {
+                blocks: [1, 2, 10],
+            },
+            txid: '',
+            tx: '',
+            subscribe: '',
+        },
+    },
+    {
+        blockchain: {
+            name: 'Robinhood Chain',
+            worker: 'js/blockbook-worker.js',
+            server: ['https://rhc.trezor.io'],
             debug: true,
         },
         data: {

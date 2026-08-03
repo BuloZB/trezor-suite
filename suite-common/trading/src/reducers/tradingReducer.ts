@@ -41,8 +41,11 @@ const tradingSlice = createSliceWithExtraDeps({
             .addCase(buyThunks.handleRequestThunk.fulfilled, state => {
                 state.buy.isLoading = false;
             })
-            .addCase(buyThunks.handleRequestThunk.rejected, state => {
+            .addCase(buyThunks.handleRequestThunk.rejected, (state, action) => {
                 state.buy.isLoading = false;
+                if (action.meta?.aborted) {
+                    return;
+                }
                 state.buy.amountLimits = undefined;
                 state.buy.quotes = [];
                 state.buy.quotesRequest = undefined;
@@ -53,8 +56,11 @@ const tradingSlice = createSliceWithExtraDeps({
             .addCase(exchangeThunks.handleRequestThunk.fulfilled, state => {
                 state.exchange.isLoading = false;
             })
-            .addCase(exchangeThunks.handleRequestThunk.rejected, state => {
+            .addCase(exchangeThunks.handleRequestThunk.rejected, (state, action) => {
                 state.exchange.isLoading = false;
+                if (action.meta?.aborted) {
+                    return;
+                }
                 state.exchange.amountLimits = undefined;
                 state.exchange.quotes = [];
                 state.exchange.quotesRequest = undefined;
@@ -65,11 +71,14 @@ const tradingSlice = createSliceWithExtraDeps({
             .addCase(sellThunks.handleRequestThunk.fulfilled, state => {
                 state.sell.isLoading = false;
             })
-            .addCase(sellThunks.handleRequestThunk.rejected, state => {
+            .addCase(sellThunks.handleRequestThunk.rejected, (state, action) => {
+                state.sell.isLoading = false;
+                if (action.meta?.aborted) {
+                    return;
+                }
                 state.sell.amountLimits = undefined;
                 state.sell.quotes = [];
                 state.sell.quotesRequest = undefined;
-                state.sell.isLoading = false;
             })
             .addCase(sellThunks.handleTradeThunk.pending, state => {
                 state.exchange.isLoading = true;

@@ -37,7 +37,7 @@ const deviceReview = {
     intentTitle: 'Intent',
     intentValue: 'Swap',
     contractTitle: 'Confirm contract',
-    sendLabel: 'Amount to Send',
+    sendLabel: 'Amount to send',
     receiveLabel: 'Minimum to Receive',
     feeTitle: '', // this page renders no header title
     feeLabel: 'Maximum fee',
@@ -74,6 +74,7 @@ test.describe('Trading - DEX swap (LI.FI)', { tag: ['@webOnly', '@T3T1', '@T3W1'
                     internalTxs: 0,
                     transactions: [],
                 });
+                //TODO: Switch to changeNetworks once mocks are refactored
                 await settingsPage.coinsTab.openNetworkAdvanceSettings('eth');
                 await settingsPage.coinsTab.changeBackend('blockbook', blockbookMock.url);
             });

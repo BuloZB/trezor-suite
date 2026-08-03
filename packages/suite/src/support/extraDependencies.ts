@@ -26,11 +26,16 @@ import {
     selectLanguage,
 } from '@suite/settings';
 import { createSuiteSyncDesktopCompositionRoot } from '@suite/suite-sync';
+import { createAddressValidator } from '@suite-common/address';
 import { createBip329CompositionRoot } from '@suite-common/bip329';
 import { delegatedIdentityKeyCompositionRoot } from '@suite-common/delegated-identity-key';
 import { toGetter } from '@suite-common/dependency-injection';
 import { type DeviceReducerState, selectDeviceByStaticSessionId } from '@suite-common/device';
 import { FW_HASH_CHECK_DEFAULT_TIMEOUTS } from '@suite-common/firmware-authenticity';
+import {
+    createNetworkModuleRepository,
+    createNetworksCompositionRoot,
+} from '@suite-common/networks';
 import { type PlatformEncryptionDep } from '@suite-common/platform-encryption';
 import { type ReceiveState } from '@suite-common/receive';
 import {
@@ -64,6 +69,7 @@ import {
     type SendState,
     type TransactionsState,
     type WalletSettingsState,
+    createAccountRefreshThrottle,
     selectAccountsByDeviceState,
 } from '@suite-common/wallet-core';
 import { createAccountKey } from '@suite-common/wallet-types';
@@ -164,6 +170,11 @@ export const createSuiteServicesCompositionRoot = (deps: SuiteAppDeps): SuiteSer
         dispatch: deps.dispatch,
         getState: deps.getState,
     });
+    const networkModules = createNetworksCompositionRoot();
+    const networkModuleRepository = createNetworkModuleRepository({ networkModules });
+    const addressValidator = createAddressValidator({
+        networkModuleRepository,
+    });
 
     const createTransports: CreateTransports = transports => {
         const factories = deps.getTransportsFactories();
@@ -179,6 +190,8 @@ export const createSuiteServicesCompositionRoot = (deps: SuiteAppDeps): SuiteSer
     };
 
     return {
+        networkModuleRepository,
+        addressValidator,
         suiteSync,
         bip329,
         migrateLegacyLabelsToSuiteSync,
@@ -193,6 +206,7 @@ export const createSuiteServicesCompositionRoot = (deps: SuiteAppDeps): SuiteSer
         saveAs: (data: Blob, fileName: string) => saveAs(data, fileName),
         connectInitSettings,
         connectInitHooks,
+        accountRefreshThrottle: createAccountRefreshThrottle(deps.getState),
         createLogger: deps.createLogger,
         thpHostName: deps.thpHostName,
         createTransports,

@@ -1,8 +1,9 @@
 import { AccountLabel } from '@suite/account';
-import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
+import { selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation, type TranslationKey, useTranslation } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { type EarnParams, goto } from '@suite/router';
+import { events } from '@suite-common/analytics';
 import { useServices } from '@suite-common/dependency-injection';
 import { type YieldDtoV2 } from '@suite-common/earn-stablecoin-api';
 import {
@@ -15,6 +16,7 @@ import { Box, Button, Column, IconButton, Row, Text } from '@trezor/components';
 import { CaretLeftIcon, InfoIcon } from '@trezor/icons';
 import { TokenIcon } from '@trezor/product-components';
 
+import { FormattedCryptoAmount } from 'src/components/suite/FormattedCryptoAmount';
 import { PageHeader } from 'src/components/suite/layouts/SuiteLayout';
 import { useDispatch } from 'src/hooks/suite';
 import { useLayoutSize } from 'src/hooks/suite/useLayoutSize';
@@ -120,6 +122,7 @@ export const YieldPageHeader = ({
                                 showNetworkIcon
                                 size={32}
                                 isBordered={false}
+                                wrappedTokenIcon="network"
                             />
                         )}
                         <Column gap={2} overflow="hidden">
@@ -129,14 +132,30 @@ export const YieldPageHeader = ({
                             >
                                 {vaultName}
                             </Text>
-                            <AccountLabel
-                                account={account}
-                                showAccountTypeBadge
-                                accountTypeBadgeSize="small"
-                                intent="neutral"
-                                priority="secondary"
-                                typographyStyle="body-sm"
-                            />
+                            {/* The balance aligns with the right edge of the vault name above;
+                                when the name is shorter, the gap keeps it 24px from the label. */}
+                            <Row justifyContent="space-between" alignItems="center" gap={24}>
+                                <AccountLabel
+                                    account={account}
+                                    showAccountTypeBadge
+                                    accountTypeBadgeSize="small"
+                                    intent="neutral"
+                                    priority="secondary"
+                                    typographyStyle="body-sm"
+                                />
+                                <Text
+                                    typographyStyle="body-sm"
+                                    intent="neutral"
+                                    priority="secondary"
+                                >
+                                    <FormattedCryptoAmount
+                                        value={account.formattedBalance}
+                                        symbol={account.symbol}
+                                        isBalance
+                                        data-testid="@yield/page-header/balance"
+                                    />
+                                </Text>
+                            </Row>
                         </Column>
                     </Row>
                 ) : (

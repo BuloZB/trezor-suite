@@ -10,6 +10,7 @@ export { settingsDeviceChangeLabelEvent } from './settingsDeviceChangeLabelEvent
 export { settingsDeviceWipeEvent } from './settingsDeviceWipeEvent';
 export { settingsGeneralLabelingEvent } from './settingsGeneralLabelingEvent';
 export { settingsNetworkSearchUsedEvent } from './settingsNetworkSearchUsedEvent';
+export { settingsNetworksExplorerEvent } from './settingsNetworksExplorerEvent';
 export { settingsTestnetNetworksToggleEvent } from './settingsTestnetNetworksToggleEvent';
 export { walletConnectInitEvent } from './walletConnectInitEvent';
 export { walletConnectPairedEvent } from './walletConnectPairedEvent';
@@ -33,3 +34,9 @@ export {
     type NoDeviceEshopCtaOrigin,
 } from './promoNoDeviceEshopCtaEvent';
 export { guideSupportChatOpenedEvent } from './guideSupportChatOpenedEvent';
+export { yieldEarnDashboardReadyEvent } from './yieldEarnDashboardReadyEvent';
+export { yieldInteractionEvent } from './yieldInteractionEvent';
+export { yieldNavigateEvent } from './yieldNavigateEvent';
+export { yieldDepositEvent } from './yieldDepositEvent';
+export { yieldWithdrawEvent } from './yieldWithdrawEvent';
+export { yieldClaimEvent } from './yieldClaimEvent';

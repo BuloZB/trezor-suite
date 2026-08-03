@@ -1,6 +1,6 @@
 {
     "name": "@trezor/connect-common",
-    "version": "10.0.0-alpha.1",
+    "version": "10.0.0-beta.1",
     "type": "module",
     "author": "Trezor <info@trezor.io>",
     "homepage": "https://github.com/trezor/trezor-suite/tree/develop/packages/connect-common",
@@ -58,6 +58,7 @@
         "lint:js": "yarn g:eslint '**/*.{ts,tsx,js}'"
     },
     "dependencies": {
+        "@trezor/crypto-utils": "workspace:*",
         "@trezor/device-utils": "workspace:*",
         "@trezor/protobuf": "workspace:*",
         "@trezor/protocol": "workspace:^",

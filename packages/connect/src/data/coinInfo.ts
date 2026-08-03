@@ -1,10 +1,12 @@
 // origin: https://github.com/trezor/connect/blob/develop/src/js/data/CoinInfo.js
 import { ERRORS } from '@trezor/connect-common/src/constants';
-import type {
-    BitcoinNetworkInfo,
-    CoinSymbol,
-    EthereumNetworkInfo,
-    MiscNetworkInfo,
+import {
+    type BitcoinNetworkInfo,
+    type CoinInfo,
+    type CoinSymbol,
+    type EthereumNetworkInfo,
+    type MiscNetworkInfo,
+    asCoinSymbol,
 } from '@trezor/connect-common/src/types/coinInfo';
 import coinsEth from '@trezor/connect-data/files/coins-eth.json';
 import coins from '@trezor/connect-data/files/coins.json';
@@ -118,9 +120,9 @@ export const fixCoinInfoNetwork = (ci: BitcoinNetworkInfo, path: number[]) => {
 const getCoinInfo = (coin: CoinSymbol) =>
     getBitcoinNetwork(coin) || getEthereumNetwork(coin) || getMiscNetwork(coin);
 
-export const getCoinInfoOrThrow = (coin: string) => {
+export const getCoinInfoOrThrow = (coin: string): Readonly<CoinInfo> => {
     // `coin` is unvalidated caller input; a non-shortcut resolves to undefined below
-    const coinInfo = getCoinInfo(coin as CoinSymbol);
+    const coinInfo = getCoinInfo(asCoinSymbol(coin));
     if (!coinInfo) {
         throw ERRORS.TypedError('Method_UnknownCoin');
     }
@@ -175,7 +177,6 @@ const parseBitcoinNetworksJson = (json: any) => {
             shortcut,
             // cooldown not used
             curveName: coin.curve_name,
-            // decred not used
             forceBip143: coin.force_bip143,
             // forkid in Network
             // github not used
@@ -272,7 +273,11 @@ export const getUniqueNetworks = <T extends { shortcut: string }>(networks: (T |
         return result.concat(info);
     }, []);
 
-export const getAllNetworks = () => [...bitcoinNetworks, ...ethereumNetworks, ...miscNetworks];
+export const getAllNetworks = (): CoinInfo[] => [
+    ...bitcoinNetworks,
+    ...ethereumNetworks,
+    ...miscNetworks,
+];
 
 // Populate the network registries from the bundled coin definitions on module load.
 parseCoinsJson({ ...coins, ...coinsEth });

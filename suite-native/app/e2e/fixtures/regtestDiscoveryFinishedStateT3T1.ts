@@ -113,7 +113,6 @@ export const regtestDiscoveryFinishedStateT3T1: PreloadedState = {
                 metadata: {
                     key: 'tpubDCKpwiaxUvejaVwzGE9mjZQ5rHm2DwCTYDM3cYDYW5eG5V99uc34W4YZz1PYsWndPMD9PwcrBPV6C92zgP8Z1PHwrMEGFDeGp5YvFLxtP2P',
                 },
-                ts: 1758269690638,
                 networkType: 'bitcoin',
                 page: {
                     index: 1,
@@ -217,7 +216,6 @@ export const regtestDiscoveryFinishedStateT3T1: PreloadedState = {
                     capabilities: [
                         'Capability_Bitcoin',
                         'Capability_Bitcoin_like',
-                        'Capability_Binance',
                         'Capability_Cardano',
                         'Capability_Crypto',
                         'Capability_Ethereum',
@@ -259,18 +257,6 @@ export const regtestDiscoveryFinishedStateT3T1: PreloadedState = {
                     soc: null,
                 },
                 unavailableCapabilities: {
-                    btg: 'no-support',
-                    tbtg: 'no-support',
-                    dash: 'no-support',
-                    tdash: 'no-support',
-                    dcr: 'no-support',
-                    tdcr: 'no-support',
-                    dgb: 'no-support',
-                    nmc: 'no-support',
-                    vtc: 'no-support',
-                    maid: 'no-capability',
-                    omni: 'no-capability',
-                    usdt: 'no-capability',
                     slip24: 'update-required',
                     evolu: 'update-required',
                 },

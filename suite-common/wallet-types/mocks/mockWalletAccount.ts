@@ -93,6 +93,7 @@ const networkTypeMap: Record<NetworkSymbol, NetworkSpecificDefault> = {
     // Eth
     eth: networkSpecificDefaultEthereum,
     etc: networkSpecificDefaultEthereum,
+    hype: networkSpecificDefaultEthereum,
 
     // Testnet Eth
     tsep: networkSpecificDefaultEthereum,
@@ -114,6 +115,7 @@ const networkTypeMap: Record<NetworkSymbol, NetworkSpecificDefault> = {
     arb: networkSpecificDefaultBitcoin,
     base: networkSpecificDefaultBitcoin,
     op: networkSpecificDefaultBitcoin,
+    rhc: networkSpecificDefaultEthereum,
     avax: networkSpecificDefaultBitcoin,
     trx: networkSpecificDefaultTron,
     ttrx: networkSpecificDefaultTron,
@@ -135,6 +137,7 @@ export const mockWalletAccount = (
     > &
         MandatoryAccountData,
     networkSpecific?: NetworkSpecificDefault,
+    accountFailure: AccountFailureSpecific = { failed: false },
 ): Account => {
     const descriptor = account.descriptor ?? asAccountDescriptor(account.symbol);
 
@@ -153,7 +156,6 @@ export const mockWalletAccount = (
         utxo: undefined,
         addresses: undefined,
         metadata: { key: 'xpub' },
-        ts: 0,
         ...account,
 
         // This is mandatory to pass to enforce consistency
@@ -167,14 +169,9 @@ export const mockWalletAccount = (
         symbol: account.symbol,
     };
 
-    // This is needed as typing the `Account` type with the union-type of
+    // This is needed to be separated, as typing the `Account` type with the union-type of
     // the Networks and Backends seems impossible.
-    // This way, we at least get type-safe for AccountBase data.
-
-    const accountFailure: AccountFailureSpecific = {
-        failed: false,
-    };
-
+    // This way, we at least get type-safety for AccountBase and AccountFailureSpecific data.
     return {
         ...accountBase,
         ...accountFailure,

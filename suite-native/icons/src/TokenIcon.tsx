@@ -65,15 +65,23 @@ const tokenIconPlaceholderTextStyle = prepareNativeStyle(utils => ({
 interface TokenIconPlaceholderProps {
     placeholder: string;
     containerStyle: NativeStyleObject;
+    accessibilityLabel: string;
 }
 
-const TokenIconPlaceholder = ({ placeholder, containerStyle }: TokenIconPlaceholderProps) => {
+const TokenIconPlaceholder = ({
+    placeholder,
+    accessibilityLabel,
+    containerStyle,
+}: TokenIconPlaceholderProps) => {
     const { applyStyle } = useNativeStyles();
     const firstChar = placeholder[0] || 'T';
 
     // due to circular deps issues we need to use Text and View comp from 'react-native' instead of 'atoms'
     return (
-        <View style={[containerStyle, applyStyle(tokenIconPlaceholderIconStyle)]}>
+        <View
+            style={[containerStyle, applyStyle(tokenIconPlaceholderIconStyle)]}
+            accessibilityLabel={accessibilityLabel}
+        >
             <Text
                 style={applyStyle(tokenIconPlaceholderTextStyle)}
                 maxFontSizeMultiplier={MAX_FONT_SIZE_MULTIPLIER}
@@ -134,10 +142,11 @@ const TokenIconComponent = ({ symbol, contractAddress, size = 'small' }: TokenIc
         return [cryptoIcons[symbol.toLowerCase() as CryptoIconName]];
     }, [contractAddress, sizeNumber, symbol]);
 
-    const sourceUrls = resolvedUrls ?? [cryptoIcons[symbol.toLowerCase() as CryptoIconName]];
+    const sourceUrls = resolvedUrls ?? [];
     const sourceKey = resolvedUrls ? `${asyncKey}#resolved` : `${asyncKey}#fallback`;
     const logoIndex = loadState?.sourceKey === sourceKey ? loadState.logoIndex : 0;
-    const showPlaceholder = loadState?.sourceKey === sourceKey ? loadState.failed : false;
+    const showPlaceholder =
+        !resolvedUrls || (loadState?.sourceKey === sourceKey ? loadState.failed : false);
 
     /**
      * Retries loading the icon with the next available address in sourceUrls.
@@ -160,6 +169,7 @@ const TokenIconComponent = ({ symbol, contractAddress, size = 'small' }: TokenIc
         return (
             <TokenIconPlaceholder
                 placeholder={symbol.toUpperCase()}
+                accessibilityLabel={key}
                 containerStyle={iconContainerStyle}
             />
         );

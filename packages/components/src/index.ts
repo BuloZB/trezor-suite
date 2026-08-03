@@ -1,3 +1,6 @@
+// Include the styled-components theme augmentation in the emitted public declarations.
+import './styled';
+
 export * as variables from './config/variables';
 export * as animations from './config/animations';
 export { motionAnimation, motionEasing } from './config/motion';
@@ -87,6 +90,13 @@ export * from './components/Image/Image';
 export * from './components/Image/SvgImage';
 export * from './components/Image/images';
 export { DotIndicator, type DotIndicatorProps } from './components/DotIndicator/DotIndicator';
+export { Dot, type DotProps, DOT_RINGING_DURATION } from './components/Dot/Dot';
+export { dotIntents, type DotIntent } from './components/Dot/types';
+export {
+    StatusBadge,
+    type StatusBadgeProps,
+    type StatusBadgeOffset,
+} from './components/StatusBadge/StatusBadge';
 export {
     IconCircle,
     type IconCircleProps,

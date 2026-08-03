@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { type CryptoId } from 'invity-api';
 
 import { selectIsDebugModeActive } from '@suite/debug';
+import { selectAddressValidatorDep } from '@suite-common/address';
+import { useServices } from '@suite-common/dependency-injection';
 import { selectSelectedDevice } from '@suite-common/device';
 import {
     type TradingType,
@@ -20,7 +22,6 @@ import {
 import { selectAccountByKey } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
 import { filterReceiveAccounts } from '@suite-common/wallet-utils';
-import { isAddressValid } from '@trezor/address-validator';
 
 import { useNetworkSupport } from 'src/hooks/settings/useNetworkSupport';
 import { useDispatch, useSelector } from 'src/hooks/suite';
@@ -59,6 +60,7 @@ export const useTradingReceiveAddress = ({
     nonSuiteAccount,
 }: UseTradingReceiveAddressProps) => {
     const dispatch = useDispatch();
+    const { addressValidator } = useServices(selectAddressValidatorDep);
     const accounts = useSelector(state => state.wallet.accounts);
     const walletSelectedAccount = useSelector(state => state.wallet.selectedAccount);
     const device = useSelector(selectSelectedDevice);
@@ -215,7 +217,10 @@ export const useTradingReceiveAddress = ({
             let isValidForCurrentSymbol = false;
 
             try {
-                isValidForCurrentSymbol = isAddressValid(persistedReceiveAddress, symbol);
+                isValidForCurrentSymbol = addressValidator.isAddressValid(
+                    persistedReceiveAddress,
+                    symbol,
+                );
             } catch {
                 isValidForCurrentSymbol = false;
             }
@@ -282,10 +287,11 @@ export const useTradingReceiveAddress = ({
         hasSuiteReceiveAccount,
         hasSelectionInitialized,
         methods,
+        addressValidator,
     ]);
 
-    const receiveAddressValue = methods.watch('address');
-    const extraFieldValue = methods.watch('extraField');
+    const receiveAddressValue = useWatch({ control: methods.control, name: 'address' });
+    const extraFieldValue = useWatch({ control: methods.control, name: 'extraField' });
 
     const addressDictionary = useAccountAddressDictionary(receiveAccount ?? undefined);
     const accountAddress = receiveAddressValue ? addressDictionary[receiveAddressValue] : undefined;

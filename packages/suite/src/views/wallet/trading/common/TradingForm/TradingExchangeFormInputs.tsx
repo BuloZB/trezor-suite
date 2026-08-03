@@ -1,6 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 
+import { useServices } from '@suite-common/dependency-injection';
+import { selectNetworkModuleRepositoryDep } from '@suite-common/networks';
 import {
     TRADING_FORM_OUTPUT_AMOUNT,
     TRADING_FORM_OUTPUT_FIAT,
@@ -15,6 +17,7 @@ import {
     selectTradingExchangeSelectedQuote,
     selectTradingExchangeSellCryptoIds,
     selectTradingLoadingAndTimestamp,
+    selectTradingSendAccount,
     tradingActions,
 } from '@suite-common/trading';
 import { type TokenAddress } from '@suite-common/wallet-types';
@@ -24,6 +27,7 @@ import { useCurrentRef } from '@trezor/react-utils';
 import { BigNumber } from '@trezor/utils';
 
 import { useDispatch, useSelector } from 'src/hooks/suite';
+import { useSelectedTradingAsset } from 'src/hooks/wallet/trading/form/common/useSelectedTradingAsset';
 import { useTradingAssetDecimals } from 'src/hooks/wallet/trading/form/common/useTradingAssetDecimals';
 import { useTradingFormContext } from 'src/hooks/wallet/trading/form/useTradingCommonForm';
 import { TradingBalance } from 'src/views/wallet/trading/common/TradingBalance';
@@ -48,24 +52,24 @@ import { TradingNetworkReserveBanner } from './TradingNetworkReserveBanner';
 
 export const TradingExchangeFormInputs = () => {
     const context = useTradingFormContext<TradingExchangeType>();
+    const { networkModuleRepository } = useServices(selectNetworkModuleRepositoryDep);
 
     const { isLoading } = useSelector(selectTradingLoadingAndTimestamp);
-    const exchangeBuySupportedCryptoIds = useSelector(selectTradingExchangeBuyCryptoIds);
-    const exchangeSellSupportedCryptoIds = useSelector(selectTradingExchangeSellCryptoIds);
     const quotes = useSelector(selectTradingExchangeQuotes);
     const selectedQuote = useSelector(selectTradingExchangeSelectedQuote);
 
     const {
+        type,
         feeInfo,
-        account,
         composedLevels,
         form: { helpers },
         changeFeeLevel,
         shouldSendInSats,
         showReserveBanner,
-        resetSelectedOffer,
         setAmountLimits,
     } = context;
+    const asset = useSelectedTradingAsset(type);
+    const account = useSelector(state => selectTradingSendAccount(state, type));
 
     const displayComposedLevels = useMemo(
         () => getDisplayComposedLevels(selectedQuote, composedLevels),
@@ -104,17 +108,15 @@ export const TradingExchangeFormInputs = () => {
     // `useTradingExchangeForm` has some re-rendering issues, use refs to avoid them
     const setAmountLimitsRef = useCurrentRef(setAmountLimits);
     const setValueRef = useCurrentRef(setValue);
-    const resetSelectedOfferRef = useCurrentRef(resetSelectedOffer);
 
     const onCryptoCurrencyChangeRef = useCurrentRef(helpers.onCryptoCurrencyChange);
     const handleSellAssetSelect = useCallback<TradingFormInputSellAssetProps['onAssetSelect']>(
         async asset => {
             await onCryptoCurrencyChangeRef.current(asset);
 
-            resetSelectedOfferRef.current();
             setValueRef.current(TRADING_FORM_PROVIDER_SELECT, undefined, { shouldDirty: true });
         },
-        [onCryptoCurrencyChangeRef, resetSelectedOfferRef, setValueRef],
+        [onCryptoCurrencyChangeRef, setValueRef],
     );
 
     const handleReceiveAssetSelect = useCallback<TradingFormInputBuyAssetProps['onAssetSelect']>(
@@ -124,10 +126,17 @@ export const TradingExchangeFormInputs = () => {
             });
             setAmountLimitsRef.current(undefined);
             dispatch(tradingActions.setModalCryptoCurrency(asset.id));
-            resetSelectedOfferRef.current();
             setValueRef.current(TRADING_FORM_PROVIDER_SELECT, undefined, { shouldDirty: true });
         },
-        [dispatch, setAmountLimitsRef, setValueRef, resetSelectedOfferRef],
+        [dispatch, setAmountLimitsRef, setValueRef],
+    );
+
+    const supportedNetworks = networkModuleRepository.getSupportedNetworks();
+    const exchangeBuySupportedCryptoIds = useSelector(state =>
+        selectTradingExchangeBuyCryptoIds(state, supportedNetworks),
+    );
+    const exchangeSellSupportedCryptoIds = useSelector(state =>
+        selectTradingExchangeSellCryptoIds(state, supportedNetworks),
     );
 
     return (
@@ -144,6 +153,7 @@ export const TradingExchangeFormInputs = () => {
                         }
                         includedCryptoIds={exchangeSellSupportedCryptoIds}
                         excludedCryptoId={receiveCryptoSelect?.id}
+                        inputPlaceholder="TR_SELECT_TOKEN"
                         onAssetSelect={handleSellAssetSelect}
                     />
                     <Column gap={8}>
@@ -154,13 +164,13 @@ export const TradingExchangeFormInputs = () => {
                             currencySelectLabel={currencySelect?.value.toUpperCase()}
                             cryptoCurrencyLabel={sendCryptoSelect?.id}
                         />
-                        {amountInCrypto && (
+                        {amountInCrypto && asset && (
                             <Row justifyContent="space-between" alignItems="center" gap={8}>
                                 <TradingFractionButtons />
                                 <TradingBalance
                                     balance={outputAmount}
                                     displaySymbol={sendCryptoSelect?.displaySymbol}
-                                    symbol={account.symbol}
+                                    symbol={asset.symbol}
                                     tokenAddress={tokenAddress}
                                     showOnlyAmount
                                     amountInCrypto={amountInCrypto}
@@ -170,9 +180,9 @@ export const TradingExchangeFormInputs = () => {
                         )}
                     </Column>
 
-                    {showReserveBanner && (
+                    {showReserveBanner && asset && (
                         <TradingNetworkReserveBanner
-                            symbol={account.symbol}
+                            symbol={asset.symbol}
                             contractAddress={tokenAddress}
                         />
                     )}
@@ -191,7 +201,7 @@ export const TradingExchangeFormInputs = () => {
             {receiveCryptoSelect && (
                 <TradingFormCard>
                     {!isLoading && <TradingReceiveAddress />}
-                    {!!quotes.length && (
+                    {!!quotes.length && account && (
                         <TradingFormFees
                             feeInfo={feeInfo}
                             account={account}

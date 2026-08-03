@@ -79,6 +79,7 @@
             "path": "../../suite-common/metadata-types"
         },
         { "path": "../../suite-common/mev" },
+        { "path": "../../suite-common/networks" },
         {
             "path": "../../suite-common/platform-encryption"
         },
@@ -171,6 +172,7 @@
         { "path": "../../suite/debug" },
         { "path": "../../suite/desktop-update" },
         { "path": "../../suite/device" },
+        { "path": "../../suite/discovery" },
         { "path": "../../suite/discreet-mode" },
         { "path": "../../suite/experimental" },
         { "path": "../../suite/external-links" },
@@ -212,7 +214,6 @@
         { "path": "../../suite/tx-simulation" },
         { "path": "../../suite/ui-animations" },
         { "path": "../../suite/wallet" },
-        { "path": "../address-validator" },
         { "path": "../analytics-uploader" },
         { "path": "../asset-utils" },
         { "path": "../blockchain-link-types" },

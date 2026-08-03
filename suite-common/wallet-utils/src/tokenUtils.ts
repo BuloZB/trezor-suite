@@ -34,6 +34,9 @@ export const getContractAddressForNetworkSymbol = (
     }
 };
 
+// Moved next to the WRAPPED_NATIVE config it reads; re-exported here for existing consumers.
+export { isWrappedNativeToken } from '@suite-common/wallet-config';
+
 export const getAssetLogoContractAddresses = async (
     symbol: NetworkSymbolExtended | undefined,
     contract: string | null | undefined,

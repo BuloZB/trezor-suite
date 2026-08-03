@@ -2,14 +2,22 @@ import { useWatch } from 'react-hook-form';
 
 import styled from 'styled-components';
 
-import { useDevice } from '@suite/device';
+import { setConnectionModal, setConnectionMode, useDevice } from '@suite/device';
 import { Translation } from '@suite/intl';
 import { selectAreFeesLoading } from '@suite-common/wallet-core';
 import { isLowAnonymityWarning } from '@suite-common/wallet-utils';
-import { Banner, Button, Checkbox, Column, Paragraph, Tooltip } from '@trezor/components';
-import { paletteV2, spacingsPx } from '@trezor/theme';
+import {
+    Banner,
+    Button,
+    Checkbox,
+    Column,
+    H4,
+    Link,
+    List,
+    Paragraph,
+    Tooltip,
+} from '@trezor/components';
 
-import { setConnectionModal, setConnectionMode } from 'src/actions/device/deviceSlice';
 import { useDispatch, useSelector } from 'src/hooks/suite';
 import { useSendFormContext } from 'src/hooks/wallet';
 
@@ -17,24 +25,7 @@ const Container = styled.div`
     display: flex;
     flex-direction: column;
     grid-column: 1 / 3;
-    gap: ${spacingsPx.md};
-`;
-const TooltipHeading = styled.p`
-    opacity: 0.6;
-`;
-
-const List = styled.ul`
-    list-style: disc;
-    margin-left: 16px;
-`;
-
-const TextButton = styled.button`
-    background: none;
-    border: none;
-    color: ${paletteV2.globalWhiteAlpha1000};
-    cursor: pointer;
-    padding: 0;
-    text-decoration: underline;
+    gap: 16px;
 `;
 
 export const ReviewButton = () => {
@@ -123,14 +114,14 @@ export const ReviewButton = () => {
     const tooltipContent =
         isLowAnonymity || confirmationRequired ? (
             <>
-                <TooltipHeading>
+                <H4>
                     <Translation id="TR_NOT_ENOUGH_ANONYMIZED_FUNDS_TOOLTIP" />
-                </TooltipHeading>
-                <List>
-                    <li>
+                </H4>
+                <List listStyleType="disc" gap={0}>
+                    <List.Item>
                         <Translation id="TR_ANONYMIZATION_OPTION_1" />
-                    </li>
-                    <li>
+                    </List.Item>
+                    <List.Item>
                         <Translation
                             id="TR_ANONYMIZATION_OPTION_2"
                             values={{
@@ -138,16 +129,14 @@ export const ReviewButton = () => {
                                     coinControlOpen ? (
                                         chunks
                                     ) : (
-                                        <TextButton onClick={toggleUtxoSelection}>
-                                            {chunks}
-                                        </TextButton>
+                                        <Link onClick={toggleUtxoSelection}>{chunks}</Link>
                                     ),
                             }}
                         />
-                    </li>
-                    <li>
+                    </List.Item>
+                    <List.Item>
                         <Translation id="TR_ANONYMIZATION_OPTION_3" />
-                    </li>
+                    </List.Item>
                 </List>
             </>
         ) : null;

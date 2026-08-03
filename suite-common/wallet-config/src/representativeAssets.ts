@@ -49,6 +49,20 @@ const representativeAssets: Partial<Record<NetworkSymbol, readonly Representativ
         { symbol: 'SNX', contract: '0x8700daec35af8ff88c16bdf0418774cb3d7599b4' },
         { symbol: 'VELO', contract: '0x9560e827af36c94d2ac33a39bce1fe78631088db' },
     ],
+    rhc: [
+        { symbol: 'ETH' },
+        { symbol: 'USDG', contract: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168' },
+        { symbol: 'USDE', contract: '0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34' },
+        { symbol: 'VIRTUAL', contract: '0xc6911796042b15d7fa4f6cde69e245ddcd3d9c31' },
+        { symbol: 'NVDA', contract: '0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC' },
+    ],
+    hype: [
+        { symbol: 'HYPE' },
+        { symbol: 'USDT0', contract: '0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb' },
+        { symbol: 'XAUT0', contract: '0xf4d9235269a96aadafc9adae454a0618ebe37949' },
+        { symbol: 'MOVE', contract: '0x3073f7aaa4db83f95e9fff17424f71d4751a3073' },
+        { symbol: 'FEUSD', contract: '0x02c6a2fa58cc01a18b8d9e00ea48d65e4df26c70' },
+    ],
     avax: [
         { symbol: 'AVAX' },
         { symbol: 'USDC', contract: '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e' },

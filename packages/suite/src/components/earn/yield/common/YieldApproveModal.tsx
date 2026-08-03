@@ -2,14 +2,17 @@ import { useEffect, useRef } from 'react';
 
 import { type DexApprovalType } from 'invity-api';
 
-import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
+import { selectDesktopAnalyticsDep } from '@suite/analytics';
+import { events } from '@suite-common/analytics';
 import { useServices } from '@suite-common/dependency-injection';
 import { useYieldOpportunity } from '@suite-common/earn-stablecoin-api';
 import { parseCryptoId, toTokenCryptoId } from '@suite-common/trading';
 import { type Account } from '@suite-common/wallet-types';
+import { isWrappedNativeToken } from '@suite-common/wallet-utils';
 import { getAssetLogoUrl } from '@trezor/asset-utils';
 import { exhaustive } from '@trezor/type-utils';
 
+import { type AllowanceModalProvider } from 'src/components/suite/modals/ReduxModal/UserContextModal/AllowanceModals/AllowanceModalProviderInfo';
 import { ApproveModal } from 'src/components/suite/modals/ReduxModal/UserContextModal/AllowanceModals/ApproveModal';
 import { RevokeModal } from 'src/components/suite/modals/ReduxModal/UserContextModal/AllowanceModals/RevokeModal';
 import { useAllowanceContext } from 'src/hooks/wallet/allowance';
@@ -50,15 +53,22 @@ export const YieldApproveModal = ({
         select: yieldOpportunity => yieldOpportunity.metadata.name,
     });
 
-    const provider = {
+    const provider: AllowanceModalProvider = {
         name: vaultName,
         companyName: vaultName,
-        logo: getAssetLogoUrl({
-            coingeckoId: networkId,
-            contractAddress: parsedContract,
-            size: 80,
-        }),
-        label: 'TR_EARN_YIELD_VAULT' as const,
+        logo: isWrappedNativeToken(account.symbol, contractAddress)
+            ? {
+                  symbol: account.symbol,
+                  size: 20,
+                  showNetworkIcon: true,
+                  wrappedTokenIcon: 'network',
+              }
+            : getAssetLogoUrl({
+                  coingeckoId: networkId,
+                  contractAddress: parsedContract,
+                  size: 80,
+              }),
+        label: 'TR_EARN_YIELD_VAULT',
     };
 
     useEffect(() => {

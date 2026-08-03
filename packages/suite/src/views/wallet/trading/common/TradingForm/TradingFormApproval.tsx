@@ -8,6 +8,8 @@ import { useServices } from '@suite-common/dependency-injection';
 import {
     type TradingExchangeType,
     requiresTokenApproval,
+    selectTradingExchangeSelectedQuote,
+    selectTradingSendAccount,
     tokenSupportsIncreasingAllowance,
     useApprovalStep,
     useTradingUtils,
@@ -48,23 +50,22 @@ export const TradingFormApproval = () => {
         revokeApproval,
         refreshQuotes,
         confirmApproval,
-        resetSelectedOffer,
-        selectedQuote,
         isScheduledQuotesRefresh,
         isComposing,
         form: {
             state: { isFormLoading, isFormInvalid },
             helpers,
         },
-        account,
     } = context;
+    const selectedQuote = useSelector(selectTradingExchangeSelectedQuote);
+    const account = useSelector(reduxState => selectTradingSendAccount(reduxState, 'exchange'));
 
     const { exchangeType, rateType } = watch();
 
     const getCryptoInfo = useTradingExchangeCryptoAndProviderInfo();
 
     const isDiscoveryRunning = useSelector(selectHasRunningDiscovery);
-    const areFeesLoading = useSelector(state => selectAreFeesLoading(state, account.symbol));
+    const areFeesLoading = useSelector(state => selectAreFeesLoading(state, account?.symbol));
 
     const { handleClick: handleApproveClick, disabled: isApproveButtonLoading } =
         useAsyncClickHandler();
@@ -170,11 +171,11 @@ export const TradingFormApproval = () => {
             },
         });
 
-        resetSelectedOffer();
         await refreshQuotes();
     };
 
     const isCommonButtonBusy =
+        !account ||
         isFormLoading ||
         isFormInvalid ||
         areFeesLoading ||
@@ -366,7 +367,7 @@ export const TradingFormApproval = () => {
                         )
                     }
                     onTxClick={
-                        tx.approvalTxid
+                        tx.approvalTxid && account
                             ? () =>
                                   dispatch(
                                       openModal({

@@ -13,6 +13,8 @@ const LOCAL_BALANCE_HISTORY_COINS = [
     'avax',
     'base',
     'op',
+    'rhc',
+    'hype',
     'xlm',
 ] satisfies Array<NetworkSymbol>;
 export type LocalBalanceHistoryCoin = (typeof LOCAL_BALANCE_HISTORY_COINS)[number];

@@ -5,18 +5,19 @@ import styled, { css } from 'styled-components';
 import { type ExtendedMessageDescriptor, Translation, type TranslationKey } from '@suite/intl';
 import { type Route, goto, selectRouteName } from '@suite/router';
 import {
+    Badge,
     Icon,
     type IconComponent,
     Paragraph,
     Row,
     ShortcutBadge,
     type ShortcutBadgeProps,
+    StatusBadge,
     TOOLTIP_DELAY_LONG,
     TOOLTIP_DELAY_SHORT,
     Tooltip,
 } from '@trezor/components';
 import { commonFocusStyles } from '@trezor/components/src/utils/utils';
-import { borders, spacings, spacingsPx } from '@trezor/theme';
 
 import { useDispatch, useSelector } from 'src/hooks/suite';
 import { useResponsiveContext } from 'src/support/suite/ResponsiveContext';
@@ -25,9 +26,9 @@ const Container = styled.button<{ $isActive?: boolean }>`
     flex: 1;
     display: flex;
     align-items: center;
-    gap: ${spacingsPx.md};
-    padding: ${spacingsPx.xs};
-    border-radius: ${borders.radii.sm};
+    gap: 16px;
+    padding: 8px;
+    border-radius: 12px;
     transition: 0.2s ease-in-out;
     cursor: pointer;
     border: 0;
@@ -58,6 +59,9 @@ export type NavigationItemProps = {
     goToRoute?: Route['name'];
     preserveParams?: boolean;
     isActive?: boolean;
+    hasIndicator?: boolean;
+    isIndicatorAnimated?: boolean;
+    hasNewContentIndicator?: boolean;
     'data-testid'?: string;
     className?: string;
     values?: ExtendedMessageDescriptor['values'];
@@ -79,6 +83,9 @@ const NavItem = ({
     routes,
     goToRoute,
     isActive,
+    hasIndicator,
+    isIndicatorAnimated,
+    hasNewContentIndicator,
     'data-testid': dataTest,
     values,
     preserveParams,
@@ -107,6 +114,12 @@ const NavItem = ({
     const isItemActive = isActive || isActiveRoute;
 
     const isTooltipActive = expanded ? shortcut !== undefined : true;
+    const isNewContentBadgeShown = expanded === true && hasNewContentIndicator === true;
+    const isNewContentDotShown =
+        expanded !== true && hasNewContentIndicator === true && hasIndicator !== true;
+    const isIconIndicatorShown = hasIndicator === true || isNewContentDotShown;
+    const iconIndicatorIntent = hasIndicator === true ? 'critical' : 'accentViolet';
+    const navigationItemTestId = dataTest || `@suite/menu/${goToRoute}`;
 
     return (
         <Tooltip
@@ -114,9 +127,9 @@ const NavItem = ({
             flex="1"
             content={
                 shortcut ? (
-                    <Row gap={spacings.sm}>
+                    <Row gap={12}>
                         <Title nameId={nameId} values={values} />
-                        <ShortcutBadge shortcut={shortcut} isInverse />
+                        <ShortcutBadge shortcut={shortcut} />
                     </Row>
                 ) : (
                     <Title nameId={nameId} values={values} />
@@ -129,24 +142,50 @@ const NavItem = ({
             <Container
                 $isActive={isItemActive}
                 onClick={handleClick}
-                data-testid={dataTest || `@suite/menu/${goToRoute}`}
+                data-testid={navigationItemTestId}
                 type="button"
             >
-                <Icon
-                    as={icon}
-                    size={24}
-                    intent="neutral"
-                    priority={isItemActive ? 'primary' : 'secondary'}
-                    pointerEvents="none"
-                />
-                {expanded && (
-                    <Paragraph
-                        typographyStyle="body-md"
+                <StatusBadge
+                    isShown={isIconIndicatorShown}
+                    isAnimated={hasIndicator === true && isIndicatorAnimated}
+                    intent={iconIndicatorIntent}
+                    offset={{ x: -6, y: 5 }}
+                >
+                    <Icon
+                        as={icon}
+                        size={24}
                         intent="neutral"
                         priority={isItemActive ? 'primary' : 'secondary'}
+                        pointerEvents="none"
+                    />
+                </StatusBadge>
+                {expanded && (
+                    <Row
+                        flex="1"
+                        minWidth={0}
+                        gap={8}
+                        justifyContent="space-between"
+                        alignItems="center"
                     >
-                        <Translation id={nameId} values={values} />
-                    </Paragraph>
+                        <Paragraph
+                            typographyStyle="body-md"
+                            intent="neutral"
+                            priority={isItemActive ? 'primary' : 'secondary'}
+                            minWidth={0}
+                            overflowWrap="anywhere"
+                        >
+                            <Translation id={nameId} values={values} />
+                        </Paragraph>
+                        {isNewContentBadgeShown && (
+                            <Badge
+                                size="small"
+                                intent="accentViolet"
+                                data-testid={`${navigationItemTestId}/new-content-indicator`}
+                            >
+                                <Translation id="TR_NEW" />
+                            </Badge>
+                        )}
+                    </Row>
                 )}
             </Container>
         </Tooltip>

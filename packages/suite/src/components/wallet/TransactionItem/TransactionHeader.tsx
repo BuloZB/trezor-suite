@@ -4,6 +4,7 @@ import { getNetworkDisplaySymbol, isNetworkSymbol } from '@suite-common/wallet-c
 import { type TronTxContractType } from '@suite-common/wallet-constants';
 import { type StakeType } from '@suite-common/wallet-types';
 import {
+    getNativeWrapTxKind,
     getTxHeaderSymbol,
     isCardanoStakingTx,
     isSupportedEthStakingNetworkSymbol,
@@ -13,6 +14,7 @@ import { type AccountTransaction } from '@trezor/connect';
 import { BigNumber } from '@trezor/utils';
 
 import { UnstakingTxAmount } from 'src/components/suite/UnstakingTxAmount';
+import { WrapTxAmount } from 'src/components/suite/WrapTxAmount';
 import { type WalletAccountTransaction } from 'src/types/wallet';
 import { BlurUrls } from 'src/views/wallet/tokens/common/BlurUrls';
 
@@ -126,6 +128,23 @@ export const TransactionHeader = ({ transaction, isPending }: TransactionHeaderP
 
     if (isPending && (transaction.ethereumSpecific || transaction.cardanoSpecific)) {
         return <Translation id="TR_UNCONFIRMED_TX_LONG" />;
+    }
+
+    // WETH wrap/unwrap are shown as their own labels instead of the generic contract-call name
+    // ("deposit"/"withdraw") that the indexer parses. The wrapped-token amount isn't obvious from
+    // the transaction row, so it's spelled out while the native side stays a bare symbol
+    // ("Wrap ETH into 0.1 WETH" / "Unwrap 0.1 WETH to ETH", see trezor/trezor-suite#30552).
+    const wrapKind = getNativeWrapTxKind(transaction);
+    if (wrapKind) {
+        return (
+            <Translation
+                id={wrapKind === 'wrap' ? 'TR_TX_WRAP' : 'TR_TX_UNWRAP'}
+                values={{
+                    nativeSymbol: getNetworkDisplaySymbol(transaction.symbol),
+                    wrappedAmount: <WrapTxAmount transaction={transaction} wrapped />,
+                }}
+            />
+        );
     }
 
     if (

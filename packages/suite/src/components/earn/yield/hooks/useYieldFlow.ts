@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { type UseFormReturn, useForm } from 'react-hook-form';
+import { type UseFormReturn, useForm, useWatch } from 'react-hook-form';
 
-import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
-import { useDevice } from '@suite/device';
+import { selectDesktopAnalyticsDep } from '@suite/analytics';
+import { setConnectionModal, setConnectionMode, useDevice } from '@suite/device';
 import { type TranslationKey } from '@suite/intl';
 import { openModal } from '@suite/modal';
 import { type EarnParams } from '@suite/router';
+import { events } from '@suite-common/analytics';
 import { useServices } from '@suite-common/dependency-injection';
 import { type YieldDtoV2 } from '@suite-common/earn-stablecoin-api';
 import {
@@ -17,6 +18,7 @@ import {
     type YieldFlowToken,
     type YieldPendingTransactionState,
     type YieldPositionFlowType,
+    getWrappableNativeBalance,
     handleYieldApproveCancelThunk,
     handleYieldApproveSuccessTxidThunk,
     initYieldAllowanceThunk,
@@ -27,13 +29,15 @@ import {
     submitYieldRevokeThunk,
 } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
+import { isWrappedNativeToken } from '@suite-common/wallet-utils';
 import { useCurrentRef } from '@trezor/react-utils';
 
-import { setConnectionModal, setConnectionMode } from 'src/actions/device/deviceSlice';
 import {
     submitYieldDepositThunk,
     submitYieldWithdrawThunk,
 } from 'src/actions/wallet/stablecoin-yield';
+import { submitUnwrapNativeTokenThunk } from 'src/actions/wallet/unwrapNativeTokenThunks';
+import { submitWrapNativeTokenThunk } from 'src/actions/wallet/wrapNativeTokenThunks';
 import { useDispatch, useSelector } from 'src/hooks/suite';
 
 import { useEnsureYieldDeviceSession } from './useEnsureYieldDeviceSession';
@@ -55,6 +59,7 @@ type UseYieldFlowProps = {
 
 type UseYieldFlowStepsResult = {
     currentStep: YieldFlowStepId;
+    isWrappedNativeVault: boolean;
 };
 
 export type UseYieldFlowResult = {
@@ -75,6 +80,7 @@ export type UseYieldFlowResult = {
     actionAmount: string | null;
     completedAmount: string;
     completedReceiptAmount: string;
+    unwrappedAmount: string | null;
     errorMessage: TranslationKey | undefined;
     approveModalState: YieldApproveModalState | null;
     pendingTransaction: YieldPendingTransactionState | null;
@@ -82,6 +88,7 @@ export type UseYieldFlowResult = {
     allowanceStatus: YieldAllowanceStatus;
     approvalAction: YieldApprovalAction;
     canRevokeAllowance: boolean;
+    hasWrappedTokenBalance: boolean;
     isAmountEmpty: boolean;
     isAmountTooHigh: boolean;
     isAmountInvalidDecimals: boolean;
@@ -89,6 +96,11 @@ export type UseYieldFlowResult = {
     isSubmittingApprove: boolean;
     isSubmittingAction: boolean;
     setAmountInput: (amount: string) => void;
+    submitWrap: () => void;
+    skipWrap: () => void;
+    returnToWrapStep: () => void;
+    submitUnwrap: () => void;
+    skipUnwrap: () => void;
     submitApprovalAction: () => void;
     submitAction: () => void;
     revokeAllowance: () => void;
@@ -128,6 +140,7 @@ export const useYieldFlow = ({
     });
     const methodsRef = useCurrentRef(methods);
     const initAllowancePromiseRef = useRef<{ abort: () => void } | null>(null);
+    const unwrapDefaultAmountRef = useRef<string | null>(null);
 
     const { token, receiptToken, apy, depositedAmount, depositedSharesAmount, flowKey } =
         useResolvedYieldFlowData({
@@ -146,11 +159,25 @@ export const useYieldFlow = ({
     const session = useSelector(state => selectStablecoinYieldSession(state, flowType, flowKey));
     const sessionRef = useCurrentRef(session);
 
+    const isWrappedNativeVault = isWrappedNativeToken(account.symbol, vault.token.address);
+    const hasWrappedTokenBalance = isAmountGreaterThan({
+        amount: token?.balance ?? '0',
+        threshold: '0',
+    });
+    const hasWrappedTokenBalanceRef = useCurrentRef(hasWrappedTokenBalance);
+
     const isSharesInput = flowType === 'redeem';
     const canToggleWithdrawUnit = isYieldWithdrawFlow(flowType) && !!token && !!receiptToken;
 
     const getMaxAmount = () => {
         if (flowType === 'deposit') {
+            if (session.step === 'wrap') {
+                return getWrappableNativeBalance(account.formattedBalance);
+            }
+
+            return token?.balance ?? '';
+        }
+        if (session.step === 'unwrap') {
             return token?.balance ?? '';
         }
         if (isSharesInput) {
@@ -171,15 +198,25 @@ export const useYieldFlow = ({
             return;
         }
 
-        dispatch(stablecoinYieldActions.initSession({ flowType, flowKey }));
-        dispatch(stablecoinYieldActions.resetSession({ flowType, flowKey }));
+        dispatch(stablecoinYieldActions.initSession({ flowType, flowKey, isWrappedNativeVault }));
+        dispatch(stablecoinYieldActions.resetSession({ flowType, flowKey, isWrappedNativeVault }));
+
+        if (flowType === 'deposit' && isWrappedNativeVault && hasWrappedTokenBalanceRef.current) {
+            dispatch(
+                stablecoinYieldActions.resolveWrappedNativeStep({
+                    flowType,
+                    flowKey,
+                    step: 'wrap',
+                }),
+            );
+        }
 
         methodsRef.current.reset({ amountInput: '' });
 
         return () => {
             dispatch(stablecoinYieldActions.disposeSession({ flowType, flowKey }));
         };
-    }, [flowKey, flowType, dispatch, methodsRef]);
+    }, [flowKey, flowType, dispatch, isWrappedNativeVault, hasWrappedTokenBalanceRef, methodsRef]);
 
     const { allowanceStatus } = session.approval;
 
@@ -196,9 +233,14 @@ export const useYieldFlow = ({
             return;
         }
 
-        const { account, vault: currentVault, token, receiptToken } = allowanceFlowDataRef.current;
+        const {
+            account: currentAccount,
+            vault: currentVault,
+            token: currentToken,
+            receiptToken: currentReceiptToken,
+        } = allowanceFlowDataRef.current;
 
-        if (!token || !receiptToken || !currentVault) {
+        if (!currentToken || !currentReceiptToken || !currentVault) {
             return;
         }
 
@@ -206,7 +248,12 @@ export const useYieldFlow = ({
             initYieldAllowanceThunk({
                 flowKey,
                 flowType,
-                flowData: { account, vault: currentVault, token, receiptToken },
+                flowData: {
+                    account: currentAccount,
+                    vault: currentVault,
+                    token: currentToken,
+                    receiptToken: currentReceiptToken,
+                },
             }),
         );
 
@@ -218,7 +265,7 @@ export const useYieldFlow = ({
                     type: events.yieldInteractionEvent.name,
                     payload: {
                         element: 'allowance-error-banner',
-                        networkSymbol: token.networkSymbol,
+                        networkSymbol: currentToken.networkSymbol,
                         vaultId: currentVault.id,
                     },
                 });
@@ -231,11 +278,20 @@ export const useYieldFlow = ({
     }, [allowanceFlowDataRef, analytics, dispatch, flowKey, flowType]);
 
     useEffect(() => {
-        if (allowanceStatus !== 'idle') {
+        const canInitializeAllowance =
+            !isWrappedNativeVault || (session.isWrappedNativeVault && session.step === 'approve');
+
+        if (allowanceStatus !== 'idle' || !canInitializeAllowance) {
             return;
         }
         runInitAllowance();
-    }, [allowanceStatus, runInitAllowance]);
+    }, [
+        allowanceStatus,
+        isWrappedNativeVault,
+        runInitAllowance,
+        session.isWrappedNativeVault,
+        session.step,
+    ]);
 
     useYieldPendingTransactionTracking({
         account,
@@ -252,6 +308,14 @@ export const useYieldFlow = ({
         const nextStep = session.step;
 
         if (prevStep !== null && prevStep !== nextStep) {
+            if (prevStep === 'wrap' && nextStep === 'approve') {
+                methodsRef.current.reset({ amountInput: session.action.amount ?? '' });
+            }
+
+            if (nextStep === 'wrap') {
+                methodsRef.current.reset({ amountInput: '' });
+            }
+
             if (prevStep === 'approve' && nextStep === 'action') {
                 const actionAmount = session.action.amount ?? '';
                 const cappedAmount = isAmountGreaterThan({
@@ -279,7 +343,30 @@ export const useYieldFlow = ({
         prevStepRef.current = nextStep;
     }, [session.step, session.action.amount, methodsRef, maxAmount]);
 
-    const flow = useMemo(() => ({ currentStep: session.step }), [session.step]);
+    useEffect(() => {
+        if (session.step !== 'unwrap') {
+            unwrapDefaultAmountRef.current = null;
+
+            return;
+        }
+
+        const nextDefaultAmount = token?.balance ?? '';
+        const currentAmount = methodsRef.current.getValues('amountInput');
+
+        if (
+            unwrapDefaultAmountRef.current === null ||
+            currentAmount === unwrapDefaultAmountRef.current
+        ) {
+            methodsRef.current.reset({ amountInput: nextDefaultAmount });
+        }
+
+        unwrapDefaultAmountRef.current = nextDefaultAmount;
+    }, [methodsRef, session.step, token?.balance]);
+
+    const flow = useMemo(
+        () => ({ currentStep: session.step, isWrappedNativeVault }),
+        [session.step, isWrappedNativeVault],
+    );
 
     const openPendingTransaction = useCallback(
         (txid: string) => {
@@ -329,6 +416,153 @@ export const useYieldFlow = ({
     }, [device, dispatch]);
 
     const isDeviceConnected = !!device?.connected && !!device?.available;
+
+    const resolveWrappedNativeStep = useCallback(
+        (step: 'wrap' | 'unwrap') => {
+            dispatch(
+                stablecoinYieldActions.resolveWrappedNativeStep({
+                    flowType,
+                    flowKey,
+                    step,
+                }),
+            );
+        },
+        [dispatch, flowKey, flowType],
+    );
+
+    const submitWrappedNative = useCallback(
+        async (step: 'wrap' | 'unwrap') => {
+            if (
+                (step === 'wrap' && flowType !== 'deposit') ||
+                (step === 'unwrap' && !isYieldWithdrawFlow(flowType))
+            ) {
+                return;
+            }
+
+            if (!isDeviceConnected) {
+                openDeviceConnectionModal();
+
+                return;
+            }
+
+            if (!token?.contractAddress) {
+                dispatch(
+                    stablecoinYieldActions.setError({
+                        flowType,
+                        flowKey,
+                        error: 'TR_EARN_YIELD_ERROR_GENERIC',
+                    }),
+                );
+
+                return;
+            }
+
+            const amount = methodsRef.current.getValues('amountInput');
+
+            if (!isAmountGreaterThan({ amount, threshold: '0' })) {
+                resolveWrappedNativeStep(step);
+
+                return;
+            }
+
+            const isSessionReady = await ensureDeviceSession();
+
+            if (!isSessionReady) {
+                return;
+            }
+
+            const wrappedToken = {
+                ...token,
+                contractAddress: token.contractAddress,
+            };
+
+            dispatch(stablecoinYieldActions.startSubmittingWrappedNative({ flowType, flowKey }));
+            try {
+                let txid: string | undefined;
+
+                if (step === 'wrap') {
+                    const result = await dispatch(
+                        submitWrapNativeTokenThunk({
+                            account,
+                            token: wrappedToken,
+                            wrapAmount: amount,
+                            yieldFlow: { flowType: 'deposit', flowKey },
+                        }),
+                    ).unwrap();
+                    txid = result?.txid;
+                } else if (isYieldWithdrawFlow(flowType)) {
+                    const result = await dispatch(
+                        submitUnwrapNativeTokenThunk({
+                            account,
+                            token: wrappedToken,
+                            unwrapAmount: amount,
+                            yieldFlow: { flowType, flowKey },
+                        }),
+                    ).unwrap();
+                    txid = result?.txid;
+                }
+
+                if (txid) {
+                    dispatch(
+                        stablecoinYieldActions.setPendingTx({
+                            flowType,
+                            flowKey,
+                            tx: {
+                                type: step,
+                                txid,
+                                amount,
+                            },
+                        }),
+                    );
+                }
+            } catch {
+                // The thunk handles compose/sign/broadcast failures itself (toast); this guards an
+                // unexpected throw around it so the step surfaces an error instead of silently
+                // rejecting. The step stays put, so the user can retry.
+                dispatch(
+                    stablecoinYieldActions.setError({
+                        flowType,
+                        flowKey,
+                        error: 'TR_EARN_YIELD_ERROR_GENERIC',
+                    }),
+                );
+            } finally {
+                dispatch(stablecoinYieldActions.finishSubmittingAction({ flowType, flowKey }));
+            }
+        },
+        [
+            account,
+            dispatch,
+            ensureDeviceSession,
+            flowKey,
+            flowType,
+            isDeviceConnected,
+            methodsRef,
+            openDeviceConnectionModal,
+            resolveWrappedNativeStep,
+            token,
+        ],
+    );
+
+    const submitWrap = useCallback(() => {
+        void submitWrappedNative('wrap');
+    }, [submitWrappedNative]);
+
+    const skipWrap = useCallback(() => {
+        resolveWrappedNativeStep('wrap');
+    }, [resolveWrappedNativeStep]);
+
+    const returnToWrapStep = useCallback(() => {
+        dispatch(stablecoinYieldActions.returnToWrapStep({ flowType, flowKey }));
+    }, [dispatch, flowKey, flowType]);
+
+    const submitUnwrap = useCallback(() => {
+        void submitWrappedNative('unwrap');
+    }, [submitWrappedNative]);
+
+    const skipUnwrap = useCallback(() => {
+        resolveWrappedNativeStep('unwrap');
+    }, [resolveWrappedNativeStep]);
 
     const submitApprove = useCallback(async () => {
         if (flowType !== 'deposit') {
@@ -434,7 +668,7 @@ export const useYieldFlow = ({
         openDeviceConnectionModal,
     ]);
 
-    const liveAmount = methods.watch('amountInput');
+    const liveAmount = useWatch({ control: methods.control, name: 'amountInput' });
 
     const approvalAction = getYieldApprovalAction({
         liveAmount,
@@ -563,6 +797,7 @@ export const useYieldFlow = ({
         actionAmount: session.action.amount,
         completedAmount: session.result.completedAmount,
         completedReceiptAmount: session.result.completedReceiptAmount,
+        unwrappedAmount: session.result.unwrappedAmount,
         errorMessage: session.error ?? undefined,
         approveModalState: session.approval.modalState,
         pendingTransaction: session.action.pendingTransaction,
@@ -570,6 +805,7 @@ export const useYieldFlow = ({
         allowanceStatus: session.approval.allowanceStatus,
         approvalAction,
         canRevokeAllowance,
+        hasWrappedTokenBalance,
         isAmountEmpty,
         isAmountTooHigh,
         isAmountInvalidDecimals,
@@ -580,6 +816,11 @@ export const useYieldFlow = ({
             session.approval.modalState !== null,
         isSubmittingAction: session.action.isSubmitting,
         setAmountInput,
+        submitWrap,
+        skipWrap,
+        returnToWrapStep,
+        submitUnwrap,
+        skipUnwrap,
         submitApprovalAction,
         submitAction,
         revokeAllowance,

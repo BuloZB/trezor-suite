@@ -1,5 +1,7 @@
 import tseslint from 'typescript-eslint';
 
+import { areExpensiveChecksEnabled } from './expensiveChecks.mjs';
+
 // Deny importing from build artifact directories — consumers should resolve
 // through the package root, not from `lib/` or `libDev/`.
 const buildArtifactPatterns = {
@@ -150,4 +152,12 @@ export const typescriptConfig = [
             '@typescript-eslint/no-unnecessary-type-assertion': 'off',
         },
     },
+    ...(areExpensiveChecksEnabled
+        ? []
+        : [
+              {
+                  ...tseslint.configs.disableTypeChecked,
+                  files: ['**/src/**/*.{ts,tsx}'],
+              },
+          ]),
 ];

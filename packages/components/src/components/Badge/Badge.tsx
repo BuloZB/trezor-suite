@@ -1,7 +1,5 @@
 import React from 'react';
 
-import { borders } from '@trezor/theme';
-
 import { type BadgeIntent, type BadgeSize } from './types';
 import {
     mapIntentToBackgroundColor,
@@ -18,7 +16,7 @@ import {
 import { Box } from '../Box/Box';
 import { Row } from '../Flex/Flex';
 import { Icon, type IconComponent } from '../Icon/Icon';
-import { Text } from '../typography/Text/Text';
+import { Text, type TextPriority } from '../typography/Text/Text';
 
 export const allowedBadgeFrameProps = ['margin', 'cursor'] as const satisfies FramePropsKeys[];
 type AllowedFrameProps = Pick<FrameProps, (typeof allowedBadgeFrameProps)[number]>;
@@ -26,6 +24,8 @@ type AllowedFrameProps = Pick<FrameProps, (typeof allowedBadgeFrameProps)[number
 export type BadgeProps = AllowedFrameProps & {
     size?: BadgeSize;
     intent?: BadgeIntent;
+    /** Text emphasis. Defaults to full strength, dimmed for the `neutral` intent. */
+    priority?: TextPriority;
     iconLeft?: IconComponent;
     iconRight?: IconComponent;
     children?: React.ReactNode;
@@ -35,6 +35,7 @@ export type BadgeProps = AllowedFrameProps & {
 export const Badge = ({
     size = 'medium',
     intent = 'neutral',
+    priority = intent === 'neutral' ? 'secondary' : 'primary',
     iconLeft,
     iconRight,
     children,
@@ -42,7 +43,6 @@ export const Badge = ({
     ...rest
 }: BadgeProps) => {
     const frameProps = pickAndPrepareFrameProps(rest, allowedBadgeFrameProps, false);
-    const textPriority = intent === 'neutral' ? 'secondary' : 'primary';
 
     const iconProps = {
         color: mapIntentToIconColor(intent),
@@ -53,7 +53,7 @@ export const Badge = ({
         <Box
             display="inline-flex"
             data-testid={dataTest}
-            borderRadius={borders.radii.full}
+            borderRadius="full"
             backgroundColor={mapIntentToBackgroundColor(intent)}
             {...frameProps}
         >
@@ -63,7 +63,7 @@ export const Badge = ({
                     as="div"
                     typographyStyle={mapSizeToTypographyStyle(size)}
                     intent={intent}
-                    priority={textPriority}
+                    priority={priority}
                     textWrap="nowrap"
                 >
                     {children}

@@ -1,5 +1,7 @@
+import type { AddressValidator } from '@suite-common/address';
 import type { AnalyticsSharedEvents } from '@suite-common/analytics';
 import { type Bip329 } from '@suite-common/bip329-types';
+import type { NetworkModuleRepository, NetworkSymbol } from '@suite-common/networks';
 import {
     type EncryptableBranded,
     type EncryptedHex,
@@ -21,6 +23,7 @@ import { type SelectedAccountLoaded, asAccountDescriptor } from '@suite-common/w
 import { mockWalletAccount } from '@suite-common/wallet-types/mocks';
 import { mockAnalytics } from '@trezor/analytics-uploader/mocks';
 import { err, ok } from '@trezor/type-utils';
+import { createKeyedThrottle } from '@trezor/utils';
 
 const suiteSyncMock: SuiteSync = {
     changeRelayUrl: () => Promise.resolve(),
@@ -56,6 +59,19 @@ const platformEncryptionMock: PlatformEncryption = {
 
 const analyticsMock = mockAnalytics<AnalyticsSharedEvents>();
 
+const addressValidatorMock: AddressValidator = {
+    isAddressValid: () => false,
+    getAddressType: () => undefined,
+};
+
+const networkModuleRepositoryMock: NetworkModuleRepository = {
+    get: () => {
+        throw new Error('Network module repository mock is not implemented.');
+    },
+    getSupportedNetworks: () => [],
+    isSupportedNetwork: (_symbol: string): _symbol is NetworkSymbol => false,
+};
+
 const connectInitSettings: ConnectInitSettings = {
     debug: false,
     manifest: {
@@ -73,6 +89,8 @@ export const extraDependenciesCommonMock: ExtraDependencies = {
         forgetBluetoothDevice: notImplementedThunk('forgetBluetoothDevice'),
     },
     services: {
+        addressValidator: addressValidatorMock,
+        networkModuleRepository: networkModuleRepositoryMock,
         suiteSync: suiteSyncMock,
         bip329: bip329Mock,
         ensureDelegatedIdentityKey: () =>
@@ -89,6 +107,7 @@ export const extraDependenciesCommonMock: ExtraDependencies = {
         connectInitSettings,
         connectInitHooks: { deviceEvent: {}, uiEvent: {} },
         createTransports: () => [],
+        accountRefreshThrottle: createKeyedThrottle(10_000, () => undefined),
         migrateSuiteSyncLabelsForRbfTransaction: () => Promise.resolve([[], []]),
     },
     selectors: {
@@ -103,6 +122,7 @@ export const extraDependenciesCommonMock: ExtraDependencies = {
         }),
         selectDesktopBinDir: notImplementedSelector('selectDesktopBinDir', '/bin'),
         selectLanguage: notImplementedSelector('selectLanguage', 'en'),
+
         selectSelectedAccount: notImplementedSelector('selectSelectedAccount', {
             status: 'loaded',
             account: mockWalletAccount({

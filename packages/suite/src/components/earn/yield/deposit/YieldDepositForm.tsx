@@ -1,8 +1,11 @@
-import { events, selectDesktopAnalyticsDep } from '@suite/analytics';
+import { selectDesktopAnalyticsDep } from '@suite/analytics';
 import { Translation } from '@suite/intl';
+import { events } from '@suite-common/analytics';
 import { useServices } from '@suite-common/dependency-injection';
-import { splitYieldPendingTransaction } from '@suite-common/wallet-core';
-import { Banner, Button, Column, Text } from '@trezor/components';
+import { getNetworkDisplaySymbol } from '@suite-common/wallet-config';
+import { getYieldFlowStepSequence, splitYieldPendingTransaction } from '@suite-common/wallet-core';
+import { getApyBreakdown } from '@suite-common/wallet-utils';
+import { Banner, Column, Text } from '@trezor/components';
 
 import { FormattedCryptoAmount } from 'src/components/suite/FormattedCryptoAmount';
 
@@ -14,7 +17,7 @@ import { YieldApproveStep } from '../common/YieldApproveStep';
 import { YieldApprovedAmountCard } from '../common/YieldApprovedAmountCard';
 import { YieldFlowCompleteDeposit } from '../common/YieldFlowCompleteDeposit';
 import { YieldFlowStepList } from '../common/YieldFlowStepList';
-import { getApyBreakdown } from '../yieldFlowUtils';
+import { YieldWrapStep } from '../common/YieldWrapStep';
 
 export const YieldDepositForm = () => {
     const { analytics } = useServices(selectDesktopAnalyticsDep);
@@ -28,6 +31,7 @@ export const YieldDepositForm = () => {
         completedAmount,
         completedReceiptAmount,
         maxAmount,
+        liveAmount,
         errorMessage,
         approveModalState,
         pendingTransaction,
@@ -35,6 +39,7 @@ export const YieldDepositForm = () => {
         allowanceStatus,
         approvalAction,
         canRevokeAllowance,
+        hasWrappedTokenBalance,
         isAmountEmpty,
         isAmountTooHigh,
         isAmountInvalidDecimals,
@@ -42,6 +47,9 @@ export const YieldDepositForm = () => {
         isSubmittingApprove,
         isSubmittingAction,
         setAmountInput,
+        submitWrap,
+        skipWrap,
+        returnToWrapStep,
         submitApprovalAction,
         submitAction,
         revokeAllowance,
@@ -55,6 +63,14 @@ export const YieldDepositForm = () => {
 
     const { approvalPendingTransaction, actionPendingTransaction: depositPendingTransaction } =
         splitYieldPendingTransaction(pendingTransaction, 'deposit');
+    const wrapPendingTransaction =
+        pendingTransaction?.type === 'wrap' ? pendingTransaction : undefined;
+
+    const nativeSymbol = getNetworkDisplaySymbol(account.symbol);
+    const sequence = getYieldFlowStepSequence({
+        flowType: 'deposit',
+        isWrappedNativeVault: flow.isWrappedNativeVault,
+    });
 
     const handleOnApprovalSubmit = () => {
         analytics.report({
@@ -112,6 +128,34 @@ export const YieldDepositForm = () => {
         });
 
         submitAction();
+    };
+
+    const handleOnWrap = () => {
+        analytics.report({
+            type: events.yieldDepositEvent.name,
+            payload: {
+                type: 'wrap',
+                action: 'continue',
+                networkSymbol: token.networkSymbol,
+                vaultId: vault.id,
+            },
+        });
+
+        submitWrap();
+    };
+
+    const handleOnSkipWrap = () => {
+        analytics.report({
+            type: events.yieldDepositEvent.name,
+            payload: {
+                type: 'wrap',
+                action: 'cancel',
+                networkSymbol: token.networkSymbol,
+                vaultId: vault.id,
+            },
+        });
+
+        skipWrap();
     };
 
     const handleMaxClick = () => {
@@ -175,23 +219,54 @@ export const YieldDepositForm = () => {
                     )}
 
                     <YieldFlowStepList
-                        flowType="deposit"
+                        sequence={sequence}
                         currentStep={flow.currentStep}
                         hasStepList
                         steps={{
+                            wrap: {
+                                title: (
+                                    <Translation
+                                        id="TR_EARN_YIELD_WRAP_TITLE"
+                                        values={{ nativeSymbol, tokenSymbol: token.symbol }}
+                                    />
+                                ),
+                                description: (
+                                    <Translation
+                                        id="TR_EARN_YIELD_WRAP_DESCRIPTION"
+                                        values={{ nativeSymbol }}
+                                    />
+                                ),
+                                onEdit: returnToWrapStep,
+                                content: () => (
+                                    <YieldWrapStep
+                                        token={token}
+                                        nativeSymbol={nativeSymbol}
+                                        availableAmount={maxAmount}
+                                        receivingAmount={liveAmount || '0'}
+                                        isSubmitting={isSubmittingAction}
+                                        isSubmitDisabled={
+                                            isAmountEmpty ||
+                                            isAmountTooHigh ||
+                                            isAmountInvalidDecimals
+                                        }
+                                        warning={
+                                            !isAmountInvalidDecimals && isAmountTooHigh ? (
+                                                <YieldActionStepWarning isInsufficientFunds />
+                                            ) : undefined
+                                        }
+                                        pendingTransaction={wrapPendingTransaction}
+                                        onMaxClick={handleMaxClick}
+                                        onSubmit={handleOnWrap}
+                                        onSkip={
+                                            hasWrappedTokenBalance ? handleOnSkipWrap : undefined
+                                        }
+                                        onPendingTxClick={openPendingTransaction}
+                                    />
+                                ),
+                            },
                             approve: {
                                 title: <Translation id="TR_EARN_YIELD_SELECT_AMOUNT_AND_APPROVE" />,
-                                rightContent: view =>
-                                    view.state === 'done' && (
-                                        <Button
-                                            size="small"
-                                            intent="neutral"
-                                            priority="secondary"
-                                            onClick={handleOnModify}
-                                        >
-                                            <Translation id="TR_MODIFY" />
-                                        </Button>
-                                    ),
+                                onEdit: handleOnModify,
                                 content: () => (
                                     <YieldApproveStep
                                         token={token}
@@ -215,6 +290,7 @@ export const YieldDepositForm = () => {
                                         }
                                         isDisabled={
                                             isAmountEmpty ||
+                                            (flow.isWrappedNativeVault && isAmountTooHigh) ||
                                             isAmountInvalidDecimals ||
                                             isSubmittingApprove ||
                                             !!approvalPendingTransaction
@@ -227,14 +303,15 @@ export const YieldDepositForm = () => {
                                         onPendingTxClick={openPendingTransaction}
                                     />
                                 ),
-                                inactiveContent: () => (
-                                    <YieldApprovedAmountCard
-                                        token={token}
-                                        amount={allowanceAmount}
-                                        isLoading={allowanceStatus === 'loading'}
-                                        hasError={allowanceStatus === 'error'}
-                                    />
-                                ),
+                                inactiveContent: view =>
+                                    view.state === 'done' && (
+                                        <YieldApprovedAmountCard
+                                            token={token}
+                                            amount={allowanceAmount}
+                                            isLoading={allowanceStatus === 'loading'}
+                                            hasError={allowanceStatus === 'error'}
+                                        />
+                                    ),
                             },
                             action: {
                                 title: <Translation id="TR_EARN_YIELD_DEPOSIT" />,

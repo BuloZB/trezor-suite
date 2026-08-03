@@ -26,6 +26,7 @@
         {
             "path": "../../suite-common/message-system"
         },
+        { "path": "../../suite-common/networks" },
         {
             "path": "../../suite-common/suite-sync-evolu"
         },
@@ -72,7 +73,9 @@
             "path": "../../packages/suite-desktop"
         },
         { "path": "../../packages/theme" },
-        { "path": "../../packages/transport" },
+        {
+            "path": "../../packages/transport-common"
+        },
         {
             "path": "../../packages/trezor-user-env-link"
         },

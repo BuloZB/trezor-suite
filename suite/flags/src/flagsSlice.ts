@@ -3,6 +3,8 @@ import { type PayloadAction } from '@reduxjs/toolkit';
 import { createSliceWithExtraDeps } from '@suite-common/redux-utils';
 import { DEVICE } from '@trezor/connect';
 
+import { type NewContentIndicatorId } from './flagsConstants';
+
 export type FlagsState = {
     initialRun: boolean;
     taprootBannerClosed: boolean;
@@ -18,6 +20,7 @@ export type FlagsState = {
     showSettingsDesktopAppPromoBanner: boolean;
     activateAssetsBannerClosed: boolean;
     stakeEthBannerClosed: boolean;
+    earnEthBannerClosed: boolean;
     stakeSolBannerClosed: boolean;
     stakeCardanoBannerClosed: boolean;
     stakeTronBannerClosed: boolean;
@@ -32,9 +35,14 @@ export type FlagsState = {
     hasSeenDisconnectTooltip: boolean;
     showNoDeviceEshopSidebarBanner: boolean;
     areNoDeviceEshopBannersDisabled: boolean;
+    seenNewContentIndicators: Partial<Record<NewContentIndicatorId, true>>;
 };
 
 export type FlagsRootState = { flags: FlagsState };
+
+export type BooleanFlagKey = {
+    [Key in keyof FlagsState]: FlagsState[Key] extends boolean ? Key : never;
+}[keyof FlagsState];
 
 export const flagsInitialState: FlagsState = {
     initialRun: true,
@@ -51,6 +59,7 @@ export const flagsInitialState: FlagsState = {
     showSettingsDesktopAppPromoBanner: true,
     activateAssetsBannerClosed: false,
     stakeEthBannerClosed: false,
+    earnEthBannerClosed: false,
     stakeSolBannerClosed: false,
     stakeCardanoBannerClosed: false,
     stakeTronBannerClosed: false,
@@ -65,6 +74,7 @@ export const flagsInitialState: FlagsState = {
     hasSeenDisconnectTooltip: false,
     showNoDeviceEshopSidebarBanner: true,
     areNoDeviceEshopBannersDisabled: false,
+    seenNewContentIndicators: {},
 };
 
 const flagsSlice = createSliceWithExtraDeps({
@@ -73,9 +83,25 @@ const flagsSlice = createSliceWithExtraDeps({
     reducers: {
         setFlag: (
             state: FlagsState,
-            { payload }: PayloadAction<{ key: keyof FlagsState; value: boolean }>,
+            { payload }: PayloadAction<{ key: BooleanFlagKey; value: boolean }>,
         ) => {
             state[payload.key] = payload.value;
+        },
+        markNewContentIndicatorAsSeen: (
+            state: FlagsState,
+            { payload }: PayloadAction<NewContentIndicatorId>,
+        ) => {
+            state.seenNewContentIndicators[payload] = true;
+        },
+        setNewContentIndicatorSeen: (
+            state: FlagsState,
+            { payload }: PayloadAction<{ indicatorId: NewContentIndicatorId; isSeen: boolean }>,
+        ) => {
+            if (payload.isSeen) {
+                state.seenNewContentIndicators[payload.indicatorId] = true;
+            } else {
+                delete state.seenNewContentIndicators[payload.indicatorId];
+            }
         },
     },
     extraReducers: (builder, extra) => {
@@ -90,7 +116,8 @@ const flagsSlice = createSliceWithExtraDeps({
     },
 });
 
-export const { setFlag } = flagsSlice.actions;
+export const { markNewContentIndicatorAsSeen, setFlag, setNewContentIndicatorSeen } =
+    flagsSlice.actions;
 export const flagsActions = flagsSlice.actions;
 export const prepareFlagsReducer = flagsSlice.prepareReducer;
 
@@ -116,3 +143,6 @@ export const selectIsNoDeviceEshopSidebarBannerShown = (state: FlagsRootState) =
     state.flags.showNoDeviceEshopSidebarBanner;
 export const selectAreNoDeviceEshopBannersDisabled = (state: FlagsRootState) =>
     state.flags.areNoDeviceEshopBannersDisabled;
+export const selectIsNewContentIndicatorVisible =
+    (indicatorId: NewContentIndicatorId) => (state: FlagsRootState) =>
+        state.flags.seenNewContentIndicators[indicatorId] !== true;

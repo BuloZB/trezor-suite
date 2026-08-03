@@ -45,6 +45,11 @@ import {
     SOLANA_EPOCH_DAYS,
 } from '@trezor/network-solana/constants';
 import { exhaustive } from '@trezor/type-utils';
+import {
+    HELP_CENTER_ADA_STAKING,
+    HELP_CENTER_ETH_STAKING,
+    HELP_CENTER_SOL_STAKING,
+} from '@trezor/urls';
 import { BigNumber } from '@trezor/utils';
 
 import { asAmountSubunit } from './AmountTypes';
@@ -155,6 +160,29 @@ export const getStakingLimitsByNetworkSymbol = (
         default:
             return exhaustive(symbol);
     }
+};
+
+interface GetMaxStakeAmount {
+    balance: string;
+    symbol: NetworkSymbol | undefined;
+}
+
+export const getMaxStakeAmount = ({ balance, symbol }: GetMaxStakeAmount): string => {
+    const limits = getStakingLimitsByNetworkSymbol(symbol);
+    if (!limits) return '0';
+
+    const balanceBN = new BigNumber(balance);
+
+    const balanceMinusFeeBuffer = BigNumber.max(
+        balanceBN.minus(limits.MIN_BALANCE_FOR_FEE_BUFFER),
+        0,
+    );
+
+    const maxAmount = balanceMinusFeeBuffer.gt(limits.MIN_BALANCE_FOR_STAKING)
+        ? BigNumber.max(balanceBN.minus(limits.MIN_FOR_WITHDRAWALS), 0)
+        : balanceMinusFeeBuffer;
+
+    return BigNumber.min(maxAmount, limits.MAX_AMOUNT_FOR_STAKING).toFixed();
 };
 
 export const getStakingDataForNetwork = (
@@ -271,6 +299,19 @@ export const getUnstakingPeriodInDays = (
     const unstakingPeriodInSeconds = new BigNumber(withdrawTime).plus(exitTime).toNumber();
 
     return secondsToDays(unstakingPeriodInSeconds);
+};
+
+export const getStakingHelpCenterLink = (networkType?: NetworkType) => {
+    switch (networkType) {
+        case 'ethereum':
+            return HELP_CENTER_ETH_STAKING;
+        case 'solana':
+            return HELP_CENTER_SOL_STAKING;
+        case 'cardano':
+            return HELP_CENTER_ADA_STAKING;
+        default:
+            return undefined;
+    }
 };
 
 export const getOutputTxAmount = (composedLevels?: PrecomposedLevels) => {
