@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
+import { type UnknownAction } from '@reduxjs/toolkit';
 import type { ThunkDispatch } from 'redux-thunk';
 
 import { Translation } from '@suite/intl';
 import {
+    type ConnectProviderDeps,
+    type InitMetadataDeps,
     MetadataProviderSelectionModal,
     type MetadataRootState,
     connectProvider,
@@ -15,7 +18,6 @@ import {
 import { useServices } from '@suite-common/dependency-injection';
 import { selectSelectedDevice } from '@suite-common/device';
 import { type MetadataProviderType } from '@suite-common/metadata-types';
-import { type AnyAction, type ExtraDependencies } from '@suite-common/redux-utils';
 import { selectEnsureWalletSuiteSyncOnDep } from '@suite-common/suite-sync-types';
 import { notificationsActions } from '@suite-common/toast-notifications';
 import { type StaticSessionId } from '@trezor/connect';
@@ -34,7 +36,8 @@ type LegacyLabelingMigrationModalProps = {
     }) => void;
 };
 
-type MetadataDispatch = ThunkDispatch<MetadataRootState, ExtraDependencies, AnyAction>;
+type MetadataDispatchDeps = ConnectProviderDeps & InitMetadataDeps;
+type MetadataDispatch = ThunkDispatch<MetadataRootState, MetadataDispatchDeps, UnknownAction>;
 
 export const LegacyLabelingMigrationModal = ({
     onCancel,

@@ -1,3 +1,4 @@
+import { getYieldDepositableBalance } from '@suite-common/wallet-core';
 import { type Account, type TokenAddress } from '@suite-common/wallet-types';
 import { getContractAddressForNetworkSymbol } from '@suite-common/wallet-utils';
 import { BigNumber } from '@trezor/utils';
@@ -33,6 +34,24 @@ export const getAccountTokenByContract = (
         ) ?? null
     );
 };
+
+/**
+ * Balance a yield vault deposit can spend from the account. For a wrapped-native (WETH) vault the
+ * native balance can be wrapped, so it counts in too; the fee reserve is deducted later, by the
+ * wrap step's available-to-wrap amount.
+ */
+export const getYieldVaultDepositableBalance = (
+    account: Account,
+    vaultTokenContract: TokenAddress | null,
+): string =>
+    getYieldDepositableBalance({
+        networkSymbol: account.symbol,
+        nativeFormattedBalance: account.formattedBalance,
+        vaultTokenAddress: vaultTokenContract,
+        matchedTokenBalance: vaultTokenContract
+            ? getAccountTokenByContract(account, vaultTokenContract)?.balance
+            : null,
+    });
 
 export const hasPositiveContractTokenBalance = (
     account: Account,

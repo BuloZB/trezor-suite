@@ -44,7 +44,10 @@ describe('migration 26.8.0.2', () => {
         const migratedDb = await runMigration();
         const settings = await migratedDb.get('walletSettings', 'wallet');
 
-        expect(settings?.hideSuspiciousTransactions).toEqual({ btc: true, eth: true, op: true });
+        expect(settings).toEqual({
+            enabledNetworks: ['btc', 'eth', 'op'],
+            hideSuspiciousTransactions: { btc: true, eth: true, op: true },
+        });
 
         migratedDb.close();
     });
@@ -58,7 +61,10 @@ describe('migration 26.8.0.2', () => {
         const migratedDb = await runMigration();
         const settings = await migratedDb.get('walletSettings', 'wallet');
 
-        expect(settings?.hideSuspiciousTransactions).toEqual({});
+        expect(settings).toEqual({
+            enabledNetworks: ['btc', 'eth'],
+            hideSuspiciousTransactions: {},
+        });
 
         migratedDb.close();
     });

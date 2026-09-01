@@ -37,7 +37,6 @@ import { BigNumber } from '@trezor/utils';
 import { type TradingRootState, tradingInitialState } from '../reducers';
 import {
     selectAccountLabelWithNetworkFallback,
-    selectAccountsWithTokensToSellSectionCondensedListByTradingType,
     selectAccountsWithTokensToSellSectionListByTradingType,
     selectActiveTradingType,
     selectAmountInBaseFiatCurrency,
@@ -50,6 +49,7 @@ import {
     selectIsTradingExchangeEnabled,
     selectIsTradingSellEnabled,
     selectIsTradingSlip24Enabled,
+    selectIsTradingTxSimulationEnabled,
     selectTradeToBeOpened,
     selectTradesToWatchByAccount,
     selectTradingEnvironment,
@@ -84,6 +84,7 @@ const getPreloadedState = ({
     sell,
     exchange,
     concierge,
+    txSimulation,
     blacklist,
     slip24,
     residence,
@@ -93,6 +94,7 @@ const getPreloadedState = ({
     sell?: boolean;
     exchange?: boolean;
     concierge?: boolean;
+    txSimulation?: boolean;
     blacklist?: boolean;
     slip24?: boolean;
     residence?: boolean;
@@ -121,6 +123,12 @@ const getPreloadedState = ({
         features.push({
             domain: 'trading.concierge',
             flag: concierge,
+        });
+    }
+    if (txSimulation !== undefined) {
+        features.push({
+            domain: 'trading.txSimulation',
+            flag: txSimulation,
         });
     }
     if (blacklist !== undefined) {
@@ -269,6 +277,32 @@ describe('commonSelectors', () => {
 
         it('should correctly select that concierge is enabled if remote feature is not set', () => {
             expect(selectIsTradingConciergeEnabled(getPreloadedState({}))).toBe(true);
+        });
+    });
+
+    describe('selectIsTradingTxSimulationEnabled', () => {
+        it('should be enabled when the remote feature is enabled', () => {
+            expect(
+                selectIsTradingTxSimulationEnabled(
+                    getPreloadedState({
+                        txSimulation: true,
+                    }),
+                ),
+            ).toBe(true);
+        });
+
+        it('should be disabled when the remote feature is disabled', () => {
+            expect(
+                selectIsTradingTxSimulationEnabled(
+                    getPreloadedState({
+                        txSimulation: false,
+                    }),
+                ),
+            ).toBe(false);
+        });
+
+        it('should default the remote feature to enabled', () => {
+            expect(selectIsTradingTxSimulationEnabled(getPreloadedState({}))).toBe(true);
         });
     });
 
@@ -1108,8 +1142,8 @@ describe('commonSelectors', () => {
         });
     });
 
-    describe('selectAccountsWithTokensToSellSectionCondensedListByTradingType', () => {
-        it('should group disabled tokens', () => {
+    describe('non-tradeable assets', () => {
+        it('should preserve disabled tokens', () => {
             const testDeviceState: StaticSessionId = 'testDevice@x:0';
             const ethAccount = {
                 ...getEthAccount(),
@@ -1178,7 +1212,7 @@ describe('commonSelectors', () => {
                 fiat: { rates: {}, current: 'usd' },
             } as any;
 
-            const result = selectAccountsWithTokensToSellSectionCondensedListByTradingType(
+            const result = selectAccountsWithTokensToSellSectionListByTradingType(
                 stateWithDevice,
                 'exchange',
                 supportedCoins,
@@ -1188,11 +1222,8 @@ describe('commonSelectors', () => {
             expect(result[0]?.data).toEqual([
                 expect.objectContaining({ name: 'Ethereum', isEnabled: true }),
                 expect.objectContaining({ name: 'USDC', isEnabled: true }),
-                {
-                    count: 2,
-                    name: 'non-tradeable-assets',
-                    isEnabled: false,
-                },
+                expect.objectContaining({ name: 'non tradeable token 1', isEnabled: false }),
+                expect.objectContaining({ name: 'non tradeable token 2', isEnabled: false }),
             ]);
         });
 
@@ -1244,7 +1275,7 @@ describe('commonSelectors', () => {
                 fiat: { rates: {}, current: 'usd' },
             } as any;
 
-            const result = selectAccountsWithTokensToSellSectionCondensedListByTradingType(
+            const result = selectAccountsWithTokensToSellSectionListByTradingType(
                 stateWithDevice,
                 'exchange',
                 supportedCoins,

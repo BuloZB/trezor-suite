@@ -6,14 +6,14 @@ import { closeModal, preserveModalOnTxTimeout } from '@suite/modal';
 import { selectRouterUrl } from '@suite/router';
 import { useServices } from '@suite-common/dependency-injection';
 import { selectSelectedDevice } from '@suite-common/device';
-import { useYieldVaultName } from '@suite-common/earn-stablecoin/src/allowance';
+import { useYieldVaultName } from '@suite-common/earn-stablecoin';
 import { selectTradingExchangeSelectedQuote } from '@suite-common/trading';
 import { selectStablecoinYieldTxReview } from '@suite-common/wallet-core';
 import { type FormState } from '@suite-common/wallet-types';
 import {
     constructTransactionReviewOutputsOptional,
+    getDecreaseOutputId,
     getTxValidityTimeoutInMs,
-    isRbfBumpFeeTransaction,
 } from '@suite-common/wallet-utils';
 import TrezorConnect from '@trezor/connect';
 import { type Deferred } from '@trezor/utils';
@@ -98,13 +98,7 @@ export const TransactionReviewModalBody = ({
         };
     }, [deadline, dispatch, isSending, shouldCheckTxTimeValidity]);
 
-    const isBumpFeeRbfAction =
-        precomposedTx !== undefined && isRbfBumpFeeTransaction(precomposedTx);
-
-    const decreaseOutputId =
-        isBumpFeeRbfAction && precomposedTx.useNativeRbf
-            ? precomposedForm?.setMaxOutputId
-            : undefined;
+    const decreaseOutputId = getDecreaseOutputId(precomposedTx, precomposedForm);
 
     const outputs = constructTransactionReviewOutputsOptional({
         account,

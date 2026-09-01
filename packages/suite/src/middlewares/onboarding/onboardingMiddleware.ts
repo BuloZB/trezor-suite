@@ -1,25 +1,26 @@
+import { type Dispatch, type UnknownAction } from '@reduxjs/toolkit';
 import { type MiddlewareAPI } from 'redux';
 
 import { isRecoveryInProgress, recoveryActions, selectRecoveryStatus } from '@suite/recovery';
 import { routerAppChanged } from '@suite/router';
 import { deviceActions } from '@suite-common/device';
 import { firmwareActions } from '@suite-common/firmware';
+import { forgetDisconnectedDevices } from '@suite-common/wallet-core';
+import { UI_EVENTS, isUiEventOfType } from '@trezor/connect';
 
 import * as onboardingActions from 'src/actions/onboarding/onboardingActions';
-import { type Action, type AppState, type Dispatch } from 'src/types/suite';
+import { type AppState } from 'src/types/suite';
 
 const onboardingMiddleware =
-    (api: MiddlewareAPI<Dispatch, AppState>) =>
-    (next: Dispatch) =>
-    (action: Action): Action => {
+    (api: MiddlewareAPI<Dispatch<UnknownAction>, AppState>) =>
+    (next: Dispatch<UnknownAction>) =>
+    (action: UnknownAction): UnknownAction => {
         const isFwInstallationDone =
             firmwareActions.setStatus.match(action) && action.payload === 'done';
 
-        if (
-            isFwInstallationDone &&
-            api.getState().onboarding.isActive &&
-            api.getState().firmware.status === 'thp-pairing'
-        ) {
+        const { firmware, onboarding } = api.getState();
+
+        if (isFwInstallationDone && onboarding.isActive && firmware.status === 'thp-pairing') {
             // After the THP pairing is finished we want to jump to the next step automatically.
             // User already drifted away from the installation flow and is not aware that THP is actually in the middle
             // of the Firmware installation.
@@ -30,7 +31,17 @@ const onboardingMiddleware =
             next(action);
         }
 
-        if (action.type === routerAppChanged.type) {
+        // seed is wiped when switching firmware type so we need to forget all device instances as well
+        if (isUiEventOfType(action, UI_EVENTS.FIRMWARE_TYPE_CHANGED)) {
+            api.dispatch(
+                forgetDisconnectedDevices({
+                    device: firmware.cachedDevice || action.payload.device,
+                    forceForget: true,
+                }),
+            );
+        }
+
+        if (routerAppChanged.match(action)) {
             // here middleware detects that onboarding app is loaded, do following:
             //  1. make reducer to accept actions (enableReducer) and apply changes
             if (action.payload === 'onboarding') {

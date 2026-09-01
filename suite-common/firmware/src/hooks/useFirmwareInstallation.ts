@@ -1,6 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
+import { type ThunkDispatch, type UnknownAction } from '@reduxjs/toolkit';
+
 import { selectSelectedDevice } from '@suite-common/device';
 import {
     type ButtonRequest,
@@ -13,7 +15,7 @@ import {
     type Device,
     type DeviceButtonRequestPayload,
     FirmwareType,
-    UI_REQUEST,
+    UI_EVENTS,
 } from '@trezor/connect';
 import {
     DeviceModelInternal,
@@ -25,7 +27,12 @@ import { isArrayMember } from '@trezor/utils';
 
 import { firmwareActions } from '../firmwareActions';
 import { selectFirmware, selectSwitchFirmwareType } from '../firmwareReducer';
-import { type FirmwareUpdateProps, firmwareUpdate as firmwareUpdateThunk } from '../firmwareThunks';
+import {
+    type FirmwareUpdateProps,
+    type FirmwareUpdateThunkDeps,
+    type FirmwareUpdateThunkState,
+    firmwareUpdate as firmwareUpdateThunk,
+} from '../firmwareThunks';
 
 /*
 There are three firmware update flows, depending on current firmware version:
@@ -112,7 +119,10 @@ const shouldShowReconnectPrompt = ({
 };
 
 export const useFirmwareInstallation = () => {
-    const dispatch = useDispatch();
+    const dispatch =
+        useDispatch<
+            ThunkDispatch<FirmwareUpdateThunkState, FirmwareUpdateThunkDeps, UnknownAction>
+        >();
     const firmware = useSelector(selectFirmware);
     const device = useSelector(selectSelectedDevice);
     const thpStep = useSelector(selectThpStep);
@@ -120,13 +130,13 @@ export const useFirmwareInstallation = () => {
 
     const [reconnectEvent, buttonEvent, progressEvent] = useMemo(() => {
         if (firmware.uiEvent) {
-            if (firmware.uiEvent.type === UI_REQUEST.FIRMWARE_RECONNECT) {
+            if (firmware.uiEvent.type === UI_EVENTS.FIRMWARE_RECONNECT) {
                 return [firmware.uiEvent.payload];
             }
             if (firmware.uiEvent.type === DEVICE.BUTTON) {
                 return [undefined, firmware.uiEvent.payload];
             }
-            if (firmware.uiEvent.type === UI_REQUEST.FIRMWARE_PROGRESS) {
+            if (firmware.uiEvent.type === UI_EVENTS.FIRMWARE_PROGRESS) {
                 return [undefined, undefined, firmware.uiEvent.payload];
             }
         }
@@ -138,8 +148,8 @@ export const useFirmwareInstallation = () => {
     // Until then, access device as normal.
     const originalDevice = firmware.cachedDevice || device;
 
-    // To instruct user to reboot to bootloader manually, UI.FIRMWARE_DISCONNECT event is emitted first,
-    // and UI_REQUEST.FIRMWARE_RECONNECT is emitted after the device disconnects.
+    // To instruct user to reboot to bootloader manually, UI_EVENTS.FIRMWARE_DISCONNECT event is emitted first,
+    // and UI_EVENTS.FIRMWARE_RECONNECT is emitted after the device disconnects.
     const showManualReconnectPrompt = reconnectEvent?.method === 'manual';
     const deviceIsWaitingForConfirmationToInitiateConnection =
         reconnectEvent?.method === 'auto' && reconnectEvent.target === 'bootloader';
@@ -181,7 +191,7 @@ export const useFirmwareInstallation = () => {
     const showConfirmationPill =
         (!showReconnectPrompt && progressEvent?.operation === 'downloading') ||
         isThpConfirmationRequested ||
-        firmware.uiEvent?.type === UI_REQUEST.FIRMWARE_RECONNECT ||
+        firmware.uiEvent?.type === UI_EVENTS.FIRMWARE_RECONNECT ||
         firmware.uiEvent?.type === 'button';
 
     const updateStatus = useMemo<FirmwareOperationStatus>(() => {

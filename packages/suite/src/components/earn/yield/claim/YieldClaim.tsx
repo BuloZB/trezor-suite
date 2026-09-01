@@ -58,7 +58,7 @@ export const YieldClaim = ({ account }: YieldClaimProps) => {
         (!!yieldTxReview.precomposedTx && yieldTxReview.accountKey === account.key);
     const isClaiming = isClaimSubmitting || !!claimSession.action.pendingTransaction;
     const isDeviceConnected = !!device?.connected && device.available;
-    const isClaimFirmwareOutdated = !isStablecoinYieldSupported(device, 'claim');
+    const isClaimFirmwareOutdated = !isStablecoinYieldSupported(device, { flowType: 'claim' });
 
     const ensureDeviceSession = useEnsureYieldDeviceSession({ flowType: 'claim', flowKey });
     const { merklRewardsQuery, missingRateTickersQuery } = useMerklRewards(account);
@@ -66,8 +66,7 @@ export const YieldClaim = ({ account }: YieldClaimProps) => {
         merklRewardsQuery.data?.accountsRewards[0];
     const isRewardsLoading = merklRewardsQuery.isLoading || missingRateTickersQuery.isLoading;
 
-    // Completion shows the claimed-rewards snapshot; until it is available, keep the claim screen.
-    const currentStep = claimSession.step === 'complete' && accountRewards ? 'complete' : 'action';
+    const currentStep = claimSession.step === 'complete' ? 'complete' : 'action';
 
     useEffect(() => {
         dispatch(stablecoinYieldActions.initSession({ flowType: 'claim', flowKey }));
@@ -245,10 +244,11 @@ export const YieldClaim = ({ account }: YieldClaimProps) => {
                             },
                             complete: {
                                 isListItem: false,
-                                content: () =>
-                                    accountRewards ? (
-                                        <YieldFlowCompleteClaim accountRewards={accountRewards} />
-                                    ) : null,
+                                content: () => (
+                                    <YieldFlowCompleteClaim
+                                        rewards={claimSession.result.completedRewards}
+                                    />
+                                ),
                             },
                         }}
                     />

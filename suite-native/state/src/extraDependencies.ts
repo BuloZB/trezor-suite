@@ -6,34 +6,43 @@ import * as Device from 'expo-device';
 import { createAddressValidator } from '@suite-common/address';
 import { createBip329CompositionRoot } from '@suite-common/bip329';
 import { delegatedIdentityKeyCompositionRoot } from '@suite-common/delegated-identity-key';
-import { toGetter } from '@suite-common/dependency-injection';
+import { asGetter, toGetter } from '@suite-common/dependency-injection';
 import {
-    createGetNetworkColor,
+    type CommonServices,
+    type ExtraDependenciesStatic,
+    notImplementedAction,
+    notImplementedActionType,
+    notImplementedGetter,
+    notImplementedReducer,
+    notImplementedThunk,
+} from '@suite-common/extra-dependencies';
+import {
+    createFindNetworkSymbolForProtocol,
+    createGetNetworkConfig,
     createNetworkModuleRepository,
     createNetworksCompositionRoot,
 } from '@suite-common/networks';
 import { createNativePlatformEncryption } from '@suite-common/platform-encryption-native';
-import {
-    type ExtraDependenciesStatic,
-    notImplementedAction,
-    notImplementedActionType,
-    notImplementedReducer,
-    notImplementedSelector,
-    notImplementedThunk,
-} from '@suite-common/redux-utils';
 import { createMigrateSuiteSyncLabelsForRbfTransactionCompositionRoot } from '@suite-common/suite-rbf-labels-migrations';
 import { selectAllLabelsForAccount, selectIsSuiteSyncEnabled } from '@suite-common/suite-sync';
-import { createAccountRefreshThrottle } from '@suite-common/wallet-core';
-import { analytics } from '@suite-native/analytics';
+import { type NativeAnalyticsDep, analytics } from '@suite-native/analytics';
 import { forgetBluetoothDeviceThunk } from '@suite-native/bluetooth';
+import {
+    rerunFwAuthenticityChecksThunk,
+    selectShouldRetryFirmwareRevisionCheckError,
+} from '@suite-native/device';
 import { selectTokenDefinitionsEnabledNetworks } from '@suite-native/discovery';
 import { selectSupportedLanguageLocale } from '@suite-native/intl';
 import { reportSecurityCheck } from '@suite-native/sentry';
-import { type NativeServices } from '@suite-native/services';
-import type { EnsureEncryptionKeyDep, MMKVStorageDep } from '@suite-native/storage';
+import type { MMKVStorageDep } from '@suite-native/services';
+import type {
+    EnsureEncryptionKeyDep,
+    MMKVStorageDep as NativeStorageDep,
+} from '@suite-native/storage';
 import { createSuiteSyncNativeCompositionRoot } from '@suite-native/suite-sync';
 import { selectTradedAccountKeys, selectTradingEnvironment } from '@suite-native/trading-state';
 import TrezorConnect, { type ConnectSettings, initLog } from '@trezor/connect';
+import { resolveConnectPath } from '@trezor/env-utils';
 import { BridgeTransport } from '@trezor/transport-common';
 import { NativeBluetoothTransport } from '@trezor/transport-native-bluetooth';
 import { NativeUsbTransport } from '@trezor/transport-native-usb';
@@ -57,7 +66,11 @@ type NativeAppDeps = {
     getState: () => any;
     dispatch: any;
 } & EnsureEncryptionKeyDep &
-    MMKVStorageDep;
+    NativeStorageDep;
+
+export type NativeServices = CommonServices & NativeAnalyticsDep & MMKVStorageDep;
+
+export type ExtraDependenciesNative = ExtraDependenciesStatic & { services: NativeServices };
 
 export const createNativeCompositionRoot = (deps: NativeAppDeps): NativeServices => {
     const platformEncryption = createNativePlatformEncryption({
@@ -90,7 +103,11 @@ export const createNativeCompositionRoot = (deps: NativeAppDeps): NativeServices
     });
     const networkModules = createNetworksCompositionRoot();
     const networkModuleRepository = createNetworkModuleRepository({ networkModules });
-    const getNetworkColor = createGetNetworkColor({ networkModuleRepository });
+    const getNetworkConfig = createGetNetworkConfig({ networkModuleRepository });
+    const findNetworkSymbolForProtocol = createFindNetworkSymbolForProtocol({
+        getNetworkConfig,
+        networkModuleRepository,
+    });
     const addressValidator = createAddressValidator({ networkModuleRepository });
 
     const createLogger: ConnectSettings['createLogger'] = (prefix: string) =>
@@ -100,7 +117,8 @@ export const createNativeCompositionRoot = (deps: NativeAppDeps): NativeServices
 
     return {
         networkModuleRepository,
-        getNetworkColor,
+        getNetworkConfig,
+        findNetworkSymbolForProtocol,
         addressValidator,
         suiteSync,
         bip329,
@@ -138,7 +156,42 @@ export const createNativeCompositionRoot = (deps: NativeAppDeps): NativeServices
                         return new NativeBluetoothTransport({ id: 'native-bluetooth', logger });
                 }
             }),
-        accountRefreshThrottle: createAccountRefreshThrottle(deps.getState),
+        getLanguage: toGetter(deps.getState, selectSupportedLanguageLocale),
+        getTokenDefinitionsEnabledNetworks: toGetter(
+            deps.getState,
+            selectTokenDefinitionsEnabledNetworks,
+        ),
+        getDebugSettings: toGetter(deps.getState, () => ({ transports })),
+        getTradingEnvironment: toGetter(deps.getState, selectTradingEnvironment),
+        getTradedAccountKeys: toGetter(deps.getState, selectTradedAccountKeys),
+        // This getter is not used in native app, but it is used in @suite-common/trading in loadInitialDataThunk.
+        getSelectedAccount: toGetter(deps.getState, () => ({
+            status: 'none',
+            loader: undefined,
+            account: undefined,
+            network: undefined,
+            params: undefined,
+        })),
+        getThpSettings: toGetter(deps.getState, state => ({
+            // On iOS 16 and newer, deviceName is set to "iPhone" without the correct entitlement.
+            hostName: (Platform.OS === 'ios' ? Device.modelName : Device.deviceName) ?? undefined,
+            pairingMethods: ['CodeEntry', 'NFC'],
+            knownCredentials: state.thp?.credentials,
+        })),
+        getAllowPrerelease: toGetter(deps.getState, () => false),
+        shouldRetryFirmwareRevisionCheckError: toGetter(
+            deps.getState,
+            selectShouldRetryFirmwareRevisionCheckError,
+        ),
+        rerunFwAuthenticityChecksCall: () => {
+            deps.dispatch(rerunFwAuthenticityChecksThunk());
+        },
+        getBinFilesBaseUrl: asGetter(() => resolveConnectPath('data')),
+
+        // Not implemented. We assume those are NEVER called on Native.
+        getSelectedAccountStatus: notImplementedGetter('getSelectedAccountStatus', 'loaded'),
+        getIsWindowVisible: notImplementedGetter('getIsWindowVisible', true),
+        getIsViewOnlyByDefaultEnabled: notImplementedGetter('getIsViewOnlyByDefaultEnabled', true),
         migrateSuiteSyncLabelsForRbfTransaction:
             createMigrateSuiteSyncLabelsForRbfTransactionCompositionRoot({
                 dispatch: deps.dispatch,
@@ -149,45 +202,6 @@ export const createNativeCompositionRoot = (deps: NativeAppDeps): NativeServices
 };
 
 export const extraDependencies: ExtraDependenciesStatic = {
-    selectors: {
-        selectLanguage: selectSupportedLanguageLocale,
-        selectTokenDefinitionsEnabledNetworks,
-        selectDebugSettings: () => ({
-            transports,
-        }),
-        selectTradingEnvironment,
-        selectTradedAccountKeys,
-        // this selector is not used in native app, but it is used in @suite-common/trading in loadInitialDataThunk
-        //  and without defining the selector, it would use extraDependenciesMock value there
-        selectSelectedAccount: () => ({
-            status: 'none',
-            loader: undefined,
-            account: undefined,
-            network: undefined,
-            params: undefined,
-        }),
-        selectThpSettings: state => ({
-            // On iOS 16 and newer, deviceName is set to "iPhone" without the correct entitlement.
-            hostName: (Platform.OS === 'ios' ? Device.modelName : Device.deviceName) ?? undefined,
-            pairingMethods: ['CodeEntry', 'NFC'],
-            knownCredentials: state.thp?.credentials,
-        }),
-        selectAllowPrerelease: () => false,
-
-        // Not implemented. We assume those are NEVER called on Native
-        // need for this is architectural mistake. Please DO NOT add more and try
-        // to remove them.
-        selectDesktopBinDir: notImplementedSelector('selectDesktopBinDir', '/bin'),
-        selectSelectedAccountStatus: notImplementedSelector(
-            'selectSelectedAccountStatus',
-            'loaded',
-        ),
-        selectIsWindowVisible: notImplementedSelector('selectIsWindowVisible', true),
-        selectIsViewOnlyByDefaultEnabled: notImplementedSelector(
-            'selectIsViewOnlyByDefaultEnabled',
-            true,
-        ),
-    },
     thunks: {
         forgetBluetoothDevice: forgetBluetoothDeviceThunk,
 

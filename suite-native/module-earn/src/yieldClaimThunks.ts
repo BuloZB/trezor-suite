@@ -1,22 +1,31 @@
-import { selectSelectedDevice } from '@suite-common/device';
-import { buildClaimTransactionReview } from '@suite-common/earn-stablecoin/src/signing';
+import { type DeviceRootState, selectSelectedDevice } from '@suite-common/device';
+import { buildClaimTransactionReview } from '@suite-common/earn-stablecoin';
+import {
+    type MevProtectionRootState,
+    selectIsMevProtectionFeatureEnabled,
+} from '@suite-common/mev';
 import { createThunk } from '@suite-common/redux-utils';
 import {
+    type FormDraftRootState,
+    type StablecoinYieldRootState,
+    type SynchronizeSentTransactionThunkDeps,
+    type SynchronizeSentTransactionThunkState,
+    type WalletSettingsRootState,
     formDraftActions,
     isYieldTxReviewForFlow,
     selectAddressDisplayType,
     selectDeepCopyOfFormDraft,
+    selectIsMevProtectionEnabled,
     selectStablecoinYieldSession,
     selectStablecoinYieldTxReview,
     stablecoinYieldActions,
     synchronizeSentTransactionThunk,
 } from '@suite-common/wallet-core';
-import { type Account, AddressDisplayOptions, type FormState } from '@suite-common/wallet-types';
-import { getAccountIdentity } from '@suite-common/wallet-utils';
+import { type Account, type FormState } from '@suite-common/wallet-types';
 import { type UpdateSelectedFeeLevelThunkParams } from '@suite-native/transaction-management';
-import TrezorConnect from '@trezor/connect';
 
 import { EARN_MODULE_PREFIX } from './constants';
+import { pushYieldTransaction, signYieldTransactionOnDevice } from './utils/deviceTransactionUtils';
 import { getSelectedFeeFromUnsignedClaimTransaction } from './utils/yieldClaimFeeUtils';
 import { buildYieldClaimRewards } from './utils/yieldClaimReviewUtils';
 import { getPushErrorType } from './yieldTransactionThunks';
@@ -35,24 +44,22 @@ type YieldClaimSignTransactionError = {
     message?: string;
 };
 
-export const updateYieldClaimSelectedFeeLevelThunk = createThunk(
+export type UpdateYieldClaimSelectedFeeLevelThunkState = FormDraftRootState;
+
+export const updateYieldClaimSelectedFeeLevelThunk = createThunk<
+    void,
+    UpdateSelectedFeeLevelThunkParams,
+    { state: UpdateYieldClaimSelectedFeeLevelThunkState }
+>(
     `${EARN_MODULE_PREFIX}/updateYieldClaimSelectedFeeLevelThunk`,
     (
-        {
-            feeLevelLabel,
-            feePerUnit,
-            feeLimit,
-            formDraftKey,
-            maxFeePerGas,
-            maxPriorityFeePerGas,
-        }: UpdateSelectedFeeLevelThunkParams,
+        { feeLevelLabel, feePerUnit, feeLimit, formDraftKey, maxFeePerGas, maxPriorityFeePerGas },
         { dispatch, getState },
     ) => {
         if (!formDraftKey) return;
 
         const formDraft = selectDeepCopyOfFormDraft(getState(), formDraftKey) as
-            | FormState
-            | undefined;
+            FormState | undefined;
 
         if (!formDraft) return;
 
@@ -78,10 +85,14 @@ export const updateYieldClaimSelectedFeeLevelThunk = createThunk(
     },
 );
 
+export type SignYieldClaimReviewThunkState = DeviceRootState &
+    StablecoinYieldRootState &
+    WalletSettingsRootState;
+
 export const signYieldClaimReviewThunk = createThunk<
     { serializedTx: string },
     SignYieldClaimReviewThunkPayload,
-    { rejectValue: YieldClaimSignTransactionError }
+    { rejectValue: YieldClaimSignTransactionError; state: SignYieldClaimReviewThunkState }
 >(
     `${EARN_MODULE_PREFIX}/signYieldClaimReviewThunk`,
     async ({ account, flowKey }, { dispatch, getState, rejectWithValue }) => {
@@ -131,16 +142,11 @@ export const signYieldClaimReviewThunk = createThunk<
             }),
         );
 
-        const signingResponse = await TrezorConnect.ethereumSignTransaction({
-            device: {
-                path: device.path,
-                instance: device.instance,
-                state: device.state,
-                useEmptyPassphrase: device.useEmptyPassphrase,
-            },
+        const signingResponse = await signYieldTransactionOnDevice({
+            device,
             path: account.path,
             transaction: transactionForSigning,
-            chunkify: addressDisplayType === AddressDisplayOptions.CHUNKED,
+            addressDisplayType,
         });
 
         if (!signingResponse.success) {
@@ -181,10 +187,21 @@ export const signYieldClaimReviewThunk = createThunk<
     },
 );
 
+export type PushYieldClaimReviewThunkState = MevProtectionRootState &
+    StablecoinYieldRootState &
+    SynchronizeSentTransactionThunkState &
+    WalletSettingsRootState;
+
+export type PushYieldClaimReviewThunkDeps = SynchronizeSentTransactionThunkDeps;
+
 export const pushYieldClaimReviewThunk = createThunk<
     { txid: string },
     SignYieldClaimReviewThunkPayload,
-    { rejectValue: YieldPushTransactionError }
+    {
+        rejectValue: YieldPushTransactionError;
+        state: PushYieldClaimReviewThunkState;
+        extra: PushYieldClaimReviewThunkDeps;
+    }
 >(
     `${EARN_MODULE_PREFIX}/pushYieldClaimReviewThunk`,
     async ({ account, flowKey }, { dispatch, getState, rejectWithValue }) => {
@@ -212,10 +229,12 @@ export const pushYieldClaimReviewThunk = createThunk<
             });
         }
 
-        const pushResponse = await TrezorConnect.pushTransaction({
+        const pushResponse = await pushYieldTransaction({
             tx: serializedTx.tx,
-            coin: serializedTx.symbol,
-            identity: getAccountIdentity(account),
+            account,
+            isMevProtectionEnabled:
+                selectIsMevProtectionEnabled(getState()) &&
+                selectIsMevProtectionFeatureEnabled(getState()),
         });
 
         dispatch(stablecoinYieldActions.discardTransaction());

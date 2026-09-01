@@ -20,6 +20,9 @@
         {
             "path": "../../suite-common/discreet-mode"
         },
+        {
+            "path": "../../suite-common/extra-dependencies"
+        },
         { "path": "../../suite-common/firmware" },
         {
             "path": "../../suite-common/geolocation"
@@ -45,6 +48,9 @@
         {
             "path": "../../suite-common/suite-sync-quota-manager"
         },
+        {
+            "path": "../../suite-common/suite-sync-types"
+        },
         { "path": "../../suite-common/thp" },
         {
             "path": "../../suite-common/toast-notifications"
@@ -62,7 +68,7 @@
             "path": "../../suite-common/walletconnect"
         },
         { "path": "../analytics" },
-        { "path": "../banner-flags" },
+        { "path": "../banners" },
         { "path": "../biometrics" },
         { "path": "../blockchain" },
         { "path": "../bluetooth" },
@@ -85,6 +91,7 @@
         { "path": "../trading-state" },
         { "path": "../transaction-management" },
         { "path": "../../packages/connect" },
+        { "path": "../../packages/env-utils" },
         {
             "path": "../../packages/transport-common"
         },

@@ -1,16 +1,19 @@
+import { type UnknownAction } from '@reduxjs/toolkit';
+
 import { locksInitialState, locksReducer } from '@suite/locks';
 import { modalReducer } from '@suite/modal';
 import { goto, routerReducer } from '@suite/router';
 import { type RouterStateOverrides, createRouterStateMock } from '@suite/router/mocks';
 import { deviceActions, prepareDeviceReducer } from '@suite-common/device';
+import { mockActionType, mockReducer } from '@suite-common/redux-utils/mocks';
+import { mockSuiteSync } from '@suite-common/suite-sync/mocks';
 import { mockConnectDevice, mockSuiteDevice } from '@suite-common/suite-types/mocks';
-import { configureMockStore, extraDependenciesCommonMock } from '@suite-common/test-utils';
+import { configureMockStore } from '@suite-common/test-utils';
 import { DEVICE } from '@trezor/connect';
 
 import redirectMiddleware from 'src/middlewares/suite/redirectMiddleware';
 import { prepareSuiteMiddleware } from 'src/middlewares/suite/suiteMiddleware';
 import suiteReducer from 'src/reducers/suite/suiteReducer';
-import { extraDependencies } from 'src/support/extraDependencies';
 
 jest.mock('src/actions/suite/storageActions', () => ({ __esModule: true }));
 jest.mock('@suite/router', () => ({
@@ -18,7 +21,18 @@ jest.mock('@suite/router', () => ({
     goto: jest.fn(() => ({ type: '@router/goto/mocked' })),
 }));
 
-const deviceReducer = prepareDeviceReducer(extraDependencies);
+const deviceReducer = prepareDeviceReducer({
+    actionTypes: {
+        setDeviceMetadata: mockActionType('setDeviceMetadata'),
+        setDeviceMetadataPasswords: mockActionType('setDeviceMetadataPasswords'),
+        storageLoad: mockActionType('storageLoad'),
+    },
+    reducers: {
+        setDeviceMetadataPasswordsReducer: mockReducer(),
+        setDeviceMetadataReducer: mockReducer(),
+        storageLoadDevices: mockReducer(),
+    },
+});
 
 type SuiteState = ReturnType<typeof suiteReducer>;
 type DevicesState = ReturnType<typeof deviceReducer>;
@@ -48,10 +62,14 @@ const getInitialState = (
 });
 
 type State = ReturnType<typeof getInitialState>;
-const middlewares = [redirectMiddleware, prepareSuiteMiddleware(() => extraDependenciesCommonMock)];
+const middlewares = [
+    redirectMiddleware,
+    prepareSuiteMiddleware(() => ({ services: { suiteSync: mockSuiteSync() } })),
+];
 
 const initStore = (state: State) => {
-    const store = configureMockStore<State>({
+    const store = configureMockStore<void, State, UnknownAction>({
+        extra: undefined,
         middleware: middlewares,
         reducer: (currentState = state, action) => {
             const typedState = currentState as State;

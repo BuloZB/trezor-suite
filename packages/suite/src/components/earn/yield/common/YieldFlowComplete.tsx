@@ -1,6 +1,10 @@
 import { type ReactNode } from 'react';
 
-import { selectDesktopAnalyticsDep } from '@suite/analytics';
+import {
+    feedbackRatingSelectedEvent,
+    feedbackSentEvent,
+    selectDesktopAnalyticsDep,
+} from '@suite/analytics';
 import { Translation, useTranslation } from '@suite/intl';
 import { goto } from '@suite/router';
 import { events } from '@suite-common/analytics';
@@ -49,6 +53,13 @@ export const YieldFlowComplete = ({
         dispatch(goto({ routeName: 'suite-earn' }));
     };
 
+    const handleRatingSelect = (rating: Rating) => {
+        analytics.report({
+            type: feedbackRatingSelectedEvent.name,
+            payload: { rating, category: 'yield', context: type, provider: vaultId },
+        });
+    };
+
     const handleFeedbackSubmit = (rating: Rating, description: string) => {
         analytics.report({
             type: events.yieldInteractionEvent.name,
@@ -71,6 +82,11 @@ export const YieldFlowComplete = ({
                 },
             }),
         );
+
+        analytics.report({
+            type: feedbackSentEvent.name,
+            payload: { category: 'yield', context: type, provider: vaultId },
+        });
     };
 
     return (
@@ -113,7 +129,12 @@ export const YieldFlowComplete = ({
                 </Column>
             </Card>
 
-            <Button intent="neutral" priority="secondary" onClick={handleBackToOverview}>
+            <Button
+                intent="neutral"
+                priority="secondary"
+                data-testid="@yield/flow-complete/back-to-overview-button"
+                onClick={handleBackToOverview}
+            >
                 <Translation id="TR_EARN_YIELD_BACK_TO_OVERVIEW" />
             </Button>
 
@@ -132,6 +153,7 @@ export const YieldFlowComplete = ({
                     successHeading={<Translation id="TR_FEEDBACK_CARD_SUCCESS_TITLE" />}
                     successDescription={<Translation id="TR_FEEDBACK_CARD_SUCCESS_DESCRIPTION" />}
                     onSubmit={handleFeedbackSubmit}
+                    onRatingSelect={handleRatingSelect}
                 />
             )}
         </Column>

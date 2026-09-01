@@ -2,6 +2,7 @@ import type { CryptoId, FiatCurrencyCode, SellFiatTrade } from 'invity-api';
 
 import { configureMockStore, renderHookWithStoreProvider } from '@suite-common/test-utils';
 import { sellInitialState, initialState as tradingInitialState } from '@suite-common/trading';
+import { asNetworkSymbol } from '@suite-common/wallet-config';
 import { type Account } from '@suite-common/wallet-types';
 import { mockWalletAccount } from '@suite-common/wallet-types/mocks';
 
@@ -32,7 +33,7 @@ jest.mock('@suite-common/trading', () => {
     };
 });
 
-const ACCOUNT = mockWalletAccount({ symbol: 'btc' });
+const ACCOUNT = mockWalletAccount({ symbol: asNetworkSymbol('btc') });
 const BITCOIN_CRYPTO_ID = 'bitcoin' as CryptoId;
 const EURO_FIAT_CURRENCY = 'EUR' as FiatCurrencyCode;
 
@@ -85,7 +86,7 @@ const buildState = (overrides: StateOverrides = {}) => {
 const renderConfirm = (overrides?: StateOverrides) => {
     const state = buildState(overrides);
 
-    const store = configureMockStore({ preloadedState: state });
+    const store = configureMockStore({ extra: undefined, preloadedState: state });
     const { result } = renderHookWithStoreProvider(() => useTradingSellConfirm(), { store });
 
     return { store, result };

@@ -101,7 +101,11 @@ export const EarnItemOverviewSection = (item: EarnPromoItem) => {
     const iconProps =
         item.type === 'staking'
             ? { symbol: item.symbol }
-            : { symbol: item.networkSymbol, contractAddress: item.tokenContractAddress };
+            : {
+                  symbol: item.networkSymbol,
+                  contractAddress: item.tokenContractAddress,
+                  wrappedTokenIcon: 'network' as const,
+              };
 
     return (
         <HStack
@@ -143,14 +147,23 @@ export const EarnItemOverviewSection = (item: EarnPromoItem) => {
                             {isAdaStakedOutsideEverstake || !isApyAvailable(apyValue) ? (
                                 <Translation id="earn.notAvailableShort" />
                             ) : (
-                                <Translation
-                                    id={
-                                        symbol === 'trx'
-                                            ? 'earn.aprPercentage'
-                                            : 'earn.apyPercentage'
-                                    }
-                                    values={{ apy: apyValue }}
-                                />
+                                <>
+                                    {item.type === 'staking' ? (
+                                        <Translation
+                                            id={
+                                                symbol === 'trx'
+                                                    ? 'earn.aprPercentage'
+                                                    : 'earn.apyPercentage'
+                                            }
+                                            values={{ apy: apyValue }}
+                                        />
+                                    ) : (
+                                        <Translation
+                                            id="earn.ratePercentage"
+                                            values={{ apy: apyValue }}
+                                        />
+                                    )}
+                                </>
                             )}
                         </Text>
                     )}

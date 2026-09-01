@@ -1,6 +1,10 @@
 import { type PayloadAction } from '@reduxjs/toolkit';
 
-import { createSliceWithExtraDeps } from '@suite-common/redux-utils';
+import {
+    type ActionTypesDep,
+    type ReducersDep,
+    createSliceWithExtraDeps,
+} from '@suite-common/redux-utils';
 import { DEVICE } from '@trezor/connect';
 
 import { type NewContentIndicatorId } from './flagsConstants';
@@ -16,9 +20,12 @@ export type FlagsState = {
     showTEXDashboardPromoBanner: boolean;
     showTS7DashboardPromoBanner: boolean;
     showStablecoinYieldDashboardPromoBanner: boolean;
+    showDefiYieldDashboardPromoBanner: boolean;
+    showETHVaultDashboardPromoBanner: boolean;
     showOnboardingFeedbackBanner: boolean;
     showSettingsDesktopAppPromoBanner: boolean;
     activateAssetsBannerClosed: boolean;
+    addAccountNetworksBannerClosed: boolean;
     stakeEthBannerClosed: boolean;
     earnEthBannerClosed: boolean;
     stakeSolBannerClosed: boolean;
@@ -44,6 +51,8 @@ export type BooleanFlagKey = {
     [Key in keyof FlagsState]: FlagsState[Key] extends boolean ? Key : never;
 }[keyof FlagsState];
 
+export type FlagsSliceDeps = ActionTypesDep<'storageLoad'> & ReducersDep<'storageLoadFlags'>;
+
 export const flagsInitialState: FlagsState = {
     initialRun: true,
     discreetModeCompleted: false,
@@ -55,9 +64,12 @@ export const flagsInitialState: FlagsState = {
     showTEXDashboardPromoBanner: true,
     showTS7DashboardPromoBanner: true,
     showStablecoinYieldDashboardPromoBanner: true,
+    showDefiYieldDashboardPromoBanner: true,
+    showETHVaultDashboardPromoBanner: true,
     showOnboardingFeedbackBanner: false,
     showSettingsDesktopAppPromoBanner: true,
     activateAssetsBannerClosed: false,
+    addAccountNetworksBannerClosed: false,
     stakeEthBannerClosed: false,
     earnEthBannerClosed: false,
     stakeSolBannerClosed: false,
@@ -104,7 +116,7 @@ const flagsSlice = createSliceWithExtraDeps({
             }
         },
     },
-    extraReducers: (builder, extra) => {
+    extraReducers: (builder, extra: FlagsSliceDeps) => {
         builder
             .addCase(extra.actionTypes.storageLoad, extra.reducers.storageLoadFlags)
             .addCase(DEVICE.CONNECT, state => {
@@ -129,12 +141,18 @@ export const selectIsTS7DashboardPromoBannerShown = (state: FlagsRootState) =>
     state.flags.showTS7DashboardPromoBanner;
 export const selectIsStablecoinYieldDashboardPromoBannerShown = (state: FlagsRootState) =>
     state.flags.showStablecoinYieldDashboardPromoBanner;
+export const selectIsDefiYieldDashboardPromoBannerShown = (state: FlagsRootState) =>
+    state.flags.showDefiYieldDashboardPromoBanner;
+export const selectIsETHVaultDashboardPromoBannerShown = (state: FlagsRootState) =>
+    state.flags.showETHVaultDashboardPromoBanner;
 export const selectIsOnboardingFeedbackBannerShown = (state: FlagsRootState) =>
     state.flags.showOnboardingFeedbackBanner;
 export const selectIsSettingsDesktopAppPromoBannerShown = (state: FlagsRootState) =>
     state.flags.showSettingsDesktopAppPromoBanner;
 export const selectIsActivateAssetsBannerClosed = (state: FlagsRootState) =>
     state.flags.activateAssetsBannerClosed;
+export const selectIsAddAccountNetworksBannerClosed = (state: FlagsRootState) =>
+    state.flags.addAccountNetworksBannerClosed;
 export const selectIsUnhideTokenModalShown = (state: FlagsRootState) =>
     state.flags.showUnhideTokenModal;
 export const selectIsCopyAddressModalShown = (state: FlagsRootState) =>

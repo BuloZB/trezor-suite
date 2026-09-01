@@ -9,7 +9,6 @@ import {
     selectCurrentFiatRates,
     useMissingRateTickersQuery,
 } from '@suite-common/wallet-core';
-import { compareEarnByAmountDesc } from '@suite-common/wallet-utils';
 import { useTranslate } from '@suite-native/intl';
 
 import {
@@ -91,6 +90,8 @@ export const useEarnDepositsCardData = ({
         missingStakingRateTickers,
         missingStablecoinYieldRateTickers,
         missingRateTickers,
+        stakingFiatAmount,
+        stablecoinYieldFiatAmount,
         totalDepositedFiatAmount,
         hasStakingFiatRate,
         hasStablecoinYieldFiatRate: hasStablecoinFiatRate,
@@ -107,22 +108,18 @@ export const useEarnDepositsCardData = ({
 
     const stakingRows = useMemo(
         () =>
-            calculatedStakingDeposits
-                .map(
-                    ({ deposit, balance, fiatAmount }) =>
-                        ({
-                            id: deposit.id,
-                            type: 'staking',
-                            title:
-                                deposit.accountLabel ?? getNetworkDisplaySymbolName(deposit.symbol),
-                            symbol: deposit.symbol,
-                            accountKey: deposit.accountKey,
-                            balance,
-                            fiatAmount,
-                        }) satisfies EarnDepositsCardActiveItem,
-                )
-                // Active positions are ordered by fiat value, highest first (matches desktop).
-                .sort(compareEarnByAmountDesc(row => row.fiatAmount)),
+            calculatedStakingDeposits.map(
+                ({ deposit, balance, fiatAmount }) =>
+                    ({
+                        id: deposit.id,
+                        type: 'staking',
+                        title: deposit.accountLabel ?? getNetworkDisplaySymbolName(deposit.symbol),
+                        symbol: deposit.symbol,
+                        accountKey: deposit.accountKey,
+                        balance,
+                        fiatAmount,
+                    }) satisfies EarnDepositsCardActiveItem,
+            ),
         [calculatedStakingDeposits],
     );
 
@@ -161,52 +158,30 @@ export const useEarnDepositsCardData = ({
         isFiatRatesLoading,
     });
 
-    const stakingTitle = useMemo(() => {
-        const firstStakingSymbol = stakingRows[0]?.symbol;
-        const hasMultipleStakingSymbols = stakingRows.some(
-            item => item.symbol !== firstStakingSymbol,
-        );
-
-        return firstStakingSymbol && !hasMultipleStakingSymbols
-            ? translate('earn.earnScreen.depositsCard.networkStaking', {
-                  networkName: getNetworkDisplaySymbolName(firstStakingSymbol),
-              })
-            : translate('earn.staking');
-    }, [stakingRows, translate]);
-
-    const stablecoinTitle = useMemo(() => {
-        const firstStablecoinVaultName = stablecoinRows[0]?.title;
-        const hasMultipleStablecoinVaults = stablecoinRows.some(
-            item => item.title !== firstStablecoinVaultName,
-        );
-
-        return firstStablecoinVaultName && !hasMultipleStablecoinVaults
-            ? firstStablecoinVaultName
-            : translate('earn.defiYield');
-    }, [stablecoinRows, translate]);
-
     const stakingRow = useMemo(
         () =>
             createSummaryRow({
                 activeItems: stakingRows,
-                title: stakingTitle,
+                title: translate('earn.earnScreen.depositsCard.stakingPositions'),
             }),
-        [stakingRows, stakingTitle],
+        [stakingRows, translate],
     );
 
     const stablecoinYieldRow = useMemo(
         () =>
             createSummaryRow({
                 activeItems: stablecoinRows,
-                title: stablecoinTitle,
+                title: translate('earn.earnScreen.depositsCard.defiYieldPositions'),
             }),
-        [stablecoinRows, stablecoinTitle],
+        [stablecoinRows, translate],
     );
 
     return {
         stakingRow,
         stablecoinYieldRow,
         totalDepositedFiatAmount,
+        stakingFiatAmount,
+        stablecoinYieldFiatAmount,
         isFiatRatesLoading,
         isFiatTotalIncomplete,
         isFiatTotalUnavailable,

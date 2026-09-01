@@ -6,13 +6,12 @@ import { type RouteProp, useNavigation, useRoute } from '@react-navigation/nativ
 import { useServices } from '@suite-common/dependency-injection';
 import { getNetworkDisplaySymbol } from '@suite-common/wallet-config';
 import { type AccountsRootState, selectAccountNetworkSymbol } from '@suite-common/wallet-core';
-import { AccountDetailsCard } from '@suite-native/accounts';
 import { events, selectNativeAnalyticsDep } from '@suite-native/analytics';
 import {
     type ActiveView,
+    BannerInline,
     Box,
     Button,
-    InlineAlertBox,
     ScreenFooterGradient,
 } from '@suite-native/atoms';
 import { Form } from '@suite-native/forms';
@@ -26,6 +25,7 @@ import {
 import { FeeSelector } from '@suite-native/transaction-management';
 import { MAX_DEACTIVATE_ACCOUNTS_WITH_SPLIT } from '@trezor/network-solana/constants';
 
+import { EarnAmountCard } from '../components/EarnAmountCard';
 import { EarnOutputFields } from '../components/EarnOutputFields';
 import { SolanaUnstakeAmountBoundsAlert } from '../components/SolanaUnstakeAmountBoundsAlert';
 import { UnstakeCanClaimAlert } from '../components/UnstakeCanClaimAlert';
@@ -91,6 +91,7 @@ export const UnstakeFlowScreen = () => {
 
     const handleReviewAndSign = form.handleSubmit(() => {
         registerNavigateBackAnalytics();
+
         analytics.report({
             type: events.stakingUnstakeEvent.name,
             payload: {
@@ -100,7 +101,9 @@ export const UnstakeFlowScreen = () => {
                 currency: currencyRef.current,
             },
         });
-        navigation.navigate(RootStackRoutes.UnstakeTransactionDataReview, {
+
+        navigation.navigate(RootStackRoutes.StakingTransactionDataReview, {
+            stakeType: 'unstake',
             accountKey,
             amount: amountValue,
         });
@@ -124,16 +127,15 @@ export const UnstakeFlowScreen = () => {
                 </>
             }
         >
-            <AccountDetailsCard
+            <EarnAmountCard
                 accountKey={accountKey}
-                isStakeVariant
-                titleLabel={<Translation id="earn.earnFormScreen.staked" />}
+                label={<Translation id="earn.earnFormScreen.staked" />}
                 cryptoAmount={stakedBalance ?? undefined}
             />
 
             {isAccountLimitExceeded && networkSymbol && (
                 <Box marginTop="sp16">
-                    <InlineAlertBox
+                    <BannerInline
                         intent="info"
                         title={
                             <Translation
@@ -169,7 +171,7 @@ export const UnstakeFlowScreen = () => {
             </Form>
             {showNetworkFeeWarning && (
                 <Box marginTop="sp16">
-                    <InlineAlertBox
+                    <BannerInline
                         intent="warning"
                         title={<Translation id="earn.earnFormScreen.networkFeeWarning" />}
                     />

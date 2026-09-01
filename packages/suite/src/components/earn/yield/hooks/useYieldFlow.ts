@@ -5,10 +5,10 @@ import { selectDesktopAnalyticsDep } from '@suite/analytics';
 import { setConnectionModal, setConnectionMode, useDevice } from '@suite/device';
 import { type TranslationKey } from '@suite/intl';
 import { openModal } from '@suite/modal';
-import { type EarnParams } from '@suite/router';
 import { events } from '@suite-common/analytics';
 import { useServices } from '@suite-common/dependency-injection';
 import { type YieldDtoV2 } from '@suite-common/earn-stablecoin-api';
+import { getNetwork } from '@suite-common/wallet-config';
 import {
     type YieldAllowanceStatus,
     type YieldApproveModalState,
@@ -18,10 +18,11 @@ import {
     type YieldFlowToken,
     type YieldPendingTransactionState,
     type YieldPositionFlowType,
-    getWrappableNativeBalance,
+    getMaxWrapAmount,
     handleYieldApproveCancelThunk,
     handleYieldApproveSuccessTxidThunk,
     initYieldAllowanceThunk,
+    isStablecoinYieldSessionResumable,
     isYieldWithdrawFlow,
     selectStablecoinYieldSession,
     stablecoinYieldActions,
@@ -29,8 +30,8 @@ import {
     submitYieldRevokeThunk,
 } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
-import { isWrappedNativeToken } from '@suite-common/wallet-utils';
-import { useCurrentRef } from '@trezor/react-utils';
+import { isWrappedNativeToken } from '@trezor/network-ethereum-suite-common';
+import { useCurrentRef, useFreshRef } from '@trezor/react-utils';
 
 import {
     submitYieldDepositThunk,
@@ -41,18 +42,22 @@ import { submitWrapNativeTokenThunk } from 'src/actions/wallet/wrapNativeTokenTh
 import { useDispatch, useSelector } from 'src/hooks/suite';
 
 import { useEnsureYieldDeviceSession } from './useEnsureYieldDeviceSession';
-import { useResolvedYieldFlowData } from './useResolvedYieldFlowData';
+import { useYieldFiatInput } from './useYieldFiatInput';
+import { useYieldFlowData } from './useYieldFlowData';
 import { useYieldPendingTransactionTracking } from './useYieldPendingTransactionTracking';
+import { type YieldAmountCardFiatToggleProps } from '../common/YieldAmountCard';
 import {
     type YieldApprovalAction,
     getYieldApprovalAction,
+    getYieldFiatRateToken,
     getYieldModifyAmountInput,
+    getYieldUnwrapDefaultAmount,
     isAmountGreaterThan,
+    shouldInitializeYieldAllowance,
 } from '../yieldFlowUtils';
 
 type UseYieldFlowProps = {
     account: Account;
-    routeParams: EarnParams;
     vault: YieldDtoV2;
     flowType: YieldPositionFlowType;
 };
@@ -111,6 +116,8 @@ export type UseYieldFlowResult = {
     handleApproveSuccessTxid: (txid: string) => void;
     openPendingTransaction: (txid: string) => void;
     retryInitAllowance: () => void;
+    fiatToggle: YieldAmountCardFiatToggleProps | undefined;
+    setMaxAmount: (cryptoMax: string) => void;
     methods: UseFormReturn<YieldFlowFormValues>;
     flow: UseYieldFlowStepsResult;
 };
@@ -127,7 +134,6 @@ export type YieldFlowContextValues = Omit<
 
 export const useYieldFlow = ({
     account,
-    routeParams,
     vault,
     flowType,
 }: UseYieldFlowProps): UseYieldFlowResult => {
@@ -138,18 +144,20 @@ export const useYieldFlow = ({
         mode: 'onChange',
         defaultValues: {
             amountInput: '',
+            fiatInput: '',
         },
     });
     const methodsRef = useCurrentRef(methods);
     const initAllowancePromiseRef = useRef<{ abort: () => void } | null>(null);
     const unwrapDefaultAmountRef = useRef<string | null>(null);
 
-    const { token, receiptToken, apy, depositedAmount, depositedSharesAmount, flowKey } =
-        useResolvedYieldFlowData({
-            account,
-            routeParams,
-            vault,
-        });
+    const yieldFlowData = useYieldFlowData({ account, vault });
+    const { token, receiptToken, apy } = yieldFlowData;
+
+    const depositedAmount = yieldFlowData.depositedAmount ?? '0';
+    const depositedSharesAmount = yieldFlowData.depositedSharesAmount ?? '0';
+    const flowKey = yieldFlowData.flowKey ?? '';
+
     const allowanceFlowDataRef = useCurrentRef({
         account,
         vault,
@@ -159,7 +167,9 @@ export const useYieldFlow = ({
 
     const ensureDeviceSession = useEnsureYieldDeviceSession({ flowType, flowKey });
     const session = useSelector(state => selectStablecoinYieldSession(state, flowType, flowKey));
-    const sessionRef = useCurrentRef(session);
+    // Fresh rather than commit-lagging: the entry effect below reads the session to decide whether
+    // the flow resumes, and a value one commit behind would restart a session it should keep.
+    const sessionRef = useFreshRef(session);
 
     const isWrappedNativeVault = isWrappedNativeToken(account.symbol, vault.token.address);
     const hasWrappedTokenBalance = isAmountGreaterThan({
@@ -171,12 +181,30 @@ export const useYieldFlow = ({
     const isSharesInput = flowType === 'redeem';
     const canToggleWithdrawUnit = isYieldWithdrawFlow(flowType) && !!token && !!receiptToken;
 
+    // Fiat entry prices the amount by the token currently shown (native for wrap/unwrap, the vault
+    // asset for deposit/withdraw, none while redeeming shares).
+    const rateToken = getYieldFiatRateToken({
+        step: session.step,
+        flowType,
+        accountSymbol: account.symbol,
+        token,
+    });
+    const { fiatToggle, setMaxAmount, resetAmounts } = useYieldFiatInput({
+        methods,
+        symbol: rateToken?.symbol,
+        tokenAddress: rateToken?.tokenAddress,
+        decimals: token?.decimals ?? getNetwork(account.symbol).decimals,
+        vaultId: vault.id,
+    });
+    const resetAmountsRef = useCurrentRef(resetAmounts);
+
     const getMaxAmount = () => {
         if (flowType === 'deposit') {
             if (session.step === 'wrap') {
-                // Max leaves the gas reserve aside; the field still shows the full balance and the
-                // user may wrap up to it (see `amountTooHighThreshold`), with a recommendation.
-                return getWrappableNativeBalance(account.formattedBalance);
+                // Max leaves the gas reserve aside while the balance covers it, otherwise it fills
+                // the whole balance. Either way the field shows the full balance and the user may
+                // wrap up to it (see `amountTooHighThreshold`), with a recommendation.
+                return getMaxWrapAmount(account.formattedBalance);
             }
 
             return token?.balance ?? '';
@@ -198,29 +226,47 @@ export const useYieldFlow = ({
         : (receiptToken?.symbol ?? '');
 
     useEffect(() => {
-        if (!flowKey) {
-            return;
-        }
+        if (!flowKey) return;
 
-        dispatch(stablecoinYieldActions.initSession({ flowType, flowKey, isWrappedNativeVault }));
-        dispatch(stablecoinYieldActions.resetSession({ flowType, flowKey, isWrappedNativeVault }));
+        // A session that is mid-flow survives disposal (see `isStablecoinYieldSessionResumable`),
+        // so re-entering the flow resumes it — step, approval and pending state included — instead
+        // of starting over. `enterSession` makes that call on the live state, including the wrap
+        // step a fresh wrapped-native deposit can open past.
+        const resumedSession = isStablecoinYieldSessionResumable(sessionRef.current)
+            ? sessionRef.current
+            : null;
 
-        if (flowType === 'deposit' && isWrappedNativeVault && hasWrappedTokenBalanceRef.current) {
-            dispatch(
-                stablecoinYieldActions.resolveWrappedNativeStep({
-                    flowType,
-                    flowKey,
-                    step: 'wrap',
-                }),
-            );
-        }
+        dispatch(
+            stablecoinYieldActions.enterSession({
+                flowType,
+                flowKey,
+                isWrappedNativeVault,
+                hasWrappedTokenBalance: hasWrappedTokenBalanceRef.current,
+            }),
+        );
 
-        methodsRef.current.reset({ amountInput: '' });
+        // A resumed flow shows the amount it was left with: the one locked by the transaction in
+        // flight, or the one its confirmed transaction moved on to the next step.
+        resetAmountsRef.current(
+            resumedSession
+                ? (resumedSession.action.pendingTransaction?.amount ??
+                      resumedSession.action.amount ??
+                      '')
+                : '',
+        );
 
         return () => {
             dispatch(stablecoinYieldActions.disposeSession({ flowType, flowKey }));
         };
-    }, [flowKey, flowType, dispatch, isWrappedNativeVault, hasWrappedTokenBalanceRef, methodsRef]);
+    }, [
+        flowKey,
+        flowType,
+        dispatch,
+        isWrappedNativeVault,
+        hasWrappedTokenBalanceRef,
+        resetAmountsRef,
+        sessionRef,
+    ]);
 
     const { allowanceStatus } = session.approval;
 
@@ -258,6 +304,9 @@ export const useYieldFlow = ({
                     token: currentToken,
                     receiptToken: currentReceiptToken,
                 },
+                // Only the approve step may auto-advance on a sufficient allowance; from the
+                // action step this would undo a "modify approval" click made mid-read.
+                shouldSkipApprovalStep: sessionRef.current.step === 'approve',
             }),
         );
 
@@ -279,15 +328,20 @@ export const useYieldFlow = ({
                     initAllowancePromiseRef.current = null;
                 }
             });
-    }, [allowanceFlowDataRef, analytics, dispatch, flowKey, flowType]);
+    }, [allowanceFlowDataRef, analytics, dispatch, flowKey, flowType, sessionRef]);
 
     useEffect(() => {
-        const canInitializeAllowance =
-            !isWrappedNativeVault || (session.isWrappedNativeVault && session.step === 'approve');
-
-        if (allowanceStatus !== 'idle' || !canInitializeAllowance) {
+        if (
+            !shouldInitializeYieldAllowance({
+                isWrappedNativeVault,
+                hasWrappedNativeSession: session.isWrappedNativeVault,
+                step: session.step,
+                allowanceStatus,
+            })
+        ) {
             return;
         }
+
         runInitAllowance();
     }, [
         allowanceStatus,
@@ -313,11 +367,11 @@ export const useYieldFlow = ({
 
         if (prevStep !== null && prevStep !== nextStep) {
             if (prevStep === 'wrap' && nextStep === 'approve') {
-                methodsRef.current.reset({ amountInput: session.action.amount ?? '' });
+                resetAmountsRef.current(session.action.amount ?? '');
             }
 
             if (nextStep === 'wrap') {
-                methodsRef.current.reset({ amountInput: '' });
+                methodsRef.current.reset({ amountInput: '', fiatInput: '' });
             }
 
             if (prevStep === 'approve' && nextStep === 'action') {
@@ -328,24 +382,41 @@ export const useYieldFlow = ({
                 })
                     ? maxAmount
                     : actionAmount;
-                methodsRef.current.reset({
-                    amountInput: cappedAmount,
-                });
+                resetAmountsRef.current(cappedAmount);
             }
 
             if (prevStep === 'action' && nextStep === 'approve') {
-                methodsRef.current.reset({
-                    amountInput: getYieldModifyAmountInput({
+                resetAmountsRef.current(
+                    getYieldModifyAmountInput({
                         liveAmount: methodsRef.current.getValues('amountInput'),
                         actionAmount: session.action.amount,
                         maxAmount,
                     }),
-                });
+                );
             }
         }
 
         prevStepRef.current = nextStep;
-    }, [session.step, session.action.amount, methodsRef, maxAmount]);
+    }, [session.step, session.action.amount, methodsRef, resetAmountsRef, maxAmount]);
+
+    // The withdraw flow's unwrap step must default to the amount just withdrawn (in asset units),
+    // not the account's whole wrapped-native balance — otherwise it would sweep in unrelated WETH
+    // the user never meant to unwrap (trezor/trezor-suite#30559).
+    const pricePerShareState = vault.state?.pricePerShareState;
+    const unwrapDefaultAmount = useMemo(() => {
+        if (!token || !receiptToken || !isYieldWithdrawFlow(flowType)) {
+            return token?.balance ?? '';
+        }
+
+        return getYieldUnwrapDefaultAmount({
+            flowType,
+            withdrawnAmount: session.result.completedAmount,
+            token,
+            receiptToken,
+            pricePerShareState,
+            fallbackAmount: token.balance,
+        });
+    }, [flowType, pricePerShareState, receiptToken, session.result.completedAmount, token]);
 
     useEffect(() => {
         if (session.step !== 'unwrap') {
@@ -354,18 +425,17 @@ export const useYieldFlow = ({
             return;
         }
 
-        const nextDefaultAmount = token?.balance ?? '';
         const currentAmount = methodsRef.current.getValues('amountInput');
 
         if (
             unwrapDefaultAmountRef.current === null ||
             currentAmount === unwrapDefaultAmountRef.current
         ) {
-            methodsRef.current.reset({ amountInput: nextDefaultAmount });
+            resetAmountsRef.current(unwrapDefaultAmount);
         }
 
-        unwrapDefaultAmountRef.current = nextDefaultAmount;
-    }, [methodsRef, session.step, token?.balance]);
+        unwrapDefaultAmountRef.current = unwrapDefaultAmount;
+    }, [methodsRef, resetAmountsRef, session.step, unwrapDefaultAmount]);
 
     const flow = useMemo(
         () => ({ currentStep: session.step, isWrappedNativeVault }),
@@ -490,7 +560,7 @@ export const useYieldFlow = ({
                             account,
                             token: wrappedToken,
                             wrapAmount: amount,
-                            yieldFlow: { flowType: 'deposit', flowKey },
+                            yieldFlow: { flowType: 'deposit', flowKey, vaultId: vault.id },
                         }),
                     ).unwrap();
                     txid = result?.txid;
@@ -500,7 +570,7 @@ export const useYieldFlow = ({
                             account,
                             token: wrappedToken,
                             unwrapAmount: amount,
-                            yieldFlow: { flowType, flowKey },
+                            yieldFlow: { flowType, flowKey, vaultId: vault.id },
                         }),
                     ).unwrap();
                     txid = result?.txid;
@@ -545,6 +615,7 @@ export const useYieldFlow = ({
             openDeviceConnectionModal,
             resolveWrappedNativeStep,
             token,
+            vault.id,
         ],
     );
 
@@ -656,7 +727,7 @@ export const useYieldFlow = ({
                 amount,
             }),
         );
-        methodsRef.current.reset({ amountInput: '' });
+        methodsRef.current.reset({ amountInput: '', fiatInput: '' });
     }, [
         account,
         flowKey,
@@ -783,9 +854,9 @@ export const useYieldFlow = ({
         !liveAmount || !isAmountGreaterThan({ amount: liveAmount, threshold: '0' });
     const allowanceAmount = session.approval.allowanceAmount ?? '0';
     const canRevokeAllowance = isAmountGreaterThan({ amount: allowanceAmount, threshold: '0' });
-    // On the wrap step the hard cap is the full native balance: `maxAmount` only holds the gas
-    // reserve aside for the Max button, and manually eating into it is a non-blocking
-    // recommendation rather than an "insufficient funds" error.
+    // On the wrap step the hard cap is the full native balance: `maxAmount` holds the gas reserve
+    // aside for the Max button only while the balance covers it, and manually eating into the
+    // reserve is a non-blocking recommendation rather than an "insufficient funds" error.
     const amountTooHighThreshold =
         flowType === 'deposit' && session.step === 'wrap' ? account.formattedBalance : maxAmount;
     const isAmountTooHigh = isAmountGreaterThan({
@@ -853,6 +924,8 @@ export const useYieldFlow = ({
         handleApproveSuccessTxid,
         openPendingTransaction,
         retryInitAllowance: runInitAllowance,
+        fiatToggle,
+        setMaxAmount,
         methods,
         flow,
     };

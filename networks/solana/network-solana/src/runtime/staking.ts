@@ -20,6 +20,7 @@ import {
     MAX_DEACTIVATE_ACCOUNTS_WITH_SPLIT,
     MIN_STAKE_DELEGATION,
     STAKE_ACCOUNT_V2_SIZE,
+    type SolanaNetworkSymbol,
     StakeState,
 } from '../constants';
 import type {
@@ -41,7 +42,6 @@ import type {
     StakeParams,
     StakeResponse,
     StakeStateAccount,
-    SupportedSolanaNetworkSymbols,
     UnstakeParams,
     UnstakeResponse,
 } from '../types';
@@ -160,6 +160,7 @@ export const stake = async ({
             feeLamports: feeSummary.feeLamports,
             rentLamports: minimumRent.toString(),
             feeIncludingRentLamports,
+            hasSplitInstruction: false,
         };
 
         return {
@@ -170,6 +171,7 @@ export const stake = async ({
     } catch (error) {
         throw new Error(
             `Solana staking: staking failed - ${error instanceof Error ? error.message : serializeError(error)}`,
+            { cause: error },
         );
     }
 };
@@ -330,12 +332,14 @@ export const unstake = async ({
             feeLamports: feeSummary.feeLamports,
             rentLamports: minimumRent.toString(),
             feeIncludingRentLamports,
+            hasSplitInstruction: accountsToSplit.length > 0,
         };
 
         return { unstakeTx: transactionMessage, unstakeAmount, txMeta };
     } catch (error) {
         throw new Error(
             `Solana staking: unstaking failed - ${error instanceof Error ? error.message : serializeError(error)}`,
+            { cause: error },
         );
     }
 };
@@ -393,6 +397,7 @@ export const claim = async ({
             feeLamports: feeSummary.feeLamports,
             rentLamports: '0',
             feeIncludingRentLamports: feeSummary.feeLamports,
+            hasSplitInstruction: false,
         };
 
         return {
@@ -403,6 +408,7 @@ export const claim = async ({
     } catch (error) {
         throw new Error(
             `Solana staking: claiming failed - ${error instanceof Error ? error.message : serializeError(error)}`,
+            { cause: error },
         );
     }
 };
@@ -513,12 +519,11 @@ export const prepareClaimSolTx = async ({
     }
 };
 
-export const selectSolanaValidator = (symbol: SupportedSolanaNetworkSymbols) => {
+export const selectSolanaValidator = (symbol: SolanaNetworkSymbol): Address => {
     switch (symbol) {
         case 'dsol':
             return address(EVERSTAKE_SOLANA_DEVNET_VALIDATOR);
         case 'sol':
-        default:
             return address(EVERSTAKE_SOLANA_MAINNET_VALIDATOR);
     }
 };

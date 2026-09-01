@@ -6,11 +6,14 @@ import { isFulfilled } from '@reduxjs/toolkit';
 
 import {
     type StablecoinYieldRootState,
+    type YIELD_FLOW_AVAILABLE_STEPS,
     type YieldFlowResolvedData,
+    type YieldFlowStepId,
     initYieldAllowanceThunk,
     selectStablecoinYieldSession,
     selectStablecoinYieldSessionByFlowKey,
     stablecoinYieldActions,
+    trackWrappedNativeTokenThunk,
 } from '@suite-common/wallet-core';
 import {
     type StackNavigationProps,
@@ -18,6 +21,8 @@ import {
     type YieldStackParamList,
     YieldStackRoutes,
 } from '@suite-native/navigation';
+import { isWrappedNativeToken } from '@trezor/network-ethereum-suite-common';
+import { BigNumber } from '@trezor/utils';
 
 type NavigationProps = StackNavigationProps<YieldStackParamList, YieldStackRoutes.YieldConsents>;
 
@@ -26,6 +31,19 @@ type UseStartYieldDepositFlowParams = {
     flowKey: string | null;
     routeParams: YieldFlowParams;
 };
+
+type YieldDepositStepId = (typeof YIELD_FLOW_AVAILABLE_STEPS)['deposit'][number];
+
+// Keyed by the deposit sequence, so adding a step to it stops compiling until it is mapped here.
+const DEPOSIT_STEP_ROUTES = {
+    wrap: YieldStackRoutes.YieldDepositWrap,
+    approve: YieldStackRoutes.YieldDepositApproval,
+    action: YieldStackRoutes.YieldDeposit,
+    complete: YieldStackRoutes.YieldDepositComplete,
+} as const satisfies Record<YieldDepositStepId, YieldStackRoutes>;
+
+const isYieldDepositStep = (step: YieldFlowStepId): step is YieldDepositStepId =>
+    step in DEPOSIT_STEP_ROUTES;
 
 export const useStartYieldDepositFlow = ({
     flowData,
@@ -44,9 +62,29 @@ export const useStartYieldDepositFlow = ({
         }
 
         const sessionParams = { flowType: 'deposit' as const, flowKey };
+        const isWrappedNativeVault = isWrappedNativeToken(
+            flowData.account.symbol,
+            flowData.token.contractAddress,
+        );
 
         isStartingDepositFlowRef.current = true;
         setIsStartingDepositFlow(true);
+
+        const navigateToDepositStep = (step: YieldFlowStepId) => {
+            // 'unwrap' belongs to the withdraw sequence only, so a deposit session never reports
+            // it; staying put beats navigating to an unrelated step.
+            if (!isYieldDepositStep(step)) {
+                return;
+            }
+
+            navigation.navigate(DEPOSIT_STEP_ROUTES[step], routeParams);
+        };
+
+        const navigateBySessionStep = () => {
+            const session = selectStablecoinYieldSession(store.getState(), 'deposit', flowKey);
+
+            navigateToDepositStep(session.step);
+        };
 
         try {
             const existingSession = selectStablecoinYieldSessionByFlowKey(
@@ -56,17 +94,34 @@ export const useStartYieldDepositFlow = ({
             );
 
             if (existingSession?.action.pendingTransaction) {
-                navigation.navigate(
-                    existingSession.step === 'action'
-                        ? YieldStackRoutes.YieldDeposit
-                        : YieldStackRoutes.YieldDepositApproval,
-                    routeParams,
-                );
+                navigateToDepositStep(existingSession.step);
 
                 return true;
             }
 
-            dispatch(stablecoinYieldActions.resetSession(sessionParams));
+            dispatch(
+                stablecoinYieldActions.resetSession({ ...sessionParams, isWrappedNativeVault }),
+            );
+
+            if (isWrappedNativeVault) {
+                const trackResponse = await dispatch(
+                    trackWrappedNativeTokenThunk({ accountKey: flowData.account.key }),
+                );
+                const wrappedTokenBalance = isFulfilled(trackResponse)
+                    ? (trackResponse.payload ?? flowData.token.balance)
+                    : flowData.token.balance;
+
+                // Mirrors desktop: holding any wrapped token skips the wrap step up front; the
+                // user can still come back to it from the approve step.
+                if (new BigNumber(wrappedTokenBalance).gt(0)) {
+                    dispatch(
+                        stablecoinYieldActions.resolveWrappedNativeStep({
+                            ...sessionParams,
+                            step: 'wrap',
+                        }),
+                    );
+                }
+            }
 
             const response = await dispatch(
                 initYieldAllowanceThunk({
@@ -76,21 +131,14 @@ export const useStartYieldDepositFlow = ({
             );
 
             if (!isFulfilled(response)) {
-                navigation.navigate(YieldStackRoutes.YieldDepositApproval, routeParams);
+                navigateBySessionStep();
 
                 return true;
             }
 
-            const session = selectStablecoinYieldSession(store.getState(), 'deposit', flowKey);
-
-            navigation.navigate(
-                session.step === 'action'
-                    ? YieldStackRoutes.YieldDeposit
-                    : YieldStackRoutes.YieldDepositApproval,
-                routeParams,
-            );
+            navigateBySessionStep();
         } catch {
-            navigation.navigate(YieldStackRoutes.YieldDepositApproval, routeParams);
+            navigateBySessionStep();
         } finally {
             isStartingDepositFlowRef.current = false;
             setIsStartingDepositFlow(false);

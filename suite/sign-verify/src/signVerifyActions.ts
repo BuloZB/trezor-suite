@@ -1,6 +1,8 @@
 import { type Dispatch } from 'redux';
 
+import { type DesktopAnalyticsDep, events } from '@suite/analytics';
 import { type DeviceRootState, selectSelectedDevice } from '@suite-common/device';
+import { type WithServices } from '@suite-common/redux-utils';
 import { type TrezorDevice } from '@suite-common/suite-types';
 import { notificationsActions } from '@suite-common/toast-notifications';
 import { type WalletSettingsRootState, selectAddressDisplayType } from '@suite-common/wallet-core';
@@ -13,15 +15,22 @@ import {
     getStakingPath,
 } from '@suite-common/wallet-utils';
 import TrezorConnect, { PROTO } from '@trezor/connect';
-import { getSerializedPath } from '@trezor/connect-common';
-import { type SerializedError } from '@trezor/connect-common/src/constants/errors';
+import { asCoinSymbol, getSerializedPath } from '@trezor/connect-common';
+import { type ErrorCode, type SerializedError } from '@trezor/connect-common/src/constants/errors';
 import { type Result } from '@trezor/type-utils';
 
 import * as SIGN_VERIFY from './signVerifyConstants';
 
 export type SignVerifyRootState = DeviceRootState & WalletSettingsRootState;
 
-type GetState = () => SignVerifyRootState;
+const CANCEL_ERROR_CODES: ErrorCode[] = ['Method_Cancel', 'Failure_ActionCancelled'];
+
+const getFailureAttributes = ({ code }: SerializedError) => ({
+    status: CANCEL_ERROR_CODES.includes(code) ? ('cancelled' as const) : ('error' as const),
+    error: code,
+});
+
+const asError = (error: unknown) => (error instanceof Error ? error : new Error(String(error)));
 
 export type SignVerifyAction =
     | { type: typeof SIGN_VERIFY.SIGN_SUCCESS; signSignature: string }
@@ -39,7 +48,10 @@ const throwWhenFailed = <T>(response: Result<T, SerializedError>) =>
         ? Promise.resolve(response.payload)
         : Promise.reject(new Error(response.error.message));
 
-const getStateParams = (account: Account, getState: GetState): Promise<StateParams> => {
+const getStateParams = (
+    account: Account,
+    getState: () => SignVerifyRootState,
+): Promise<StateParams> => {
     const device = selectSelectedDevice(getState());
     const addressDisplayType = selectAddressDisplayType(getState());
 
@@ -56,7 +68,7 @@ const getStateParams = (account: Account, getState: GetState): Promise<StatePara
 const showAddressByNetwork =
     (_: Dispatch, address: string, path: string) =>
     ({ account, device, coin, chunkify }: StateParams) => {
-        const params = { device, address, path, coin, chunkify };
+        const params = { device, address, path, coin: asCoinSymbol(coin), chunkify };
 
         switch (account.networkType) {
             case 'bitcoin':
@@ -77,7 +89,14 @@ const signByNetwork =
         isCose: boolean,
     ) =>
     ({ account, device, coin }: StateParams) => {
-        const params = { device, path, coin, message, hex, no_script_type: isElectrum };
+        const params = {
+            device,
+            path,
+            coin: asCoinSymbol(coin),
+            message,
+            hex,
+            no_script_type: isElectrum,
+        };
 
         switch (account.networkType) {
             case 'bitcoin':
@@ -136,7 +155,7 @@ export const isVerifySupported = (account?: Account) => {
 const verifyByNetwork =
     (address: string, message: string, signature: string, hex: boolean) =>
     ({ account, device, coin }: StateParams) => {
-        const params = { device, address, coin, message, signature, hex };
+        const params = { device, address, coin: asCoinSymbol(coin), message, signature, hex };
 
         switch (account.networkType) {
             case 'bitcoin':
@@ -191,12 +210,19 @@ const onError =
         return false as const;
     };
 
+type ShowAddressThunkState = SignVerifyRootState;
+
 export const showAddress =
-    (account: Account, address: string, path: string) => (dispatch: Dispatch, getState: GetState) =>
+    (account: Account, address: string, path: string) =>
+    (dispatch: Dispatch, getState: () => ShowAddressThunkState) =>
         getStateParams(account, getState)
             .then(showAddressByNetwork(dispatch, address, path))
             .then(throwWhenFailed)
             .catch(onError(dispatch, 'verify-address-error'));
+
+type SignThunkState = SignVerifyRootState;
+
+type SignThunkDeps = WithServices<DesktopAnalyticsDep>;
 
 export const sign =
     (
@@ -207,18 +233,99 @@ export const sign =
         isElectrum = false,
         isCose = false,
     ) =>
-    (dispatch: Dispatch, getState: GetState) =>
-        getStateParams(account, getState)
-            .then(signByNetwork(path, message, hex, isElectrum, isCose))
-            .then(throwWhenFailed)
-            .then(onSignSuccess(dispatch))
-            .catch(onError(dispatch, 'sign-message-error'));
+    async (dispatch: Dispatch, getState: () => SignThunkState, extra: SignThunkDeps) => {
+        const { analytics } = extra.services;
+        const signatureFormat = isElectrum ? 'electrum' : 'trezor';
+
+        try {
+            const stateParams = await getStateParams(account, getState);
+            const response = await signByNetwork(
+                path,
+                message,
+                hex,
+                isElectrum,
+                isCose,
+            )(stateParams);
+
+            if (!response.success) {
+                analytics.report({
+                    type: events.coinSignMessageEvent.name,
+                    payload: {
+                        ...getFailureAttributes(response.error),
+                        symbol: account.symbol,
+                        hex,
+                        signatureFormat,
+                    },
+                });
+
+                return onError(dispatch, 'sign-message-error')(new Error(response.error.message));
+            }
+
+            analytics.report({
+                type: events.coinSignMessageEvent.name,
+                payload: { status: 'success', symbol: account.symbol, hex, signatureFormat },
+            });
+
+            return onSignSuccess(dispatch)(response.payload);
+        } catch (error) {
+            analytics.report({
+                type: events.coinSignMessageEvent.name,
+                payload: {
+                    status: 'error',
+                    error: asError(error).message,
+                    symbol: account.symbol,
+                    hex,
+                    signatureFormat,
+                },
+            });
+
+            return onError(dispatch, 'sign-message-error')(asError(error));
+        }
+    };
+
+type VerifyThunkState = SignVerifyRootState;
+
+type VerifyThunkDeps = WithServices<DesktopAnalyticsDep>;
 
 export const verify =
     (account: Account, address: string, message: string, signature: string, hex = false) =>
-    (dispatch: Dispatch, getState: GetState) =>
-        getStateParams(account, getState)
-            .then(verifyByNetwork(address, message, signature, hex))
-            .then(throwWhenFailed)
-            .then(onVerifySuccess(dispatch))
-            .catch(onError(dispatch, 'verify-message-error'));
+    async (dispatch: Dispatch, getState: () => VerifyThunkState, extra: VerifyThunkDeps) => {
+        const { analytics } = extra.services;
+
+        try {
+            const stateParams = await getStateParams(account, getState);
+            const response = await verifyByNetwork(address, message, signature, hex)(stateParams);
+
+            if (!response.success) {
+                analytics.report({
+                    type: events.coinVerifyMessageEvent.name,
+                    payload: {
+                        ...getFailureAttributes(response.error),
+                        symbol: account.symbol,
+                        hex,
+                    },
+                });
+
+                return onError(dispatch, 'verify-message-error')(new Error(response.error.message));
+            }
+
+            analytics.report({
+                type: events.coinVerifyMessageEvent.name,
+                payload: { status: 'success', symbol: account.symbol, hex },
+            });
+
+            return onVerifySuccess(dispatch)();
+        } catch (error) {
+            analytics.report({
+                type: events.coinVerifyMessageEvent.name,
+                payload: {
+                    status: 'error',
+                    error: asError(error).message,
+                    symbol: account.symbol,
+                    hex,
+                },
+            });
+
+            return onError(dispatch, 'verify-message-error')(asError(error));
+        }
+    };

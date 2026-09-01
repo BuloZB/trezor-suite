@@ -8,73 +8,41 @@ import {
 } from '@suite-common/earn-staking-api';
 import { getNetworkDisplaySymbolName } from '@suite-common/wallet-config';
 import { isApyAvailable, isSupportedStakingNetworkSymbol } from '@suite-common/wallet-utils';
-import { AccountTypeBadge } from '@suite-native/accounts';
-import { Box, Card, PressableOpacity, Text, VStack } from '@suite-native/atoms';
-import { Icon, TokenIcon } from '@suite-native/icons';
-import { Translation } from '@suite-native/intl';
+import { ZeroApyBadge } from '@suite-native/accounts';
+import { Text } from '@suite-native/atoms';
+import { TokenIcon } from '@suite-native/icons';
+import { Translation, selectSupportedLanguageLocale } from '@suite-native/intl';
 import {
     selectApy,
     selectCanClaimByAccountKey,
     selectClaimableAmountByAccountKey,
     selectIsCardanoStakedOutsideEverstake,
+    selectIsCardanoStakedWithFiveBinaries,
     selectTronAvailableVotingPowerByAccountKey,
     selectTronVotesByAccountKey,
     useSelector as useStakingSelector,
 } from '@suite-native/staking';
-import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 
-import { CRYPTO_BALANCE_DECIMALS } from '../constants';
-import { useMessageSystemStaking } from '../hooks/useMessageSystemStaking';
-import { type EarnDepositsCardActiveItem } from '../types';
+import { ApyValue } from './ApyValue';
+import { EarnAccountCardLayout } from './EarnAccountCardLayout';
 import { EarnClaimAlert } from './EarnClaimAlert';
 import { EarnTronVotingAlert } from './EarnTronVotingAlert';
-
-const itemCardStyle = prepareNativeStyle(utils => ({
-    marginBottom: utils.spacings.sp16,
-}));
-
-const rowStyle = prepareNativeStyle(utils => ({
-    paddingLeft: utils.spacings.sp16,
-    paddingRight: utils.spacings.sp12,
-    paddingVertical: utils.spacings.sp12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 70,
-}));
-
-const contentStyle = prepareNativeStyle(_ => ({
-    flex: 1,
-}));
-
-const valuesStyle = prepareNativeStyle(utils => ({
-    alignItems: 'flex-end',
-    paddingLeft: utils.spacings.sp8,
-}));
-
-export const formatActiveItemBalance = (item: EarnDepositsCardActiveItem) => {
-    const maxDecimals = item.type === 'staking' ? CRYPTO_BALANCE_DECIMALS : 2;
-    const balanceValue = Number(item.balance);
-    const formattedValue = Number.isNaN(balanceValue)
-        ? item.balance
-        : balanceValue.toLocaleString(undefined, {
-              maximumFractionDigits: maxDecimals,
-          });
-
-    return `${formattedValue} ${item.type === 'staking' ? item.symbol.toUpperCase() : item.tokenSymbol}`;
-};
+import { useMessageSystemStaking } from '../hooks/useMessageSystemStaking';
+import { type EarnDepositsCardActiveItem } from '../types';
+import { formatEarnActiveItemBalance } from '../utils/earnAmountUtils';
 
 type EarnAccountCardProps = {
     item: EarnDepositsCardActiveItem;
     onPress: () => void;
-    onClaimPress: () => void;
+    onClaimPress?: () => void;
 };
 
 export const EarnAccountCard = ({ item, onPress, onClaimPress }: EarnAccountCardProps) => {
-    const { applyStyle } = useNativeStyles();
     const isStakingItem = item.type === 'staking';
-    const isStablecoinYieldItem = item.type === 'stablecoin-yield';
+    const isDefiYieldItem = item.type === 'stablecoin-yield';
     const isSupportedStaking = isStakingItem && isSupportedStakingNetworkSymbol(item.symbol);
     const isPortfolioTrackerDevice = useSelector(selectIsPortfolioTrackerDevice);
+    const locale = useSelector(selectSupportedLanguageLocale);
 
     const symbol = isStakingItem ? item.symbol : item.networkSymbol;
 
@@ -110,6 +78,10 @@ export const EarnAccountCard = ({ item, onPress, onClaimPress }: EarnAccountCard
         selectIsCardanoStakedOutsideEverstake(state, item.accountKey),
     );
 
+    const isStakedWithFiveBinaries = useStakingSelector(state =>
+        selectIsCardanoStakedWithFiveBinaries(state, item.accountKey),
+    );
+
     const canClaim = useStakingSelector(state =>
         isSupportedStaking ? selectCanClaimByAccountKey(state, item.accountKey) : false,
     );
@@ -126,69 +98,79 @@ export const EarnAccountCard = ({ item, onPress, onClaimPress }: EarnAccountCard
     const showTronVotingAlert =
         isStakingItem && item.symbol === 'trx' && availableTronVotingPower !== '0';
 
-    const contractAddress = isStablecoinYieldItem ? item.tokenContractAddress : undefined;
-    const secondaryDescription = isStablecoinYieldItem
+    const contractAddress = isDefiYieldItem ? item.tokenContractAddress : undefined;
+
+    const secondaryDescription = isDefiYieldItem
         ? item.accountLabel || getNetworkDisplaySymbolName(item.networkSymbol)
         : null;
 
     return (
-        <Card borderColor="borderNeutral" noPadding style={applyStyle(itemCardStyle)}>
-            <PressableOpacity onPress={onPress} style={applyStyle(rowStyle)}>
-                <Box marginRight="sp12">
-                    <TokenIcon
-                        symbol={symbol}
-                        contractAddress={contractAddress}
-                        size="extraSmall"
-                        showNetworkIcon
-                    />
-                </Box>
-
-                <VStack spacing="sp2" style={applyStyle(contentStyle)}>
-                    <Text>{item.title}</Text>
-                    {secondaryDescription && (
-                        <Text variant="body-sm" color="contentSecondary">
-                            {secondaryDescription}
-                        </Text>
-                    )}
-                    <AccountTypeBadge accountKey={item.accountKey} alignSelf="flex-start" />
-                </VStack>
-
-                <VStack spacing="sp2" style={applyStyle(valuesStyle)}>
-                    <Text variant="body-md">{formatActiveItemBalance(item)}</Text>
-                    {(isAdaStakedOutsideEverstake || apyValue != null) && (
-                        <Text variant="body-sm" color="contentSecondary">
-                            {isAdaStakedOutsideEverstake || !isApyAvailable(apyValue) ? (
-                                <Translation id="earn.notAvailableShort" />
-                            ) : (
-                                <Translation
-                                    id={
-                                        symbol === 'trx'
-                                            ? 'earn.aprPercentage'
-                                            : 'earn.apyPercentage'
-                                    }
-                                    values={{ apy: apyValue }}
-                                />
-                            )}
-                        </Text>
-                    )}
-                </VStack>
-
-                <Box marginLeft="sp12">
-                    <Icon name="caretRight" size="mediumLarge" color="contentSecondary" />
-                </Box>
-            </PressableOpacity>
-
-            {showClaimAlert && (
-                <EarnClaimAlert
-                    claimableAmount={claimableAmount}
+        <EarnAccountCardLayout
+            accountKey={item.accountKey}
+            icon={
+                <TokenIcon
                     symbol={symbol}
-                    onClaimPress={onClaimPress}
+                    contractAddress={contractAddress}
+                    size="extraSmall"
+                    showNetworkIcon
+                    wrappedTokenIcon={isDefiYieldItem ? 'network' : 'token'}
                 />
-            )}
+            }
+            title={item.title}
+            description={
+                secondaryDescription && (
+                    <Text variant="body-sm" color="contentSecondary">
+                        {secondaryDescription}
+                    </Text>
+                )
+            }
+            value={<Text variant="body-md">{formatEarnActiveItemBalance({ item, locale })}</Text>}
+            valueDescription={
+                (isAdaStakedOutsideEverstake || apyValue != null) &&
+                (isStakedWithFiveBinaries ? (
+                    <ZeroApyBadge />
+                ) : (
+                    <Text variant="body-sm" color="contentSecondary">
+                        {isAdaStakedOutsideEverstake || !isApyAvailable(apyValue) ? (
+                            <ApyValue apy={null} withLabel />
+                        ) : (
+                            <>
+                                {item.type === 'staking' ? (
+                                    <Translation
+                                        id={
+                                            symbol === 'trx'
+                                                ? 'earn.aprPercentage'
+                                                : 'earn.apyPercentage'
+                                        }
+                                        values={{ apy: apyValue }}
+                                    />
+                                ) : (
+                                    <Translation
+                                        id="earn.ratePercentage"
+                                        values={{ apy: apyValue }}
+                                    />
+                                )}
+                            </>
+                        )}
+                    </Text>
+                ))
+            }
+            alerts={
+                <>
+                    {showClaimAlert && onClaimPress && (
+                        <EarnClaimAlert
+                            claimableAmount={claimableAmount}
+                            symbol={symbol}
+                            onClaimPress={onClaimPress}
+                        />
+                    )}
 
-            {showTronVotingAlert && (
-                <EarnTronVotingAlert votesRemaining={availableTronVotingPower} />
-            )}
-        </Card>
+                    {showTronVotingAlert && (
+                        <EarnTronVotingAlert votesRemaining={availableTronVotingPower} />
+                    )}
+                </>
+            }
+            onPress={onPress}
+        />
     );
 };

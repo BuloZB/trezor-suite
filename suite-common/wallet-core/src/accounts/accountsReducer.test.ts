@@ -1,23 +1,32 @@
 import { combineReducers } from '@reduxjs/toolkit';
 
-import { type ExtraDependenciesPartial } from '@suite-common/redux-utils';
-import { configureMockStore, extraDependenciesCommonMock } from '@suite-common/test-utils';
+import { mockActionType, mockReducer } from '@suite-common/redux-utils/mocks';
+import { configureMockStore } from '@suite-common/test-utils';
+import { asNetworkSymbol } from '@suite-common/wallet-config';
 import { type Account } from '@suite-common/wallet-types';
+import { mockAccountToken, mockWalletAccount } from '@suite-common/wallet-types/mocks';
+import { type AccountInfo } from '@trezor/connect';
 import type { Bip43Path } from '@trezor/crypto-utils';
 
 import { accountsActions } from './accountsActions';
 import { type AccountsRootState, prepareAccountsReducer } from './accountsReducer';
+import { mockSetAccountAddMetadata } from '../../mocks';
 
-const accountsReducer = prepareAccountsReducer(extraDependenciesCommonMock);
+const accountsReducer = prepareAccountsReducer({
+    actionTypes: { storageLoad: mockActionType('storageLoad') },
+    actions: { setAccountAddMetadata: mockSetAccountAddMetadata() },
+    reducers: { storageLoadAccounts: mockReducer() },
+});
+const btcSymbol = asNetworkSymbol('btc');
+const ltcSymbol = asNetworkSymbol('ltc');
 
 interface InitStoreArgs {
-    extra?: ExtraDependenciesPartial;
     preloadedState?: AccountsRootState;
 }
 
-const initStore = ({ extra = {}, preloadedState }: InitStoreArgs = {}) => {
+const initStore = ({ preloadedState }: InitStoreArgs = {}) => {
     const store = configureMockStore({
-        extra,
+        extra: undefined,
         reducer: { wallet: combineReducers({ accounts: accountsReducer }) },
         preloadedState,
     });
@@ -26,7 +35,7 @@ const initStore = ({ extra = {}, preloadedState }: InitStoreArgs = {}) => {
 };
 const getAccount = (a?: Partial<Account>) => ({
     descriptor: 'xpubDeFauLT1',
-    symbol: 'btc',
+    symbol: btcSymbol,
     history: {},
     ...a,
 });
@@ -44,7 +53,7 @@ describe('Account Reducer', () => {
                 index: 0,
                 path: testBip43Path,
                 accountType: 'normal',
-                symbol: 'btc',
+                symbol: btcSymbol,
                 accountInfo: {
                     descriptor: 'XPUB',
                     path: testBip43Path,
@@ -92,10 +101,10 @@ describe('Account Reducer', () => {
             visible: true,
         });
 
-        store.dispatch(accountsActions.createAccount(createAccountPayload('ltc', 'normal', 0)));
-        store.dispatch(accountsActions.createAccount(createAccountPayload('btc', 'legacy', 0)));
-        store.dispatch(accountsActions.createAccount(createAccountPayload('btc', 'normal', 1)));
-        store.dispatch(accountsActions.createAccount(createAccountPayload('btc', 'normal', 0)));
+        store.dispatch(accountsActions.createAccount(createAccountPayload(ltcSymbol, 'normal', 0)));
+        store.dispatch(accountsActions.createAccount(createAccountPayload(btcSymbol, 'legacy', 0)));
+        store.dispatch(accountsActions.createAccount(createAccountPayload(btcSymbol, 'normal', 1)));
+        store.dispatch(accountsActions.createAccount(createAccountPayload(btcSymbol, 'normal', 0)));
 
         expect(
             store.getState().wallet.accounts.map(a => `${a.symbol}/${a.accountType}/${a.index}`),
@@ -108,7 +117,7 @@ describe('Account Reducer', () => {
                 wallet: {
                     accounts: [
                         getAccount({
-                            symbol: 'ltc',
+                            symbol: ltcSymbol,
                             path: testBip43Path,
                             visible: false,
                         }) as Account,
@@ -120,14 +129,14 @@ describe('Account Reducer', () => {
         store.dispatch(
             accountsActions.changeAccountVisibility(
                 getAccount({
-                    symbol: 'ltc',
+                    symbol: ltcSymbol,
                     path: testBip43Path,
                     visible: false,
                 }) as Account,
             ),
         );
         expect(store.getState().wallet.accounts[0]).toEqual(
-            getAccount({ symbol: 'ltc', path: testBip43Path, visible: true }),
+            getAccount({ symbol: ltcSymbol, path: testBip43Path, visible: true }),
         );
     });
 
@@ -137,7 +146,7 @@ describe('Account Reducer', () => {
         store.dispatch(
             accountsActions.changeAccountVisibility(
                 getAccount({
-                    symbol: 'ltc',
+                    symbol: ltcSymbol,
                     path: testBip43Path,
                     visible: false,
                 }) as Account,
@@ -147,5 +156,88 @@ describe('Account Reducer', () => {
         spyWarn.mockRestore();
 
         expect(store.getState().wallet.accounts.length).toEqual(0);
+    });
+
+    describe('locally tracked tokens', () => {
+        const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+
+        const ethereumAccount = mockWalletAccount({
+            symbol: asNetworkSymbol('eth'),
+            deviceState: '1stTestnetAddress@device_id:0',
+        });
+
+        const wethAccountToken = mockAccountToken({
+            contract: WETH_ADDRESS,
+            symbol: 'WETH',
+            balance: '1.5',
+        });
+
+        const accountInfo: AccountInfo = {
+            descriptor: ethereumAccount.descriptor,
+            balance: '1000',
+            availableBalance: '1000',
+            empty: false,
+            history: { total: 1, unconfirmed: 0, transactions: [] },
+            tokens: [],
+            misc: { nonce: '2' },
+        };
+
+        const initStoreWithTrackedToken = () =>
+            initStore({
+                preloadedState: {
+                    wallet: {
+                        accounts: [{ ...ethereumAccount, tokens: [wethAccountToken] }],
+                    },
+                },
+            });
+
+        it('keeps a locally tracked token when an update from an older snapshot omits it', () => {
+            const store = initStoreWithTrackedToken();
+
+            // The stale snapshot and the account info payload know nothing about the token.
+            store.dispatch(accountsActions.updateAccount(ethereumAccount, accountInfo));
+
+            expect(store.getState().wallet.accounts[0]?.tokens).toEqual([
+                expect.objectContaining({ contract: WETH_ADDRESS, balance: '1.5' }),
+            ]);
+        });
+
+        it('does not duplicate a tracked token once the update reports it itself', () => {
+            const store = initStoreWithTrackedToken();
+
+            store.dispatch(
+                accountsActions.updateAccount(ethereumAccount, {
+                    ...accountInfo,
+                    tokens: [
+                        {
+                            standard: 'ERC20',
+                            contract: WETH_ADDRESS,
+                            symbol: 'WETH',
+                            name: 'Wrapped Ether',
+                            decimals: 18,
+                            balance: '2500000000000000000',
+                        },
+                    ],
+                }),
+            );
+
+            expect(store.getState().wallet.accounts[0]?.tokens).toEqual([
+                expect.objectContaining({ contract: WETH_ADDRESS, balance: '2.5' }),
+            ]);
+        });
+
+        it('adds tokens to the account via addAccountTokens', () => {
+            const store = initStore({
+                preloadedState: { wallet: { accounts: [ethereumAccount] } },
+            });
+
+            store.dispatch(
+                accountsActions.addAccountTokens(ethereumAccount.key, [wethAccountToken]),
+            );
+
+            expect(store.getState().wallet.accounts[0]?.tokens).toEqual([
+                expect.objectContaining({ contract: WETH_ADDRESS, balance: '1.5' }),
+            ]);
+        });
     });
 });

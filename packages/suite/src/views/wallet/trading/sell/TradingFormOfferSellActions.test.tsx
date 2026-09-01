@@ -2,8 +2,10 @@ import '@suite-common/test-utils/globalOverrides';
 
 import { screen } from '@testing-library/react';
 
+import { mockDesktopAnalytics } from '@suite/analytics/mocks';
 import { configureMockStore } from '@suite-common/test-utils';
 import { initialState as tradingInitialState } from '@suite-common/trading';
+import { asNetworkSymbol } from '@suite-common/wallet-config';
 import { mockWalletAccount } from '@suite-common/wallet-types/mocks';
 import { type StaticSessionId } from '@trezor/connect';
 
@@ -11,7 +13,6 @@ import { type AppState } from 'src/reducers/store';
 import { renderWithProviders } from 'src/support/test-utils/hooksHelper';
 
 import { TradingFormOfferSellActions } from './TradingFormOfferSellActions';
-import { extraDependenciesDesktopMock } from '../../../../../mocks/extraDependenciesDesktopMock';
 import { mockInitialAppState } from '../../../../../mocks/mockInitialAppState';
 
 const mockUseTradingFormContext = jest.fn();
@@ -50,10 +51,14 @@ jest.mock(
 
 const DEVICE_STATE: StaticSessionId = '1stTestnetAddress@device_id:0';
 
-const account = mockWalletAccount({ symbol: 'eth', balance: '1000000000000000000' });
+const account = mockWalletAccount({
+    symbol: asNetworkSymbol('eth'),
+    balance: '1000000000000000000',
+});
 
 const renderWithNetworkFee = (composed: { fee: string } | undefined) => {
     const store = configureMockStore({
+        extra: undefined,
         preloadedState: {
             ...mockInitialAppState,
             device: { selectedDevice: { state: { staticSessionId: DEVICE_STATE } } },
@@ -70,7 +75,7 @@ const renderWithNetworkFee = (composed: { fee: string } | undefined) => {
 
     renderWithProviders(
         store,
-        extraDependenciesDesktopMock.services,
+        { analytics: mockDesktopAnalytics() },
         <TradingFormOfferSellActions />,
     );
 };

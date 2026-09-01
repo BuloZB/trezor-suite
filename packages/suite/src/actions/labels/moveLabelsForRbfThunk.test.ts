@@ -1,14 +1,15 @@
-import { combineReducers } from '@reduxjs/toolkit';
+import { type UnknownAction, combineReducers } from '@reduxjs/toolkit';
 
 import { prepareDebugReducer } from '@suite/debug';
 import { metadataReducer, selectLabelingDataForAccount } from '@suite/metadata';
 import { prepareSuiteSettingsReducer } from '@suite/settings';
+import { mockActionType, mockReducer } from '@suite-common/redux-utils/mocks';
+import { mockMigrateSuiteSyncLabelsForRbfTransaction } from '@suite-common/suite-rbf-labels-migrations-types/mocks';
 import { suiteSyncReducer } from '@suite-common/suite-sync';
 import { configureMockStore, initPreloadedState } from '@suite-common/test-utils';
 
 import suiteReducer from 'src/reducers/suite/suiteReducer';
 import { accountsReducer, transactionsReducer } from 'src/reducers/wallet';
-import { extraDependencies } from 'src/support/extraDependencies';
 
 import {
     accountReceivingCoins,
@@ -21,8 +22,7 @@ import {
     originalTransactionSpendAccount,
     transactionSendingCoinsReplacement,
 } from './__fixtures__/moveLabelsForRbfTransactions.fixture';
-import { moveLabelsForRbfThunk } from './moveLabelsForRbfThunk';
-
+import { type MoveLabelsForRbfThunkDeps, moveLabelsForRbfThunk } from './moveLabelsForRbfThunk';
 const rootReducer = combineReducers({
     wallet: combineReducers({
         accounts: accountsReducer,
@@ -30,8 +30,13 @@ const rootReducer = combineReducers({
     }),
     metadata: metadataReducer,
     suite: suiteReducer,
-    suiteSettings: prepareSuiteSettingsReducer(extraDependencies),
-    debug: prepareDebugReducer(extraDependencies),
+    suiteSettings: prepareSuiteSettingsReducer({
+        actionTypes: { storageLoad: mockActionType('storageLoad') },
+        reducers: { storageLoadSuiteSettings: mockReducer() },
+    }),
+    debug: prepareDebugReducer({
+        actionTypes: { storageLoad: mockActionType('storageLoad') },
+    }),
     suiteSync: suiteSyncReducer,
 });
 
@@ -45,7 +50,13 @@ const initStore = ({
     metadata: TestState['metadata'];
 }) => {
     // State != suite AppState, therefore <any>
-    const store = configureMockStore<any>({
+    const extra: MoveLabelsForRbfThunkDeps = {
+        services: {
+            migrateSuiteSyncLabelsForRbfTransaction: mockMigrateSuiteSyncLabelsForRbfTransaction(),
+        },
+    };
+    const store = configureMockStore<MoveLabelsForRbfThunkDeps, any, UnknownAction>({
+        extra,
         reducer: rootReducer,
         preloadedState: initPreloadedState({
             rootReducer,

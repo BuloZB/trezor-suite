@@ -30,12 +30,12 @@ import { useMessageSystemYield } from 'src/hooks/suite/useMessageSystemYield';
 import { EarnYieldClaimRewardsBanner } from './EarnYieldClaimRewardsBanner';
 import { EarnYieldClaimSelectAccountModal } from './EarnYieldClaimSelectAccountModal';
 import { EarnYieldTableBody } from './EarnYieldTableBody';
-import { useYieldAccountsVisibility } from './hooks/useYieldAccountsVisibility';
-import { useYieldTableData } from './hooks/useYieldTableData';
 import { PoweredByBadge } from '../../providers/PoweredByBadge';
 import { getYieldOpportunityAnchor } from '../../utils/getYieldOpportunityAnchor';
 import { useMerklRewards } from '../../yield/claim/hooks';
 import { EarnDashboardTableHeader } from '../common/EarnDashboardTableHeader';
+import { useYieldAccountsVisibility } from './hooks/useYieldAccountsVisibility';
+import { useYieldTableData } from './hooks/useYieldTableData';
 
 const emptyVaults: YieldDtoV2[] = [];
 
@@ -177,15 +177,15 @@ export const EarnYieldTable = () => {
                 heading={<Translation id="TR_EARN_DEFI_YIELD_TITLE" />}
                 subheading={<Translation id="TR_EARN_DEFI_YIELD_DASHBOARD_TEXT" />}
                 actions={<PoweredByBadge provider="morpho" />}
+                areActionsBelowSubheading={isCardLayout}
                 ref={anchorRef}
             >
                 <Column gap={16} alignItems="center">
                     {(isYieldActive || accountsRewards.length > 0) && (
                         <>
                             <EarnYieldClaimRewardsBanner
-                                value={merklRewardsQuery.data.totalRewardsToClaim.value}
-                                currency={merklRewardsQuery.data.totalRewardsToClaim.currency}
-                                isValueLoading={merklRewardsQuery.isLoading}
+                                rewards={merklRewardsQuery}
+                                isFiatRateLoading={missingRateTickersQuery.isLoading}
                                 isClaimDisabled={isClaimDisabled}
                                 claimDisabledTooltip={
                                     claimMessageSystem.isDisabled

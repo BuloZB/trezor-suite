@@ -8,6 +8,7 @@ import { useServices } from '@suite-common/dependency-injection';
 import { tryGetAccountIdentity } from '@suite-common/wallet-utils';
 import { Input, Modal } from '@trezor/components';
 import TrezorConnect, { type TokenInfo } from '@trezor/connect';
+import { asCoinSymbol } from '@trezor/connect-common';
 
 import { addToken } from 'src/actions/wallet/tokenActions';
 import { useDispatch, useSelector } from 'src/hooks/suite';
@@ -35,7 +36,7 @@ export const AddTokenModal = ({ onCancel }: AddTokenModalProps) => {
             if (!acc) return;
             setIsFetching(true);
             const response = await TrezorConnect.getAccountInfo({
-                coin: acc.symbol,
+                coin: asCoinSymbol(acc.symbol),
                 identity: tryGetAccountIdentity(acc),
                 descriptor: acc.descriptor,
                 details: 'tokenBalances',
@@ -105,7 +106,7 @@ export const AddTokenModal = ({ onCancel }: AddTokenModalProps) => {
                 payload: {
                     networkSymbol: account.symbol,
                     addedNth: account.tokens ? account.tokens.length + 1 : 0,
-                    token: tokenInfo[0]?.symbol?.toLowerCase() || '',
+                    token: tokenInfo[0]?.symbol || '',
                 },
             });
         }

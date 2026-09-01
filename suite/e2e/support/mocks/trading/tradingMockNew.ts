@@ -1,11 +1,24 @@
 import { Page } from '@playwright/test';
-import type { ExchangeTrade } from 'invity-api';
+import type { CryptoId, ExchangeTrade } from 'invity-api';
 
+import { getSimulatedReceiveAmount } from '@suite-common/trading';
 import type { BackendType, NetworkSymbol } from '@suite-common/wallet-config';
 
 import { TradingChainBackend, createTradingChainBackend } from './tradingChainBackend';
 import { tradeEndpoint } from '../../../fixtures/trading';
 import { step } from '../../common';
+
+// TODO: loose for DEX (no sendAddress, optional fields); revisit in the sell migration PR.
+export type CapturedLiveTrade = ExchangeTrade & {
+    sendAddress: string;
+    exchange: string;
+    sendStringAmount: string;
+    receive: CryptoId;
+    receiveStringAmount: string;
+};
+
+type TxSimulationResult = NonNullable<Parameters<typeof getSimulatedReceiveAmount>[0]>;
+type TxSimulationScan = Omit<TxSimulationResult['payload'], 'needsDisclaimer'>;
 
 type TradeFlow = 'buy' | 'sell' | 'swap';
 type TradeEndpoints = {
@@ -20,8 +33,15 @@ const TRADE_ENDPOINTS: Record<TradeFlow, TradeEndpoints> = {
 };
 
 const WATCH_POLL_PERIOD = '00:30';
+const TRADE_RESPONSE_TIMEOUT = 90_000;
 const WATCH_POLL_TIMEOUT = 35_000;
 const ADVANCE_ATTEMPTS = 5;
+
+const TX_SIMULATION_ENDPOINT = /\/evm\/json-rpc\/scan/;
+
+const MOCK_PROVIDER_STATUS_ORIGIN = 'https://mocked.partner.site/orders';
+const mockProviderStatusPageHtml = (orderId: string) =>
+    `<!DOCTYPE html><html><head><title>Mocked Provider Support</title></head><body><h1>Mocked Provider Support Page</h1><p>Order ID: ${orderId}</p></body></html>`;
 
 const assertPassphraseEnv = () => {
     if (!process.env.PASSPHRASE) {
@@ -41,13 +61,13 @@ const assertPassphraseEnv = () => {
 export class TradingMockNew {
     private flow?: TradeFlow;
     private backend?: TradingChainBackend;
-    private liveTrade: ExchangeTrade | null = null;
+    private capturedTrade: CapturedLiveTrade | null = null;
+    private capturedTxSimulation: TxSimulationResult | null = null;
 
     constructor(private page: Page) {
         assertPassphraseEnv();
     }
 
-    // Required; call once in beforeEach — the status/redirect/backend methods guard on it.
     setTradeFlow(flow: TradeFlow) {
         this.flow = flow;
     }
@@ -66,7 +86,17 @@ export class TradingMockNew {
         return TRADE_ENDPOINTS[this.tradeFlow];
     }
 
-    // Sell + swap only (buy has no on-chain send); blocks the broadcast. Call before discovery.
+    // Txid of the broadcast blocked by the backend (source of truth for post-send assertions).
+    get lastBroadcastTxid(): string {
+        const txid = this.backend?.lastBroadcastTxid;
+        if (!txid) {
+            throw new Error('Backend has not recorded a broadcast yet (is startBackend set up?)');
+        }
+
+        return txid;
+    }
+
+    // Sell + swap only; call before discovery.
     @step()
     async startBackend(symbol: NetworkSymbol): Promise<{ type: BackendType; url: string }> {
         this.backend = createTradingChainBackend(symbol);
@@ -76,7 +106,6 @@ export class TradingMockNew {
         return { type: this.backend.backendType, url: this.backend.url };
     }
 
-    // Buy + sell only (swap has no provider redirect); rewrites the live redirect back into Suite.
     @step()
     async rewriteTradeRedirect() {
         if (this.tradeFlow === 'swap') {
@@ -93,29 +122,96 @@ export class TradingMockNew {
         });
     }
 
-    // Capture the live trade (real deposit address); arm before the request, await after.
-    async waitForLiveTrade(): Promise<ExchangeTrade> {
-        const response = await this.page.waitForResponse(this.endpoints.trade);
-        this.liveTrade = (await response.json()) as ExchangeTrade;
+    @step()
+    async mockProviderStatusPage() {
+        if (this.tradeFlow !== 'swap') {
+            throw new Error('mockProviderStatusPage is swap only');
+        }
 
-        return this.liveTrade;
+        await this.page.route(this.endpoints.trade, async route => {
+            const response = await route.fetch();
+            const body = await response.json();
+            body.statusUrl = `${MOCK_PROVIDER_STATUS_ORIGIN}/${body.orderId}`;
+            await route.fulfill({ response, json: body });
+        });
+
+        await this.page.context().route(`${MOCK_PROVIDER_STATUS_ORIGIN}/*`, async route => {
+            const orderId = route.request().url().split('/').pop() ?? '';
+            await route.fulfill({
+                status: 200,
+                contentType: 'text/html',
+                body: mockProviderStatusPageHtml(orderId),
+            });
+        });
     }
 
-    get liveTradeSendAddress() {
-        if (!this.liveTrade?.sendAddress) {
+    async waitForLiveTrade() {
+        const response = await this.page.waitForResponse(this.endpoints.trade, {
+            timeout: TRADE_RESPONSE_TIMEOUT,
+        });
+        const trade = (await response.json()) as ExchangeTrade;
+        // A DEX trade sends to the provider's router contract (`dexTx`), so it has no sendAddress.
+        const hasDepositAddress = trade.isDex || trade.sendAddress;
+        if (
+            !trade.exchange ||
+            !trade.sendStringAmount ||
+            !trade.receive ||
+            !trade.receiveStringAmount ||
+            !hasDepositAddress
+        ) {
+            throw new Error(
+                'Live trade response is missing exchange, sendStringAmount, receive, receiveStringAmount or sendAddress',
+            );
+        }
+
+        this.capturedTrade = trade as CapturedLiveTrade;
+    }
+
+    get liveTrade(): CapturedLiveTrade {
+        if (!this.capturedTrade) {
             throw new Error('Live trade response was not captured yet');
         }
 
-        return this.liveTrade.sendAddress;
+        return this.capturedTrade;
     }
 
-    // Pin the status the app sees now (the baseline, set at/just before the send).
+    // Amount the last captured simulation credits, derived the same way the confirm step derives
+    // the amount it renders. A re-quote refetches the scan, so read this at assertion time.
+    get simulatedReceiveAmount(): string {
+        const amount = getSimulatedReceiveAmount(
+            this.capturedTxSimulation ?? undefined,
+            this.liveTrade.receive,
+        );
+
+        if (!amount) {
+            throw new Error('No captured simulation credits the receive asset of the trade');
+        }
+
+        return amount;
+    }
+
+    // DEX only; the confirm step renders the amount the Blockaid simulation credits instead of the
+    // amount the trade promised. The scan runs untouched, only its result is kept for assertions.
+    @step()
+    async captureTxSimulation() {
+        await this.page.route(TX_SIMULATION_ENDPOINT, async route => {
+            const response = await route.fetch();
+            const scan = (await response.json()) as TxSimulationScan;
+
+            this.capturedTxSimulation = {
+                method: 'ethereumSignTransaction',
+                payload: { ...scan, needsDisclaimer: false },
+            };
+
+            await route.fulfill({ response });
+        });
+    }
+
     @step()
     async setStatus(status: string) {
         await this.routeWatch(status);
     }
 
-    // Fast-forward the clock until a poll returns the target status; retry past stale polls.
     @step()
     async advanceStatus(status: string) {
         await this.routeWatch(status);
@@ -141,7 +237,7 @@ export class TradingMockNew {
 
     private async routeWatch(status: string) {
         await this.page.route(this.endpoints.watch, async route => {
-            await route.fulfill({ json: { status, sendAddress: this.liveTrade?.sendAddress } });
+            await route.fulfill({ json: { status, sendAddress: this.liveTrade.sendAddress } });
         });
     }
 }

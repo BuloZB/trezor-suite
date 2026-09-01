@@ -3,9 +3,10 @@ import { type selectSelectedDevice } from '@suite-common/device';
 import { getDeviceInternalModel } from '@suite-common/suite-utils';
 import { DeviceModelInternal, hasBitcoinOnlyFirmware } from '@trezor/device-utils';
 
+import { DefiYieldBanner } from './DefiYieldBanner';
+import { ETHVaultBanner } from './ETHVaultBanner';
 import { StablecoinYieldBanner } from './StablecoinYieldBanner';
 import { TS7Banner } from './TS7Banner';
-import { TrezorExpertBanner } from './TrezorExpertBanner';
 import { type DashboardBannerType } from './dashboardBannerTypes';
 
 export type BannerHandlers = {
@@ -38,13 +39,19 @@ export const DASHBOARD_BANNERS: Record<DashboardBannerType, DashboardBannerDefin
             getDeviceInternalModel(selectedDevice) !== DeviceModelInternal.T3W1,
         render: handlers => <TS7Banner {...handlers} />,
     },
-    tex: {
-        flag: 'showTEXDashboardPromoBanner',
-        render: handlers => <TrezorExpertBanner {...handlers} />,
-    },
     'stablecoin-yield': {
         flag: 'showStablecoinYieldDashboardPromoBanner',
         isEligible: ({ selectedDevice }) => !hasBitcoinOnlyFirmware(selectedDevice),
         render: handlers => <StablecoinYieldBanner {...handlers} />,
+    },
+    'defi-yield': {
+        flag: 'showDefiYieldDashboardPromoBanner',
+        isEligible: ({ selectedDevice }) => !hasBitcoinOnlyFirmware(selectedDevice),
+        render: handlers => <DefiYieldBanner {...handlers} />,
+    },
+    'eth-vault': {
+        flag: 'showETHVaultDashboardPromoBanner',
+        isEligible: ({ selectedDevice }) => !hasBitcoinOnlyFirmware(selectedDevice),
+        render: handlers => <ETHVaultBanner {...handlers} />,
     },
 };

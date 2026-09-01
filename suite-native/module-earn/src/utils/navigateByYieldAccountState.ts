@@ -1,4 +1,4 @@
-import { type YieldFlowType } from '@suite-common/wallet-core';
+import { type StablecoinYieldVaultToken, type YieldFlowType } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
 import {
     type RootStackParamList,
@@ -6,9 +6,13 @@ import {
     type StackNavigationProps,
     YieldStackRoutes,
 } from '@suite-native/navigation';
+import { BigNumber } from '@trezor/utils';
 
 import { type StablecoinYieldNavigationItem } from '../types';
-import { hasPositiveContractTokenBalance } from './contractTokenBalanceUtils';
+import {
+    getYieldVaultDepositableBalance,
+    hasPositiveContractTokenBalance,
+} from './contractTokenBalanceUtils';
 
 type YieldNavigateFn = StackNavigationProps<
     RootStackParamList,
@@ -16,7 +20,7 @@ type YieldNavigateFn = StackNavigationProps<
 >['navigate'];
 
 export type YieldAccountNavigationDestination =
-    | 'account-detail'
+    | 'vault-detail'
     | 'deposit-in-a-nutshell-modal'
     | 'insufficient-balance-screen'
     | 'firmware-update-alert';
@@ -25,23 +29,36 @@ export const navigateByYieldAccountState = (
     account: Account,
     item: StablecoinYieldNavigationItem,
     navigate: YieldNavigateFn,
-    isFirmwareSupported: (flowType: YieldFlowType) => boolean,
+    isFirmwareSupported: (
+        flowType: YieldFlowType,
+        vaultToken?: StablecoinYieldVaultToken,
+    ) => boolean,
     showFirmwareUpdateAlert: () => void,
 ): YieldAccountNavigationDestination => {
     const { yieldId, underlyingTokenContract, receiptTokenContract } = item;
 
     if (receiptTokenContract && hasPositiveContractTokenBalance(account, receiptTokenContract)) {
-        navigate(RootStackRoutes.AccountDetail, {
+        navigate(RootStackRoutes.YieldVaultDetail, {
             accountKey: account.key,
             tokenContract: receiptTokenContract,
-            closeActionType: 'back',
         });
 
-        return 'account-detail';
+        return 'vault-detail';
     }
 
-    if (hasPositiveContractTokenBalance(account, underlyingTokenContract)) {
-        if (!isFirmwareSupported('deposit')) {
+    // For a wrapped-native (WETH) vault the wrappable native balance counts in as depositable
+    // too, so an account holding only the native asset still routes into the deposit flow.
+    const hasDepositableBalance = new BigNumber(
+        getYieldVaultDepositableBalance(account, underlyingTokenContract),
+    ).gt(0);
+
+    if (hasDepositableBalance) {
+        if (
+            !isFirmwareSupported('deposit', {
+                networkSymbol: account.symbol,
+                contractAddress: underlyingTokenContract,
+            })
+        ) {
             showFirmwareUpdateAlert();
 
             return 'firmware-update-alert';

@@ -11,8 +11,9 @@ import { WETH_WRAP_GAS_RESERVE } from '@suite-common/wallet-constants';
 import {
     type YieldFlowDisplayToken,
     type YieldFlowFormValues,
-    getWrappableNativeBalance,
+    getMaxWrapAmount,
     shouldRecommendWrapReserve,
+    useWrappedNativePendingTx,
 } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
 import { Column, Text } from '@trezor/components';
@@ -20,17 +21,22 @@ import { BigNumber } from '@trezor/utils';
 
 import { submitWrapNativeTokenThunk } from 'src/actions/wallet/wrapNativeTokenThunks';
 import { useDispatch } from 'src/hooks/suite';
+import { useMessageSystemWrappedNative } from 'src/hooks/suite/useMessageSystemWrappedNative';
 
 import { WrappedNativeFlowComplete } from '../common/WrappedNativeFlowComplete';
 import { YieldActionStepWarning } from '../common/YieldActionStepWarning';
+import { YieldDisabledBanner } from '../common/YieldDisabledBanner';
 import { YieldFlowTransferRow } from '../common/YieldFlowTransferRow';
 import { YieldWrapStep } from '../common/YieldWrapStep';
 import { useWrappedNativeDeviceGuard } from '../common/useWrappedNativeDeviceGuard';
-import { useWrappedNativePendingTx } from '../common/useWrappedNativePendingTx';
+import { useWrappedNativeFlowAnalytics } from '../common/useWrappedNativeFlowAnalytics';
+import { useYieldFiatInput } from '../hooks/useYieldFiatInput';
 
 type WrapNativeTokenProps = {
     account: Account;
     token: YieldFlowDisplayToken & { contractAddress: string };
+    /** Reported upward because the page header lives outside this subtree, in the layout. */
+    onFlowCompleteChange?: (isComplete: boolean) => void;
 };
 
 type BroadcastWrap = {
@@ -38,18 +44,36 @@ type BroadcastWrap = {
     amount: string;
 };
 
-export const WrapNativeToken = ({ account, token }: WrapNativeTokenProps) => {
+export const WrapNativeToken = ({ account, token, onFlowCompleteChange }: WrapNativeTokenProps) => {
     const dispatch = useDispatch();
     const ensureDeviceReady = useWrappedNativeDeviceGuard();
+    const {
+        isDisabled,
+        content: disabledContent,
+        variant: disabledVariant,
+    } = useMessageSystemWrappedNative('wrap');
     const [broadcast, setBroadcast] = useState<BroadcastWrap | null>(null);
     const methods = useForm<YieldFlowFormValues>({
         mode: 'onChange',
         defaultValues: {
             amountInput: '',
+            fiatInput: '',
         },
     });
 
     const pendingTxStatus = useWrappedNativePendingTx(account, broadcast?.txid ?? null, 'wrap');
+    const isFlowComplete = !!broadcast && pendingTxStatus === 'confirmed';
+
+    useEffect(() => {
+        onFlowCompleteChange?.(isFlowComplete);
+    }, [isFlowComplete, onFlowCompleteChange]);
+
+    const { reportSubmit, reportMaxClick } = useWrappedNativeFlowAnalytics({
+        flowType: 'wrap',
+        status: pendingTxStatus,
+        txid: broadcast?.txid ?? null,
+        networkSymbol: account.symbol,
+    });
 
     const nativeSymbol = getNetworkDisplaySymbol(account.symbol);
     const nativeToken: YieldFlowDisplayToken = {
@@ -58,15 +82,24 @@ export const WrapNativeToken = ({ account, token }: WrapNativeTokenProps) => {
         decimals: token.decimals,
     };
 
-    // Max leaves the gas reserve aside, but the field shows the full balance and the user may wrap
-    // up to it; eating into the reserve only triggers a non-blocking recommendation.
-    const maxWrapAmount = getWrappableNativeBalance(account.formattedBalance);
+    // Max leaves the gas reserve aside while the balance covers it, otherwise it fills the whole
+    // balance. The field shows the full balance and the user may wrap up to it; eating into the
+    // reserve only triggers a non-blocking recommendation.
+    const maxWrapAmount = getMaxWrapAmount(account.formattedBalance);
+
+    const { fiatToggle, setMaxAmount } = useYieldFiatInput({
+        methods,
+        symbol: account.symbol,
+        decimals: token.decimals,
+    });
 
     const amountInput = useWatch({ control: methods.control, name: 'amountInput' });
     const amount = new BigNumber(amountInput || '');
     const isAmountTooHigh = amount.gt(account.formattedBalance);
     const isReserveRecommended = shouldRecommendWrapReserve(amountInput, account.formattedBalance);
     const isAmountValid = amount.gt(0) && !isAmountTooHigh && methods.formState.isValid;
+
+    const shouldCheckWrapAmount = !!broadcast;
 
     useEffect(() => {
         if (pendingTxStatus !== 'failed') {
@@ -80,7 +113,7 @@ export const WrapNativeToken = ({ account, token }: WrapNativeTokenProps) => {
             }),
         );
         setBroadcast(null);
-        methods.reset({ amountInput: '' });
+        methods.reset({ amountInput: '', fiatInput: '' });
     }, [pendingTxStatus, dispatch, methods]);
 
     const wrapMutation = useMutation({
@@ -94,12 +127,27 @@ export const WrapNativeToken = ({ account, token }: WrapNativeTokenProps) => {
     });
 
     const handleSubmit = methods.handleSubmit(async ({ amountInput: wrapAmount }) => {
+        // The form stays mounted while a wrap is pending so its transaction remains visible, which
+        // leaves this path reachable after the feature has been disabled remotely. Checked before
+        // reporting so a blocked submit is not counted as one.
+        if (isDisabled) {
+            return;
+        }
+
+        reportSubmit();
+
         if (!(await ensureDeviceReady())) {
             return;
         }
 
         wrapMutation.mutate(wrapAmount);
     });
+
+    const handleMaxClick = () => {
+        reportMaxClick();
+
+        setMaxAmount(maxWrapAmount);
+    };
 
     const openTxDetail = (txid: string) => {
         dispatch(
@@ -115,6 +163,10 @@ export const WrapNativeToken = ({ account, token }: WrapNativeTokenProps) => {
     };
 
     const renderWrapWarning = () => {
+        if (!shouldCheckWrapAmount) {
+            return null;
+        }
+
         if (isAmountTooHigh) {
             return <YieldActionStepWarning isInsufficientFunds />;
         }
@@ -134,10 +186,11 @@ export const WrapNativeToken = ({ account, token }: WrapNativeTokenProps) => {
     };
 
     const renderContent = () => {
-        if (broadcast && pendingTxStatus === 'confirmed') {
+        if (broadcast && isFlowComplete) {
             return (
                 <WrappedNativeFlowComplete
                     account={account}
+                    flow="wrap"
                     heading={<Translation id="TR_WRAP_COMPLETE_HEADING" />}
                     description={
                         <Translation
@@ -153,6 +206,17 @@ export const WrapNativeToken = ({ account, token }: WrapNativeTokenProps) => {
                         output={{ token, amount: broadcast.amount }}
                     />
                 </WrappedNativeFlowComplete>
+            );
+        }
+
+        // A wrap already broadcast keeps rendering the form, so its pending transaction stays visible.
+        if (isDisabled && !broadcast) {
+            return (
+                <YieldDisabledBanner
+                    type="wrap"
+                    content={disabledContent}
+                    variant={disabledVariant}
+                />
             );
         }
 
@@ -172,18 +236,15 @@ export const WrapNativeToken = ({ account, token }: WrapNativeTokenProps) => {
                         availableAmount={account.formattedBalance}
                         shouldShowReceivingRow={false}
                         isSubmitting={wrapMutation.isPending}
-                        isSubmitDisabled={!isAmountValid}
+                        isSubmitDisabled={!isAmountValid || isDisabled}
                         warning={renderWrapWarning()}
                         pendingTransaction={
                             broadcast
                                 ? { type: 'wrap', txid: broadcast.txid, amount: broadcast.amount }
                                 : undefined
                         }
-                        onMaxClick={() =>
-                            methods.setValue('amountInput', maxWrapAmount, {
-                                shouldValidate: true,
-                            })
-                        }
+                        fiatToggle={fiatToggle}
+                        onMaxClick={handleMaxClick}
                         onSubmit={handleSubmit}
                         onPendingTxClick={openTxDetail}
                     />

@@ -1,3 +1,4 @@
+import { asNetworkSymbol } from '@suite-common/wallet-config';
 import { mockAccountKey } from '@suite-common/wallet-types/mocks';
 import { getTranslation } from '@suite-native/intl';
 import { renderWithStoreProvider } from '@suite-native/test-utils-store';
@@ -5,6 +6,8 @@ import { renderWithStoreProvider } from '@suite-native/test-utils-store';
 import { ReviewOutputItemList, type ReviewOutputItemListProps } from './ReviewOutputItemList';
 import { ETH_ACCOUNT_KEY, SOL_ACCOUNT_KEY, getWalletState } from '../../__fixtures__/walletState';
 import { type ReviewSummaryOutput, type StatefulReviewOutput } from '../../types';
+
+const btcSymbol = asNetworkSymbol('btc');
 
 let mockSelectTransactionReviewOutputsFromDraftReturnValue: StatefulReviewOutput[] | null;
 let mockSelectIsTransactionAlreadySignedValue: boolean;
@@ -27,8 +30,8 @@ jest.mock('../../selectors', () => {
 });
 
 describe('ReviewOutputItemList', () => {
-    const renderReviewOutputItemList = (props: Partial<ReviewOutputItemListProps> = {}) =>
-        renderWithStoreProvider(
+    const renderReviewOutputItemList = async (props: Partial<ReviewOutputItemListProps> = {}) =>
+        await renderWithStoreProvider(
             <ReviewOutputItemList prefix="send" accountKey={ETH_ACCOUNT_KEY} {...props} />,
             { preloadedState: { wallet: getWalletState() } },
         );
@@ -50,9 +53,9 @@ describe('ReviewOutputItemList', () => {
         mockSelectIsTransactionAlreadySignedValue = false;
     });
 
-    it('should render Error when account is not found', () => {
-        const { getByText } = renderReviewOutputItemList({
-            accountKey: mockAccountKey({ symbol: 'btc', descriptor: 'btcAccount3' }),
+    it('should render Error when account is not found', async () => {
+        const { getByText } = await renderReviewOutputItemList({
+            accountKey: mockAccountKey({ symbol: btcSymbol, descriptor: 'btcAccount3' }),
         });
 
         expect(
@@ -60,8 +63,8 @@ describe('ReviewOutputItemList', () => {
         ).toBeOnTheScreen();
     });
 
-    it('should render outputs list', () => {
-        const { getByText } = renderReviewOutputItemList({});
+    it('should render outputs list', async () => {
+        const { getByText } = await renderReviewOutputItemList({});
 
         expect(
             getByText(getTranslation('transactionManagement.review.outputs.addressLabel')),
@@ -81,9 +84,9 @@ describe('ReviewOutputItemList', () => {
         ).toBeOnTheScreen();
     });
 
-    it('should render empty list when reviewOutputs are undefined', () => {
+    it('should render empty list when reviewOutputs are undefined', async () => {
         mockSelectTransactionReviewOutputsFromDraftReturnValue = null;
-        const { queryByText } = renderReviewOutputItemList({});
+        const { queryByText } = await renderReviewOutputItemList({});
 
         expect(
             queryByText(getTranslation('transactionManagement.review.outputs.addressLabel')),
@@ -100,21 +103,21 @@ describe('ReviewOutputItemList', () => {
     });
 
     describe('SlidingFooterOverlay', () => {
-        it('should render when transaction is not signed', () => {
-            const { getByTestId } = renderReviewOutputItemList({});
+        it('should render when transaction is not signed', async () => {
+            const { getByTestId } = await renderReviewOutputItemList({});
 
             expect(getByTestId('sliding-footer-overlay')).toBeOnTheScreen();
         });
 
-        it('should render when transaction is already signed', () => {
+        it('should render when transaction is already signed', async () => {
             mockSelectIsTransactionAlreadySignedValue = true;
-            const { queryByTestId } = renderReviewOutputItemList({});
+            const { queryByTestId } = await renderReviewOutputItemList({});
 
             expect(queryByTestId('sliding-footer-overlay')).toBeNull();
         });
 
-        it('should not render for Solana accounts', () => {
-            const { queryByTestId } = renderReviewOutputItemList({
+        it('should not render for Solana accounts', async () => {
+            const { queryByTestId } = await renderReviewOutputItemList({
                 accountKey: SOL_ACCOUNT_KEY,
             });
 

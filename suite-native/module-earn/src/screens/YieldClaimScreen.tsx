@@ -9,13 +9,17 @@ import { Context } from '@suite-common/message-system';
 import { getNetwork } from '@suite-common/wallet-config';
 import {
     type AccountsRootState,
+    getStablecoinYieldClaimRewardsSnapshot,
     selectAccountByKey,
     stablecoinYieldActions,
 } from '@suite-common/wallet-core';
+import { selectAccountLabel } from '@suite-native/accounts';
 import { selectNativeAnalyticsDep } from '@suite-native/analytics';
-import { Box, FullAlertBox, Text, VStack, useBottomSheetModal } from '@suite-native/atoms';
+import { BannerFull, Box, HStack, Text, VStack, useBottomSheetModal } from '@suite-native/atoms';
 import { useFiatFromCryptoValue } from '@suite-native/formatters';
+import { TokenIcon } from '@suite-native/icons';
 import { Translation } from '@suite-native/intl';
+import { type CombinedLabelingState } from '@suite-native/labeling';
 import { ContextMessage } from '@suite-native/message-system';
 import {
     Screen,
@@ -24,12 +28,11 @@ import {
     type YieldStackParamList,
     YieldStackRoutes,
 } from '@suite-native/navigation';
-import { FeeSelector } from '@suite-native/transaction-management';
 
 import { YieldClaimFlowFooter } from '../components/YieldClaimFlowFooter';
 import { YieldClaimRewardsCard } from '../components/YieldClaimRewardsCard';
 import { YieldDisabledAlert } from '../components/YieldDisabledAlert';
-import { YieldFeeEstimationErrorAlert } from '../components/YieldFeeEstimationErrorAlert';
+import { YieldFeeSection } from '../components/YieldFeeSection';
 import { YieldPendingTransactionModal } from '../components/YieldPendingTransactionModal';
 import { YieldTxSimulationBottomSheet } from '../components/YieldTxSimulationBottomSheet';
 import { useMessageSystemYield } from '../hooks/useMessageSystemYield';
@@ -40,7 +43,6 @@ import { useYieldClaimRewards } from '../hooks/useYieldClaimRewards';
 import { useYieldPendingTransaction } from '../hooks/useYieldPendingTransaction';
 import { useYieldPendingTransactionTracking } from '../hooks/useYieldPendingTransactionTracking';
 import { useYieldSession } from '../hooks/useYieldSession';
-import { getStablecoinYieldClaimRewardsSnapshot } from '../utils/stablecoinYieldClaimSummaryUtils';
 import { getClaimFeeWarning } from '../utils/yieldClaimFeeWarningUtils';
 
 type RouteProps = RouteProp<YieldStackParamList, YieldStackRoutes.YieldClaim>;
@@ -49,7 +51,7 @@ type NavigationProps = StackNavigationProps<YieldStackParamList, YieldStackRoute
 export const YieldClaimScreen = () => {
     const route = useRoute<RouteProps>();
     const navigation = useNavigation<NavigationProps>();
-    const { accountKey } = route.params;
+    const { accountKey, vault } = route.params;
     const isFocused = useIsFocused();
     const dispatch = useDispatch();
     const { analytics } = useServices(selectNativeAnalyticsDep);
@@ -62,6 +64,11 @@ export const YieldClaimScreen = () => {
         useState<PreparedYieldClaimAction | null>(null);
     const account = useSelector((state: AccountsRootState) =>
         selectAccountByKey(state, accountKey),
+    );
+    const customAccountLabel = useSelector((state: CombinedLabelingState) =>
+        account
+            ? selectAccountLabel(state, account.deviceState, account.descriptor, account.symbol)
+            : null,
     );
     const flowKey = account?.key ?? null;
     const {
@@ -91,6 +98,8 @@ export const YieldClaimScreen = () => {
         waitForMerklToResolveClaim,
     } = useYieldClaimRewards({ account });
     const {
+        displayedPendingTransaction,
+        isSheetPresented,
         pendingBottomSheetRef,
         pendingModalProps,
         pendingTransaction: claimPendingTransaction,
@@ -161,10 +170,12 @@ export const YieldClaimScreen = () => {
     });
 
     useEffect(() => {
+        if (isSheetPresented) return;
+
         if (session?.step === 'complete') {
             navigation.replace(YieldStackRoutes.YieldClaimComplete, route.params);
         }
-    }, [navigation, route.params, session?.step]);
+    }, [isSheetPresented, navigation, route.params, session?.step]);
 
     const reportClaimEvent = useCallback(
         (payload: { action: 'continue' | 'cancel'; type: 'claim' | 'tx-simulation-modal' }) => {
@@ -204,7 +215,7 @@ export const YieldClaimScreen = () => {
         // calldata was built from, so the review cannot diverge from the
         // signed transaction when Merkl data refreshes in the background.
         const rewardsSnapshot = getStablecoinYieldClaimRewardsSnapshot({
-            account,
+            networkSymbol: account.symbol,
             rewards: simulationPreparedAction.rewards,
         });
 
@@ -235,7 +246,7 @@ export const YieldClaimScreen = () => {
         return null;
     }
 
-    const accountLabel = account.accountLabel ?? getNetwork(account.symbol).name;
+    const accountLabel = customAccountLabel ?? getNetwork(account.symbol).name;
 
     return (
         <Screen
@@ -247,14 +258,44 @@ export const YieldClaimScreen = () => {
                             <Text variant="body-md-strong">
                                 <Translation id="earn.yieldClaimFlowScreen.title" />
                             </Text>
-                            <Text
-                                variant="body-md"
-                                color="contentSecondary"
-                                numberOfLines={1}
-                                ellipsizeMode="tail"
-                            >
-                                {accountLabel}
-                            </Text>
+                            {vault ? (
+                                <>
+                                    <HStack spacing="sp4" alignItems="center">
+                                        <TokenIcon
+                                            symbol={account.symbol}
+                                            contractAddress={vault.tokenContract}
+                                            size="tiny"
+                                        />
+                                        <Box flexShrink={1}>
+                                            <Text
+                                                variant="body-md"
+                                                color="contentSecondary"
+                                                numberOfLines={1}
+                                                ellipsizeMode="tail"
+                                            >
+                                                {vault.name}
+                                            </Text>
+                                        </Box>
+                                    </HStack>
+                                    <Text
+                                        variant="body-xs"
+                                        color="contentSecondary"
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                    >
+                                        {accountLabel}
+                                    </Text>
+                                </>
+                            ) : (
+                                <Text
+                                    variant="body-md"
+                                    color="contentSecondary"
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                >
+                                    {accountLabel}
+                                </Text>
+                            )}
                         </VStack>
                     }
                 />
@@ -283,21 +324,10 @@ export const YieldClaimScreen = () => {
                         isLoading={isClaimRewardsLoading}
                     />
 
-                    {claimFee.hasFeeEstimationError ? (
-                        <YieldFeeEstimationErrorAlert onRetry={claimFee.retryFeeEstimation} />
-                    ) : (
-                        <FeeSelector
-                            accountKey={account.key}
-                            updateThunk={claimFee.updateFeeLevelThunk}
-                            selectedFee={claimFee.selectedFee}
-                            selectedFeePerUnit={claimFee.formDraft?.feePerUnit}
-                            formDraft={claimFee.formDraft}
-                            formDraftKey={claimFee.formDraftKey}
-                        />
-                    )}
+                    <YieldFeeSection accountKey={account.key} fees={claimFee} />
 
                     {shouldShowFeeWarning && (
-                        <FullAlertBox
+                        <BannerFull
                             intent="warning"
                             title={<Translation id="earn.yieldClaimFlowScreen.feeWarning.title" />}
                             description={
@@ -307,7 +337,7 @@ export const YieldClaimScreen = () => {
                     )}
 
                     {shouldShowUnverifiableFeeWarning && (
-                        <FullAlertBox
+                        <BannerFull
                             intent="info"
                             title={
                                 <Translation id="earn.yieldClaimFlowScreen.unverifiableFeeWarning.title" />
@@ -320,15 +350,17 @@ export const YieldClaimScreen = () => {
                 </VStack>
             </Box>
 
-            {claimPendingTransaction && pendingModalProps && (
+            {displayedPendingTransaction && pendingModalProps && (
                 <YieldPendingTransactionModal
                     ref={pendingBottomSheetRef}
                     accountLabel={accountLabel}
                     accountSymbol={account.symbol}
                     fee={pendingModalProps.fee}
                     isExploreDisabled={pendingModalProps.isExploreDisabled}
+                    onDismiss={pendingModalProps.onDismiss}
                     onExplorePress={pendingModalProps.onExplorePress}
                     submittedAt={pendingModalProps.submittedAt}
+                    txid={pendingModalProps.txid}
                     title={<Translation id="earn.yieldClaimFlowScreen.claimPendingTitle" />}
                 />
             )}

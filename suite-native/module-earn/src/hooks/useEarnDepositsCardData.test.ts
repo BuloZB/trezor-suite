@@ -60,7 +60,7 @@ const createYieldItem = (underlyingContract: TokenAddress): StablecoinYieldEarnI
     apy: 5.3,
 });
 
-const renderDepositsCardData = ({
+const renderDepositsCardData = async ({
     items,
     stakingItems = [],
     currentRates,
@@ -69,7 +69,7 @@ const renderDepositsCardData = ({
     stakingItems?: StakingEarnItem[];
     currentRates: Record<string, { rate: number }>;
 }) =>
-    renderHookWithStoreProvider(
+    await renderHookWithStoreProvider(
         () =>
             useEarnDepositsCardData({
                 stakingActiveItems: stakingItems,
@@ -91,8 +91,8 @@ describe('useEarnDepositsCardData', () => {
         useMissingRateTickersQueryMock.mockReturnValue(createMissingRateTickersQueryResult());
     });
 
-    it('includes the yield position in the total when the token rate is available', () => {
-        const { result } = renderDepositsCardData({
+    it('includes the yield position in the total when the token rate is available', async () => {
+        const { result } = await renderDepositsCardData({
             items: [createYieldItem(USDC_CONTRACT_LOWERCASE)],
             currentRates: {
                 [getFiatRateKey('eth', 'usd', USDC_CONTRACT_LOWERCASE)]: { rate: 1 },
@@ -100,11 +100,13 @@ describe('useEarnDepositsCardData', () => {
         });
 
         expect(result.current.totalDepositedFiatAmount.toFixed()).toBe('4');
+        expect(result.current.stakingFiatAmount.toFixed()).toBe('0');
+        expect(result.current.stablecoinYieldFiatAmount.toFixed()).toBe('4');
         expect(result.current.isFiatRatesLoading).toBe(false);
     });
 
-    it('includes the yield position when the rate is stored under a differently cased contract address', () => {
-        const { result } = renderDepositsCardData({
+    it('includes the yield position when the rate is stored under a differently cased contract address', async () => {
+        const { result } = await renderDepositsCardData({
             items: [createYieldItem(USDC_CONTRACT_LOWERCASE)],
             currentRates: {
                 [getFiatRateKey('eth', 'usd', USDC_CONTRACT_CHECKSUMMED)]: { rate: 1 },
@@ -118,12 +120,12 @@ describe('useEarnDepositsCardData', () => {
         });
     });
 
-    it('requests the missing token rate and reports the fiat loading state', () => {
+    it('requests the missing token rate and reports the fiat loading state', async () => {
         useMissingRateTickersQueryMock.mockReturnValue(
             createMissingRateTickersQueryResult({ isFetching: true }),
         );
 
-        const { result } = renderDepositsCardData({
+        const { result } = await renderDepositsCardData({
             items: [createYieldItem(USDC_CONTRACT_CHECKSUMMED)],
             currentRates: {
                 [getFiatRateKey('eth', 'usd')]: { rate: 3000 },
@@ -141,8 +143,8 @@ describe('useEarnDepositsCardData', () => {
         expect(result.current.totalDepositedFiatAmount.toFixed()).toBe('0');
     });
 
-    it('reports an incomplete total and allows retry when the rate remains missing', () => {
-        const { result } = renderDepositsCardData({
+    it('reports an incomplete total and allows retry when the rate remains missing', async () => {
+        const { result } = await renderDepositsCardData({
             items: [createYieldItem(USDC_CONTRACT_LOWERCASE)],
             currentRates: {},
         });
@@ -156,8 +158,8 @@ describe('useEarnDepositsCardData', () => {
         expect(refetchMissingRateTickersMock).toHaveBeenCalledTimes(1);
     });
 
-    it('reports a lower-bound total when only some yield rates are available', () => {
-        const { result } = renderDepositsCardData({
+    it('reports a lower-bound total when only some yield rates are available', async () => {
+        const { result } = await renderDepositsCardData({
             items: [
                 createYieldItem(USDC_CONTRACT_LOWERCASE),
                 createYieldItem(DAI_CONTRACT_LOWERCASE),
@@ -172,8 +174,8 @@ describe('useEarnDepositsCardData', () => {
         expect(result.current.isFiatTotalUnavailable).toBe(false);
     });
 
-    it('reports an unavailable total and requests a missing staking rate', () => {
-        const { result } = renderDepositsCardData({
+    it('reports an unavailable total and requests a missing staking rate', async () => {
+        const { result } = await renderDepositsCardData({
             items: [],
             stakingItems: [stakingItem],
             currentRates: {},
@@ -185,5 +187,20 @@ describe('useEarnDepositsCardData', () => {
         });
         expect(result.current.isFiatTotalIncomplete).toBe(true);
         expect(result.current.isFiatTotalUnavailable).toBe(true);
+    });
+
+    it('returns separate staking and DeFi totals for the earning balance breakdown', async () => {
+        const { result } = await renderDepositsCardData({
+            items: [createYieldItem(USDC_CONTRACT_LOWERCASE)],
+            stakingItems: [stakingItem],
+            currentRates: {
+                [getFiatRateKey('eth', 'usd')]: { rate: 3_000 },
+                [getFiatRateKey('eth', 'usd', USDC_CONTRACT_LOWERCASE)]: { rate: 1 },
+            },
+        });
+
+        expect(result.current.stakingFiatAmount.toFixed()).toBe('6000');
+        expect(result.current.stablecoinYieldFiatAmount.toFixed()).toBe('4');
+        expect(result.current.totalDepositedFiatAmount.toFixed()).toBe('6004');
     });
 });

@@ -5,18 +5,18 @@ import { useDevice } from '@suite/device';
 import { Translation, messages } from '@suite/intl';
 import { MODAL_CONTEXT_DEVICE, selectModalRequestId } from '@suite/modal';
 import {
-    type RecoveryType,
+    type RecoveryInputType,
     type SeedInputStatus,
     type WordCount,
     checkSeedThunk,
-    isStandardRecoveryDisabled,
+    isRecoveryInputTypeDisabled,
     recoveryActions,
     selectRecovery,
 } from '@suite/recovery';
 import { usePin } from '@suite-common/device';
 import { isDeviceAcquired } from '@suite-common/suite-utils';
 import { Box, H2, Image, Modal, Paragraph } from '@trezor/components';
-import TrezorConnect, { UI_REQUEST } from '@trezor/connect';
+import TrezorConnect, { UI_REQUESTS } from '@trezor/connect';
 import { DeviceModelInternal } from '@trezor/device-utils';
 import { CheckIcon, WarningIcon } from '@trezor/icons';
 import { ConfirmOnDevicePill } from '@trezor/product-components';
@@ -39,7 +39,7 @@ export const Recovery = ({ onCancel }: ForegroundAppProps) => {
     const { device, isLocked } = useDevice();
     const [isUnderstood, setIsUnderstood] = useState(false);
     const [wordCount, setWordCount] = useState<WordCount | undefined>();
-    const [recoveryType, setRecoveryType] = useState<RecoveryType | undefined>();
+    const [recoveryInputType, setRecoveryInputType] = useState<RecoveryInputType | undefined>();
     const intl = useIntl();
     const pinRequestId = useSelector(selectModalRequestId);
     const { pin, setPin, handlePinSubmit } = usePin(device?.buttonRequests ?? [], pinRequestId);
@@ -98,8 +98,8 @@ export const Recovery = ({ onCancel }: ForegroundAppProps) => {
             case 'select-recovery-type':
                 return (
                     <SelectRecoveryTypeStep
-                        setRecoveryType={setRecoveryType}
-                        recoveryType={recoveryType}
+                        setRecoveryInputType={setRecoveryInputType}
+                        recoveryInputType={recoveryInputType}
                     />
                 );
             case 'waiting-for-confirmation':
@@ -118,7 +118,7 @@ export const Recovery = ({ onCancel }: ForegroundAppProps) => {
                 // and we want to allow devices that have unsupported FW to be able to check the seed.
                 if (isT1B1) {
                     switch (modal.windowType) {
-                        case UI_REQUEST.REQUEST_PIN:
+                        case UI_REQUESTS.REQUEST_PIN:
                             return (
                                 <PinMatrix
                                     pin={pin}
@@ -202,14 +202,14 @@ export const Recovery = ({ onCancel }: ForegroundAppProps) => {
 
                             // For T1B1 with 12 or 18 words, skip recovery type selection and use Advanced recovery
                             // For 24 words, show the recovery type selection
-                            const shouldSkipSelection = isStandardRecoveryDisabled(
+                            const shouldSkipSelection = isRecoveryInputTypeDisabled(
                                 deviceModelInternal,
                                 wordCount,
                                 'standard',
                             );
 
                             if (shouldSkipSelection) {
-                                dispatch(recoveryActions.setAdvancedRecovery(true));
+                                dispatch(recoveryActions.setRecoveryInputType('advanced'));
                                 dispatch(checkSeedThunk());
                             } else {
                                 dispatch(recoveryActions.setStatus('select-recovery-type'));
@@ -223,11 +223,11 @@ export const Recovery = ({ onCancel }: ForegroundAppProps) => {
             case 'select-recovery-type':
                 return (
                     <Modal.Button
-                        isDisabled={!recoveryType}
+                        isDisabled={!recoveryInputType}
                         onClick={() => {
-                            dispatch(
-                                recoveryActions.setAdvancedRecovery(recoveryType === 'advanced'),
-                            );
+                            if (!recoveryInputType) return;
+
+                            dispatch(recoveryActions.setRecoveryInputType(recoveryInputType));
                             dispatch(checkSeedThunk());
                         }}
                         data-testid="@recovery/continue-button"
@@ -239,7 +239,7 @@ export const Recovery = ({ onCancel }: ForegroundAppProps) => {
                 if (
                     isT1B1 &&
                     modal.context === MODAL_CONTEXT_DEVICE &&
-                    modal.windowType === UI_REQUEST.REQUEST_PIN
+                    modal.windowType === UI_REQUESTS.REQUEST_PIN
                 ) {
                     return (
                         <Modal.Button onClick={handlePinSubmit} data-testid="@pin/submit-button">

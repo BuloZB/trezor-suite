@@ -1,6 +1,6 @@
 import { combineReducers } from '@reduxjs/toolkit';
 
-import { extraDependenciesCommonMock } from '@suite-common/test-utils';
+import { mockActionType } from '@suite-common/redux-utils/mocks';
 import { type TradingType } from '@suite-common/trading';
 import { initialWalletSettingsState } from '@suite-common/wallet-core';
 import { localeReducer } from '@suite-native/intl';
@@ -25,8 +25,8 @@ jest.mock('@suite-native/trading-analytics', () => ({
 describe('useBrowserStateChangeCallbacks', () => {
     let store: TestStore;
 
-    const renderUseBrowserwStateChangeCallbacks = (tradingType: TradingType | undefined) =>
-        renderHookWithStoreProvider(() => useBrowserStateChangeCallbacks(tradingType), {
+    const renderUseBrowserwStateChangeCallbacks = async (tradingType: TradingType | undefined) =>
+        await renderHookWithStoreProvider(() => useBrowserStateChangeCallbacks(tradingType), {
             store,
         });
 
@@ -37,27 +37,29 @@ describe('useBrowserStateChangeCallbacks', () => {
                 locale: localeReducer,
                 wallet: combineReducers({
                     settings: createStaticReducer(initialWalletSettingsState),
-                    trading: tradingSlice.prepareReducer(extraDependenciesCommonMock),
+                    trading: tradingSlice.prepareReducer({
+                        actionTypes: { storageLoad: mockActionType('storageLoad') },
+                    }),
                 }),
             },
         });
     });
 
     describe('handleBrowserOpened', () => {
-        it('should set correct confirmation status', () => {
-            const { result } = renderUseBrowserwStateChangeCallbacks('sell');
+        it('should set correct confirmation status', async () => {
+            const { result } = await renderUseBrowserwStateChangeCallbacks('sell');
 
-            act(() => {
+            await act(() => {
                 result.current.handleBrowserOpened();
             });
 
             expect(selectTradingProviderConfirmationStatus(store.getState())).toBe('window_opened');
         });
 
-        it('should report browser open to analytics', () => {
-            const { result } = renderUseBrowserwStateChangeCallbacks('sell');
+        it('should report browser open to analytics', async () => {
+            const { result } = await renderUseBrowserwStateChangeCallbacks('sell');
 
-            act(() => {
+            await act(() => {
                 result.current.handleBrowserOpened();
             });
 
@@ -66,10 +68,10 @@ describe('useBrowserStateChangeCallbacks', () => {
     });
 
     describe('handleBrowserClosed', () => {
-        it('should set correct confirmation status', () => {
-            const { result } = renderUseBrowserwStateChangeCallbacks('sell');
+        it('should set correct confirmation status', async () => {
+            const { result } = await renderUseBrowserwStateChangeCallbacks('sell');
 
-            act(() => {
+            await act(() => {
                 result.current.handleBrowserOpened();
                 result.current.handleBrowserClosed();
             });
@@ -81,10 +83,10 @@ describe('useBrowserStateChangeCallbacks', () => {
     });
 
     describe('handleBrowserSuccess', () => {
-        it('should set correct confirmation status', () => {
-            const { result } = renderUseBrowserwStateChangeCallbacks('sell');
+        it('should set correct confirmation status', async () => {
+            const { result } = await renderUseBrowserwStateChangeCallbacks('sell');
 
-            act(() => {
+            await act(() => {
                 result.current.handleBrowserOpened();
                 result.current.handleBrowserSuccess();
             });
@@ -97,12 +99,12 @@ describe('useBrowserStateChangeCallbacks', () => {
 
     it.each<TradingType>(['buy', 'exchange'])(
         'should not dispatch confirmation status change for tradingType [%s]',
-        tradingType => {
-            const { result } = renderUseBrowserwStateChangeCallbacks(tradingType);
+        async tradingType => {
+            const { result } = await renderUseBrowserwStateChangeCallbacks(tradingType);
 
             const dispatchSpy = jest.spyOn(store, 'dispatch');
 
-            act(() => {
+            await act(() => {
                 result.current.handleBrowserOpened();
                 result.current.handleBrowserClosed();
                 result.current.handleBrowserSuccess();
@@ -115,12 +117,12 @@ describe('useBrowserStateChangeCallbacks', () => {
         },
     );
 
-    it('should do nothing when trading type is undefined', () => {
-        const { result } = renderUseBrowserwStateChangeCallbacks(undefined);
+    it('should do nothing when trading type is undefined', async () => {
+        const { result } = await renderUseBrowserwStateChangeCallbacks(undefined);
 
         const dispatchSpy = jest.spyOn(store, 'dispatch');
 
-        act(() => {
+        await act(() => {
             result.current.handleBrowserOpened();
             result.current.handleBrowserClosed();
             result.current.handleBrowserSuccess();

@@ -1,3 +1,4 @@
+import { asNetworkSymbol } from '@suite-common/wallet-config';
 import { type Account } from '@suite-common/wallet-types';
 import { mockAccountKey } from '@suite-common/wallet-types/mocks';
 import { renderHookWithStoreProvider } from '@suite-native/test-utils-store';
@@ -6,8 +7,10 @@ import { useTronFeeBreakdown } from './useTronFeeBreakdown';
 import { ETH_ACCOUNT_KEY, getWalletState } from '../../__fixtures__/walletState';
 
 const TRON_ACCOUNT_DESCRIPTOR = 'TRX1234567890abcdefghijklmnopqrstuvwxyz';
+const trxSymbol = asNetworkSymbol('trx');
+const btcSymbol = asNetworkSymbol('btc');
 const TRON_ACCOUNT_KEY = mockAccountKey({
-    symbol: 'trx',
+    symbol: trxSymbol,
     descriptor: TRON_ACCOUNT_DESCRIPTOR,
 });
 
@@ -17,7 +20,7 @@ const getTronAccount = () =>
         accountLabel: 'Tron #1',
         descriptor: TRON_ACCOUNT_DESCRIPTOR,
         accountType: 'normal',
-        symbol: 'trx',
+        symbol: trxSymbol,
         networkType: 'tron',
         balance: '5000000000',
         availableBalance: '5000000000',
@@ -44,8 +47,8 @@ describe('useTronFeeBreakdown', () => {
         };
     };
 
-    it('should return null for a non-Tron account', () => {
-        const { result } = renderHookWithStoreProvider(
+    it('should return null for a non-Tron account', async () => {
+        const { result } = await renderHookWithStoreProvider(
             () => useTronFeeBreakdown({ accountKey: ETH_ACCOUNT_KEY }),
             { preloadedState: getPreloadedStateWith() },
         );
@@ -53,11 +56,14 @@ describe('useTronFeeBreakdown', () => {
         expect(result.current).toBeNull();
     });
 
-    it('should return null for a missing account', () => {
-        const { result } = renderHookWithStoreProvider(
+    it('should return null for a missing account', async () => {
+        const { result } = await renderHookWithStoreProvider(
             () =>
                 useTronFeeBreakdown({
-                    accountKey: mockAccountKey({ symbol: 'btc', descriptor: 'nonExistent' }),
+                    accountKey: mockAccountKey({
+                        symbol: btcSymbol,
+                        descriptor: 'nonExistent',
+                    }),
                 }),
             { preloadedState: getPreloadedStateWith() },
         );
@@ -65,8 +71,8 @@ describe('useTronFeeBreakdown', () => {
         expect(result.current).toBeNull();
     });
 
-    it('should return a breakdown for a Tron account', () => {
-        const { result } = renderHookWithStoreProvider(
+    it('should return a breakdown for a Tron account', async () => {
+        const { result } = await renderHookWithStoreProvider(
             () => useTronFeeBreakdown({ accountKey: TRON_ACCOUNT_KEY }),
             { preloadedState: getPreloadedStateWith([getTronAccount()]) },
         );

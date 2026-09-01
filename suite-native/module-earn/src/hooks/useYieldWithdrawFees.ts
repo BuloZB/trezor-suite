@@ -1,25 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 
-import { asEvmAddress } from '@suite-common/calldata';
-import { buildStablecoinYieldTransactionReview } from '@suite-common/earn-stablecoin/src/signing';
+import { buildStablecoinYieldTransactionReview } from '@suite-common/earn-stablecoin';
 import { createThunk } from '@suite-common/redux-utils';
-import { getNetwork } from '@suite-common/wallet-config';
 import {
     type FeesRootState,
     type FormDraftRootState,
-    type YieldFeeEstimationError,
+    type ResolvedYieldFlowData,
     type YieldWithdrawFlowType,
     buildEvmSelectedFee,
-    buildYieldUnsignedTransaction,
-    buildYieldWithdrawCalldata,
-    estimateYieldFeeLevel,
-    ethereumGetCurrentNonceThunk,
+    composeYieldWithdrawTransactionThunk,
     formDraftActions,
     getYieldWithdrawInputToken,
     selectConvertedNetworkFeeInfo,
     selectDeepCopyOfFormDraft,
     selectFormDraft,
+    updateFeeInfoThunk,
 } from '@suite-common/wallet-core';
 import {
     type FeeInfo,
@@ -29,7 +25,6 @@ import {
     type PrecomposedTransactionFinal,
     isFinalPrecomposedTransaction,
 } from '@suite-common/wallet-types';
-import { getAccountIdentity } from '@suite-common/wallet-utils';
 import {
     type NativeSendRootState,
     type UpdateSelectedFeeLevelThunkParams,
@@ -38,10 +33,8 @@ import {
     transactionManagementActions,
 } from '@suite-native/transaction-management';
 import { useDebounce } from '@trezor/react-utils';
-import { type Result, err, ok } from '@trezor/type-utils';
 
 import { EARN_MODULE_PREFIX } from '../constants';
-import { type ResolvedYieldFlowData } from './useResolvedYieldFlowData';
 import { useYieldFeeEstimationError } from './useYieldFeeEstimationError';
 import { getYieldWithdrawFormDraftKey } from '../utils/yieldWithdrawUtils';
 
@@ -73,20 +66,12 @@ type UseYieldWithdrawFeesResult = {
 };
 
 // Only the inputs that should trigger a fresh (network) fee composition. The fee context
-// (feeInfo, selected/custom fee, flowData) is read from refs at compose time instead, so it can't
-// re-trigger the effect — most importantly the fee draft that the compose itself writes.
+// (selected/custom fee, flowData) is read from refs at compose time and fee info is fetched by the
+// compose itself, so neither can re-trigger the effect — most importantly the fee draft it writes.
 type ComposeWithdrawFeeParams = {
     amount: string;
     flowType: YieldWithdrawFlowType;
     formDraftKey: string;
-};
-
-type ComposeYieldWithdrawTransactionParams = {
-    amount: string;
-    dispatch: ReturnType<typeof useDispatch>;
-    feeInfo: FeeInfo;
-    flowData: WithdrawFlowData;
-    flowType: YieldWithdrawFlowType;
 };
 
 type BuildYieldWithdrawFeeLevelsParams = {
@@ -109,17 +94,17 @@ const getYieldWithdrawSelectedFeeFields = (
     maxPriorityFeePerGas: selectedFeeTransaction.maxPriorityFeePerGas,
 });
 
-export const updateYieldWithdrawSelectedFeeLevelThunk = createThunk(
+export type UpdateYieldWithdrawSelectedFeeLevelThunkState = FormDraftRootState &
+    NativeSendRootState;
+
+export const updateYieldWithdrawSelectedFeeLevelThunk = createThunk<
+    void,
+    UpdateSelectedFeeLevelThunkParams,
+    { state: UpdateYieldWithdrawSelectedFeeLevelThunkState }
+>(
     `${EARN_MODULE_PREFIX}/updateYieldWithdrawSelectedFeeLevelThunk`,
     (
-        {
-            feeLevelLabel,
-            feePerUnit,
-            feeLimit,
-            formDraftKey,
-            maxFeePerGas,
-            maxPriorityFeePerGas,
-        }: UpdateSelectedFeeLevelThunkParams,
+        { feeLevelLabel, feePerUnit, feeLimit, formDraftKey, maxFeePerGas, maxPriorityFeePerGas },
         { dispatch, getState },
     ) => {
         if (!formDraftKey) return;
@@ -172,11 +157,6 @@ export const updateYieldWithdrawSelectedFeeLevelThunk = createThunk(
     },
 );
 
-const getFeeLevelForUnsignedTransaction = (feeInfo: FeeInfo) =>
-    FEE_LEVEL_LABELS_BY_PRICE.map(label =>
-        feeInfo.levels.find(level => level.label === label),
-    ).find(level => level !== undefined) ?? feeInfo.levels[0];
-
 const getYieldWithdrawFeeState = (formDraft: FormState | null | undefined) => {
     const selectedFee: FeeLevelLabel =
         formDraft?.selectedFee === 'custom' && (!formDraft.feeLimit || !formDraft.feePerUnit)
@@ -199,85 +179,6 @@ const getYieldWithdrawFeeState = (formDraft: FormState | null | undefined) => {
         },
         selectedFee,
     };
-};
-
-const getWithdrawFeeInfoRevision = (feeInfo: FeeInfo | null | undefined) =>
-    feeInfo?.levels
-        .map(({ baseFeePerGas, blocks, feePerUnit, label, maxFeePerGas, maxPriorityFeePerGas }) =>
-            [label, feePerUnit, blocks, maxFeePerGas, maxPriorityFeePerGas, baseFeePerGas].join(
-                ':',
-            ),
-        )
-        .join('|') ?? '';
-
-const isWithdrawFeeInfoReady = (feeInfo: FeeInfo | null | undefined) =>
-    !!feeInfo?.levels.some(
-        feeLevel => feeLevel.label !== 'normal' || feeLevel.maxFeePerGas || feeLevel.blocks !== -1,
-    );
-
-const composeYieldWithdrawTransaction = async ({
-    amount,
-    dispatch,
-    feeInfo,
-    flowData,
-    flowType,
-}: ComposeYieldWithdrawTransactionParams): Promise<Result<string, YieldFeeEstimationError>> => {
-    const { account, receiptToken, vault } = flowData;
-
-    if (account.networkType !== 'ethereum') {
-        throw new Error('Yield withdraw supports only EVM accounts.');
-    }
-
-    const vaultAddress = receiptToken.contractAddress ?? vault.outputToken?.address;
-    const network = getNetwork(account.symbol);
-
-    if (!vaultAddress || !network.chainId || vault.chainId !== network.chainId) {
-        throw new Error('Yield withdraw cannot be composed for this vault.');
-    }
-
-    const ownerAddress = asEvmAddress(account.descriptor);
-    const calldata = buildYieldWithdrawCalldata({
-        amount,
-        flowData,
-        ownerAddress,
-        receiverAddress: ownerAddress,
-        flowType,
-    });
-
-    const [{ nonce }, estimatedFeeLevel] = await Promise.all([
-        dispatch(
-            ethereumGetCurrentNonceThunk({ selectedAccount: account, fetchConfirmedNonce: true }),
-        ).unwrap(),
-        estimateYieldFeeLevel({
-            coin: account.symbol,
-            identity: getAccountIdentity(account),
-            from: account.descriptor,
-            to: vaultAddress,
-            data: calldata,
-        }),
-    ]);
-
-    if (!estimatedFeeLevel.success) {
-        return err(estimatedFeeLevel.error);
-    }
-
-    const feeLevel = getFeeLevelForUnsignedTransaction(feeInfo);
-
-    if (!feeLevel) {
-        throw new Error('Fee info is not available.');
-    }
-
-    const unsignedTransaction = buildYieldUnsignedTransaction({
-        chainId: network.chainId,
-        data: calldata,
-        feeLevel,
-        from: account.descriptor,
-        gasLimit: estimatedFeeLevel.payload.feeLimit,
-        nonce: Number(nonce),
-        to: vaultAddress,
-    });
-
-    return ok(JSON.stringify(unsignedTransaction));
 };
 
 const buildYieldWithdrawFeeLevels = ({
@@ -312,6 +213,7 @@ export const useYieldWithdrawFees = ({
     isEnabled,
 }: UseYieldWithdrawFeesParams): UseYieldWithdrawFeesResult => {
     const dispatch = useDispatch();
+    const store = useStore<FeesRootState>();
     const debounce = useDebounce();
     const requestIdRef = useRef(0);
     const [preparedAction, setPreparedAction] = useState<PreparedYieldWithdrawAction | null>(null);
@@ -327,9 +229,6 @@ export const useYieldWithdrawFees = ({
         () => (flowKey ? getYieldWithdrawFormDraftKey(flowKey) : ''),
         [flowKey],
     );
-    const feeInfo = useSelector((state: FeesRootState) =>
-        selectConvertedNetworkFeeInfo(state, flowData?.account.symbol),
-    );
     const formDraft = useSelector((state: FormDraftRootState) =>
         formDraftKey ? selectFormDraft<FormState>(state, formDraftKey) : undefined,
     );
@@ -342,8 +241,6 @@ export const useYieldWithdrawFees = ({
     // changes (which would otherwise loop: compose -> stores draft -> draft change -> compose ...).
     const flowDataRef = useRef(flowData);
     flowDataRef.current = flowData;
-    const feeInfoRef = useRef(feeInfo);
-    feeInfoRef.current = feeInfo;
     const feeStateRef = useRef(feeState);
     feeStateRef.current = feeState;
     const selectedFeeLevel = feeLevels[selectedFee];
@@ -355,48 +252,56 @@ export const useYieldWithdrawFees = ({
         isLoading: isComposingWithdrawFee,
     });
 
-    // `formDraftKey` is truthy only once the flow is resolved (so flowData is available), and
-    // `hasFeeInfo` flips compose back on when fee info finishes loading without re-triggering on
-    // every fee-info identity change.
-    const feeInfoRevision = useMemo(() => getWithdrawFeeInfoRevision(feeInfo), [feeInfo]);
-    const hasFeeInfo = isWithdrawFeeInfoReady(feeInfo);
     const composeWithdrawFee = useCallback(
         async (params: ComposeWithdrawFeeParams, requestId: number) => {
             const { amount: withdrawAmount, formDraftKey: withdrawFormDraftKey } = params;
             const withdrawFlowData = flowDataRef.current;
-            const withdrawFeeInfo = feeInfoRef.current;
             const currentFlowType = params.flowType;
             const { customFee: withdrawCustomFee, selectedFee: withdrawSelectedFee } =
                 feeStateRef.current;
-
-            if (!withdrawFlowData || !withdrawFeeInfo) {
-                if (requestId === requestIdRef.current) {
-                    dispatch(formDraftActions.removeDraft({ key: withdrawFormDraftKey }));
-                    setPreparedAction(null);
-                    setIsComposingWithdrawFee(false);
-                }
-
-                return;
-            }
 
             try {
                 if (requestId !== requestIdRef.current) {
                     return;
                 }
 
-                const composeResult = await composeYieldWithdrawTransaction({
-                    amount: withdrawAmount,
-                    dispatch,
-                    feeInfo: withdrawFeeInfo,
-                    flowData: withdrawFlowData,
-                    flowType: currentFlowType,
-                });
+                if (!withdrawFlowData) {
+                    throw new Error('Yield withdraw flow data is not available.');
+                }
+
+                // There is no background fee-info sync on mobile (desktop has one) and `fees` is not
+                // persisted, so levels are refreshed before composing. The refresh is best-effort —
+                // a failed one still composes from the stored levels, only missing fee info fails.
+                await dispatch(
+                    updateFeeInfoThunk({ networkSymbol: withdrawFlowData.account.symbol }),
+                );
 
                 if (requestId !== requestIdRef.current) {
                     return;
                 }
 
-                if (!composeResult.success) {
+                const withdrawFeeInfo = selectConvertedNetworkFeeInfo(
+                    store.getState(),
+                    withdrawFlowData.account.symbol,
+                );
+
+                if (!withdrawFeeInfo) {
+                    throw new Error('Fee info is not available.');
+                }
+
+                const composeResult = await dispatch(
+                    composeYieldWithdrawTransactionThunk({
+                        flowData: withdrawFlowData,
+                        amount: withdrawAmount,
+                        flowType: currentFlowType,
+                    }),
+                ).unwrap();
+
+                if (requestId !== requestIdRef.current) {
+                    return;
+                }
+
+                if (composeResult.type === 'error') {
                     setHasFeeEstimationError(true);
                     dispatch(formDraftActions.removeDraft({ key: withdrawFormDraftKey }));
                     setPreparedAction(null);
@@ -404,7 +309,7 @@ export const useYieldWithdrawFees = ({
                     return;
                 }
 
-                const unsignedTransaction = composeResult.payload;
+                const { unsignedTransaction } = composeResult;
 
                 const reviewToken = getYieldWithdrawInputToken({
                     flowData: withdrawFlowData,
@@ -452,6 +357,7 @@ export const useYieldWithdrawFees = ({
                     : undefined;
 
                 if (!isFinalPrecomposedTransaction(selectedFeeTransaction)) {
+                    setHasFeeEstimationError(true);
                     dispatch(formDraftActions.removeDraft({ key: withdrawFormDraftKey }));
                     setPreparedAction(null);
 
@@ -475,6 +381,7 @@ export const useYieldWithdrawFees = ({
                 });
             } catch {
                 if (requestId === requestIdRef.current) {
+                    setHasFeeEstimationError(true);
                     dispatch(formDraftActions.removeDraft({ key: withdrawFormDraftKey }));
                     setPreparedAction(null);
                 }
@@ -484,7 +391,7 @@ export const useYieldWithdrawFees = ({
                 }
             }
         },
-        [dispatch, setHasFeeEstimationError],
+        [dispatch, setHasFeeEstimationError, store],
     );
 
     useEffect(() => {
@@ -493,7 +400,7 @@ export const useYieldWithdrawFees = ({
 
         setHasFeeEstimationError(false);
 
-        if (!isEnabled || !amount || !formDraftKey || !hasFeeInfo) {
+        if (!isEnabled || !amount || !formDraftKey) {
             setIsComposingWithdrawFee(false);
             setPreparedAction(null);
 
@@ -522,10 +429,8 @@ export const useYieldWithdrawFees = ({
         debounce,
         dispatch,
         feeEstimationRetryKey,
-        feeInfoRevision,
         flowType,
         formDraftKey,
-        hasFeeInfo,
         isEnabled,
         setHasFeeEstimationError,
     ]);

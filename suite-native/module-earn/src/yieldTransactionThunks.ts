@@ -1,22 +1,32 @@
-import { selectSelectedDevice } from '@suite-common/device';
-import { buildStablecoinYieldTransactionReview } from '@suite-common/earn-stablecoin/src/signing';
+import { type DeviceRootState, selectSelectedDevice } from '@suite-common/device';
+import { buildStablecoinYieldTransactionReview } from '@suite-common/earn-stablecoin';
+import {
+    type MevProtectionRootState,
+    selectIsMevProtectionFeatureEnabled,
+} from '@suite-common/mev';
 import { createThunk } from '@suite-common/redux-utils';
 import {
+    type StablecoinYieldRootState,
+    type SynchronizeSentTransactionThunkDeps,
+    type SynchronizeSentTransactionThunkState,
+    type WalletSettingsRootState,
     type YieldFlowDisplayToken,
     type YieldFlowResolvedData,
     type YieldPositionFlowType,
+    isStablecoinYieldSupported,
     isYieldTxReviewForFlow,
+    isYieldWithdrawFlow,
     selectAddressDisplayType,
+    selectIsMevProtectionEnabled,
     selectStablecoinYieldSession,
     selectStablecoinYieldTxReview,
     stablecoinYieldActions,
     synchronizeSentTransactionThunk,
 } from '@suite-common/wallet-core';
-import { AddressDisplayOptions, type EvmSelectedFee } from '@suite-common/wallet-types';
-import { getAccountIdentity } from '@suite-common/wallet-utils';
-import TrezorConnect from '@trezor/connect';
+import { type EvmSelectedFee } from '@suite-common/wallet-types';
 
 import { EARN_MODULE_PREFIX } from './constants';
+import { pushYieldTransaction, signYieldTransactionOnDevice } from './utils/deviceTransactionUtils';
 
 const YIELD_TRANSACTION_THUNK_PREFIX = `${EARN_MODULE_PREFIX}/yield-transaction`;
 
@@ -44,10 +54,14 @@ export const getPushErrorType = (message: string): YieldPushTransactionError['er
         ? 'push-transaction-pending-conflict'
         : 'push-transaction-failed';
 
+export type SignYieldActionReviewThunkState = DeviceRootState &
+    StablecoinYieldRootState &
+    WalletSettingsRootState;
+
 export const signYieldActionReviewThunk = createThunk<
     { serializedTx: string },
     YieldActionReviewThunkPayload,
-    { rejectValue: YieldSignTransactionError }
+    { rejectValue: YieldSignTransactionError; state: SignYieldActionReviewThunkState }
 >(
     `${YIELD_TRANSACTION_THUNK_PREFIX}/signActionReview`,
     async (
@@ -67,10 +81,17 @@ export const signYieldActionReviewThunk = createThunk<
             });
         }
 
-        if (flowType === 'withdraw' && !selectedFee) {
+        if (isYieldWithdrawFlow(flowType) && !selectedFee) {
             return rejectWithValue({
                 error: 'sign-transaction-failed',
                 message: 'Fee information is missing for the transaction.',
+            });
+        }
+
+        if (!isStablecoinYieldSupported(device, { flowType, vaultToken: flowData.token })) {
+            return rejectWithValue({
+                error: 'sign-transaction-failed',
+                message: 'Firmware does not support this yield action.',
             });
         }
 
@@ -107,16 +128,11 @@ export const signYieldActionReviewThunk = createThunk<
             }),
         );
 
-        const signingResponse = await TrezorConnect.ethereumSignTransaction({
-            device: {
-                path: device.path,
-                instance: device.instance,
-                state: device.state,
-                useEmptyPassphrase: device.useEmptyPassphrase,
-            },
+        const signingResponse = await signYieldTransactionOnDevice({
+            device,
             path: flowData.account.path,
             transaction: transactionForSigning,
-            chunkify: addressDisplayType === AddressDisplayOptions.CHUNKED,
+            addressDisplayType,
         });
 
         if (!signingResponse.success) {
@@ -157,10 +173,21 @@ export const signYieldActionReviewThunk = createThunk<
     },
 );
 
+export type PushYieldActionReviewThunkState = MevProtectionRootState &
+    StablecoinYieldRootState &
+    SynchronizeSentTransactionThunkState &
+    WalletSettingsRootState;
+
+export type PushYieldActionReviewThunkDeps = SynchronizeSentTransactionThunkDeps;
+
 export const pushYieldActionReviewThunk = createThunk<
     { txid: string },
     YieldActionReviewThunkPayload,
-    { rejectValue: YieldPushTransactionError }
+    {
+        rejectValue: YieldPushTransactionError;
+        state: PushYieldActionReviewThunkState;
+        extra: PushYieldActionReviewThunkDeps;
+    }
 >(
     `${YIELD_TRANSACTION_THUNK_PREFIX}/pushActionReview`,
     async ({ flowData, flowKey, flowType }, { dispatch, getState, rejectWithValue }) => {
@@ -188,10 +215,12 @@ export const pushYieldActionReviewThunk = createThunk<
             });
         }
 
-        const pushResponse = await TrezorConnect.pushTransaction({
+        const pushResponse = await pushYieldTransaction({
             tx: serializedTx.tx,
-            coin: serializedTx.symbol,
-            identity: getAccountIdentity(flowData.account),
+            account: flowData.account,
+            isMevProtectionEnabled:
+                selectIsMevProtectionEnabled(getState()) &&
+                selectIsMevProtectionFeatureEnabled(getState()),
         });
 
         dispatch(stablecoinYieldActions.discardTransaction());

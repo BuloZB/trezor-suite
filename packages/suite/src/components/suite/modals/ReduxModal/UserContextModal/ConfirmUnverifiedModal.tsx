@@ -1,27 +1,28 @@
 import { useEffect } from 'react';
 
+import { type Dispatch, type UnknownAction } from '@reduxjs/toolkit';
+import { type ThunkDispatch } from 'redux-thunk';
+
 import { useDevice } from '@suite/device';
 import { Translation, type TranslationKey } from '@suite/intl';
 import { closeModal } from '@suite/modal';
 import { selectSelectedDeviceLabelOrName } from '@suite-common/device';
-import { type ExtraDependencies } from '@suite-common/redux-utils';
 import { H3, Modal, Paragraph, Tooltip } from '@trezor/components';
 import { ShieldWarningIcon } from '@trezor/icons';
 
 import { applySettings } from 'src/actions/settings/deviceSettingsActions';
+import { type ShowXpubThunkState } from 'src/actions/wallet/publicKeyActions';
 import { useDispatch, useSelector } from 'src/hooks/suite';
-import { type Dispatch, type GetState } from 'src/types/suite';
 
 interface ConfirmUnverifiedModalProps {
     action: {
-        event: () => (dispatch: Dispatch) => void;
+        event: () => (dispatch: Dispatch<UnknownAction>) => void;
         title: TranslationKey;
         closeAfterEventTriggered?: boolean;
     };
     verifyProcess?: () => (
-        dispatch: Dispatch,
-        getState: GetState,
-        extra: ExtraDependencies,
+        dispatch: ThunkDispatch<ShowXpubThunkState, unknown, UnknownAction>,
+        getState: () => ShowXpubThunkState,
     ) => Promise<void>;
     warningText: TranslationKey;
 }
@@ -33,7 +34,7 @@ export const ConfirmUnverifiedModal = ({
 }: ConfirmUnverifiedModalProps) => {
     const deviceLabel = useSelector(selectSelectedDeviceLabelOrName);
     const { device } = useDevice();
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<ShowXpubThunkState, unknown>();
     const { isLocked } = useDevice();
 
     const isDeviceLocked = isLocked();

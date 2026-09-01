@@ -1,17 +1,18 @@
 import { useCallback } from 'react';
-import { useSelector } from 'react-redux';
 
 import { events } from '@suite-common/analytics';
 import { useServices } from '@suite-common/dependency-injection';
-import { selectIsPortfolioTrackerDevice } from '@suite-common/device';
 import { type BaseCurrencyAmount } from '@suite-common/wallet-types';
 import { selectNativeAnalyticsDep } from '@suite-native/analytics';
-import { Button, HStack, InlineAlertBox, Text, VStack } from '@suite-native/atoms';
+import { BannerInline, Box, Button, HStack, Text, VStack } from '@suite-native/atoms';
 import { BaseCurrencyAmountFormatter } from '@suite-native/formatters';
+import { Icon } from '@suite-native/icons';
 import { Translation } from '@suite-native/intl';
 
+import { EarnClaimTokenIconSet } from './EarnClaimTokenIconSet';
 import { useMessageSystemYield } from '../hooks/useMessageSystemYield';
 import { type StablecoinYieldClaimSummary } from '../types';
+import { getUniqueStablecoinYieldClaimTokens } from '../utils/stablecoinYieldClaimSummaryUtils';
 
 type StablecoinYieldClaimRewardsCardSectionProps = {
     claimRewards: StablecoinYieldClaimSummary[];
@@ -26,13 +27,14 @@ export const StablecoinYieldClaimRewardsCardSection = ({
     isLoading,
     onPress,
 }: StablecoinYieldClaimRewardsCardSectionProps) => {
-    const isPortfolioTrackerDevice = useSelector(selectIsPortfolioTrackerDevice);
     const {
         isDisabled: isClaimFeatureDisabled,
         content: claimDisabledContent,
         variant: claimDisabledVariant,
     } = useMessageSystemYield('claim');
     const isDisabled = claimRewards.length === 0 || isLoading || isClaimFeatureDisabled;
+    const tokens = getUniqueStablecoinYieldClaimTokens(claimRewards);
+    const firstToken = tokens[0];
 
     const { analytics } = useServices(selectNativeAnalyticsDep);
 
@@ -51,41 +53,75 @@ export const StablecoinYieldClaimRewardsCardSection = ({
         onPress();
     }, [isDisabled, onPress, analytics]);
 
-    if (isPortfolioTrackerDevice || (claimRewards.length === 0 && !isLoading)) {
-        return null;
-    }
-
     return (
-        <VStack spacing="sp12">
-            {isClaimFeatureDisabled && claimDisabledContent && (
-                <InlineAlertBox
-                    intent={claimDisabledVariant ?? 'warning'}
-                    title={claimDisabledContent}
-                />
-            )}
-            <HStack spacing="sp24" alignItems="center">
-                <VStack spacing={2} flex={1}>
-                    <Text variant="body-md" color="contentSecondary">
-                        <Translation id="earn.earnScreen.depositsCard.availableRewards" />
-                    </Text>
-                    <BaseCurrencyAmountFormatter
-                        value={totalFiatClaimableAmount}
-                        variant="headline-md"
-                        isDiscreetText={false}
-                        isLoading={isLoading}
+        <Box padding="sp16">
+            <VStack spacing="sp12">
+                {isClaimFeatureDisabled && claimDisabledContent && (
+                    <BannerInline
+                        intent={claimDisabledVariant ?? 'warning'}
+                        title={claimDisabledContent}
                     />
-                </VStack>
-                <Button
-                    size="medium"
-                    intent="neutral"
-                    priority="secondary"
-                    isDisabled={isDisabled}
-                    isLoading={isLoading}
-                    onPress={handlePress}
-                >
-                    <Translation id="earn.earnScreen.depositsCard.claimRewardsButton" />
-                </Button>
-            </HStack>
-        </VStack>
+                )}
+                <HStack spacing="sp24" alignItems="center">
+                    <VStack spacing="sp4" flex={1}>
+                        <Text variant="body-md" color="contentSecondary">
+                            <Translation id="earn.earnScreen.depositsCard.availableRewards" />
+                        </Text>
+                        <HStack spacing="sp4" alignItems="center" flexWrap="wrap">
+                            {!isLoading && totalFiatClaimableAmount !== null ? (
+                                <Text variant="body-md-strong">
+                                    {'≈\u00A0'}
+                                    <BaseCurrencyAmountFormatter
+                                        value={totalFiatClaimableAmount}
+                                        variant="body-md-strong"
+                                        isDiscreetText={false}
+                                    />
+                                </Text>
+                            ) : (
+                                <BaseCurrencyAmountFormatter
+                                    value={totalFiatClaimableAmount}
+                                    variant="body-md-strong"
+                                    isDiscreetText={false}
+                                    isLoading={isLoading}
+                                />
+                            )}
+                            {!isLoading && firstToken && (
+                                <Translation
+                                    id="earn.earnScreen.depositsCard.rewardsSummary"
+                                    values={{
+                                        tokenCount: tokens.length,
+                                        tokenSymbol: firstToken.symbol,
+                                        accountCount: claimRewards.length,
+                                        text: chunks => (
+                                            <Text variant="body-sm" color="contentSecondary">
+                                                {chunks}
+                                            </Text>
+                                        ),
+                                        tokenIcons: () => <EarnClaimTokenIconSet tokens={tokens} />,
+                                        accountIcon: () => (
+                                            <Icon
+                                                name="wallet"
+                                                size="small"
+                                                color="contentSecondary"
+                                            />
+                                        ),
+                                    }}
+                                />
+                            )}
+                        </HStack>
+                    </VStack>
+                    <Button
+                        size="medium"
+                        intent="brand"
+                        priority="secondary"
+                        isDisabled={isDisabled}
+                        isLoading={isLoading}
+                        onPress={handlePress}
+                    >
+                        <Translation id="earn.earnScreen.depositsCard.claimRewardsButton" />
+                    </Button>
+                </HStack>
+            </VStack>
+        </Box>
     );
 };

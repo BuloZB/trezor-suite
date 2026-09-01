@@ -1,6 +1,7 @@
 import { type Account } from '@suite-common/wallet-types';
+import { Button } from '@suite-native/atoms';
+import { Translation } from '@suite-native/intl';
 
-import { EarnReviewSubmittedCard } from './EarnReviewSubmittedCard';
 import { YieldReviewScreenLayout } from './YieldReviewScreenLayout';
 import { YieldTransactionReviewOutputList } from './YieldTransactionReviewOutputList';
 import { useYieldClaimReview } from '../hooks/useYieldClaimReview';
@@ -29,44 +30,39 @@ export const YieldClaimReviewContent = ({
         markReviewLeave,
         revealConfirmOnTrezorSheet,
     } = useYieldReviewScreenControls();
-    const { claimStatus, handleClaimSubmitted, leaveReviewFromDeviceCancel, startClaimReview } =
-        useYieldClaimReview({
-            account,
-            flowKey,
-            onReviewLeave: markReviewLeave,
-        });
-    const isClaimSigned = claimStatus === 'signed' || claimStatus === 'sending';
-    const isSendingClaim = claimStatus === 'sending';
+
+    const review = useYieldClaimReview({ account, flowKey, onReviewLeave: markReviewLeave });
+
+    const isSigned = review.status === 'signed' || review.status === 'sending';
+    const isSending = review.status === 'sending';
     const activeStep = useYieldReviewActiveStep(account.symbol);
 
     useYieldReviewSheetAutoStart({
         closeSheet,
         hasLeftReview,
-        isSigned: isClaimSigned,
-        leaveReviewFromDeviceCancel,
+        isSigned,
+        leaveReviewFromDeviceCancel: review.leaveReviewFromDeviceCancel,
         revealConfirmOnTrezorSheet,
-        shouldAutoStartReview: claimStatus === 'idle',
-        startReview: startClaimReview,
+        shouldAutoStartReview: review.status === 'idle',
+        startReview: review.startReview,
     });
 
     return (
         <YieldReviewScreenLayout
             confirmOnTrezorRef={confirmOnTrezorRef}
             titleTranslationId="earn.yieldClaimReviewScreen.title"
-            submittedCard={
-                isClaimSigned ? (
-                    <EarnReviewSubmittedCard
-                        buttonTranslationId="earn.yieldClaimReviewScreen.submitButton"
-                        isButtonLoading={isSendingClaim}
-                        onButtonPress={handleClaimSubmitted}
-                    />
-                ) : undefined
+            submitButton={
+                isSigned && (
+                    <Button isLoading={isSending} onPress={review.submit}>
+                        <Translation id="earn.yieldClaimReviewScreen.submitButton" />
+                    </Button>
+                )
             }
         >
             <YieldTransactionReviewOutputList
                 accountKey={account.key}
                 activeStep={activeStep}
-                isSigned={isClaimSigned}
+                isSigned={isSigned}
                 preview={preview}
             />
         </YieldReviewScreenLayout>

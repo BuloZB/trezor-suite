@@ -9,7 +9,7 @@ import {
     type SellFiatTrade,
 } from 'invity-api';
 
-import { type NetworkSymbol } from '@suite-common/networks';
+import { type NetworkSymbol, asNetworkSymbol } from '@suite-common/wallet-config';
 import { type AccountKey } from '@suite-common/wallet-types';
 import { mockAccountKey } from '@suite-common/wallet-types/mocks';
 import { type StaticSessionId } from '@trezor/connect';
@@ -20,6 +20,7 @@ import {
     bestSellQuotePerPaymentMethodProjection,
     selectDeviceHasTradingTrades,
     selectDeviceTradingTradesOrderedByDate,
+    selectGroupedExchangeQuotes,
     selectGroupedTradingExchangeQuotes,
     selectIsTradingNetworkFeeMissing,
     selectTradedAccountKeys,
@@ -42,6 +43,7 @@ import {
     selectTradingBuyQuotesByPaymentMethod,
     selectTradingBuyQuotesPerPaymentMethod,
     selectTradingBuyQuotesRequest,
+    selectTradingBuyReceiveAccount,
     selectTradingBuySelectedQuote,
     selectTradingBuySupportedCryptoIds,
     selectTradingCoinInfoByCryptoId,
@@ -78,6 +80,7 @@ import {
     selectTradingPrefilledFromAccount,
     selectTradingProviderByNameAndTradeType,
     selectTradingProviderMetadata,
+    selectTradingProvidersByTradeType,
     selectTradingQuotesByType,
     selectTradingQuotesPerPaymentMethodByType,
     selectTradingSelectedPaymentMethodByType,
@@ -100,6 +103,7 @@ import {
     selectTradingSellSelectedQuote,
     selectTradingSellSellCryptoIds,
     selectTradingSellSupportedCryptoIds,
+    selectTradingSupportedFiatCurrenciesByTradeType,
     selectTradingSupportedSymbols,
     selectTradingSymbolAndContractAddressByCryptoId,
     selectTradingTradeByOrderId,
@@ -120,7 +124,11 @@ import { type SellInfo, sellInitialState } from '../reducers/sellReducer';
 import { type TradingRootState, initialState } from '../reducers/tradingCommonReducer';
 import type { TradingTransactionExchange, TradingTransactionSell, TradingType } from '../types';
 
-const supportedCoins: readonly NetworkSymbol[] = ['btc', 'eth', 'base'];
+const supportedCoins: readonly NetworkSymbol[] = [
+    asNetworkSymbol('btc'),
+    asNetworkSymbol('eth'),
+    asNetworkSymbol('base'),
+];
 
 describe('tradingSelectors', () => {
     let state: TradingRootStateWithDeviceAndAccounts;
@@ -1277,6 +1285,53 @@ describe('tradingSelectors', () => {
         });
     });
 
+    describe(selectGroupedExchangeQuotes.name, () => {
+        beforeEach(() => {
+            state.wallet.trading.exchange.exchangeInfo = {
+                providerInfos: {
+                    'fixed-provider': { isFixedRate: true },
+                    'float-provider': { isFixedRate: false },
+                },
+                buyCryptoIds: ['bitcoin'] as CryptoId[],
+                sellCryptoIds: ['ethereum'] as CryptoId[],
+            } as unknown as ExchangeInfo;
+            state.wallet.trading.exchange.quotes = [
+                {
+                    ...tradeApiFixtures.exchangeTrade,
+                    quoteId: 'fixed-quote',
+                    exchange: 'fixed-provider',
+                    isDex: false,
+                },
+                {
+                    ...tradeApiFixtures.exchangeTrade,
+                    quoteId: 'float-quote',
+                    exchange: 'float-provider',
+                    isDex: false,
+                },
+                {
+                    ...tradeApiFixtures.exchangeTrade,
+                    quoteId: 'dex-quote',
+                    exchange: 'dex-provider',
+                    isDex: true,
+                },
+            ];
+        });
+
+        it('should group quotes into fixed and float only, treating unrecognized providers as float', () => {
+            expect(selectGroupedExchangeQuotes(state)).toEqual({
+                fixed: [expect.objectContaining({ quoteId: 'fixed-quote' })],
+                float: [
+                    expect.objectContaining({ quoteId: 'float-quote' }),
+                    expect.objectContaining({ quoteId: 'dex-quote' }),
+                ],
+            });
+        });
+
+        it('should be stable', () => {
+            expect(selectGroupedExchangeQuotes(state)).toBe(selectGroupedExchangeQuotes(state));
+        });
+    });
+
     describe(selectTradingExchangeDexQuotes.name, () => {
         it('should return dex exchange quotes only', () => {
             state.wallet.trading.exchange.exchangeInfo = {
@@ -2214,6 +2269,51 @@ describe('tradingSelectors', () => {
         });
     });
 
+    describe(selectTradingProvidersByTradeType.name, () => {
+        it.each([
+            ['buy', () => state.wallet.trading.buy.buyInfo?.providerInfos],
+            ['exchange', () => state.wallet.trading.exchange.exchangeInfo?.providerInfos],
+            ['sell', () => state.wallet.trading.sell.sellInfo?.providerInfos],
+        ] as [TradingType, () => unknown][])(
+            'should return the providers for %s',
+            (type, expected) => {
+                expect(selectTradingProvidersByTradeType(state, type)).toEqual(expected());
+            },
+        );
+
+        it('should throw an error for an invalid trade type', () => {
+            expect(() =>
+                selectTradingProvidersByTradeType(state, 'invalid' as TradingType),
+            ).toThrow('Unreachable case: ["invalid"]');
+        });
+    });
+
+    describe(selectTradingSupportedFiatCurrenciesByTradeType.name, () => {
+        it('should return the supported fiat currencies for buy', () => {
+            expect(selectTradingSupportedFiatCurrenciesByTradeType(state, 'buy')).toEqual(
+                new Set(['usd', 'eur', 'czk']),
+            );
+        });
+
+        it('should return the supported fiat currencies for sell', () => {
+            expect(selectTradingSupportedFiatCurrenciesByTradeType(state, 'sell')).toEqual(
+                new Set(['usd', 'eur', 'czk']),
+            );
+        });
+
+        it('should return undefined for exchange', () => {
+            expect(
+                selectTradingSupportedFiatCurrenciesByTradeType(state, 'exchange'),
+            ).toBeUndefined();
+        });
+
+        it('should throw an error for an invalid trade type', () => {
+            expect(() =>
+                selectTradingSupportedFiatCurrenciesByTradeType(state, 'invalid' as TradingType),
+            ).toThrow('Unreachable case: ["invalid"]');
+        });
+    });
+
     describe(selectTradingProviderByNameAndTradeType.name, () => {
         it('should return the correct provider for buy trade type', () => {
             const providerName = 'provider1';
@@ -2362,6 +2462,28 @@ describe('tradingSelectors', () => {
         it('should return supported symbols for exchange', () => {
             expect(selectTradingSupportedSymbols(state, 'exchange', supportedCoins)).toEqual(
                 supportedSymbols,
+            );
+        });
+    });
+
+    describe(selectTradingBuyReceiveAccount.name, () => {
+        it('should return account for receiveAccountKey', () => {
+            state.wallet.trading.buy.receiveAccountKey = accountBtc.key;
+
+            expect(selectTradingBuyReceiveAccount(state)).toBe(accountBtc);
+        });
+
+        it('should return undefined when receiveAccountKey is not set', () => {
+            state.wallet.trading.buy.receiveAccountKey = undefined;
+
+            expect(selectTradingBuyReceiveAccount(state)).toBeUndefined();
+        });
+
+        it('should be stable', () => {
+            state.wallet.trading.buy.receiveAccountKey = accountBtc.key;
+
+            expect(selectTradingBuyReceiveAccount(state)).toBe(
+                selectTradingBuyReceiveAccount(state),
             );
         });
     });

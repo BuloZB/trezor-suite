@@ -5,21 +5,45 @@ import { type DeepPartial } from 'react-hook-form';
 
 import { waitFor } from '@testing-library/react';
 
+import { type DesktopAnalyticsDep } from '@suite/analytics';
+import { mockDesktopAnalytics } from '@suite/analytics/mocks';
 import { debugInitialState } from '@suite/debug';
+import { closeModal, openModal } from '@suite/modal';
 import { suiteSettingsInitialState } from '@suite/settings';
+import { type AddressValidatorDep } from '@suite-common/address';
+import { mockAddressValidator } from '@suite-common/address/mocks';
+import {
+    type FindNetworkSymbolForProtocolDep,
+    type NetworkModuleRepositoryDep,
+} from '@suite-common/networks';
+import {
+    mockFindNetworkSymbolForProtocol,
+    mockNetworkModule,
+    mockNetworkModuleRepository,
+} from '@suite-common/networks/mocks';
+import { type MigrateSuiteSyncLabelsForRbfTransactionDep } from '@suite-common/suite-rbf-labels-migrations-types';
+import { mockMigrateSuiteSyncLabelsForRbfTransaction } from '@suite-common/suite-rbf-labels-migrations-types/mocks';
+import { mockSuiteSync } from '@suite-common/suite-sync/mocks';
+import { type SuiteSyncDep } from '@suite-common/suite-sync-types';
+import { type GetIsWindowVisibleDep, type OnModalCancelDep } from '@suite-common/suite-types';
+import { mockGetIsWindowVisible } from '@suite-common/suite-types/mocks';
 import {
     configureMockStore,
     filterThunkActionTypes,
     initPreloadedState,
     testMocks,
 } from '@suite-common/test-utils';
-import { type FormState } from '@suite-common/wallet-types';
+import { asNetworkSymbol } from '@suite-common/wallet-config';
+import { type FormState, type GetTradedAccountKeysDep } from '@suite-common/wallet-types';
+import { mockGetTradedAccountKeys } from '@suite-common/wallet-types/mocks';
 import { type PROTO } from '@trezor/connect';
+import { asProtocol } from '@trezor/network-module-suite-common-types';
 
 import {
     type UserAction,
     actionSequence,
     findByTestId,
+    renderHookWithProviders,
     renderWithProviders,
     waitForLoader,
 } from 'src/support/test-utils/hooksHelper';
@@ -27,8 +51,7 @@ import { type SendContextValues } from 'src/types/wallet/sendForm';
 import SendIndex from 'src/views/wallet/send';
 
 import * as fixtures from './__fixtures__/useSendForm';
-import { useSendFormContext } from './useSendForm';
-import { extraDependenciesDesktopMock } from '../../../mocks/extraDependenciesDesktopMock';
+import { useSendForm, useSendFormContext } from './useSendForm';
 
 const TEST_TIMEOUT = 35000;
 
@@ -70,11 +93,43 @@ interface Args {
     selectedAccount?: any;
     coinjoin?: any;
     bitcoinAmountUnit?: PROTO.AmountUnit;
+    protocol?: Partial<RootReducerState['protocol']>;
 }
 
 const TrezorConnect = testMocks.getTrezorConnectMock();
+type SendFormTestServices = AddressValidatorDep &
+    DesktopAnalyticsDep &
+    FindNetworkSymbolForProtocolDep &
+    GetIsWindowVisibleDep &
+    GetTradedAccountKeysDep &
+    MigrateSuiteSyncLabelsForRbfTransactionDep &
+    NetworkModuleRepositoryDep &
+    SuiteSyncDep;
 
-const initStore = ({ send, fees, selectedAccount, coinjoin, bitcoinAmountUnit }: Args = {}) => {
+const services: SendFormTestServices = {
+    addressValidator: mockAddressValidator({
+        isAddressValid: address => address !== '' && address !== 'X' && address !== 'FOO',
+    }),
+    analytics: mockDesktopAnalytics(),
+    findNetworkSymbolForProtocol: mockFindNetworkSymbolForProtocol({
+        [asProtocol('bitcoin')]: asNetworkSymbol('btc'),
+    }),
+    getIsWindowVisible: mockGetIsWindowVisible(),
+    getTradedAccountKeys: mockGetTradedAccountKeys(),
+    migrateSuiteSyncLabelsForRbfTransaction: mockMigrateSuiteSyncLabelsForRbfTransaction(),
+    networkModuleRepository: mockNetworkModuleRepository({ get: () => mockNetworkModule() }),
+    suiteSync: mockSuiteSync(),
+};
+const extraActions: OnModalCancelDep = { onModalCancel: closeModal };
+
+const initStore = ({
+    send,
+    fees,
+    selectedAccount,
+    coinjoin,
+    bitcoinAmountUnit,
+    protocol,
+}: Args = {}) => {
     const rootReducer = fixtures.getRootReducer(selectedAccount, fees);
 
     const preloadedState = initPreloadedState({
@@ -88,10 +143,12 @@ const initStore = ({ send, fees, selectedAccount, coinjoin, bitcoinAmountUnit }:
             suiteSettings: { ...suiteSettingsInitialState, language: 'en' },
             debug: debugInitialState,
             router: { route: { name: 'wallet-send' } },
+            ...(protocol ? { protocol } : {}),
         },
     });
 
     return configureMockStore({
+        extra: { actions: extraActions, services },
         reducer: rootReducer,
         preloadedState,
         // NOTE: this action contains `decision` callback which is not serializable
@@ -242,6 +299,51 @@ describe('useSendForm hook', () => {
         jest.clearAllMocks();
     });
 
+    it(
+        'fills label from protocol uri into send output',
+        async () => {
+            const protocolAddress = '1BoatSLRHtKNngkdXEeobR76b53LETtpyT';
+            const protocolAmount = '0.1';
+            const protocolLabel = 'Trezor donation';
+            const store = initStore({
+                protocol: {
+                    sendForm: {
+                        shouldFill: true,
+                        scheme: 'bitcoin',
+                        address: protocolAddress,
+                        amount: protocolAmount,
+                        label: protocolLabel,
+                    },
+                },
+            });
+            const state = store.getState();
+            const { result, unmount } = renderHookWithProviders(store, services, () =>
+                useSendForm({
+                    selectedAccount: state.wallet.selectedAccount,
+                    localCurrency: 'usd',
+                    fees: state.wallet.fees,
+                    online: true,
+                    metadataEnabled: false,
+                }),
+            );
+
+            await waitFor(() => {
+                expect(result.current.getValues()).toMatchObject({
+                    outputs: [
+                        {
+                            address: protocolAddress,
+                            amount: protocolAmount,
+                            label: protocolLabel,
+                        },
+                    ],
+                });
+            });
+
+            unmount();
+        },
+        TEST_TIMEOUT,
+    );
+
     fixtures.addingOutputs.forEach(f => {
         it(
             f.description,
@@ -250,7 +352,7 @@ describe('useSendForm hook', () => {
                 const callback: TestCallback = {};
                 const { unmount } = renderWithProviders(
                     store,
-                    extraDependenciesDesktopMock.services,
+                    services,
                     <SendIndex>
                         <Component callback={callback} />
                     </SendIndex>,
@@ -292,7 +394,7 @@ describe('useSendForm hook', () => {
                 const callback: TestCallback = {};
                 const { unmount } = renderWithProviders(
                     store,
-                    extraDependenciesDesktopMock.services,
+                    services,
                     <SendIndex>
                         <Component callback={callback} />
                     </SendIndex>,
@@ -333,7 +435,7 @@ describe('useSendForm hook', () => {
                 const callback: TestCallback = {};
                 const { unmount } = renderWithProviders(
                     store,
-                    extraDependenciesDesktopMock.services,
+                    services,
                     <SendIndex>
                         <Component callback={callback} />
                     </SendIndex>,
@@ -362,7 +464,7 @@ describe('useSendForm hook', () => {
                 const callback: TestCallback = {};
                 const { unmount } = renderWithProviders(
                     store,
-                    extraDependenciesDesktopMock.services,
+                    services,
                     <SendIndex>
                         <Component callback={callback} />
                     </SendIndex>,
@@ -373,7 +475,12 @@ describe('useSendForm hook', () => {
                 store.subscribe(() => {
                     const actions = filterThunkActionTypes(store.getActions());
                     const lastAction = actions[actions.length - 1];
-                    if (lastAction?.payload?.decision) {
+                    if (
+                        openModal.match(lastAction) &&
+                        lastAction.payload.type === 'review-transaction' &&
+                        'decision' in lastAction.payload &&
+                        lastAction.payload.decision
+                    ) {
                         lastAction.payload.decision.resolve(true); // always resolve push tx request
                     }
                 });
@@ -404,7 +511,7 @@ describe('useSendForm hook', () => {
                 const callback: TestCallback = {};
                 const { unmount } = renderWithProviders(
                     store,
-                    extraDependenciesDesktopMock.services,
+                    services,
                     <SendIndex>
                         <Component callback={callback} />
                     </SendIndex>,
@@ -436,7 +543,7 @@ describe('useSendForm hook', () => {
 
                 const { unmount } = renderWithProviders(
                     store,
-                    extraDependenciesDesktopMock.services,
+                    services,
                     <SendIndex>
                         <Component callback={callback} />
                     </SendIndex>,

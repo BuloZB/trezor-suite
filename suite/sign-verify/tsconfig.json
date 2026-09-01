@@ -9,6 +9,9 @@
         { "path": "../../suite-common/device" },
         { "path": "../../suite-common/receive" },
         {
+            "path": "../../suite-common/redux-utils"
+        },
+        {
             "path": "../../suite-common/suite-types"
         },
         {
@@ -30,6 +33,7 @@
             "path": "../../suite-common/wallet-utils"
         },
         { "path": "../address" },
+        { "path": "../analytics" },
         { "path": "../device" },
         { "path": "../intl" },
         { "path": "../../packages/components" },

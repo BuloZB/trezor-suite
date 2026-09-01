@@ -47,6 +47,11 @@ import {
     TRADING_SLIP24_SUPPORTED_NETWORK_TYPES,
 } from '../constants';
 import {
+    EMPTY_GROUPED_EXCHANGE_QUOTES_BY_RATE_TYPE,
+    type GroupedExchangeQuotesByRateType,
+    groupExchangeQuotesByRateTypeProjection,
+} from './utils/groupExchangeQuotesByRateTypeProjection';
+import {
     EMPTY_GROUPED_TRADING_EXCHANGE_QUOTES,
     type GroupedTradingExchangeQuotes,
     groupTradingExchangeQuotesProjection,
@@ -90,6 +95,7 @@ import {
 import { isAccountEligibleForTrade } from '../utils/tradingAccountUtils';
 
 export { EMPTY_GROUPED_TRADING_EXCHANGE_QUOTES, type GroupedTradingExchangeQuotes };
+export { EMPTY_GROUPED_EXCHANGE_QUOTES_BY_RATE_TYPE, type GroupedExchangeQuotesByRateType };
 
 type SelectedAccountRootState = {
     wallet: {
@@ -97,9 +103,10 @@ type SelectedAccountRootState = {
     };
 };
 
-export type TradingRootStateWithDeviceAndAccounts = TradingRootState &
+export type TradingRootStateWithAccounts = TradingRootState & AccountsRootState;
+
+export type TradingRootStateWithDeviceAndAccounts = TradingRootStateWithAccounts &
     DeviceRootState &
-    AccountsRootState &
     SelectedAccountRootState;
 
 export type TradingFormAccountRootState = TradingRootStateWithDeviceAndAccounts &
@@ -148,6 +155,9 @@ export type TradingStateSelector = Omit<TradingState, 'buy' | 'exchange' | 'sell
 };
 
 const createMemoizedSelector = createWeakMapSelector.withTypes<TradingRootState>();
+const createMemoizedSelectorWithAccounts =
+    createWeakMapSelector.withTypes<TradingRootStateWithAccounts>();
+const createMemoizedDeviceSelector = createWeakMapSelector.withTypes<DeviceRootState>();
 const createMemoizedSelectorWithDeviceAndAccounts =
     createWeakMapSelector.withTypes<TradingRootStateWithDeviceAndAccounts>();
 const createMemoizedFormAccountSelector =
@@ -322,6 +332,37 @@ export const selectTradingExchangeProviders = (state: TradingRootState) =>
 export const selectTradingSellProviders = (state: TradingRootState) =>
     selectTradingSellInfo(state)?.providerInfos;
 
+export const selectTradingProvidersByTradeType = (state: TradingRootState, type: TradingType) => {
+    switch (type) {
+        case 'buy':
+            return selectTradingBuyProviders(state);
+        case 'exchange':
+            return selectTradingExchangeProviders(state);
+        case 'sell':
+            return selectTradingSellProviders(state);
+
+        default:
+            return exhaustive(type);
+    }
+};
+
+export const selectTradingSupportedFiatCurrenciesByTradeType = (
+    state: TradingRootState,
+    type: TradingType,
+): Set<FiatCurrencyCode> | undefined => {
+    switch (type) {
+        case 'buy':
+            return selectTradingBuyInfo(state)?.supportedFiatCurrencies;
+        case 'sell':
+            return selectTradingSellInfo(state)?.supportedFiatCurrencies;
+        case 'exchange':
+            return undefined;
+
+        default:
+            return exhaustive(type);
+    }
+};
+
 export const selectTradingProviderByNameAndTradeType = (
     state: TradingRootState,
     name: string | undefined,
@@ -331,17 +372,7 @@ export const selectTradingProviderByNameAndTradeType = (
         return undefined;
     }
 
-    switch (type) {
-        case 'buy':
-            return selectTradingBuyProviders(state)?.[name];
-        case 'exchange':
-            return selectTradingExchangeProviders(state)?.[name];
-        case 'sell':
-            return selectTradingSellProviders(state)?.[name];
-
-        default:
-            return exhaustive(type);
-    }
+    return selectTradingProvidersByTradeType(state, type)?.[name];
 };
 
 export const selectTradingProviderKycPolicy = (
@@ -651,6 +682,11 @@ export const selectGroupedTradingExchangeQuotes = createMemoizedSelector(
     groupTradingExchangeQuotesProjection,
 );
 
+export const selectGroupedExchangeQuotes = createMemoizedSelector(
+    [selectTradingExchangeQuotes, selectTradingExchangeProviders],
+    groupExchangeQuotesByRateTypeProjection,
+);
+
 export const selectTradingExchangeDexQuotes = createMemoizedSelector(
     [selectGroupedTradingExchangeQuotes],
     groupedQuotes => groupedQuotes.dex,
@@ -783,18 +819,21 @@ export const selectIsTradingNetworkFeeMissing = (
 };
 
 export const selectTradingAccountAccordingActiveSection: (
-    state: TradingRootStateWithDeviceAndAccounts,
+    state: TradingRootStateWithAccounts,
     activeSection: TradingType,
     selectedAccount: SelectedAccountStatus,
-) => Account | undefined = createMemoizedSelectorWithDeviceAndAccounts(
+) => Account | undefined = createMemoizedSelectorWithAccounts(
     [
         selectTradingExchange,
         selectTradingSell,
         selectTradingBuy,
         ({ wallet }) => wallet.accounts,
-        (_: TradingRootState, activeSection: TradingType) => activeSection,
-        (_: TradingRootState, __: TradingType, selectedAccount: SelectedAccountStatus) =>
-            selectedAccount,
+        (_: TradingRootStateWithAccounts, activeSection: TradingType) => activeSection,
+        (
+            _: TradingRootStateWithAccounts,
+            __: TradingType,
+            selectedAccount: SelectedAccountStatus,
+        ) => selectedAccount,
     ],
     (tradingExchange, tradingSell, tradingBuy, accounts, activeSection, selectedAccount) => {
         const tradingSectionMap = {
@@ -918,6 +957,17 @@ export const selectTradingBuyReceiveAccountKey = (state: TradingRootState) =>
     state.wallet.trading.buy.receiveAccountKey;
 export const selectTradingBuyReceiveAddress = (state: TradingRootState) =>
     state.wallet.trading.buy.receiveAddress;
+
+export const selectTradingBuyReceiveAccount = createMemoizedSelectorWithAccounts(
+    [selectAccounts, selectTradingBuyReceiveAccountKey],
+    (accounts, receiveAccountKey): Account | undefined => {
+        if (!receiveAccountKey) {
+            return undefined;
+        }
+
+        return accounts.find(account => account.key === receiveAccountKey);
+    },
+);
 
 export const selectTradingExchangeAccountKey = (state: TradingRootState) =>
     state.wallet.trading.exchange.tradingAccountKey;
@@ -1140,12 +1190,12 @@ export const selectTradingBuyTransactionId = (state: TradingRootState) =>
 export const selectTradingVerifiedAddress = (state: TradingRootState) =>
     state.wallet.trading.verifiedAddress;
 
-export const selectTradingIsSlip24Allowed = createMemoizedSelectorWithDeviceAndAccounts(
+export const selectTradingIsSlip24Allowed = createMemoizedDeviceSelector(
     [
         state => selectDeviceUnavailableCapabilities(state),
         state => selectDeviceFirmwareVersion(state),
-        (_: TradingRootState, account: Account | undefined | null) => account,
-        (_: TradingRootState, __: Account | undefined | null, isSlip24Active: boolean) =>
+        (_: DeviceRootState, account: Account | undefined | null) => account,
+        (_: DeviceRootState, __: Account | undefined | null, isSlip24Active: boolean) =>
             isSlip24Active,
     ],
     (unavailableCapabilities, firmwareVersion, account, isSlip24Active) => {

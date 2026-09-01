@@ -14,9 +14,8 @@ import {
     isSupportedSolStakingNetworkSymbol,
     subunitsToUnits,
 } from '@suite-common/wallet-utils';
-import { AccountDetailsCard } from '@suite-native/accounts';
 import { events, selectNativeAnalyticsDep } from '@suite-native/analytics';
-import { Box, Button, FullAlertBox, InlineAlertBox, Text, VStack } from '@suite-native/atoms';
+import { BannerFull, BannerInline, Box, Button, Text, VStack } from '@suite-native/atoms';
 import { Translation } from '@suite-native/intl';
 import {
     type RootStackParamList,
@@ -34,6 +33,7 @@ import { FeeSelector } from '@suite-native/transaction-management';
 import { MAX_DEACTIVATE_ACCOUNTS_WITH_SPLIT } from '@trezor/network-solana/constants';
 import { BigNumber } from '@trezor/utils';
 
+import { EarnAmountCard } from '../components/EarnAmountCard';
 import { useComposeEarnFees } from '../hooks/useComposeEarnFees';
 import { useNavigateBackAnalytics } from '../hooks/useNavigateBackAnalytics';
 import { useSolanaStakingLimit } from '../hooks/useSolanaStakingLimit';
@@ -104,6 +104,7 @@ export const ClaimReviewScreen = () => {
 
     const handleReviewAndSign = () => {
         registerNavigateBackAnalytics();
+
         analytics.report({
             type: events.stakingClaimEvent.name,
             payload: {
@@ -112,7 +113,11 @@ export const ClaimReviewScreen = () => {
                 networkSymbol: symbol,
             },
         });
-        navigation.navigate(RootStackRoutes.ClaimTransactionDataReview, { accountKey });
+
+        navigation.navigate(RootStackRoutes.StakingTransactionDataReview, {
+            stakeType: 'claim',
+            accountKey,
+        });
     };
 
     return (
@@ -152,10 +157,9 @@ export const ClaimReviewScreen = () => {
             }
         >
             <VStack spacing="sp16">
-                <AccountDetailsCard
+                <EarnAmountCard
                     accountKey={accountKey}
-                    isStakeVariant={true}
-                    titleLabel={<Translation id="earn.claimReviewScreen.amountLabel" />}
+                    label={<Translation id="earn.claimReviewScreen.amountLabel" />}
                     cryptoAmount={claimableAmount}
                 />
                 <FeeSelector
@@ -167,7 +171,7 @@ export const ClaimReviewScreen = () => {
                     formDraftKey={formDraftKey}
                 />
                 {isInsufficientFeeBalance && (
-                    <FullAlertBox
+                    <BannerFull
                         intent="critical"
                         iconName="warningCircle"
                         title={
@@ -185,7 +189,7 @@ export const ClaimReviewScreen = () => {
                     />
                 )}
                 {canClaimInstantly && !isInsufficientFeeBalance && (
-                    <InlineAlertBox
+                    <BannerInline
                         intent="brand"
                         title={
                             <Translation
@@ -196,7 +200,7 @@ export const ClaimReviewScreen = () => {
                     />
                 )}
                 {isAccountLimitExceeded && (
-                    <InlineAlertBox
+                    <BannerInline
                         intent="info"
                         title={
                             <Translation

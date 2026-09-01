@@ -56,7 +56,6 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
         with:
           lfs: true
-          submodules: recursive
       - name: Install node and yarn
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
@@ -65,7 +64,8 @@ jobs:
       # safedep/pmg not available on macOS (that's ok, PMG must be run on PR workflows but here it's optional)
       - name: Install deps and build libs
         run: |
-          yarn workspaces focus @trezor/suite-desktop @trezor/suite-desktop-ui @trezor/suite-desktop-core @trezor/suite-build @trezor/suite-data @trezor/transport-bridge @suite-common/message-system
+          # Must be the same list of workspaces as in .github/workflows/build-desktop-apps.yml
+          yarn workspaces focus trezor-suite @trezor/suite-desktop @trezor/suite-desktop-ui @trezor/suite-desktop-core @trezor/suite-build @trezor/suite-data @trezor/transport-bridge @suite-common/message-system
           yarn message-system-sign-config
           yarn workspace @trezor/suite-data build:lib
           yarn workspace @trezor/transport-bridge build:lib
@@ -189,7 +189,8 @@ jobs:
       - name: Install dependencies
         run: |
           echo -e "\nenableHardenedMode: false" >> .yarnrc.yml
-          yarn workspaces focus @trezor/suite-web @trezor/suite-data @suite-common/message-system
+          # Must be the same list of workspaces as in .github/workflows/build-suite-web.yml
+          yarn workspaces focus @trezor/suite-web @trezor/suite-data @trezor/suite-build @suite-common/message-system
 
       - name: Build suite-web
         env:
@@ -233,7 +234,6 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
         with:
           lfs: true
-          submodules: recursive
       - name: Install node and yarn
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
@@ -242,7 +242,8 @@ jobs:
       # safedep/pmg not available on macOS (that's ok, PMG must be run on PR workflows but here it's optional)
       - name: Install deps and build libs
         run: |
-          yarn workspaces focus @trezor/suite-desktop @trezor/suite-desktop-ui @trezor/suite-desktop-core @trezor/suite-build @trezor/suite-data @trezor/transport-bridge @suite-common/message-system
+          # Must be the same list of workspaces as in .github/workflows/build-desktop-apps.yml
+          yarn workspaces focus trezor-suite @trezor/suite-desktop @trezor/suite-desktop-ui @trezor/suite-desktop-core @trezor/suite-build @trezor/suite-data @trezor/transport-bridge @suite-common/message-system
           yarn message-system-sign-config
           yarn workspace @trezor/suite-data build:lib
           yarn workspace @trezor/transport-bridge build:lib

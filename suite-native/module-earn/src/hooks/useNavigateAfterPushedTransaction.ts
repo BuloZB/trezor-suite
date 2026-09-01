@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { CommonActions, useNavigation } from '@react-navigation/native';
@@ -16,6 +16,10 @@ import {
 } from '@suite-common/wallet-core';
 import { type AccountKey } from '@suite-common/wallet-types';
 import {
+    getPollIntervalMs,
+    isPending as isTransactionDataPending,
+} from '@suite-common/wallet-utils';
+import {
     AppTabsRoutes,
     type RootStackParamList,
     RootStackRoutes,
@@ -23,20 +27,26 @@ import {
     TransactionDetailStackRoutes,
 } from '@suite-native/navigation';
 
-import { getPollIntervalMs } from '../utils/getPollIntervalMs';
+import { type EarnFormDraftPrefix } from '../types';
 import { resolveStakingTargetRoute } from '../utils/resolveStakingTargetRoute';
 
 type NavigationProps = StackNavigationProps<RootStackParamList, RootStackRoutes>;
 
+interface NavigateToPushedTransactionActionProps {
+    accountKey: AccountKey;
+    amountInBaseUnits: string;
+    failedTxid?: string;
+    stakeType: EarnFormDraftPrefix;
+    symbol: NetworkSymbol;
+}
+
 const navigateToPushedTransactionAction = ({
     accountKey,
+    amountInBaseUnits,
+    failedTxid,
+    stakeType,
     symbol,
-    txid,
-}: {
-    accountKey: AccountKey;
-    symbol: NetworkSymbol;
-    txid: string;
-}) =>
+}: NavigateToPushedTransactionActionProps) =>
     CommonActions.reset({
         index: 2,
         routes: [
@@ -48,47 +58,61 @@ const navigateToPushedTransactionAction = ({
                 name: resolveStakingTargetRoute(symbol),
                 params: { accountKey },
             },
-            {
-                name: RootStackRoutes.TransactionDetailStack,
-                params: {
-                    screen: TransactionDetailStackRoutes.TransactionDetail,
-                    params: {
-                        accountKey,
-                        txid,
-                        closeActionType: 'close',
-                    },
-                },
-            },
+            // A confirmed transaction can still have failed on-chain (e.g. reverted contract
+            // call) — the complete screen would falsely report success, so show the detail.
+            failedTxid
+                ? {
+                      name: RootStackRoutes.TransactionDetailStack,
+                      params: {
+                          screen: TransactionDetailStackRoutes.TransactionDetail,
+                          params: {
+                              accountKey,
+                              txid: failedTxid,
+                              closeActionType: 'close',
+                          },
+                      },
+                  }
+                : {
+                      name: RootStackRoutes.StakingTransactionComplete,
+                      params: { stakeType, accountKey, amountInBaseUnits },
+                  },
         ],
     });
 
 type UseNavigateAfterPushedTransactionParams = {
     accountKey: AccountKey;
+    amountInBaseUnits: string;
     markReviewNavigationSuccess: () => void;
+    stakeType: EarnFormDraftPrefix;
 };
 
 export const useNavigateAfterPushedTransaction = ({
     accountKey,
+    amountInBaseUnits,
     markReviewNavigationSuccess,
+    stakeType,
 }: UseNavigateAfterPushedTransactionParams) => {
     const dispatch = useDispatch();
     const navigation = useNavigation<NavigationProps>();
     const [txid, setTxid] = useState('');
+    const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
 
     const networkSymbol = useSelector((state: AccountsRootState) =>
         selectAccountNetworkSymbol(state, accountKey),
     );
 
-    const isTransactionProcessedByBackend = !!useSelector((state: TransactionsRootState) =>
+    const transaction = useSelector((state: TransactionsRootState) =>
         selectTransactionByAccountKeyAndTxid(state, accountKey, txid),
     );
+    const isTransactionConfirmed = !!transaction && !isTransactionDataPending(transaction);
+    const isTransactionFailed = transaction?.type === 'failed';
 
     const feeInfo = useSelector((state: FeesRootState) =>
         networkSymbol ? selectConvertedNetworkFeeInfo(state, networkSymbol) : null,
     );
     const pollIntervalMs = getPollIntervalMs(feeInfo?.blockTime);
 
-    const shouldPollPendingTransaction = !!txid && !isTransactionProcessedByBackend;
+    const shouldPollPendingTransaction = !!txid && !isTransactionConfirmed;
 
     useEffect(() => {
         if (!shouldPollPendingTransaction) {
@@ -103,18 +127,27 @@ export const useNavigateAfterPushedTransaction = ({
     }, [accountKey, dispatch, pollIntervalMs, shouldPollPendingTransaction]);
 
     useEffect(() => {
-        if (txid && isTransactionProcessedByBackend && networkSymbol) {
+        if (txid && isTransactionConfirmed && networkSymbol) {
             markReviewNavigationSuccess();
             navigation.dispatch(
-                navigateToPushedTransactionAction({ accountKey, symbol: networkSymbol, txid }),
+                navigateToPushedTransactionAction({
+                    accountKey,
+                    amountInBaseUnits,
+                    failedTxid: isTransactionFailed ? txid : undefined,
+                    stakeType,
+                    symbol: networkSymbol,
+                }),
             );
         }
     }, [
         accountKey,
-        isTransactionProcessedByBackend,
+        amountInBaseUnits,
+        isTransactionConfirmed,
+        isTransactionFailed,
         markReviewNavigationSuccess,
         navigation,
         networkSymbol,
+        stakeType,
         txid,
     ]);
 
@@ -126,5 +159,15 @@ export const useNavigateAfterPushedTransaction = ({
         };
     }, [txid, dispatch]);
 
-    return { trackPushedTransaction: setTxid };
+    const trackPushedTransaction = useCallback((pushedTxid: string) => {
+        setTxid(pushedTxid);
+        setSubmittedAt(new Date());
+    }, []);
+
+    return {
+        trackPushedTransaction,
+        pendingTxid: txid || undefined,
+        isPending: shouldPollPendingTransaction,
+        submittedAt,
+    };
 };

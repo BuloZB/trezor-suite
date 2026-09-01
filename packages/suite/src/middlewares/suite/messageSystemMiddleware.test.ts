@@ -1,4 +1,4 @@
-import { type Reducer, combineReducers, createReducer } from '@reduxjs/toolkit';
+import { type Reducer, type UnknownAction, combineReducers, createReducer } from '@reduxjs/toolkit';
 
 import { torReducer } from '@suite/tor';
 import { prepareDeviceReducer } from '@suite-common/device';
@@ -8,14 +8,13 @@ import {
     getValidExperimentIds,
     getValidMessages,
 } from '@suite-common/message-system/src/messageSystemUtils';
-import { type AnyAction } from '@suite-common/redux-utils';
+import { mockActionType, mockReducer } from '@suite-common/redux-utils/mocks';
 import { type Action } from '@suite-common/suite-types';
 import { configureMockStore } from '@suite-common/test-utils';
 
 import { type AppState } from 'src/reducers/store';
 import suiteReducer from 'src/reducers/suite/suiteReducer';
 import { walletReducers } from 'src/reducers/wallet';
-import { extraDependencies } from 'src/support/extraDependencies';
 
 import messageSystemMiddleware from './messageSystemMiddleware';
 
@@ -26,9 +25,22 @@ jest.mock('@suite-common/message-system/src/messageSystemUtils', () => ({
 }));
 const messageSystemReducer: Reducer<
     ReturnType<ReturnType<typeof prepareMessageSystemReducer>>,
-    AnyAction
-> = prepareMessageSystemReducer(extraDependencies);
-const deviceReducer = prepareDeviceReducer(extraDependencies);
+    UnknownAction
+> = prepareMessageSystemReducer({
+    actionTypes: { storageLoad: mockActionType('storageLoad') },
+});
+const deviceReducer = prepareDeviceReducer({
+    actionTypes: {
+        setDeviceMetadata: mockActionType('setDeviceMetadata'),
+        setDeviceMetadataPasswords: mockActionType('setDeviceMetadataPasswords'),
+        storageLoad: mockActionType('storageLoad'),
+    },
+    reducers: {
+        setDeviceMetadataPasswordsReducer: mockReducer(),
+        setDeviceMetadataReducer: mockReducer(),
+        storageLoadDevices: mockReducer(),
+    },
+});
 
 type WalletsState = ReturnType<typeof walletReducers>;
 type MessageSystemState = ReturnType<typeof messageSystemReducer>;
@@ -82,6 +94,7 @@ type State = ReturnType<typeof getInitialState>;
 
 const initStore = (preloadedState: State) => {
     const store = configureMockStore({
+        extra: undefined,
         reducer,
         preloadedState,
         middleware: [messageSystemMiddleware],

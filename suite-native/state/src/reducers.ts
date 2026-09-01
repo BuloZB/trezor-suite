@@ -39,7 +39,7 @@ import {
 // This is causing problems handling types in WalletConnect, so we import the reducer directly instead of the whole module
 // eslint-disable-next-line local-rules/no-package-deep-imports
 import { prepareWalletConnectReducer } from '@suite-common/walletconnect/src/walletConnectReducer';
-import { bannerFlagsPersistWhitelist, bannerFlagsReducer } from '@suite-native/banner-flags';
+import { bannerFlagsPersistWhitelist, bannerFlagsReducer } from '@suite-native/banners';
 import { biometricsPersistWhitelist, biometricsSlice } from '@suite-native/biometrics';
 import { prepareBluetoothReducer } from '@suite-native/bluetooth';
 import { deviceAuthorizationReducer } from '@suite-native/device-authorization';
@@ -153,9 +153,9 @@ export const prepareRootReducers = (deps: PrepareRootReducersDeps) => {
 
     const tradingPersistedReducer = preparePersistReducer({
         reducer: tradingReducer,
-        persistedKeys: ['favouriteAssets', 'trades', 'residence', 'tradingEnvironment'],
+        persistedKeys: ['trades', 'residence', 'tradingEnvironment'],
         key: 'trading',
-        version: 3,
+        version: 4,
         migrations: {
             2: (oldState: any /* FIXME */) => {
                 if (!oldState) return oldState;
@@ -206,7 +206,7 @@ export const prepareRootReducers = (deps: PrepareRootReducersDeps) => {
         reducer: walletSettingsReducer,
         persistedKeys: walletSettingsPersistedWhitelist,
         key: 'walletSettings',
-        version: 4,
+        version: 5,
         migrations: {
             1: initialMigrateAppSettingsAndDiscoveryConfig({
                 mmkvStorage: deps.mmkvStorage,
@@ -235,6 +235,13 @@ export const prepareRootReducers = (deps: PrepareRootReducersDeps) => {
                 }
 
                 return oldState;
+            },
+            5: (oldState: any /* FIXME */) => {
+                if (!oldState) return oldState;
+
+                const { hideSuspiciousTransactions: _, ...rest } = oldState;
+
+                return rest;
             },
         },
         storage: deps.mmkvStorage,

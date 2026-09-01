@@ -2,10 +2,27 @@ import '@suite-common/test-utils/globalOverrides';
 
 import { fireEvent } from '@testing-library/react';
 
+import { type DesktopAnalyticsDep } from '@suite/analytics';
+import { mockDesktopAnalytics } from '@suite/analytics/mocks';
 import { type DesktopDeviceState } from '@suite/device';
-import { type RouterState } from '@suite/router';
+import { type RouterState, type SuiteRouterHistoryDep } from '@suite/router';
+import { mockSuiteRouterHistory } from '@suite/router/mocks';
 import { type AnalyticsState } from '@suite-common/analytics-redux';
-import { mockSuiteDevice } from '@suite-common/suite-types/mocks';
+import {
+    type AcquiredDevice,
+    type GetAllowPrereleaseDep,
+    type ReportSecurityCheckDep,
+    type RerunFwAuthenticityChecksCallDep,
+    type ShouldRetryFirmwareRevisionCheckErrorDep,
+} from '@suite-common/suite-types';
+import {
+    mockGetAllowPrerelease,
+    mockReportSecurityCheck,
+    mockRerunFwAuthenticityChecksCall,
+    mockShouldRetryFirmwareRevisionCheckError,
+    mockSuiteDevice,
+} from '@suite-common/suite-types/mocks';
+import { isDeviceAcquired } from '@suite-common/suite-utils';
 import { configureMockStore } from '@suite-common/test-utils';
 import { type TransportInfo } from '@trezor/connect';
 import { isLinux } from '@trezor/env-utils';
@@ -16,21 +33,11 @@ import { type SuiteState } from 'src/reducers/suite/suiteReducer';
 import { findByTestId, renderWithProviders } from 'src/support/test-utils/hooksHelper';
 
 import { Preloader } from './Preloader';
-import { selectShouldDisplayDeviceCompromisedOnRoute } from './selectShouldDisplayDeviceCompromisedOnRoute';
-import { extraDependenciesDesktopMock } from '../../../../mocks/extraDependenciesDesktopMock';
 import { mockInitialAppState } from '../../../../mocks/mockInitialAppState';
 
 jest.mock('@trezor/env-utils', () => ({
     ...jest.requireActual('@trezor/env-utils'),
     isLinux: jest.fn(() => true),
-}));
-
-jest.mock('./selectShouldDisplayDeviceCompromisedOnRoute', () => ({
-    ...jest.requireActual('./selectShouldDisplayDeviceCompromisedOnRoute'),
-    selectShouldDisplayDeviceCompromisedOnRoute: jest.fn(
-        jest.requireActual('./selectShouldDisplayDeviceCompromisedOnRoute')
-            .selectShouldDisplayDeviceCompromisedOnRoute,
-    ),
 }));
 
 class ResizeObserverMock {
@@ -79,6 +86,18 @@ const createTransportInfo = (transportInfo: Partial<TransportInfo>): TransportIn
     ...transportInfo,
 });
 
+const defaultDevice = mockSuiteDevice();
+if (!isDeviceAcquired(defaultDevice)) {
+    throw `${mockSuiteDevice.name}() must return an AcquiredDevice here.`;
+}
+const compromisedDevice: AcquiredDevice = {
+    ...defaultDevice,
+    authenticityChecks: {
+        firmwareRevision: { success: false, error: 'revision-mismatch' },
+        firmwareHash: { success: false, error: 'hash-mismatch' },
+    },
+};
+
 type GetInitialStateProps = {
     suite?: Partial<SuiteState>;
     router?: Partial<RouterState>;
@@ -112,8 +131,25 @@ const getInitialState = ({
     },
 });
 
+type PreloaderTestServices = DesktopAnalyticsDep &
+    GetAllowPrereleaseDep &
+    ReportSecurityCheckDep &
+    RerunFwAuthenticityChecksCallDep &
+    ShouldRetryFirmwareRevisionCheckErrorDep &
+    SuiteRouterHistoryDep;
+
+const services: PreloaderTestServices = {
+    analytics: mockDesktopAnalytics(),
+    getAllowPrerelease: mockGetAllowPrerelease(),
+    reportSecurityCheck: mockReportSecurityCheck(),
+    rerunFwAuthenticityChecksCall: mockRerunFwAuthenticityChecksCall(),
+    shouldRetryFirmwareRevisionCheckError: mockShouldRetryFirmwareRevisionCheckError(),
+    suiteRouterHistory: mockSuiteRouterHistory(),
+};
+
 const initStore = (preloadedState: AppState) =>
     configureMockStore({
+        extra: { services },
         preloadedState,
     });
 
@@ -150,7 +186,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
         expect(findByTestId('@suite/loading')).not.toBeNull();
@@ -168,7 +204,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
         expect(findByTestId('@suite/loading')).not.toBeNull();
@@ -186,7 +222,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
         expect(findByTestId('@suite/loading')).not.toBeNull();
@@ -198,7 +234,7 @@ describe(`${Preloader.name} component`, () => {
         const store = initStore(getInitialState());
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
         expect(findByTestId('@connect-device-prompt')).not.toBeNull();
@@ -217,7 +253,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -236,7 +272,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -262,7 +298,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -290,7 +326,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -318,7 +354,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -347,7 +383,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -373,7 +409,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -399,7 +435,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -421,7 +457,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -443,7 +479,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -465,7 +501,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -492,7 +528,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -520,7 +556,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 
@@ -532,21 +568,15 @@ describe(`${Preloader.name} component`, () => {
     });
 
     it('displays DeviceCompromised when shouldDisplayDeviceCompromised is true', () => {
-        (selectShouldDisplayDeviceCompromisedOnRoute as jest.Mock).mockImplementation(() => true);
-
-        const store = initStore(getInitialState());
+        const store = initStore(getInitialState({ device: { selectedDevice: compromisedDevice } }));
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
         expect(findByTestId('@device-compromised')).not.toBeNull();
 
         unmount();
-        (selectShouldDisplayDeviceCompromisedOnRoute as jest.Mock).mockImplementation(
-            jest.requireActual('./selectShouldDisplayDeviceCompromisedOnRoute')
-                .selectShouldDisplayDeviceCompromisedOnRoute,
-        );
     });
 
     it('Required FW update device', () => {
@@ -560,7 +590,7 @@ describe(`${Preloader.name} component`, () => {
         );
         const { unmount } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            services,
             <Index app={store.getState().router.app} />,
         );
 

@@ -1,12 +1,13 @@
+import {
+    type EthereumNetworkSymbol,
+    isSupportedEthereumNetwork,
+    supportedEthereumNetworks,
+} from '@trezor/network-ethereum/constants';
 import type { SuiteCommonNetworkModule } from '@trezor/network-module-suite-common-types';
 
 import { ethereumValidator } from './addressValidator/ethereumAddressValidator';
-import { getNetworkColor } from './networkColor';
-import {
-    type EthereumNetworkSymbol,
-    getSupportedNetworks,
-    isSupportedNetwork,
-} from './supportedNetworks';
+import { ethereumNamedAddressResolver } from './namedAddress/ethereumNamedAddressResolver';
+import { getNetworkConfig } from './networkConfig';
 
 export type EthereumNetworkSuiteCommonNetworkModule =
     SuiteCommonNetworkModule<EthereumNetworkSymbol>;
@@ -14,7 +15,8 @@ export type EthereumNetworkSuiteCommonNetworkModule =
 export const createEthereumSuiteCommonNetworkModule =
     (): EthereumNetworkSuiteCommonNetworkModule => ({
         addressValidator: ethereumValidator,
-        getSupportedNetworks,
-        isSupportedNetwork,
-        getNetworkColor,
+        namedAddressResolver: ethereumNamedAddressResolver,
+        getSupportedNetworks: () => supportedEthereumNetworks,
+        isSupportedNetwork: isSupportedEthereumNetwork,
+        getNetworkConfig,
     });

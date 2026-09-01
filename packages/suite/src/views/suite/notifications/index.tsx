@@ -2,6 +2,11 @@ import { useState } from 'react';
 
 import { DebugOnlyBadge, selectIsDebugModeActive } from '@suite/debug';
 import { Translation } from '@suite/intl';
+import { isTransactionNotification } from '@suite-common/toast-notifications';
+import {
+    selectHasUnseenNonPhishingTransactionNotifications,
+    selectNonPhishingTransactionNotifications,
+} from '@suite-common/wallet-core';
 import { Card, CollapsibleBox, Column, Dot, Row } from '@trezor/components';
 
 import {
@@ -13,21 +18,18 @@ import { NotificationGroup } from 'src/components/suite/notifications/Notificati
 import { ReleaseNotes } from 'src/components/suite/notifications/ReleaseNotes/ReleaseNotes';
 import { TriggerActivityNotification } from 'src/components/suite/notifications/TriggerActivityNotification/TriggerActivityNotification';
 import { useLayout, useSelector } from 'src/hooks/suite';
-import { isTransactionNotification } from 'src/utils/suite/notification';
 
 type ActivityTab = 'transactions' | 'release-notes' | 'all';
 
 const NotificationsView = () => {
-    const notifications = useSelector(state => state.notifications);
     const isDebugModeActive = useSelector(selectIsDebugModeActive);
     const [selectedTab, setSelectedTab] = useState<ActivityTab>('transactions');
 
-    const transactionNotifications = notifications.filter(isTransactionNotification);
+    const notifications = useSelector(state => state.notifications);
+    const hasUnseenNotifications = useSelector(selectHasUnseenNonPhishingTransactionNotifications);
+    const transactionNotifications = useSelector(selectNonPhishingTransactionNotifications);
     const activityNotifications = notifications.filter(
         notification => !isTransactionNotification(notification),
-    );
-    const hasUnseenNotifications = transactionNotifications.some(
-        notification => !notification.seen,
     );
 
     const activitySubpages: NavigationItem<ActivityTab>[] = [

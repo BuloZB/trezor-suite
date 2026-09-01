@@ -24,6 +24,7 @@ import {
     type WalletAccountTransaction,
     selectAccountStakeTypeTransactionsWithTokenTransfers,
     selectAccountTransactionsWithTokenTransfers,
+    selectAccountYieldTypeTransactionsWithTokenTransfers,
 } from '@suite-native/tokens';
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 import { arrayPartition } from '@trezor/utils';
@@ -34,13 +35,6 @@ import { TransactionListItem } from './TransactionListItem';
 import { TransactionsEmptyState } from './TransactionsEmptyState';
 import { TransactionsListFooter } from './TransactionsListFooter';
 import { useFetchMissingTransactionFiatRates } from '../hooks/useFetchMissingTransactionFiatRates';
-
-type AccountTransactionProps = {
-    listHeaderComponent: JSX.Element;
-    account: Account;
-    tokenContract?: TokenAddress;
-    stakingOnly?: boolean;
-};
 
 type RenderSectionHeaderParams = {
     section: {
@@ -65,8 +59,7 @@ type TypedTokenTransferWithTx = TypedTokenTransfer & {
 };
 
 type TransactionListItem =
-    | (TypedTokenTransferWithTx | MonthKey)
-    | (WalletAccountTransaction | MonthKey);
+    (TypedTokenTransferWithTx | MonthKey) | (WalletAccountTransaction | MonthKey);
 
 const sectionListContainerStyle = prepareNativeStyle(utils => ({
     paddingTop: utils.spacings.sp8,
@@ -128,11 +121,20 @@ const renderSectionHeader = ({ section: { monthKey } }: RenderSectionHeaderParam
     <TransactionListGroupTitle key={monthKey} monthKey={monthKey} />
 );
 
+type AccountTransactionProps = {
+    listHeaderComponent: JSX.Element;
+    listEmptyComponent?: JSX.Element;
+    account: Account;
+    tokenContract?: TokenAddress;
+    filter?: 'all' | 'staking' | 'yield';
+};
+
 export const TransactionList = ({
     listHeaderComponent,
+    listEmptyComponent,
     account,
     tokenContract,
-    stakingOnly = false,
+    filter = 'all',
 }: AccountTransactionProps) => {
     const accountKey = account.key;
     const dispatch = useDispatch();
@@ -148,14 +150,22 @@ export const TransactionList = ({
     );
     const shouldDeferEmptyState = useSelector(
         (state: TransactionsRootState & AccountsRootState) =>
-            stakingOnly && !selectAreAllAccountTransactionsLoaded(state, accountKey),
+            (filter === 'staking' || filter === 'yield') &&
+            !selectAreAllAccountTransactionsLoaded(state, accountKey),
     );
 
-    const transactions = useSelector((state: TransactionsRootState & TokensRootState) =>
-        stakingOnly
-            ? selectAccountStakeTypeTransactionsWithTokenTransfers(state, accountKey)
-            : selectAccountTransactionsWithTokenTransfers(state, accountKey),
-    );
+    const transactions = useSelector((state: TransactionsRootState & TokensRootState) => {
+        switch (filter) {
+            case 'all':
+                return selectAccountTransactionsWithTokenTransfers(state, accountKey);
+            case 'staking':
+                return selectAccountStakeTypeTransactionsWithTokenTransfers(state, accountKey);
+            case 'yield':
+                return selectAccountYieldTypeTransactionsWithTokenTransfers(state, accountKey);
+            default:
+                return [] as WalletAccountTransaction[];
+        }
+    });
 
     const txnsPerPage = getTxsPerPage(account.networkType);
 
@@ -227,20 +237,24 @@ export const TransactionList = ({
         ) as MonthKey[];
 
         if (tokenContract) {
-            return transactionMonthKeys.flatMap(monthKey => [
-                monthKey,
-                ...(accountTransactionsByMonth[monthKey] ?? []).flatMap(transaction =>
-                    transaction.tokens
-                        .filter(token => token.contract === tokenContract)
-                        .map(
-                            tokenTransfer =>
-                                ({
-                                    ...tokenTransfer,
-                                    originalTransaction: transaction,
-                                }) as TypedTokenTransferWithTx,
-                        ),
-                ),
-            ]);
+            return transactionMonthKeys.flatMap(monthKey => {
+                const tokenTransfers = (accountTransactionsByMonth[monthKey] ?? []).flatMap(
+                    transaction =>
+                        transaction.tokens
+                            .filter(token => token.contract === tokenContract)
+                            .map(
+                                tokenTransfer =>
+                                    ({
+                                        ...tokenTransfer,
+                                        originalTransaction: transaction,
+                                    }) as TypedTokenTransferWithTx,
+                            ),
+                );
+
+                // Months without any transfer of the token are dropped entirely, so an account
+                // with no transactions of the token results in empty data and shows the empty state.
+                return tokenTransfers.length > 0 ? [monthKey, ...tokenTransfers] : [];
+            });
         }
 
         return transactionMonthKeys.flatMap(monthKey => [
@@ -293,9 +307,9 @@ export const TransactionList = ({
                 renderItem={renderItem}
                 contentContainerStyle={applyStyle(sectionListContainerStyle)}
                 ListEmptyComponent={
-                    shouldDeferEmptyState ? null : (
-                        <TransactionsEmptyState accountKey={accountKey} />
-                    )
+                    shouldDeferEmptyState
+                        ? null
+                        : (listEmptyComponent ?? <TransactionsEmptyState />)
                 }
                 ListHeaderComponent={listHeaderComponent}
                 ListFooterComponent={

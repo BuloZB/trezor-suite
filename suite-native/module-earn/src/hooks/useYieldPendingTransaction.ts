@@ -1,9 +1,11 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 
 import { type YieldPendingTransactionState } from '@suite-common/wallet-core';
 import { type AccountKey } from '@suite-common/wallet-types';
 import { useBottomSheetModal } from '@suite-native/atoms';
 import { useTransactionDetails } from '@suite-native/transaction-management';
+
+import { useYieldPendingSheet } from './useYieldPendingSheet';
 
 type YieldPendingTransactionType = YieldPendingTransactionState['type'];
 
@@ -40,17 +42,22 @@ export const useYieldPendingTransaction = ({
         pendingTransaction,
         transactionType,
     );
+    const { displayedPendingTransaction, isSheetPresented, handleSheetDismissed } =
+        useYieldPendingSheet(matchingPendingTransaction);
     const { explorerUrl, openInBlockchain } = useTransactionDetails({
         accountKey: accountKey ?? null,
-        txid: matchingPendingTransaction?.txid ?? null,
+        txid: displayedPendingTransaction?.txid ?? null,
     });
+    // Built from the retained transaction so the sheet keeps its values while it dismisses.
     const pendingModalProps =
-        matchingPendingTransaction !== undefined
+        displayedPendingTransaction !== undefined
             ? {
-                  fee: matchingPendingTransaction.fee,
+                  fee: displayedPendingTransaction.fee,
                   isExploreDisabled: !explorerUrl,
+                  onDismiss: handleSheetDismissed,
                   onExplorePress: openInBlockchain,
-                  submittedAt: new Date(matchingPendingTransaction.submittedAt ?? 0),
+                  submittedAt: new Date(displayedPendingTransaction.submittedAt ?? 0),
+                  txid: displayedPendingTransaction.txid,
               }
             : null;
 
@@ -64,16 +71,11 @@ export const useYieldPendingTransaction = ({
         openPendingBottomSheet();
     }, [closePendingBottomSheet, isFocused, matchingPendingTransaction, openPendingBottomSheet]);
 
-    const reopenPendingBottomSheet = useCallback(() => {
-        if (matchingPendingTransaction !== undefined) {
-            requestAnimationFrame(openPendingBottomSheet);
-        }
-    }, [matchingPendingTransaction, openPendingBottomSheet]);
-
     return {
+        displayedPendingTransaction,
+        isSheetPresented,
         pendingBottomSheetRef,
         pendingModalProps,
         pendingTransaction: matchingPendingTransaction,
-        reopenPendingBottomSheet,
     };
 };

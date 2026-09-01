@@ -1,6 +1,6 @@
-import { type AnyAction } from '@reduxjs/toolkit';
+import { type PayloadAction, type UnknownAction } from '@reduxjs/toolkit';
 
-import { createReducerWithExtraDeps } from '@suite-common/redux-utils';
+import { type ActionTypesDep, createReducerWithExtraDeps } from '@suite-common/redux-utils';
 
 import { analyticsActions } from './analyticsActions';
 
@@ -25,9 +25,12 @@ export const analyticsInitialState: AnalyticsState = {
     loggerEnabled: undefined,
 };
 
+type AnalyticsReducerDeps = ActionTypesDep<'storageLoad'>;
+type StorageLoadAnalyticsAction = PayloadAction<{ analytics?: AnalyticsState }>;
+
 export const prepareAnalyticsReducer = createReducerWithExtraDeps(
     analyticsInitialState,
-    (builder, extra) => {
+    (builder, extra: AnalyticsReducerDeps) => {
         builder
             .addCase(analyticsActions.initAnalytics, (state, { payload }) => {
                 const { enabled, confirmed, instanceId, sessionId } = payload;
@@ -51,8 +54,9 @@ export const prepareAnalyticsReducer = createReducerWithExtraDeps(
                 state.loggerEnabled = payload;
             })
             .addMatcher(
-                action => action.type === extra.actionTypes.storageLoad,
-                (state, action: AnyAction) => action.payload.analytics || state,
+                (action: UnknownAction): action is StorageLoadAnalyticsAction =>
+                    action.type === extra.actionTypes.storageLoad,
+                (state, action) => action.payload.analytics || state,
             );
     },
 );

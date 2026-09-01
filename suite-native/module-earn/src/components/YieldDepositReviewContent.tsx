@@ -1,6 +1,7 @@
 import { type YieldFlowResolvedData } from '@suite-common/wallet-core';
+import { Button } from '@suite-native/atoms';
+import { Translation } from '@suite-native/intl';
 
-import { EarnReviewSubmittedCard } from './EarnReviewSubmittedCard';
 import { YieldReviewScreenLayout } from './YieldReviewScreenLayout';
 import { YieldTransactionReviewOutputList } from './YieldTransactionReviewOutputList';
 import { useYieldDepositReview } from '../hooks/useYieldDepositReview';
@@ -29,48 +30,39 @@ export const YieldDepositReviewContent = ({
         markReviewLeave,
         revealConfirmOnTrezorSheet,
     } = useYieldReviewScreenControls();
-    const {
-        depositStatus,
-        handleDepositSubmitted,
-        leaveReviewFromDeviceCancel,
-        startDepositReview,
-    } = useYieldDepositReview({
-        flowData,
-        flowKey,
-        onReviewLeave: markReviewLeave,
-    });
-    const isDepositSigned = depositStatus === 'signed' || depositStatus === 'sending';
-    const isSendingDeposit = depositStatus === 'sending';
+
+    const review = useYieldDepositReview({ flowData, flowKey, onReviewLeave: markReviewLeave });
+
+    const isSigned = review.status === 'signed' || review.status === 'sending';
+    const isSending = review.status === 'sending';
     const activeStep = useYieldReviewActiveStep(flowData.account.symbol);
 
     useYieldReviewSheetAutoStart({
         closeSheet,
         hasLeftReview,
-        isSigned: isDepositSigned,
-        leaveReviewFromDeviceCancel,
+        isSigned,
+        leaveReviewFromDeviceCancel: review.leaveReviewFromDeviceCancel,
         revealConfirmOnTrezorSheet,
-        shouldAutoStartReview: depositStatus === 'idle',
-        startReview: startDepositReview,
+        shouldAutoStartReview: review.status === 'idle',
+        startReview: review.startReview,
     });
 
     return (
         <YieldReviewScreenLayout
             confirmOnTrezorRef={confirmOnTrezorRef}
             titleTranslationId="earn.yieldDepositReviewScreen.title"
-            submittedCard={
-                isDepositSigned ? (
-                    <EarnReviewSubmittedCard
-                        buttonTranslationId="earn.yieldDepositReviewScreen.submitButton"
-                        isButtonLoading={isSendingDeposit}
-                        onButtonPress={handleDepositSubmitted}
-                    />
-                ) : undefined
+            submitButton={
+                isSigned && (
+                    <Button isLoading={isSending} onPress={review.submit}>
+                        <Translation id="earn.yieldDepositReviewScreen.submitButton" />
+                    </Button>
+                )
             }
         >
             <YieldTransactionReviewOutputList
                 accountKey={flowData.account.key}
                 activeStep={activeStep}
-                isSigned={isDepositSigned}
+                isSigned={isSigned}
                 preview={preview}
             />
         </YieldReviewScreenLayout>

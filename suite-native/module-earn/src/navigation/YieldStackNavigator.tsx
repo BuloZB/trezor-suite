@@ -18,9 +18,13 @@ import { YieldDepositCompleteScreen } from '../screens/YieldDepositCompleteScree
 import { YieldDepositReviewScreen } from '../screens/YieldDepositReviewScreen';
 import { YieldDepositRevokeScreen } from '../screens/YieldDepositRevokeScreen';
 import { YieldDepositScreen } from '../screens/YieldDepositScreen';
+import { YieldDepositWrapReviewScreen } from '../screens/YieldDepositWrapReviewScreen';
+import { YieldDepositWrapScreen } from '../screens/YieldDepositWrapScreen';
 import { YieldWithdrawCompleteScreen } from '../screens/YieldWithdrawCompleteScreen';
 import { YieldWithdrawReviewScreen } from '../screens/YieldWithdrawReviewScreen';
 import { YieldWithdrawScreen } from '../screens/YieldWithdrawScreen';
+import { YieldWithdrawUnwrapReviewScreen } from '../screens/YieldWithdrawUnwrapReviewScreen';
+import { YieldWithdrawUnwrapScreen } from '../screens/YieldWithdrawUnwrapScreen';
 
 const YieldStack = createNativeStackNavigator<YieldStackParamList>();
 
@@ -56,6 +60,16 @@ export const YieldStackNavigator = () => {
                 options={{ title: YieldStackRoutes.YieldClaimComplete }}
                 name={YieldStackRoutes.YieldClaimComplete}
                 component={YieldClaimCompleteScreen}
+            />
+            <YieldStack.Screen
+                options={{ title: YieldStackRoutes.YieldDepositWrap }}
+                name={YieldStackRoutes.YieldDepositWrap}
+                component={YieldDepositWrapScreen}
+            />
+            <YieldStack.Screen
+                options={{ title: YieldStackRoutes.YieldDepositWrapReview }}
+                name={YieldStackRoutes.YieldDepositWrapReview}
+                component={YieldDepositWrapReviewScreen}
             />
             <YieldStack.Screen
                 options={{ title: YieldStackRoutes.YieldDepositApproval }}
@@ -101,6 +115,16 @@ export const YieldStackNavigator = () => {
                 options={{ title: YieldStackRoutes.YieldDepositComplete }}
                 name={YieldStackRoutes.YieldDepositComplete}
                 component={YieldDepositCompleteScreen}
+            />
+            <YieldStack.Screen
+                options={{ title: YieldStackRoutes.YieldWithdrawUnwrap }}
+                name={YieldStackRoutes.YieldWithdrawUnwrap}
+                component={YieldWithdrawUnwrapScreen}
+            />
+            <YieldStack.Screen
+                options={{ title: YieldStackRoutes.YieldWithdrawUnwrapReview }}
+                name={YieldStackRoutes.YieldWithdrawUnwrapReview}
+                component={YieldWithdrawUnwrapReviewScreen}
             />
             <YieldStack.Screen
                 options={{ title: YieldStackRoutes.YieldWithdrawComplete }}

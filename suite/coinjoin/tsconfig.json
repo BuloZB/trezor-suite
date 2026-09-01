@@ -36,12 +36,16 @@
         { "path": "../locks" },
         { "path": "../modal" },
         { "path": "../router" },
+        { "path": "../suite-lifecycle" },
         { "path": "../tor" },
         {
             "path": "../../packages/blockchain-link"
         },
         { "path": "../../packages/coinjoin" },
         { "path": "../../packages/connect" },
+        {
+            "path": "../../packages/connect-common"
+        },
         { "path": "../../packages/env-utils" },
         { "path": "../../packages/ipc-proxy" },
         { "path": "../../packages/type-utils" },

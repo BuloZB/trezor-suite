@@ -1,27 +1,37 @@
-import { isAnyOf } from '@reduxjs/toolkit';
+import { type UnknownAction, isAnyOf } from '@reduxjs/toolkit';
 
-import { disconnectDeviceThunk } from '@suite/device';
+import { type FlagsRootState } from '@suite/flags';
 import { METADATA } from '@suite/metadata';
+import { type ModalRootState } from '@suite/modal';
 import { recoveryActions } from '@suite/recovery';
-import { goto, routerAppChanged } from '@suite/router';
+import { type RouterRootState, goto, routerAppChanged } from '@suite/router';
+import { updateOnlineStatus } from '@suite/suite-lifecycle';
 import { deviceActions, isTrezorDeviceWithState } from '@suite-common/device';
-import { type AnyAction, createMiddlewareWithExtraDeps } from '@suite-common/redux-utils';
+import { type WithServices, createMiddlewareWithExtraDeps } from '@suite-common/redux-utils';
+import { type SuiteSyncDep } from '@suite-common/suite-sync-types';
 import { isAnyDeviceEventAction } from '@suite-common/suite-utils';
 import { notificationsActions } from '@suite-common/toast-notifications';
 import {
+    type AccountsRootState,
+    type WalletSettingsRootState,
     forgetDisconnectedDevices,
     handleDeviceDisconnect,
     observeSelectedDevice,
     selectIsDeviceAutoEjectEnabled,
     startOrRestartDiscoveryThunk,
 } from '@suite-common/wallet-core';
-import { DEVICE } from '@trezor/connect';
 
-import { SUITE } from 'src/actions/suite/constants';
 import { handleProtocolRequest } from 'src/actions/suite/protocolActions';
-import { setRecentlyDisconnectedDevice } from 'src/actions/suite/suiteActions';
+import { desktopHandshake, setRecentlyDisconnectedDevice } from 'src/actions/suite/suiteActions';
 
-const isActionDeviceRelated = (action: AnyAction): boolean => {
+type SuiteMiddlewareState = AccountsRootState &
+    WalletSettingsRootState & {
+        flags: Pick<FlagsRootState['flags'], 'hasSeenDisconnectTooltip'>;
+        modal: Pick<ModalRootState['modal'], 'context'>;
+        router: Pick<RouterRootState['router'], 'route'>;
+    };
+
+const isActionDeviceRelated = (action: UnknownAction): boolean => {
     if (
         isAnyOf(
             deviceActions.selectDevice,
@@ -45,10 +55,18 @@ const isActionDeviceRelated = (action: AnyAction): boolean => {
     return false;
 };
 
-export const prepareSuiteMiddleware = createMiddlewareWithExtraDeps(
+export type PrepareSuiteMiddlewareDeps = WithServices<SuiteSyncDep>;
+
+const createSuiteMiddleware = createMiddlewareWithExtraDeps<
+    PrepareSuiteMiddlewareDeps,
+    UnknownAction,
+    SuiteMiddlewareState
+>;
+
+export const prepareSuiteMiddleware = createSuiteMiddleware(
     (action, { dispatch, next, getState, extra }) => {
         if (
-            action.type === routerAppChanged.type &&
+            routerAppChanged.match(action) &&
             (action.payload === 'recovery' || action.payload === 'onboarding')
         ) {
             dispatch(recoveryActions.resetReducer());
@@ -56,7 +74,7 @@ export const prepareSuiteMiddleware = createMiddlewareWithExtraDeps(
 
         // this action needs to be processed before propagation to deviceReducer
         // otherwise device will not be accessible and related data will not be removed (accounts, txs...)
-        if (action.type === DEVICE.DISCONNECT) {
+        if (deviceActions.deviceDisconnect.match(action)) {
             const state = getState();
             const isAutoEjectEnabled = selectIsDeviceAutoEjectEnabled(state);
             dispatch(
@@ -99,40 +117,32 @@ export const prepareSuiteMiddleware = createMiddlewareWithExtraDeps(
         if (deviceActions.forgetDevice.match(action)) {
             const { device } = action.payload;
 
-            dispatch(disconnectDeviceThunk(device));
             if (isTrezorDeviceWithState(device)) {
                 extra.services.suiteSync.turnOffSuiteSyncForWallet({
                     deviceStaticSessionId: device.state.staticSessionId,
                 });
             }
+
+            dispatch(handleDeviceDisconnect(device));
         }
 
-        switch (action.type) {
-            case SUITE.DESKTOP_HANDSHAKE:
-                if (action.payload.protocol) {
-                    dispatch(handleProtocolRequest(action.payload.protocol));
-                }
-                if (action.payload.desktopUpdate?.firstRun) {
-                    dispatch(
-                        notificationsActions.addToast({
-                            type: 'auto-updater-new-version-first-run',
-                            version: action.payload.desktopUpdate.firstRun,
-                        }),
-                    );
-                }
-                break;
-            case DEVICE.DISCONNECT:
-                dispatch(handleDeviceDisconnect(action.payload));
-                break;
-            case SUITE.ONLINE_STATUS:
-                // Restart discovery to reconnect to backends when user goes offline -> online.
-                if (action.payload === true) {
-                    dispatch(startOrRestartDiscoveryThunk());
-                }
-                break;
-
-            default:
-                break;
+        if (desktopHandshake.match(action)) {
+            if (action.payload.protocol) {
+                dispatch(handleProtocolRequest(action.payload.protocol));
+            }
+            if (action.payload.desktopUpdate?.firstRun) {
+                dispatch(
+                    notificationsActions.addToast({
+                        type: 'auto-updater-new-version-first-run',
+                        version: action.payload.desktopUpdate.firstRun,
+                    }),
+                );
+            }
+        } else if (deviceActions.deviceDisconnect.match(action)) {
+            dispatch(handleDeviceDisconnect(action.payload));
+        } else if (updateOnlineStatus.match(action) && action.payload) {
+            // Restart discovery to reconnect to backends when user goes offline -> online.
+            dispatch(startOrRestartDiscoveryThunk());
         }
         if (isActionDeviceRelated(action)) {
             // keep suite reducer synchronized with other reducers (selected device)

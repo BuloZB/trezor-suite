@@ -1,18 +1,18 @@
 import type { SuiteCommonNetworkModule } from '@trezor/network-module-suite-common-types';
-
-import { tronValidator } from './addressValidator/tronAddressValidator';
-import { getNetworkColor } from './networkColor';
 import {
     type TronNetworkSymbol,
-    getSupportedNetworks,
-    isSupportedNetwork,
-} from './supportedNetworks';
+    isSupportedTronNetwork,
+    supportedTronNetworks,
+} from '@trezor/network-tron/constants';
+
+import { tronValidator } from './addressValidator/tronAddressValidator';
+import { getNetworkConfig } from './networkConfig';
 
 export type TronNetworkSuiteCommonNetworkModule = SuiteCommonNetworkModule<TronNetworkSymbol>;
 
 export const createTronSuiteCommonNetworkModule = (): TronNetworkSuiteCommonNetworkModule => ({
     addressValidator: tronValidator,
-    getSupportedNetworks,
-    isSupportedNetwork,
-    getNetworkColor,
+    getSupportedNetworks: () => supportedTronNetworks,
+    isSupportedNetwork: isSupportedTronNetwork,
+    getNetworkConfig,
 });

@@ -1,7 +1,15 @@
 import { useDispatch as useReduxDispatch } from 'react-redux';
 
+import { type UnknownAction } from '@reduxjs/toolkit';
 import { type ThunkDispatch } from 'redux-thunk';
 
-import { type Action, type AppState } from 'src/types/suite';
+import type { ExtraDependenciesSuite } from 'src/support/extraDependencies';
 
-export const useDispatch: () => ThunkDispatch<AppState, any, Action> = useReduxDispatch;
+type SuiteDispatch<State, Extra> = ExtraDependenciesSuite extends Extra
+    ? ThunkDispatch<State, Extra, UnknownAction>
+    : never;
+
+export const useDispatch = useReduxDispatch as <
+    State = never,
+    Extra = ExtraDependenciesSuite,
+>() => SuiteDispatch<State, Extra>;

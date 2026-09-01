@@ -47,6 +47,16 @@ const suiteInternalPatterns = {
         '@suite-common/* and @suite-native/* packages are private to the suite apps and must not be imported by other workspace packages.',
 };
 
+/*
+ Currently only relevant in @trezor/suite-desktop-core, but if the ipcMain import is to be used elsewhere,
+ the wrapper shall be extracted and this should still be a global rule.
+*/
+const electronIpcMainRestrictedImport = {
+    name: 'electron',
+    importNames: ['ipcMain'],
+    message: 'Use the local ipcMain wrapper instead.',
+};
+
 export const restrictedImportsPatterns = [
     buildArtifactPatterns,
     suiteInternalPatterns,
@@ -71,7 +81,12 @@ export const typescriptConfig = [
             '@typescript-eslint/no-restricted-imports': [
                 'error',
                 {
-                    paths: [{ name: '.' }, { name: '..' }, { name: '../..' }],
+                    paths: [
+                        { name: '.' },
+                        { name: '..' },
+                        { name: '../..' },
+                        electronIpcMainRestrictedImport,
+                    ],
                     patterns: [
                         buildArtifactPatterns,
                         networksPackagePattern,
@@ -111,7 +126,12 @@ export const typescriptConfig = [
             '@typescript-eslint/no-restricted-imports': [
                 'error',
                 {
-                    paths: [{ name: '.' }, { name: '..' }, { name: '../..' }],
+                    paths: [
+                        { name: '.' },
+                        { name: '..' },
+                        { name: '../..' },
+                        electronIpcMainRestrictedImport,
+                    ],
                     patterns: restrictedImportsPatterns,
                 },
             ],
@@ -142,6 +162,10 @@ export const typescriptConfig = [
             // Known limitation: the rule mis-reports some load-bearing widening assertions
             // (removing them breaks tsc); such spots carry a scoped disable with a justification.
             '@typescript-eslint/no-unnecessary-type-assertion': ['error'],
+
+            // Type-checked rule; the src override is the only block with type info. Prefer
+            // startsWith/endsWith over indexOf(x) === 0, slice(-1) === c and /^x/.test().
+            '@typescript-eslint/prefer-string-starts-ends-with': ['error'],
         },
     },
     {

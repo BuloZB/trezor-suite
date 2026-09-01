@@ -10,7 +10,7 @@ import {
     selectDeviceAccountsByNetworkSymbol,
 } from '@suite-common/wallet-core';
 import { events, selectNativeAnalyticsDep } from '@suite-native/analytics';
-import { Button, InlineAlertBox, TimelineDetailsCard, VStack } from '@suite-native/atoms';
+import { BannerInline, Button, TimelineDetailsCard, VStack } from '@suite-native/atoms';
 import { Translation } from '@suite-native/intl';
 import {
     type RootStackParamList,
@@ -29,9 +29,9 @@ import {
 import { HowEarnWorksBenefitsSection } from '../components/HowEarnWorks/HowEarnWorksBenefitsSection';
 import { HowEarnWorksHeaderSection } from '../components/HowEarnWorks/HowEarnWorksHeaderSection';
 import { HowEarnWorksTimelineCard } from '../components/HowEarnWorks/HowEarnWorksTimelineCard';
+import { createHowStakeWorksPreset } from '../components/HowEarnWorks/stakePresets';
 import { useMessageSystemStaking } from '../hooks/useMessageSystemStaking';
 import { useNavigateBackAnalytics } from '../hooks/useNavigateBackAnalytics';
-import { createHowStakeWorksPreset } from '../presets/HowEarnWorks/stakePresets';
 
 export const HowStakeWorksScreen = () => {
     const route = useRoute<RouteProp<RootStackParamList, RootStackRoutes.HowStakeWorksScreen>>();
@@ -133,7 +133,7 @@ export const HowStakeWorksScreen = () => {
                     </HowEarnWorksTimelineCard>
                 </VStack>
                 {isStakingDisabled && stakingMessageContent && (
-                    <InlineAlertBox intent="warning" title={stakingMessageContent} />
+                    <BannerInline intent="warning" title={stakingMessageContent} />
                 )}
                 <Button
                     onPress={handleContinue}

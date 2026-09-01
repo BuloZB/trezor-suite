@@ -1,14 +1,6 @@
-import { type NetworkSymbol } from '@suite-common/wallet-config';
 import { type FormState } from '@suite-common/wallet-types';
-import {
-    isSupportedEthStakingNetworkSymbol,
-    isSupportedSolStakingNetworkSymbol,
-} from '@suite-common/wallet-utils';
 
 import { USER_CANCELLED_ERROR_CODES } from './constants';
-
-export const isStakeFlowSupportedSymbol = (symbol: NetworkSymbol): boolean =>
-    isSupportedEthStakingNetworkSymbol(symbol) || isSupportedSolStakingNetworkSymbol(symbol);
 
 export const buildEarnComposeFormState = (
     contractAddress: string,
@@ -42,16 +34,10 @@ export const isUserCancelledSignError = (
     (!!payload?.errorCode && USER_CANCELLED_ERROR_CODES.some(code => code === payload.errorCode));
 
 export type EarnReviewErrorPayload =
-    | { error?: string; errorCode?: string; message?: string }
-    | undefined;
+    { error?: string; errorCode?: string; message?: string } | undefined;
 
 export type EarnReviewErrorReaction =
-    | 'none'
-    | 'popScreen'
-    | 'pendingConflict'
-    | 'pushFailed'
-    | 'signFailed'
-    | 'deviceDisconnected';
+    'none' | 'popScreen' | 'pendingConflict' | 'pushFailed' | 'signFailed' | 'deviceDisconnected';
 
 export const getEarnReviewErrorReaction = (
     payload: EarnReviewErrorPayload,

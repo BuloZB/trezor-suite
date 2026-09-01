@@ -1,11 +1,14 @@
-import { type AnyAction, combineReducers } from '@reduxjs/toolkit';
+import { type UnknownAction, combineReducers } from '@reduxjs/toolkit';
 
-import { configureMockStore, extraDependenciesCommonMock } from '@suite-common/test-utils';
+import { mockActionType } from '@suite-common/redux-utils/mocks';
+import { configureMockStore } from '@suite-common/test-utils';
 
 import { fixtures, timestamp } from './__fixtures__/messageSystemReducer';
 import { prepareMessageSystemReducer } from './messageSystemReducer';
 
-const messageSystemReducer = prepareMessageSystemReducer(extraDependenciesCommonMock);
+const messageSystemReducer = prepareMessageSystemReducer({
+    actionTypes: { storageLoad: mockActionType('storageLoad') },
+});
 
 describe('Message system reducer', () => {
     fixtures.forEach(f => {
@@ -15,12 +18,12 @@ describe('Message system reducer', () => {
 
         it(f.description, () => {
             const store = configureMockStore({
-                extra: {},
+                extra: undefined,
                 reducer: combineReducers({ messageSystem: messageSystemReducer }),
                 preloadedState: { messageSystem: f.initialState },
             });
             f.actions.forEach(a => {
-                store.dispatch(a as AnyAction);
+                store.dispatch(a as UnknownAction);
             });
             expect(store.getState().messageSystem).toEqual(f.result);
         });

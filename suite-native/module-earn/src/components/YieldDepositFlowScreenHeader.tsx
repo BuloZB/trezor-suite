@@ -1,29 +1,40 @@
-import { getNetwork } from '@suite-common/wallet-config';
+import { type ReactNode } from 'react';
+import { useSelector } from 'react-redux';
+
+import { getNetwork, getNetworkDisplaySymbol } from '@suite-common/wallet-config';
 import { type Account, type TokenAddress } from '@suite-common/wallet-types';
-import { HStack, IconButton, Text, VStack } from '@suite-native/atoms';
+import { formatCoinBalance } from '@suite-common/wallet-utils';
+import { Box, DiscreetText, HStack, IconButton, Text, VStack } from '@suite-native/atoms';
 import { TokenIcon } from '@suite-native/icons';
-import { ScreenHeader } from '@suite-native/navigation';
+import { selectSupportedLanguageLocale } from '@suite-native/intl';
+import { type CloseActionType, ScreenHeader } from '@suite-native/navigation';
 
 type YieldDepositFlowScreenHeaderProps = {
     account: Account;
     closeAction?: () => void;
-    onInfoPress: () => void;
+    closeActionType?: CloseActionType;
+    onInfoPress?: () => void;
+    title: ReactNode;
     tokenContract: TokenAddress;
-    vaultName: string;
 };
 
 export const YieldDepositFlowScreenHeader = ({
     account,
     closeAction,
+    closeActionType = 'close',
     onInfoPress,
+    title,
     tokenContract,
-    vaultName,
 }: YieldDepositFlowScreenHeaderProps) => {
+    const locale = useSelector(selectSupportedLanguageLocale);
     const accountLabel = account.accountLabel ?? getNetwork(account.symbol).name;
+    // Same format as the desktop yield page header: `formatCoinBalance` keeps the leading
+    // significant digits and appends an ellipsis (…) once the fractional part gets too long.
+    const formattedBalance = `${formatCoinBalance(account.formattedBalance, locale)} ${getNetworkDisplaySymbol(account.symbol)}`;
 
     return (
         <ScreenHeader
-            closeActionType="close"
+            closeActionType={closeActionType}
             closeAction={closeAction}
             customContent={
                 <HStack spacing="sp8" alignItems="center" flexShrink={1}>
@@ -32,30 +43,45 @@ export const YieldDepositFlowScreenHeader = ({
                         contractAddress={tokenContract}
                         size="small"
                         showNetworkIcon
+                        wrappedTokenIcon="network"
                     />
                     <VStack spacing={0} flexShrink={1}>
                         <Text variant="body-md" numberOfLines={1} ellipsizeMode="tail">
-                            {vaultName}
+                            {title}
                         </Text>
-                        <Text
-                            variant="body-xs"
-                            color="contentSecondary"
-                            numberOfLines={1}
-                            ellipsizeMode="tail"
-                        >
-                            {accountLabel}
-                        </Text>
+                        <HStack spacing="sp24" justifyContent="space-between" alignItems="center">
+                            <Box flexShrink={1}>
+                                <Text
+                                    variant="body-xs"
+                                    color="contentSecondary"
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                >
+                                    {accountLabel}
+                                </Text>
+                            </Box>
+                            <DiscreetText
+                                variant="body-xs"
+                                color="contentSecondary"
+                                numberOfLines={1}
+                                testID="@yield/flow-header/balance"
+                            >
+                                {formattedBalance}
+                            </DiscreetText>
+                        </HStack>
                     </VStack>
                 </HStack>
             }
             rightIcon={
-                <IconButton
-                    intent="neutral"
-                    priority="secondary"
-                    size="medium"
-                    iconName="info"
-                    onPress={onInfoPress}
-                />
+                onInfoPress && (
+                    <IconButton
+                        intent="neutral"
+                        priority="secondary"
+                        size="medium"
+                        iconName="info"
+                        onPress={onInfoPress}
+                    />
+                )
             }
         />
     );

@@ -4,6 +4,11 @@
     "include": ["./src"],
     "references": [
         {
+            "path": "../../../suite-common/calldata"
+        },
+        { "path": "../../../packages/connect" },
+        { "path": "../network-ethereum" },
+        {
             "path": "../../network-module/network-module-suite-common-types"
         },
         { "path": "../../../packages/utils" }

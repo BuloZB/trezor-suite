@@ -44,6 +44,7 @@
         "build:lib": "yarn g:rimraf ./lib && yarn g:tsc --build tsconfig.lib.json && ../../../scripts/publish/replace-imports.sh ./lib"
     },
     "dependencies": {
-        "@noble/hashes": "^2.0.1"
+        "@noble/hashes": "^2.0.1",
+        "@trezor/utils": "workspace:*"
     }
 }

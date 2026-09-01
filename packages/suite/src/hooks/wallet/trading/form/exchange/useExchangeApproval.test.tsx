@@ -3,6 +3,7 @@ import { type ExchangeTrade } from 'invity-api';
 
 import { configureMockStore, renderHookWithStoreProvider } from '@suite-common/test-utils';
 import { tradingExchangeActions } from '@suite-common/trading';
+import { asNetworkSymbol } from '@suite-common/wallet-config';
 import { mockWalletAccount } from '@suite-common/wallet-types/mocks';
 
 import { useExchangeApproval } from './useExchangeApproval';
@@ -32,12 +33,12 @@ jest.mock('@suite-common/trading', () => {
     };
 });
 
-const ACCOUNT = mockWalletAccount({ symbol: 'eth', formattedBalance: '2' });
+const ACCOUNT = mockWalletAccount({ symbol: asNetworkSymbol('eth'), formattedBalance: '2' });
 
 const TRADE: ExchangeTrade = { exchange: 'provider-1', status: 'CONFIRM' };
 
 const renderExchangeApproval = (receiveAddress?: string) => {
-    const store = configureMockStore();
+    const store = configureMockStore({ extra: undefined });
 
     const utils = renderHookWithStoreProvider(
         () => useExchangeApproval({ account: ACCOUNT, receiveAddress, extraField: undefined }),

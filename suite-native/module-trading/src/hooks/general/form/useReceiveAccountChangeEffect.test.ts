@@ -1,6 +1,6 @@
 import { combineReducers } from '@reduxjs/toolkit';
 
-import { extraDependenciesCommonMock } from '@suite-common/test-utils';
+import { mockActionType } from '@suite-common/redux-utils/mocks';
 import { tradingExchangeActions } from '@suite-common/trading';
 import { initialWalletSettingsState } from '@suite-common/wallet-core';
 import { asAccountDescriptor } from '@suite-common/wallet-types';
@@ -26,12 +26,14 @@ describe('useReceiveAccountChangeEffect', () => {
         wallet: combineReducers({
             settings: createStaticReducer(initialWalletSettingsState),
             accounts: createStaticReducer(getWalletState({ tradeType: 'exchange' }).accounts),
-            trading: tradingSlice.prepareReducer(extraDependenciesCommonMock),
+            trading: tradingSlice.prepareReducer({
+                actionTypes: { storageLoad: mockActionType('storageLoad') },
+            }),
         }),
     } as const;
 
-    const renderUseReceiveAccountChangeEffect = () =>
-        renderHookWithStoreProvider(
+    const renderUseReceiveAccountChangeEffect = async () =>
+        await renderHookWithStoreProvider(
             () => useReceiveAccountChangeEffect(setValue, selectExchangeSelectedReceiveAccount),
             { store },
         );
@@ -48,19 +50,19 @@ describe('useReceiveAccountChangeEffect', () => {
         setValue = jest.fn();
     });
 
-    it('should set receiveAccount based on store value', () => {
-        renderUseReceiveAccountChangeEffect();
+    it('should set receiveAccount based on store value', async () => {
+        await renderUseReceiveAccountChangeEffect();
 
         expect(setValue).toHaveBeenCalledTimes(1);
         expect(setValue).toHaveBeenCalledWith('receiveAccount', undefined);
     });
 
-    it('should set receiveAccount on change', () => {
+    it('should set receiveAccount on change', async () => {
         const btc1Account = getBtcAccount({ descriptor: asAccountDescriptor('btc1normal') });
-        renderUseReceiveAccountChangeEffect();
+        await renderUseReceiveAccountChangeEffect();
 
         setValue.mockClear();
-        act(() => {
+        await act(() => {
             store.dispatch(tradingExchangeActions.setReceiveAccountKey(btc1Account.key));
         });
 

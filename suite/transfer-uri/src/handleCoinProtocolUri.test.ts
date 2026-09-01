@@ -1,4 +1,19 @@
-import { type CoinProtocol, handleCoinProtocolUri } from './handleCoinProtocolUri';
+import { mockDesktopAnalytics } from '@suite/analytics/mocks';
+import { type FindNetworkSymbolForProtocol } from '@suite-common/networks';
+import { asNetworkSymbol } from '@suite-common/wallet-config';
+
+import {
+    type CoinProtocol,
+    type HandleCoinProtocolUriThunkDeps,
+    handleCoinProtocolUri,
+} from './handleCoinProtocolUri';
+
+const findNetworkSymbolForProtocol: FindNetworkSymbolForProtocol = protocol => {
+    if (protocol === 'bitcoin') return asNetworkSymbol('btc');
+    if (protocol === 'ethereum') return asNetworkSymbol('eth');
+
+    return null;
+};
 
 const setup = () => {
     const dispatch = jest.fn();
@@ -7,7 +22,13 @@ const setup = () => {
         type: '@protocol/save-coin-protocol',
         payload: coinProtocol,
     }));
-    const extra = { services: { analytics: { report } } } as any;
+
+    const extra: HandleCoinProtocolUriThunkDeps = {
+        services: {
+            analytics: mockDesktopAnalytics(report),
+            findNetworkSymbolForProtocol,
+        },
+    };
 
     const run = (uri: string) =>
         handleCoinProtocolUri(uri, saveCoinProtocol)(dispatch, () => ({}), extra);
@@ -19,7 +40,7 @@ describe('handleCoinProtocolUri', () => {
     it('reports the scheme, saves the protocol and toasts for a valid coin URI', () => {
         const { dispatch, report, saveCoinProtocol, run } = setup();
 
-        run('bitcoin:12345abcde?amount=1.02');
+        run('bitcoin:12345abcde?amount=1.02&label=Alice');
 
         expect(report).toHaveBeenCalledWith(
             expect.objectContaining({ payload: { scheme: 'bitcoin', isAmountPresent: true } }),
@@ -28,6 +49,7 @@ describe('handleCoinProtocolUri', () => {
             scheme: 'bitcoin',
             address: '12345abcde',
             amount: '1.02',
+            label: 'Alice',
             token: undefined,
             tokenAmount: undefined,
         });
@@ -49,6 +71,7 @@ describe('handleCoinProtocolUri', () => {
             scheme: 'ethereum',
             address: '0x8e23ee67d1332ad560396262c48ffbb01f93d052',
             amount: undefined,
+            label: undefined,
             token: '0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7',
             tokenAmount: '1000000',
         });

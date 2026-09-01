@@ -13,6 +13,7 @@ import {
     getDeviceInstances,
     getDeviceInstancesGroupedByDeviceId,
     getDeviceInternalModel,
+    getDeviceModelWithFlagshipFallback,
     getFwUpdateVersion,
     getIsDeviceConnectedAndAuthorized,
     getIsDeviceConnectedViaBluetooth,
@@ -23,7 +24,7 @@ import {
     getSortedDevicesWithoutInstances,
     getStatus,
 } from '@suite-common/suite-utils';
-import { type Device, type DeviceState, type StaticSessionId } from '@trezor/connect';
+import { type DeviceState, type StaticSessionId } from '@trezor/connect';
 import {
     DeviceModelInternal,
     getFirmwareRevision,
@@ -168,7 +169,7 @@ export const selectSupportedDeviceLanguages = createMemoizedSelector(
                 value: code as Locale,
                 icon,
                 label: name,
-                isBeta: true, // TODO: This will need tweaking in the future.
+                isBeta: availableDeviceTranslations[code]?.status === 'beta',
             }))
             .sort((a, b) => a.label.localeCompare(b.label));
 
@@ -417,6 +418,10 @@ export const selectDeviceModel = createMemoizedSelector([selectSelectedDevice], 
     selectedDevice ? getDeviceInternalModel(selectedDevice) : null,
 );
 
+export const selectDeviceModelWithFlagshipFallback = (
+    state: DeviceRootState,
+): DeviceModelInternal => getDeviceModelWithFlagshipFallback(selectSelectedDevice(state));
+
 export const selectIsDeviceAuthenticityCheckSupported = createMemoizedSelector(
     [selectIsPortfolioTrackerDevice, selectDeviceModel],
     (isPortfolioTrackerDevice, deviceModel) =>
@@ -612,11 +617,6 @@ export const selectDeviceDefaultBackupType = createMemoizedSelector(
 
         return deviceModel ? defaultBackupTypeMap[deviceModel] : 'shamir-single';
     },
-);
-
-export const selectIsSameOrNewDevice = createMemoizedSelector(
-    [selectSelectedDevice, (_state, device: Device | TrezorDevice | undefined) => device],
-    (selectedDevice, device) => selectedDevice === undefined || device?.id === selectedDevice.id,
 );
 
 export const selectDeviceFirmwareRevision = createMemoizedSelector([selectSelectedDevice], device =>

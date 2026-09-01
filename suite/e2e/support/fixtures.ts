@@ -1,7 +1,9 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { checkEvoluRelayServerRunning } from '@suite-common/e2e-evolu-client';
+import type { PerfMetrics } from '@trezor/perf-e2e';
 
 import { AnalyticsFixture, AnalyticsHelper } from './analytics';
+import { measurePerformance } from '../performance/perfMeasure';
 import { EvoluClient } from './helpers/evoluClient';
 import { IndexedDbFixture } from './indexedDb';
 import { BlockbookMock } from './mocks/blockBookMock';
@@ -23,6 +25,7 @@ import { PaginationControl } from './pageObjects/pagination';
 import { RecoveryModal } from './pageObjects/recoveryModal';
 import { SettingsPage } from './pageObjects/settings/settingsPage';
 import { StakingSection } from './pageObjects/staking/stakingSection';
+import { ToastSection } from './pageObjects/toastSection';
 import { FeeSection } from './pageObjects/trading/feeSection';
 import { TradingPage } from './pageObjects/trading/tradingPage';
 import { TrezorInput } from './pageObjects/trezorInput';
@@ -68,7 +71,18 @@ type Fixtures = {
     yieldMock: YieldMock;
     txSimulationModal: TxSimulationModal;
     paginationControl: PaginationControl;
+    toastSection: ToastSection;
     evoluClient: EvoluClient;
+    perf: {
+        /**
+         * Wraps an interaction a desktop test already performs and holds it to the limits of its
+         * scenario. Returns null where instrumentation is not installed (e.g. web).
+         */
+        measure: (
+            scenario: string,
+            interaction: () => Promise<void>,
+        ) => Promise<PerfMetrics | null>;
+    };
 };
 
 const test = suiteBaseTest.extend<Fixtures>({
@@ -179,11 +193,20 @@ const test = suiteBaseTest.extend<Fixtures>({
     paginationControl: async ({ page }, use) => {
         await use(new PaginationControl(page));
     },
+    toastSection: async ({ page }, use) => {
+        await use(new ToastSection(page));
+    },
     evoluClient: async ({}, use) => {
         await checkEvoluRelayServerRunning();
         const evoluClient = new EvoluClient();
         await use(evoluClient);
         await evoluClient.dispose();
+    },
+    perf: async ({ page }, use, testInfo) => {
+        await use({
+            measure: (scenario, interaction) =>
+                measurePerformance(page, testInfo, scenario, interaction),
+        });
     },
 });
 

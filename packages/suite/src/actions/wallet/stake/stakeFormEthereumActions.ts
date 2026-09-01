@@ -1,6 +1,10 @@
-import { asTypedDesktopAnalytics, events } from '@suite/analytics';
-import { selectSelectedDevice } from '@suite-common/device';
-import { type ExtraDependencies } from '@suite-common/redux-utils';
+import { type UnknownAction } from '@reduxjs/toolkit';
+import { type ThunkDispatch } from 'redux-thunk';
+
+import { type SelectedAccountRootState } from '@suite/account';
+import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { type DeviceRootState, selectSelectedDevice } from '@suite-common/device';
+import { type WithServices } from '@suite-common/redux-utils';
 import {
     getStakeTxGasLimit,
     prepareClaimEthTx,
@@ -19,7 +23,12 @@ import {
     MIN_ETH_FOR_WITHDRAWALS,
     UNSTAKE_INTERCHANGES,
 } from '@suite-common/wallet-constants';
-import { selectAddressDisplayType, stakeActions } from '@suite-common/wallet-core';
+import {
+    type EthereumGetCurrentNonceThunkState,
+    type WalletSettingsRootState,
+    selectAddressDisplayType,
+    stakeActions,
+} from '@suite-common/wallet-core';
 import { ethereumGetCurrentNonceThunk } from '@suite-common/wallet-core/src/send/sendFormEthereumThunks';
 import {
     AddressDisplayOptions,
@@ -36,8 +45,6 @@ import {
     getAccountIdentity,
 } from '@suite-common/wallet-utils';
 import TrezorConnect, { type FeeLevel } from '@trezor/connect';
-
-import { type Dispatch, type GetState } from 'src/types/suite';
 
 const calculateStakingTransaction = (
     availableBalance: string,
@@ -113,9 +120,20 @@ export const composeTransaction =
         );
     };
 
+type SignTransactionThunkState = DeviceRootState &
+    EthereumGetCurrentNonceThunkState &
+    SelectedAccountRootState &
+    WalletSettingsRootState;
+
+type SignTransactionThunkDeps = WithServices<DesktopAnalyticsDep>;
+
 export const signTransaction =
     (formValues: StakeFormState, transactionInfo: PrecomposedTransactionFinal) =>
-    async (dispatch: Dispatch, getState: GetState, extra: ExtraDependencies) => {
+    async (
+        dispatch: ThunkDispatch<SignTransactionThunkState, SignTransactionThunkDeps, UnknownAction>,
+        getState: () => SignTransactionThunkState,
+        extra: SignTransactionThunkDeps,
+    ) => {
         const { selectedAccount } = getState().wallet;
         const device = selectSelectedDevice(getState());
         if (selectedAccount.status !== 'loaded' || !device || transactionInfo?.type !== 'final')
@@ -225,7 +243,7 @@ export const signTransaction =
         });
 
         if (!signedTx.success) {
-            asTypedDesktopAnalytics(extra.services.analytics).report({
+            extra.services.analytics.report({
                 type: events.transactionCancelEvent.name,
                 payload: {
                     txType: 'stake',

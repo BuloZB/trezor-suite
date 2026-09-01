@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { type RouteProp, useRoute } from '@react-navigation/native';
+import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 
 import { events } from '@suite-common/analytics';
 import { useServices } from '@suite-common/dependency-injection';
@@ -15,19 +15,25 @@ import {
 import { selectNativeAnalyticsDep } from '@suite-native/analytics';
 import { Translation } from '@suite-native/intl';
 import {
+    type StackNavigationProps,
     type YieldStackParamList,
-    type YieldStackRoutes,
+    YieldStackRoutes,
     useInterceptNativeNavigation,
     useNavigateToInitialScreen,
 } from '@suite-native/navigation';
 
-import { YieldCompleteScreenContent } from '../components/YieldCompleteScreenContent';
+import { EarnCompleteScreenContent } from '../components/EarnCompleteScreenContent';
 import { getYieldClaimCompleteRows } from '../components/YieldCompleteScreenPresets';
 
 type RouteProps = RouteProp<YieldStackParamList, YieldStackRoutes.YieldClaimComplete>;
+type NavigationProps = StackNavigationProps<
+    YieldStackParamList,
+    YieldStackRoutes.YieldClaimComplete
+>;
 
 export const YieldClaimCompleteScreen = () => {
     const route = useRoute<RouteProps>();
+    const navigation = useNavigation<NavigationProps>();
     const dispatch = useDispatch();
     const navigateToInitialScreen = useNavigateToInitialScreen();
     const { accountKey } = route.params;
@@ -49,6 +55,7 @@ export const YieldClaimCompleteScreen = () => {
                 networkSymbol: networkSymbol ?? undefined,
             },
         });
+
         navigateToInitialScreen();
         dispatch(stablecoinYieldActions.disposeSession({ flowType: 'claim', flowKey: accountKey }));
     }, [accountKey, analytics, dispatch, navigateToInitialScreen, networkSymbol]);
@@ -61,7 +68,11 @@ export const YieldClaimCompleteScreen = () => {
 
             return;
         }
-    }, [navigateToInitialScreen, session]);
+
+        if (session.step !== 'complete') {
+            navigation.replace(YieldStackRoutes.YieldClaim, route.params);
+        }
+    }, [navigateToInitialScreen, navigation, route.params, session]);
 
     if (session?.step !== 'complete') {
         return null;
@@ -70,7 +81,8 @@ export const YieldClaimCompleteScreen = () => {
     const rows = getYieldClaimCompleteRows(session.result.completedRewards);
 
     return (
-        <YieldCompleteScreenContent
+        <EarnCompleteScreenContent
+            type="claim"
             buttonTranslationId="earn.yieldCompleteScreen.backToOverview"
             onButtonPress={handleExit}
             rows={rows}

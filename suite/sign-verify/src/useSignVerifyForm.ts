@@ -9,6 +9,8 @@ import { yup } from '@suite-common/validators';
 import { type NetworkSymbol } from '@suite-common/wallet-config';
 import { type Account } from '@suite-common/wallet-types';
 
+export type SignVerifyFormFields = ReturnType<typeof useSignVerifyForm>;
+
 export const MAX_LENGTH_MESSAGE = 1024;
 export const MAX_LENGTH_SIGNATURE = 255;
 
@@ -148,7 +150,7 @@ export const useSignVerifyForm = (isSignPage: boolean, account: Account) => {
             ...DEFAULT_VALUES,
             ...overrideValues,
         });
-    }, [reset, account, isSignPage]);
+    }, [reset, isSignPage, account?.key, account?.networkType, account?.path, account?.descriptor]);
 
     return {
         isFormDirty: isDirty,

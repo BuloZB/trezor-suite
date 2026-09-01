@@ -1,3 +1,6 @@
+import { mockSuiteSync } from '@suite-common/suite-sync/mocks';
+import { type SuiteSyncDep } from '@suite-common/suite-sync-types';
+import { asNetworkSymbol } from '@suite-common/wallet-config';
 import { mockWalletAccount } from '@suite-common/wallet-types/mocks';
 import { getTranslation } from '@suite-native/intl';
 import {
@@ -20,8 +23,9 @@ const navigationMock = {} as StackProps<
     RootStackRoutes.AccountSettings
 >['navigation'];
 
-const btcAccount = mockWalletAccount({ symbol: 'btc' });
-const ethAccount = mockWalletAccount({ symbol: 'eth' });
+const btcAccount = mockWalletAccount({ symbol: asNetworkSymbol('btc') });
+const ethAccount = mockWalletAccount({ symbol: asNetworkSymbol('eth') });
+const services: SuiteSyncDep = { suiteSync: mockSuiteSync() };
 
 const buildRoute = (accountKey: string) =>
     ({
@@ -32,6 +36,7 @@ const buildRoute = (accountKey: string) =>
 
 const buildPreloadedState = (account: ReturnType<typeof mockWalletAccount>) => ({
     device: { devices: [], selectedDevice: undefined },
+    deviceAuthorization: { deviceAuthorizationStep: 'Idle' },
     messageSystem: {
         config: null,
         currentSequence: 0,
@@ -49,13 +54,13 @@ const buildPreloadedState = (account: ReturnType<typeof mockWalletAccount>) => (
 });
 
 describe('AccountSettingsScreen', () => {
-    it('renders Show XPUB button for UTXO account', () => {
-        const { queryAllByText } = renderWithStoreProvider(
+    it('renders Show XPUB button for UTXO account', async () => {
+        const { queryAllByText } = await renderWithStoreProvider(
             <AccountSettingsScreen
                 route={buildRoute(btcAccount.key)}
                 navigation={navigationMock}
             />,
-            { preloadedState: buildPreloadedState(btcAccount) },
+            { preloadedState: buildPreloadedState(btcAccount), services },
         );
 
         // The text appears in both the trigger button and the XpubQRCodeBottomSheet's show button.
@@ -68,13 +73,13 @@ describe('AccountSettingsScreen', () => {
         ).toBeGreaterThan(0);
     });
 
-    it('does not render Show XPUB button for address-based account', () => {
-        const { queryByText } = renderWithStoreProvider(
+    it('does not render Show XPUB button for address-based account', async () => {
+        const { queryByText } = await renderWithStoreProvider(
             <AccountSettingsScreen
                 route={buildRoute(ethAccount.key)}
                 navigation={navigationMock}
             />,
-            { preloadedState: buildPreloadedState(ethAccount) },
+            { preloadedState: buildPreloadedState(ethAccount), services },
         );
 
         expect(

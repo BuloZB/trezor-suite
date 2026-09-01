@@ -1,6 +1,6 @@
 import { combineReducers } from '@reduxjs/toolkit';
 
-import { extraDependenciesCommonMock } from '@suite-common/test-utils';
+import { mockActionType } from '@suite-common/redux-utils/mocks';
 import { initialWalletSettingsState } from '@suite-common/wallet-core';
 import { localeReducer } from '@suite-native/intl';
 import {
@@ -17,8 +17,8 @@ import { useDispatchProviderConfirmationStatus } from './useDispatchProviderConf
 describe('useDispatchProviderConfirmationStatus', () => {
     let store: TestStore;
 
-    const renderUseDispatchProviderConfirmationStatus = () =>
-        renderHookWithStoreProvider(() => useDispatchProviderConfirmationStatus(), { store });
+    const renderUseDispatchProviderConfirmationStatus = async () =>
+        await renderHookWithStoreProvider(() => useDispatchProviderConfirmationStatus(), { store });
 
     beforeEach(() => {
         store = createLightStore({
@@ -26,16 +26,18 @@ describe('useDispatchProviderConfirmationStatus', () => {
                 locale: localeReducer,
                 wallet: combineReducers({
                     settings: createStaticReducer(initialWalletSettingsState),
-                    trading: tradingSlice.prepareReducer(extraDependenciesCommonMock),
+                    trading: tradingSlice.prepareReducer({
+                        actionTypes: { storageLoad: mockActionType('storageLoad') },
+                    }),
                 }),
             },
         });
     });
 
-    it('should provide callback for dispatching setProviderConfirmationStatus trading action', () => {
-        const { result } = renderUseDispatchProviderConfirmationStatus();
+    it('should provide callback for dispatching setProviderConfirmationStatus trading action', async () => {
+        const { result } = await renderUseDispatchProviderConfirmationStatus();
 
-        act(() => {
+        await act(() => {
             result.current('window_opened');
         });
 

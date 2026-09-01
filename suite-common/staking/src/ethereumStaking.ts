@@ -32,6 +32,7 @@ import TrezorConnect, {
     type EthereumTransactionEIP1559,
     type InternalTransfer,
 } from '@trezor/connect';
+import { asCoinSymbol } from '@trezor/connect-common';
 import { type BlockchainEstimatedFee } from '@trezor/connect-common/src/types/api/blockchain/blockchainEstimateFee';
 import { type Ok, type PartialRecord, exhaustive } from '@trezor/type-utils';
 import { BigNumber, throwError } from '@trezor/utils';
@@ -160,8 +161,7 @@ export type EthereumStakingLiveStateReason =
     | { code: 'UNSUPPORTED_STAKE_TYPE'; stakeType: string };
 
 export type EthereumStakingLiveStateValidation =
-    | { isValid: true }
-    | { isValid: false; reason: EthereumStakingLiveStateReason };
+    { isValid: true } | { isValid: false; reason: EthereumStakingLiveStateReason };
 
 const VALID_LIVE_STATE: EthereumStakingLiveStateValidation = { isValid: true };
 
@@ -256,7 +256,7 @@ export const verifyEthereumStakingLiveState = async ({
     }
 
     const accountInfo = await TrezorConnect.getAccountInfo({
-        coin: symbol,
+        coin: asCoinSymbol(symbol),
         identity,
         details: 'tokenBalances',
         descriptor: from,
@@ -334,7 +334,7 @@ export const stake = async ({
         // gasLimit calculation based on address, amount and data size
         // amount is essential for a proper calculation of gasLimit (via blockbook/geth)
         const estimatedFee = await TrezorConnect.blockchainEstimateFee({
-            coin: symbol,
+            coin: asCoinSymbol(symbol),
             identity,
             request: {
                 blocks: [2],
@@ -358,7 +358,7 @@ export const stake = async ({
             data,
         };
     } catch (e) {
-        throw new Error(e);
+        throw new Error(e, { cause: e });
     }
 };
 
@@ -375,7 +375,7 @@ export const unstake = async ({
 }) => {
     try {
         const accountInfo = await TrezorConnect.getAccountInfo({
-            coin: symbol,
+            coin: asCoinSymbol(symbol),
             identity,
             details: 'tokenBalances',
             descriptor: from,
@@ -406,7 +406,7 @@ export const unstake = async ({
         // gasLimit calculation based on address, amount and data size
         // amount is essential for a proper calculation of gasLimit (via blockbook/geth)
         const estimatedFee = await TrezorConnect.blockchainEstimateFee({
-            coin: symbol,
+            coin: asCoinSymbol(symbol),
             identity,
             request: {
                 blocks: [2],
@@ -429,7 +429,7 @@ export const unstake = async ({
             data,
         };
     } catch (error) {
-        throw new Error(error);
+        throw new Error(error, { cause: error });
     }
 };
 
@@ -441,7 +441,7 @@ export const claimWithdrawRequest = async ({
 }: StakeTxBaseArgs) => {
     try {
         const accountInfo = await TrezorConnect.getAccountInfo({
-            coin: symbol,
+            coin: asCoinSymbol(symbol),
             identity,
             details: 'tokenBalances',
             descriptor: from,
@@ -465,7 +465,7 @@ export const claimWithdrawRequest = async ({
         // gasLimit calculation based on address, amount and data size
         // amount is essential for a proper calculation of gasLimit (via blockbook/geth)
         const estimatedFee = await TrezorConnect.blockchainEstimateFee({
-            coin: symbol,
+            coin: asCoinSymbol(symbol),
             identity,
             request: {
                 blocks: [2],
@@ -492,7 +492,7 @@ export const claimWithdrawRequest = async ({
             data,
         };
     } catch (error) {
-        throw new Error(error);
+        throw new Error(error, { cause: error });
     }
 };
 
@@ -889,7 +889,7 @@ export const simulateUnstake = async ({
     const data = buildUnstakeData(amountWei, UNSTAKE_INTERCHANGES, source);
 
     const transactionData = await TrezorConnect.blockchainEvmRpcCall({
-        coin: symbol,
+        coin: asCoinSymbol(symbol),
         from,
         to: addressContractPool,
         data,

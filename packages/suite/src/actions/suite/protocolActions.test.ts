@@ -1,140 +1,92 @@
-import { NETWORK_TO_PROTOCOLS } from '@suite-common/suite-constants';
-import { configureMockStore } from '@suite-common/test-utils';
-
-import protocolReducer, { type ProtocolState } from 'src/reducers/suite/protocolReducer';
+import { mockDesktopAnalytics } from '@suite/analytics/mocks';
+import { mockLockDevice } from '@suite-common/device/mocks';
+import { type FindNetworkSymbolForProtocol } from '@suite-common/networks';
+import { createMockDispatch } from '@suite-common/redux-utils/mocks';
+import { asNetworkSymbol } from '@suite-common/wallet-config';
 
 import * as protocolConstants from './constants/protocolConstants';
 import * as protocolActions from './protocolActions';
+import {
+    type HandleProtocolRequestDispatchDeps,
+    type HandleProtocolRequestThunkState,
+} from './protocolActions';
 
-const getInitialState = (state?: ProtocolState) => ({
-    protocol: {
-        ...protocolReducer(undefined, { type: 'foo' } as any),
-        ...state,
-    },
-    device: {
-        device: undefined,
-    },
-});
+jest.mock('@suite-common/walletconnect', () => ({
+    walletConnectPairThunk: jest.fn(),
+}));
 
-type State = ReturnType<typeof getInitialState>;
-const mockStore = (preloadedState: State) =>
-    configureMockStore({
-        reducer: (state = preloadedState, action) => ({
-            ...state,
-            protocol: protocolReducer(state.protocol, action),
-        }),
-        preloadedState,
+const findNetworkSymbolForProtocol: FindNetworkSymbolForProtocol = protocol =>
+    protocol === 'bitcoin' ? asNetworkSymbol('btc') : null;
+
+const createHandleProtocolRequestDeps = () => {
+    const getState = (): HandleProtocolRequestThunkState => {
+        throw new Error('This thunk must not read state in this test.');
+    };
+    const extra: HandleProtocolRequestDispatchDeps = {
+        actions: { lockDevice: mockLockDevice() },
+        services: {
+            analytics: mockDesktopAnalytics(),
+            findNetworkSymbolForProtocol,
+            suiteRouterHistory: {
+                getLocation: jest.fn(),
+                navigate: jest.fn(),
+                listen: jest.fn(),
+            },
+        },
+    };
+
+    const { actions, dispatch } = createMockDispatch({
+        getState,
+        extra,
     });
+
+    return { actions, dispatch, getState, extra };
+};
 
 describe('Protocol actions', () => {
-    it('gives a command to fill a send form with address and amount', async () => {
-        const store = mockStore(
-            getInitialState({
-                sendForm: {
-                    scheme: NETWORK_TO_PROTOCOLS.btc[0],
+    it('saves address, amount and label from Bitcoin URI protocol', () => {
+        const { actions, dispatch, getState, extra } = createHandleProtocolRequestDeps();
+
+        protocolActions.handleProtocolRequest('bitcoin:12345abcde?amount=1.02&label=Alice')(
+            dispatch,
+            getState,
+            extra,
+        );
+
+        expect(actions).toHaveLength(2);
+        expect(actions).toContainEqual(
+            expect.objectContaining({
+                type: protocolConstants.SAVE_COIN_PROTOCOL,
+                payload: expect.objectContaining({
+                    scheme: 'bitcoin',
                     address: '12345abcde',
                     amount: '1.02',
-                    shouldFill: false,
-                },
+                    label: 'Alice',
+                }),
             }),
         );
-
-        await store.dispatch(protocolActions.fillSendForm(true));
-        await store.dispatch(protocolActions.fillSendForm(false));
-
-        const actions = store.getActions();
-        expect(actions).toHaveLength(2);
-
-        const [fillSendFormAction, clearFillSendFormAction] = actions;
-        expect(fillSendFormAction).toEqual({
-            type: protocolConstants.FILL_SEND_FORM,
-            payload: true,
-        });
-        expect(clearFillSendFormAction).toEqual({
-            type: protocolConstants.FILL_SEND_FORM,
-            payload: false,
-        });
     });
 
-    it('gives a command to fill a send form with address', async () => {
-        const store = mockStore(
-            getInitialState({
-                sendForm: {
-                    scheme: NETWORK_TO_PROTOCOLS.btc[0],
+    it('saves address from Bitcoin URI protocol', () => {
+        const { actions, dispatch, getState, extra } = createHandleProtocolRequestDeps();
+
+        protocolActions.handleProtocolRequest('bitcoin:12345abcde')(dispatch, getState, extra);
+
+        expect(actions).toHaveLength(2);
+        expect(actions).toContainEqual(
+            expect.objectContaining({
+                type: protocolConstants.SAVE_COIN_PROTOCOL,
+                payload: expect.objectContaining({
+                    scheme: 'bitcoin',
                     address: '12345abcde',
                     amount: undefined,
-                    shouldFill: false,
-                },
+                }),
             }),
         );
-
-        await store.dispatch(protocolActions.fillSendForm(true));
-        await store.dispatch(protocolActions.fillSendForm(false));
-
-        const actions = store.getActions();
-        expect(actions).toHaveLength(2);
-
-        const [fillSendFormAction, clearFillSendFormAction] = actions;
-        expect(fillSendFormAction).toEqual({
-            type: protocolConstants.FILL_SEND_FORM,
-            payload: true,
-        });
-        expect(clearFillSendFormAction).toEqual({
-            type: protocolConstants.FILL_SEND_FORM,
-            payload: false,
-        });
     });
 
-    it('saves address and amount from Bitcoin URI protocol', async () => {
-        const store = mockStore(getInitialState());
-
-        await store.dispatch(
-            protocolActions.handleProtocolRequest('bitcoin:12345abcde?amount=1.02'),
-        );
-
-        const actions = store.getActions();
-        expect(actions).toHaveLength(2);
-
-        const [saveCoinProtocolAction] = actions;
-        expect(saveCoinProtocolAction).toMatchObject({
-            type: protocolConstants.SAVE_COIN_PROTOCOL,
-            payload: {
-                scheme: NETWORK_TO_PROTOCOLS.btc[0],
-                address: '12345abcde',
-                amount: '1.02',
-            },
-        });
-    });
-
-    it('saves address from Bitcoin URI protocol', async () => {
-        const store = mockStore(getInitialState());
-
-        await store.dispatch(protocolActions.handleProtocolRequest('bitcoin:12345abcde'));
-
-        const actions = store.getActions();
-        expect(actions).toHaveLength(2);
-
-        const [saveCoinProtocolAction] = actions;
-        expect(saveCoinProtocolAction).toMatchObject({
-            type: protocolConstants.SAVE_COIN_PROTOCOL,
-            payload: {
-                scheme: NETWORK_TO_PROTOCOLS.btc[0],
-                address: '12345abcde',
-                amount: undefined,
-            },
-        });
-    });
-
-    it('resets protocol state', async () => {
-        const store = mockStore(getInitialState());
-
-        await store.dispatch(protocolActions.resetProtocol());
-
-        const actions = store.getActions();
-        expect(actions).toHaveLength(1);
-
-        const [resetProtocolAction] = actions;
-        expect(resetProtocolAction).toEqual({
+    it('creates the reset protocol action', () => {
+        expect(protocolActions.resetProtocol()).toEqual({
             type: protocolConstants.RESET,
         });
     });

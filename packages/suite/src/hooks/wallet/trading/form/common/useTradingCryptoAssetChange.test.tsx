@@ -8,13 +8,16 @@ import {
     type TradingFiatRatesReturn,
     type TradingSellFormProps,
 } from '@suite-common/trading';
+import { toNetworkSymbolNonTestnet } from '@suite-common/wallet-config';
 import { type AccountKey } from '@suite-common/wallet-types';
 import { mockWalletAccount } from '@suite-common/wallet-types/mocks';
 
 import { useTradingCryptoAssetChange } from './useTradingCryptoAssetChange';
 
-const ACCOUNT = mockWalletAccount({ symbol: 'btc', formattedBalance: '2' });
-const OTHER_ACCOUNT = mockWalletAccount({ symbol: 'eth', formattedBalance: '5' });
+const btcSymbol = toNetworkSymbolNonTestnet('btc');
+const ethSymbol = toNetworkSymbolNonTestnet('eth');
+const ACCOUNT = mockWalletAccount({ symbol: btcSymbol, formattedBalance: '2' });
+const OTHER_ACCOUNT = mockWalletAccount({ symbol: ethSymbol, formattedBalance: '5' });
 
 const buildSelect = (accountKey: AccountKey): TradingAssetSellOption => ({
     id: 'bitcoin' as CryptoId,
@@ -22,10 +25,10 @@ const buildSelect = (accountKey: AccountKey): TradingAssetSellOption => ({
     name: 'Bitcoin',
     coingeckoId: 'bitcoin',
     contractAddress: null,
-    symbol: 'btc',
+    symbol: btcSymbol,
     displaySymbol: 'BTC',
     networkName: 'Bitcoin',
-    networkSymbol: 'btc',
+    networkSymbol: btcSymbol,
     accountKey,
 });
 
@@ -72,7 +75,7 @@ const TRADING_FIAT_VALUES: TradingFiatRatesReturn = {
     fiatRate: undefined,
     accountBalance: '2',
     formattedBalance: '2',
-    symbol: 'btc',
+    symbol: btcSymbol,
     networkDecimals: 8,
     tokenAddress: undefined,
     fiatRatesUpdater: jest.fn(() => Promise.resolve(null)),
@@ -127,6 +130,28 @@ describe('useTradingCryptoAssetChange', () => {
         expect(setComposedLevels).toHaveBeenCalledWith(undefined);
         expect(changeFeeLevel).toHaveBeenCalledWith('normal');
         expect(setAccountOnChange).toHaveBeenCalledWith(OTHER_ACCOUNT);
+    });
+
+    it('onCryptoCurrencyChange clears the stale amount validation errors', async () => {
+        const { result } = renderCryptoAssetChange(buildSelect(ACCOUNT.key));
+
+        act(() => {
+            result.current.methods.setError('outputs.0.amount', {
+                type: 'limits',
+                message: 'Minimum is X ETH',
+            });
+            result.current.methods.setError('outputs.0.fiat', {
+                type: 'minFiat',
+                message: 'Minimum is X USD',
+            });
+        });
+
+        await act(async () => {
+            await result.current.change.onCryptoCurrencyChange(buildSelect(OTHER_ACCOUNT.key));
+        });
+
+        expect(result.current.methods.formState.errors.outputs?.[0]?.amount).toBeUndefined();
+        expect(result.current.methods.formState.errors.outputs?.[0]?.fiat).toBeUndefined();
     });
 
     it('onCryptoCurrencyChange is a no-op when the same asset is reselected', async () => {

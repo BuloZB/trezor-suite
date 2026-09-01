@@ -1,10 +1,11 @@
 import {
     buildClaimTransactionReview,
     buildStablecoinYieldTransactionReview,
-} from '@suite-common/earn-stablecoin/src/signing';
+} from '@suite-common/earn-stablecoin';
 import { type TrezorDevice } from '@suite-common/suite-types';
 import {
     type StablecoinYieldActionReviewState,
+    type WrappedNativeFlowType,
     type YieldFlowDisplayToken,
     type YieldFlowResolvedData,
     type YieldWithdrawFlowType,
@@ -37,7 +38,7 @@ type YieldClaimReview = Extract<StablecoinYieldActionReviewState, { type: 'claim
 
 export type YieldReviewEvmTransactionPurpose = Extract<
     EvmTransactionPurpose,
-    'approve' | 'claim' | 'deposit' | 'redeem' | 'revoke' | 'withdraw'
+    'approve' | 'claim' | 'deposit' | 'redeem' | 'revoke' | 'withdraw' | 'wrap' | 'unwrap'
 >;
 export type YieldApprovalReviewEvmTransactionPurpose = Extract<
     YieldReviewEvmTransactionPurpose,
@@ -47,7 +48,9 @@ type YieldTransactionReviewOutputType =
     | 'address'
     | 'amount'
     | 'contract'
+    | 'contract_intent'
     | 'data'
+    | 'recipient_name'
     | 'regular_legacy'
     | 'rewards';
 type YieldTransactionReviewValueOutput = Extract<ReviewOutput, { value: string }> & {
@@ -56,13 +59,13 @@ type YieldTransactionReviewValueOutput = Extract<ReviewOutput, { value: string }
 type YieldTransactionReviewRewardsOutput = Extract<ReviewOutput, { type: 'rewards' }>;
 
 export type YieldTransactionReviewOutput =
-    | YieldTransactionReviewRewardsOutput
-    | YieldTransactionReviewValueOutput;
+    YieldTransactionReviewRewardsOutput | YieldTransactionReviewValueOutput;
 
 type BuildYieldReviewPreviewBaseParams = {
     account: Account;
     availableRewards?: YieldClaimReward[];
     device: TrezorDevice;
+    evmTransactionPurposeOverride?: YieldReviewEvmTransactionPurpose;
     formState: FormState;
     precomposedTransaction: PrecomposedTransactionFinal;
     vaultName?: string;
@@ -93,6 +96,17 @@ type BuildYieldClaimReviewPreviewParams = {
     type: 'claim';
 };
 
+type BuildWrappedNativeReviewPreviewParams = {
+    account: Account;
+    device: TrezorDevice;
+    review: {
+        amount: string;
+        unsignedTransaction: string;
+    };
+    reviewToken: YieldFlowDisplayToken;
+    type: WrappedNativeFlowType;
+};
+
 type BuildYieldAllowanceReviewPreviewParams = {
     account: Account;
     device: TrezorDevice;
@@ -106,7 +120,8 @@ export type BuildYieldReviewPreviewParams =
     | BuildYieldDepositReviewPreviewParams
     | BuildYieldWithdrawReviewPreviewParams
     | BuildYieldClaimReviewPreviewParams
-    | BuildYieldAllowanceReviewPreviewParams;
+    | BuildYieldAllowanceReviewPreviewParams
+    | BuildWrappedNativeReviewPreviewParams;
 
 export type YieldReviewPreview = {
     evmTransactionPurpose: YieldReviewEvmTransactionPurpose;
@@ -120,7 +135,9 @@ const yieldTransactionReviewOutputTypes = [
     'address',
     'amount',
     'contract',
+    'contract_intent',
     'data',
+    'recipient_name',
     'regular_legacy',
     'rewards',
 ] satisfies YieldTransactionReviewOutputType[];
@@ -161,11 +178,13 @@ const buildYieldReviewPreviewResult = ({
     account,
     availableRewards,
     device,
+    evmTransactionPurposeOverride,
     formState,
     precomposedTransaction,
     vaultName,
 }: BuildYieldReviewPreviewBaseParams): YieldReviewPreview => {
-    const evmTransactionPurpose = getYieldReviewEvmTransactionPurpose(formState);
+    const evmTransactionPurpose =
+        evmTransactionPurposeOverride ?? getYieldReviewEvmTransactionPurpose(formState);
     const outputs = constructTransactionReviewOutputs({
         account,
         availableRewards,
@@ -251,6 +270,26 @@ export const buildYieldReviewPreview = (
                     account: params.account,
                     availableRewards,
                     device: params.device,
+                    formState,
+                    precomposedTransaction,
+                });
+            }
+            case 'wrap':
+            case 'unwrap': {
+                const { formState, precomposedTransaction } = buildStablecoinYieldTransactionReview(
+                    {
+                        amount: params.review.amount,
+                        selectedFee: null,
+                        symbol: params.account.symbol,
+                        token: params.reviewToken,
+                        unsignedTransaction: params.review.unsignedTransaction,
+                    },
+                );
+
+                return buildYieldReviewPreviewResult({
+                    account: params.account,
+                    device: params.device,
+                    evmTransactionPurposeOverride: params.type,
                     formState,
                     precomposedTransaction,
                 });

@@ -12,10 +12,13 @@ export * from './hooks/useExchangeIssue';
 export * from './hooks/useProviderMetadataChangeEffect';
 export * from './hooks/useTradingFiatValues';
 export * from './hooks/useExchangeFiatDeviation';
+export * from './hooks/useTradingRequestedAmountShortfall';
+export * from './hooks/useTradingRequestedSide';
 export * from './hooks/useApprovalStep';
 export * from './hooks/useTradingExchangeWatchApproval';
 export * from './hooks/useTradingRefetchScheduler';
 export * from './hooks/useDexExchangeTxSimulation';
+export * from './hooks/usePreferredCurrencyUsdThreshold';
 export {
     type TransactionStatus,
     type UseAllowanceTxTrackingParams,
@@ -27,7 +30,6 @@ export * from './reducers/exchangeReducer';
 export * from './reducers/sellReducer';
 export * from './reducers/tradingReducer';
 export * from './regional';
-export * from './selectors/favouritesSelectors';
 export { buyThunks } from './thunks/buy';
 export { tradingThunks } from './thunks/common';
 export { exchangeThunks } from './thunks/exchange';
@@ -41,7 +43,11 @@ export * from './utils/apiKeyUtils';
 export * from './utils/tradingAccountUtils';
 export * from './utils/buy/buyUtils';
 export * from './utils/receiveAccountUtils';
+export * from './utils/tradeableAssetBalanceUtils';
+export * from './utils/tradeableAssetGroupUtils';
+export * from './utils/tradeableAssetListUtils';
 export * from './utils/tradeOperationUtils';
+export * from './utils/tradeHistoryExportUtils';
 export * from './utils/exchange/composeDexTxSimulationAction';
 export * from './utils/exchange/exchangeUtils';
 export * from './utils/exchange/getExchangeIssue';

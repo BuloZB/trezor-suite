@@ -15,45 +15,69 @@ import { prepareSuiteSyncReducer } from '@suite/suite-sync';
 import { deviceActions, selectDevices, selectDevicesCount } from '@suite-common/device';
 import { asEncryptedHex } from '@suite-common/platform-encryption';
 import { prepareReceiveReducer } from '@suite-common/receive';
+import { mockActionType, mockReducer } from '@suite-common/redux-utils/mocks';
 import { setSuiteSyncOwner } from '@suite-common/suite-sync';
 import { type SuiteSyncOwnerSerialized } from '@suite-common/suite-sync-storage';
 import { mockSuiteDevice } from '@suite-common/suite-types/mocks';
 import { configureMockStore, testMocks, wireEnabledNetworksMock } from '@suite-common/test-utils';
-import {
-    changeCoinVisibility,
-    prepareDiscoveryReducer,
-    prepareSendFormReducer,
-    transactionsActions,
-} from '@suite-common/wallet-core';
+import { asNetworkSymbol } from '@suite-common/wallet-config';
+import { changeCoinVisibility, transactionsActions } from '@suite-common/wallet-core';
 import * as discoveryActions from '@suite-common/wallet-core';
 import { asAccountDescriptor } from '@suite-common/wallet-types';
 import { mockAccountKey, mockWalletAccount } from '@suite-common/wallet-types/mocks';
 import { getAccountIdentifier, getAccountTransactions } from '@suite-common/wallet-utils';
 import { type StaticSessionId, asWalletDescriptor } from '@trezor/device-utils';
 
+import { storageLoad } from 'src/actions/suite/storageLifecycleActions';
 import { suiteSyncQuotaManagerSlice } from 'src/actions/suiteSyncQuotaManager/suiteSyncQuotaManagerSlice';
 import { SETTINGS } from 'src/config/suite';
 import { storageMiddleware } from 'src/middlewares/wallet/storageMiddleware';
 import suiteReducer from 'src/reducers/suite/suiteReducer';
-import { accountsReducer, fiatRatesReducer, transactionsReducer } from 'src/reducers/wallet';
+import {
+    accountsReducer,
+    discoveryReducer,
+    fiatRatesReducer,
+    sendFormReducer,
+    transactionsReducer,
+    walletSettingsReducer,
+} from 'src/reducers/wallet';
 import graphReducer from 'src/reducers/wallet/graphReducer';
 import { db } from 'src/storage';
-import { extraDependencies } from 'src/support/extraDependencies';
 import { preloadStore } from 'src/support/suite/preloadStore';
 import { type AcquiredDevice, type AppState } from 'src/types/suite';
 
 import * as storageActions from './storageActions';
 
+const btcSymbol = asNetworkSymbol('btc');
+const ltcSymbol = asNetworkSymbol('ltc');
+
 const { getWalletTransaction } = testMocks;
 
-const discoveryReducer = prepareDiscoveryReducer(extraDependencies);
-const deviceReducer = prepareDesktopDeviceReducer(extraDependencies);
-const flagsReducer = prepareFlagsReducer(extraDependencies);
-const sendFormReducer = prepareSendFormReducer(extraDependencies);
-const walletSettingsReducer = discoveryActions.prepareWalletSettingsReducer(extraDependencies);
-const quotaManagerSliceReducer = suiteSyncQuotaManagerSlice.prepareReducer(extraDependencies);
-const suiteSyncReducer = prepareSuiteSyncReducer(extraDependencies);
-const receiveReducer = prepareReceiveReducer(extraDependencies);
+const deviceReducer = prepareDesktopDeviceReducer({
+    actionTypes: {
+        setDeviceMetadata: mockActionType('setDeviceMetadata'),
+        setDeviceMetadataPasswords: mockActionType('setDeviceMetadataPasswords'),
+        storageLoad: storageLoad.type,
+    },
+    reducers: {
+        setDeviceMetadataPasswordsReducer: mockReducer(),
+        setDeviceMetadataReducer: mockReducer(),
+        storageLoadDevices: (state, { payload }) => {
+            state.devices = payload.devices;
+            state.persistentDeviceData = payload.persistentDeviceData ?? [];
+        },
+    },
+});
+const flagsReducer = prepareFlagsReducer({
+    actionTypes: { storageLoad: mockActionType('storageLoad') },
+    reducers: { storageLoadFlags: mockReducer() },
+});
+const quotaManagerSliceReducer = suiteSyncQuotaManagerSlice.prepareReducer(undefined);
+const suiteSyncReducer = prepareSuiteSyncReducer(undefined);
+const receiveReducer = prepareReceiveReducer({
+    actionTypes: { storageLoad: mockActionType('storageLoad') },
+    reducers: { storageLoadReceiveAccounts: mockReducer() },
+});
 
 // TODO: add method in suite-storage for deleting all stored data (done as a static method on SuiteDB), call it after each test
 // TODO: test deleting device instances on parent device forget
@@ -79,12 +103,12 @@ const dev2Instance1 = mockSuiteDevice({
 
 const acc1 = mockWalletAccount({
     deviceState: dev1.state?.staticSessionId,
-    symbol: 'btc',
+    symbol: btcSymbol,
     descriptor: asAccountDescriptor('desc1'),
 });
 const acc2 = mockWalletAccount({
     deviceState: dev2.state?.staticSessionId,
-    symbol: 'btc',
+    symbol: btcSymbol,
     descriptor: asAccountDescriptor('desc2'),
 });
 
@@ -92,13 +116,13 @@ const tx1 = getWalletTransaction({
     deviceState: dev1.state?.staticSessionId,
     txid: 'txid1',
     descriptor: asAccountDescriptor('desc1'),
-    symbol: 'btc',
+    symbol: btcSymbol,
 });
 const tx2 = getWalletTransaction({
     deviceState: dev2.state?.staticSessionId,
     txid: 'txid2',
     descriptor: asAccountDescriptor('desc2'),
-    symbol: 'btc',
+    symbol: btcSymbol,
 });
 
 type PartialState = Pick<
@@ -181,6 +205,7 @@ const middlewares = [storageMiddleware];
 
 const mockStore = (preloadedState: State) =>
     configureMockStore({
+        extra: undefined,
         middleware: middlewares,
         reducer: (state = preloadedState, action) => {
             const nextState = getInitialState(state, action);
@@ -442,7 +467,7 @@ describe('Storage actions', () => {
     it('should store graph data with the device and remove it on ACCOUNT.REMOVE (triggered by disabling the coin)', async () => {
         const accLtc = mockWalletAccount({
             deviceState: dev1.state!.staticSessionId!,
-            symbol: 'ltc',
+            symbol: asNetworkSymbol('ltc'),
             descriptor: asAccountDescriptor('desc2'),
         });
 
@@ -488,8 +513,8 @@ describe('Storage actions', () => {
         // changeCoinVisibility awaits updateConnectSettings; mock it as a no-op success.
         wireEnabledNetworksMock();
         // disable btc network, enable ltc, triggering ACCOUNT.REMOVE
-        await store.dispatch(changeCoinVisibility({ symbol: 'ltc', shouldBeVisible: true }));
-        await store.dispatch(changeCoinVisibility({ symbol: 'btc', shouldBeVisible: false }));
+        await store.dispatch(changeCoinVisibility({ symbol: ltcSymbol, shouldBeVisible: true }));
+        await store.dispatch(changeCoinVisibility({ symbol: btcSymbol, shouldBeVisible: false }));
 
         // verify that graph data for acc1 were removed
         store.dispatch((await preloadStore())!);

@@ -1,3 +1,4 @@
+import { type Getter } from '@suite-common/dependency-injection';
 import type { AccountEntityKeys } from '@suite-common/metadata-types';
 import type { AccountType, BackendType, NetworkSymbol } from '@suite-common/wallet-config';
 import type {
@@ -122,8 +123,7 @@ export type AccountBackendSpecific =
       };
 
 export type AccountFailureSpecific =
-    | { failed: true; error: string }
-    | { failed?: false; error?: undefined };
+    { failed: true; error: string } | { failed?: false; error?: undefined };
 
 /**
  * This is synthetic (combined) key, it may be useful for some data-structures.
@@ -133,6 +133,10 @@ export type AccountFailureSpecific =
  */
 export type AccountKey = `${AccountDescriptor}-${NetworkSymbol}-${StaticSessionId}` &
     Branded<'AccountKey'>;
+
+export type GetTradedAccountKeysDep = {
+    getTradedAccountKeys: Getter<[], AccountKey[]>;
+};
 
 type CreateAccountKeyParams = {
     accountDescriptor: AccountDescriptor;

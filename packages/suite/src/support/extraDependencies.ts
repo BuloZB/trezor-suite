@@ -1,8 +1,11 @@
-import type { Dispatch, PayloadAction } from '@reduxjs/toolkit';
+import type { PayloadAction, UnknownAction } from '@reduxjs/toolkit';
 import { saveAs } from 'file-saver';
+import { type ThunkDispatch } from 'redux-thunk';
 
 import { type DesktopAnalyticsDep, createAnalytics } from '@suite/analytics';
+import { selectShouldRetryFirmwareRevisionCheckError } from '@suite/authenticity-checks';
 import { fixLoadedCoinjoinAccount } from '@suite/coinjoin';
+import { rerunFwAuthenticityChecksThunk } from '@suite/device';
 import type { FlagsState } from '@suite/flags';
 import { lockDevice } from '@suite/locks';
 import {
@@ -28,26 +31,29 @@ import {
 import { createSuiteSyncDesktopCompositionRoot } from '@suite/suite-sync';
 import { createAddressValidator } from '@suite-common/address';
 import { createBip329CompositionRoot } from '@suite-common/bip329';
+import {
+    type ConnectInitSettings,
+    type CreateTransports,
+    type GetTransportsFactoriesDep,
+    type TransportsDep,
+} from '@suite-common/connect-init';
 import { delegatedIdentityKeyCompositionRoot } from '@suite-common/delegated-identity-key';
 import { toGetter } from '@suite-common/dependency-injection';
 import { type DeviceReducerState, selectDeviceByStaticSessionId } from '@suite-common/device';
+import {
+    type CommonServices,
+    type ExtraDependenciesStatic,
+} from '@suite-common/extra-dependencies';
 import { FW_HASH_CHECK_DEFAULT_TIMEOUTS } from '@suite-common/firmware-authenticity';
 import {
-    createGetNetworkColor,
+    createFindNetworkSymbolForProtocol,
+    createGetNetworkConfig,
     createNetworkModuleRepository,
     createNetworksCompositionRoot,
 } from '@suite-common/networks';
 import { type PlatformEncryptionDep } from '@suite-common/platform-encryption';
 import { type ReceiveState } from '@suite-common/receive';
-import {
-    type CommonServices,
-    type ConnectInitSettings,
-    type CreateTransports,
-    type ExtraDependenciesStatic,
-    type GetTransportsFactoriesDep,
-    type ThpHostNameDep,
-    type TransportsDep,
-} from '@suite-common/redux-utils';
+import { type WithServices } from '@suite-common/redux-utils';
 import { createMigrateSuiteSyncLabelsForRbfTransactionCompositionRoot } from '@suite-common/suite-rbf-labels-migrations';
 import {
     createSuiteSyncWriteLabels,
@@ -55,8 +61,10 @@ import {
     selectIsSuiteSyncEnabled,
     selectSuiteSyncWalletLabel,
 } from '@suite-common/suite-sync';
-import { type ReloadAppDep } from '@suite-common/suite-types';
+import { type GetBinFilesBaseUrlDep, type ReloadAppDep } from '@suite-common/suite-types';
+import { type ThpHostNameDep } from '@suite-common/thp';
 import {
+    type TokenDefinitionsMiddlewareDeps,
     type TokenDefinitionsState,
     buildTokenDefinitionsFromStorage,
 } from '@suite-common/token-definitions';
@@ -70,7 +78,7 @@ import {
     type SendState,
     type TransactionsState,
     type WalletSettingsState,
-    createAccountRefreshThrottle,
+    changeNetworks,
     selectAccountsByDeviceState,
 } from '@suite-common/wallet-core';
 import { createAccountKey } from '@suite-common/wallet-types';
@@ -99,24 +107,29 @@ const connectInitSettings: ConnectInitSettings = {
     firmwareHashCheckTimeouts: FW_HASH_CHECK_DEFAULT_TIMEOUTS,
 };
 
+export type SuiteServices = CommonServices &
+    DesktopAnalyticsDep &
+    MetadataMigrationDep &
+    SuiteRouterHistoryDep &
+    TransportsDep;
+
+export type ExtraDependenciesSuite = ExtraDependenciesStatic &
+    TokenDefinitionsMiddlewareDeps &
+    WithServices<SuiteServices>;
+
 export type StoreAPIDep = {
-    getState: () => any;
-    dispatch: Dispatch;
+    getState: () => AppState;
+    dispatch: ThunkDispatch<AppState, ExtraDependenciesSuite, UnknownAction>;
 };
 
 export type SuiteAppDeps = StoreAPIDep &
     HistoryDep &
     PlatformEncryptionDep &
     CreateLoggerDep &
+    GetBinFilesBaseUrlDep &
     ReloadAppDep &
     ThpHostNameDep &
     GetTransportsFactoriesDep;
-
-export type SuiteServices = CommonServices &
-    DesktopAnalyticsDep &
-    MetadataMigrationDep &
-    SuiteRouterHistoryDep &
-    TransportsDep;
 
 export const selectSuiteServices = (services: any): SuiteServices => services;
 
@@ -173,7 +186,11 @@ export const createSuiteServicesCompositionRoot = (deps: SuiteAppDeps): SuiteSer
     });
     const networkModules = createNetworksCompositionRoot();
     const networkModuleRepository = createNetworkModuleRepository({ networkModules });
-    const getNetworkColor = createGetNetworkColor({ networkModuleRepository });
+    const getNetworkConfig = createGetNetworkConfig({ networkModuleRepository });
+    const findNetworkSymbolForProtocol = createFindNetworkSymbolForProtocol({
+        getNetworkConfig,
+        networkModuleRepository,
+    });
     const addressValidator = createAddressValidator({
         networkModuleRepository,
     });
@@ -193,7 +210,8 @@ export const createSuiteServicesCompositionRoot = (deps: SuiteAppDeps): SuiteSer
 
     return {
         networkModuleRepository,
-        getNetworkColor,
+        getNetworkConfig,
+        findNetworkSymbolForProtocol,
         addressValidator,
         suiteSync,
         bip329,
@@ -209,10 +227,45 @@ export const createSuiteServicesCompositionRoot = (deps: SuiteAppDeps): SuiteSer
         saveAs: (data: Blob, fileName: string) => saveAs(data, fileName),
         connectInitSettings,
         connectInitHooks,
-        accountRefreshThrottle: createAccountRefreshThrottle(deps.getState),
         createLogger: deps.createLogger,
         thpHostName: deps.thpHostName,
         createTransports,
+        getTokenDefinitionsEnabledNetworks: toGetter(
+            deps.getState,
+            (state: AppState) => state.wallet.settings.enabledNetworks,
+        ),
+        // TODO: Coinjoin has not been moved to @suite-common yet, so its debug settings type is not available here.
+        getDebugSettings: toGetter(deps.getState, selectDebugSettings),
+        getBinFilesBaseUrl: deps.getBinFilesBaseUrl,
+        getLanguage: toGetter(deps.getState, selectLanguage),
+        getSelectedAccount: toGetter(
+            deps.getState,
+            (state: AppState) => state.wallet.selectedAccount,
+        ),
+        getSelectedAccountStatus: toGetter(
+            deps.getState,
+            (state: AppState) => state.wallet.selectedAccount.status,
+        ),
+        getIsWindowVisible: toGetter(deps.getState, selectIsWindowVisible),
+        getTradingEnvironment: toGetter(deps.getState, selectTradeServerEnvironment),
+        getTradedAccountKeys: toGetter(deps.getState, selectTradedAccountKeys),
+        getIsViewOnlyByDefaultEnabled: toGetter(deps.getState, (_: AppState) => true),
+        getThpSettings: toGetter(deps.getState, (state: AppState) => ({
+            appName: 'Trezor Suite', // NOTE: this is displayed on Trezor. not the same as manifest.appName
+            pairingMethods: ['CodeEntry'],
+            knownCredentials: state.thp?.credentials,
+        })),
+        getAllowPrerelease: toGetter(
+            deps.getState,
+            (state: AppState) => state.desktopUpdate?.allowPrerelease ?? false,
+        ),
+        shouldRetryFirmwareRevisionCheckError: toGetter(
+            deps.getState,
+            selectShouldRetryFirmwareRevisionCheckError,
+        ),
+        rerunFwAuthenticityChecksCall: () => {
+            deps.dispatch(rerunFwAuthenticityChecksThunk());
+        },
         migrateSuiteSyncLabelsForRbfTransaction:
             createMigrateSuiteSyncLabelsForRbfTransactionCompositionRoot({
                 dispatch: deps.dispatch,
@@ -222,38 +275,19 @@ export const createSuiteServicesCompositionRoot = (deps: SuiteAppDeps): SuiteSer
     };
 };
 
-export const extraDependencies: ExtraDependenciesStatic = {
+export const extraDependencies: ExtraDependenciesStatic & TokenDefinitionsMiddlewareDeps = {
     thunks: {
         initMetadata: metadataLabelingActions.init,
         fetchAndSaveMetadata: metadataLabelingActions.fetchAndSaveMetadata,
         addAccountMetadata: metadataLabelingActions.addAccountMetadata,
         forgetBluetoothDevice: forgetBluetoothDeviceThunk,
     },
-    selectors: {
-        selectTokenDefinitionsEnabledNetworks: (state: AppState) =>
-            state.wallet.settings.enabledNetworks,
-        selectDebugSettings,
-        // FW binaries on desktop are stored in "*/static/connect/data/firmware/*/*.bin" (see "connect-common" package)
-        selectDesktopBinDir: (state: AppState) => state.desktop?.paths?.binDir,
-        selectLanguage,
-        selectSelectedAccount: (state: AppState) => state.wallet.selectedAccount,
-        selectSelectedAccountStatus: (state: AppState) => state.wallet.selectedAccount.status,
-        selectIsWindowVisible,
-        selectTradingEnvironment: selectTradeServerEnvironment,
-        selectTradedAccountKeys,
-        selectIsViewOnlyByDefaultEnabled: (_: AppState) => true,
-        selectThpSettings: (state: AppState) => ({
-            appName: 'Trezor Suite', // NOTE: this is displayed on Trezor. not the same as manifest.appName
-            pairingMethods: ['CodeEntry'],
-            knownCredentials: state.thp?.credentials,
-        }),
-        selectAllowPrerelease: (state: AppState) => state.desktopUpdate?.allowPrerelease ?? false,
-    },
     actions: {
         setAccountAddMetadata: metadataActions.setAccountAdd,
         lockDevice,
         onModalCancel: closeModal,
         openModal,
+        changeNetworks,
     },
     actionTypes: {
         storageLoad: '@storage/load',

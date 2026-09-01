@@ -13,6 +13,8 @@ import { getApyBreakdown } from '@suite-common/wallet-utils';
 import { Banner, Column, Text } from '@trezor/components';
 
 import { FormattedCryptoAmount } from 'src/components/suite/FormattedCryptoAmount';
+import { useFetchFees } from 'src/components/wallet/Fees/CollapsibleFees/hooks/useFetchFees';
+import { useMessageSystemWrappedNative } from 'src/hooks/suite/useMessageSystemWrappedNative';
 
 import { useYieldDepositContext } from './useYieldDepositContext';
 import { YieldActionStep } from '../common/YieldActionStep';
@@ -20,6 +22,7 @@ import { YieldActionStepWarning } from '../common/YieldActionStepWarning';
 import { YieldApproveModal } from '../common/YieldApproveModal';
 import { YieldApproveStep } from '../common/YieldApproveStep';
 import { YieldApprovedAmountCard } from '../common/YieldApprovedAmountCard';
+import { YieldDisabledBanner } from '../common/YieldDisabledBanner';
 import { YieldFlowCompleteDeposit } from '../common/YieldFlowCompleteDeposit';
 import { YieldFlowStepList } from '../common/YieldFlowStepList';
 import { YieldWrapStep } from '../common/YieldWrapStep';
@@ -52,7 +55,6 @@ export const YieldDepositForm = () => {
         isApprovalInsufficient,
         isSubmittingApprove,
         isSubmittingAction,
-        setAmountInput,
         submitWrap,
         skipWrap,
         returnToWrapStep,
@@ -65,8 +67,18 @@ export const YieldDepositForm = () => {
         handleApproveSuccessTxid,
         openPendingTransaction,
         retryInitAllowance,
+        fiatToggle,
+        setMaxAmount,
         flow,
     } = useYieldDepositContext();
+
+    useFetchFees({ networkSymbol: account.symbol });
+
+    const {
+        isDisabled: isWrapDisabled,
+        content: wrapDisabledContent,
+        variant: wrapDisabledVariant,
+    } = useMessageSystemWrappedNative('wrap');
 
     const { approvalPendingTransaction, actionPendingTransaction: depositPendingTransaction } =
         splitYieldPendingTransaction(pendingTransaction, 'deposit');
@@ -74,24 +86,31 @@ export const YieldDepositForm = () => {
         pendingTransaction?.type === 'wrap' ? pendingTransaction : undefined;
 
     const nativeSymbol = getNetworkDisplaySymbol(account.symbol);
+    // Approximate fiat value shown under the amount input, from the token's own rate.
+    const approxFiat = {
+        symbol: token.networkSymbol,
+        tokenContractAddress: token.contractAddress,
+    };
     const sequence = getYieldFlowStepSequence({
         flowType: 'deposit',
         isWrappedNativeVault: flow.isWrappedNativeVault,
     });
+    const hasAllowanceError = allowanceStatus === 'error';
 
-    // Wrapping into the gas reserve is allowed (Max keeps it aside, but a manual entry may not),
-    // so recommend keeping it rather than blocking. `isAmountTooHigh` only fires above the full
-    // balance now, and `shouldRecommendWrapReserve` already excludes that over-balance case.
-    // Wrapping into the gas reserve is allowed (Max fills the full balance), so recommend keeping
-    // it rather than blocking. `isAmountTooHigh` only fires above the full balance, and
-    // `shouldRecommendWrapReserve` already excludes that over-balance case.
+    const shouldCheckWrapAmount = !isAmountInvalidDecimals && !!wrapPendingTransaction;
+    const shouldCheckApproveAmount = !isAmountInvalidDecimals && !!approvalPendingTransaction;
+    const shouldCheckDepositAmount = !isAmountInvalidDecimals && !!depositPendingTransaction;
+
+    // Wrapping into the gas reserve is allowed — Max keeps it aside only while the balance covers
+    // it — so recommend keeping it rather than blocking. `isAmountTooHigh` only fires above the
+    // full balance, and `shouldRecommendWrapReserve` already excludes that over-balance case.
     const showWrapReserveRecommendation =
         flow.currentStep === 'wrap' &&
-        !isAmountInvalidDecimals &&
+        shouldCheckWrapAmount &&
         shouldRecommendWrapReserve(liveAmount, account.formattedBalance);
 
     const renderWrapWarning = () => {
-        if (!isAmountInvalidDecimals && isAmountTooHigh) {
+        if (shouldCheckWrapAmount && isAmountTooHigh) {
             return <YieldActionStepWarning isInsufficientFunds />;
         }
 
@@ -174,6 +193,7 @@ export const YieldDepositForm = () => {
                 action: 'continue',
                 networkSymbol: token.networkSymbol,
                 vaultId: vault.id,
+                wrappedNative: flow.isWrappedNativeVault,
                 ...(apyBreakdown && { apyBreakdown }),
             },
         });
@@ -219,7 +239,8 @@ export const YieldDepositForm = () => {
             },
         });
 
-        setAmountInput(maxAmount);
+        // Fill the exact crypto max (and the rounded-down fiat display in fiat mode) without switching.
+        setMaxAmount(maxAmount);
     };
 
     const handleRetryAllowance = () => {
@@ -252,7 +273,7 @@ export const YieldDepositForm = () => {
                                 />
                             )}
 
-                            {allowanceStatus === 'error' && (
+                            {hasAllowanceError && (
                                 <Banner
                                     icon
                                     intent="warning"
@@ -288,27 +309,42 @@ export const YieldDepositForm = () => {
                                     />
                                 ),
                                 onEdit: returnToWrapStep,
+                                // Wrapping may be disabled remotely; skipping it stays available so a
+                                // user with a wrapped-token balance can still finish the deposit.
                                 content: () => (
-                                    <YieldWrapStep
-                                        token={token}
-                                        nativeSymbol={nativeSymbol}
-                                        availableAmount={account.formattedBalance}
-                                        receivingAmount={liveAmount || '0'}
-                                        isSubmitting={isSubmittingAction}
-                                        isSubmitDisabled={
-                                            isAmountEmpty ||
-                                            isAmountTooHigh ||
-                                            isAmountInvalidDecimals
-                                        }
-                                        warning={renderWrapWarning()}
-                                        pendingTransaction={wrapPendingTransaction}
-                                        onMaxClick={handleMaxClick}
-                                        onSubmit={handleOnWrap}
-                                        onSkip={
-                                            hasWrappedTokenBalance ? handleOnSkipWrap : undefined
-                                        }
-                                        onPendingTxClick={openPendingTransaction}
-                                    />
+                                    <Column gap={16}>
+                                        {isWrapDisabled && (
+                                            <YieldDisabledBanner
+                                                type="wrap"
+                                                content={wrapDisabledContent}
+                                                variant={wrapDisabledVariant}
+                                            />
+                                        )}
+                                        <YieldWrapStep
+                                            token={token}
+                                            nativeSymbol={nativeSymbol}
+                                            availableAmount={account.formattedBalance}
+                                            receivingAmount={liveAmount || '0'}
+                                            isSubmitting={isSubmittingAction}
+                                            isSubmitDisabled={
+                                                isWrapDisabled ||
+                                                isAmountEmpty ||
+                                                isAmountTooHigh ||
+                                                isAmountInvalidDecimals
+                                            }
+                                            warning={renderWrapWarning()}
+                                            pendingTransaction={wrapPendingTransaction}
+                                            fiatToggle={fiatToggle}
+                                            onMaxClick={handleMaxClick}
+                                            onSubmit={handleOnWrap}
+                                            onSkip={
+                                                hasWrappedTokenBalance
+                                                    ? handleOnSkipWrap
+                                                    : undefined
+                                            }
+                                            onPendingTxClick={openPendingTransaction}
+                                        />
+                                    </Column>
                                 ),
                             },
                             approve: {
@@ -328,37 +364,41 @@ export const YieldDepositForm = () => {
                                 content: () => (
                                     <YieldApproveStep
                                         token={token}
+                                        approxFiat={approxFiat}
                                         summaryValue={
                                             <FormattedCryptoAmount
                                                 value={maxAmount}
                                                 symbol={token.symbol}
+                                                isBalance
                                             />
                                         }
                                         approvedAmount={allowanceAmount || undefined}
                                         isApprovedAmountLoading={allowanceStatus === 'loading'}
-                                        hasApprovedAmountError={allowanceStatus === 'error'}
+                                        hasApprovedAmountError={hasAllowanceError}
                                         approvalAction={approvalAction}
                                         canRevokeAllowance={canRevokeAllowance}
                                         warning={
-                                            !isAmountInvalidDecimals && isAmountTooHigh ? (
-                                                <YieldActionStepWarning
-                                                    isApproveOverBalance={isAmountTooHigh}
-                                                />
+                                            shouldCheckApproveAmount && isAmountTooHigh ? (
+                                                <YieldActionStepWarning isApproveOverBalance />
                                             ) : undefined
                                         }
                                         isDisabled={
                                             isAmountEmpty ||
-                                            (flow.isWrappedNativeVault && isAmountTooHigh) ||
                                             isAmountInvalidDecimals ||
                                             isSubmittingApprove ||
                                             !!approvalPendingTransaction
                                         }
                                         isLoading={isSubmittingApprove}
                                         pendingApproveTransaction={approvalPendingTransaction}
+                                        fiatToggle={fiatToggle}
                                         onMaxClick={handleMaxClick}
                                         onApprovalSubmit={handleOnApprovalSubmit}
+                                        // An unreadable allowance coerces to '0', which would
+                                        // otherwise hide Skip just when it is the only way on.
                                         onSkip={
-                                            canRevokeAllowance ? handleOnSkipApprove : undefined
+                                            canRevokeAllowance || hasAllowanceError
+                                                ? handleOnSkipApprove
+                                                : undefined
                                         }
                                         onRevoke={handleOnRevoke}
                                         onPendingTxClick={openPendingTransaction}
@@ -370,7 +410,7 @@ export const YieldDepositForm = () => {
                                             token={token}
                                             amount={allowanceAmount}
                                             isLoading={allowanceStatus === 'loading'}
-                                            hasError={allowanceStatus === 'error'}
+                                            hasError={hasAllowanceError}
                                         />
                                     ),
                             },
@@ -380,14 +420,16 @@ export const YieldDepositForm = () => {
                                     <YieldActionStep
                                         flowType="deposit"
                                         token={token}
+                                        approxFiat={approxFiat}
                                         summaryValue={
                                             <FormattedCryptoAmount
                                                 value={maxAmount}
                                                 symbol={token.symbol}
+                                                isBalance
                                             />
                                         }
                                         warning={
-                                            !isAmountInvalidDecimals ? (
+                                            shouldCheckDepositAmount ? (
                                                 <YieldActionStepWarning
                                                     isInsufficientFunds={isAmountTooHigh}
                                                     isApprovalInsufficient={isApprovalInsufficient}
@@ -405,6 +447,7 @@ export const YieldDepositForm = () => {
                                         }
                                         isPending={isSubmittingAction}
                                         pendingTransaction={depositPendingTransaction}
+                                        fiatToggle={fiatToggle}
                                         onMaxClick={handleMaxClick}
                                         onSubmit={handleOnDeposit}
                                         onPendingTxClick={openPendingTransaction}

@@ -1,90 +1,79 @@
-import {
-    BottomSheetModal,
-    Box,
-    Button,
-    HStack,
-    PressableOpacity,
-    Text,
-    VStack,
-    useBottomSheetModal,
-} from '@suite-native/atoms';
-import { Icon } from '@suite-native/icons';
+import { type NetworkSymbol, getNetworkDisplaySymbol } from '@suite-common/wallet-config';
 import { Translation } from '@suite-native/intl';
-import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
+import { getWrappedNativeSymbol } from '@trezor/network-ethereum-suite-common';
 
-import { type EarnModalStep, EarnModalStepIndicator } from './EarnModalStepIndicator';
+import { type YieldFlowStep, YieldFlowStepCard } from './YieldFlowStepCard';
 
-const stepCardStyle = prepareNativeStyle(utils => ({
-    width: '100%',
-    backgroundColor: utils.colors.surfaceFillRaised,
-    borderTopWidth: utils.borders.widths.small,
-    borderBottomWidth: utils.borders.widths.small,
-    borderColor: utils.colors.borderNeutral,
-    paddingHorizontal: utils.spacings.sp16,
-    paddingVertical: utils.spacings.sp12,
-}));
+type YieldDepositStepId = 'wrap' | 'approval' | 'deposit';
 
-const bottomSheetFooterStyle = prepareNativeStyle(utils => ({
-    paddingHorizontal: utils.spacings.sp24,
-    paddingBottom: utils.spacings.sp16,
-}));
+const getWrapStep = (
+    networkSymbol: NetworkSymbol,
+    isSkipped: boolean,
+): YieldFlowStep<YieldDepositStepId> => ({
+    id: 'wrap',
+    isSkipped,
+    label: (
+        <Translation
+            id="earn.yieldDepositFlowScreen.wrapStepTitle"
+            values={{
+                nativeSymbol: getNetworkDisplaySymbol(networkSymbol),
+                tokenSymbol: getWrappedNativeSymbol(networkSymbol) ?? '',
+            }}
+        />
+    ),
+});
 
-const steps = [
-    {
-        id: 'approval',
-        label: <Translation id="earn.yieldDepositFlowScreen.approvalStepTitle" />,
-    },
-    {
-        id: 'deposit',
-        label: <Translation id="earn.yieldDepositFlowScreen.depositTransactionStepTitle" />,
-    },
-] as const satisfies EarnModalStep[];
-
-type YieldDepositStepIndex = 0 | 1;
+const getBaseSteps = (isApprovalSkipped: boolean) =>
+    [
+        {
+            id: 'approval',
+            isSkipped: isApprovalSkipped,
+            label: <Translation id="earn.yieldDepositFlowScreen.approvalStepTitle" />,
+        },
+        {
+            id: 'deposit',
+            label: <Translation id="earn.yieldDepositFlowScreen.depositTransactionStepTitle" />,
+        },
+    ] as const satisfies YieldFlowStep<YieldDepositStepId>[];
 
 type YieldDepositStepCardProps = {
-    currentStepIndex: YieldDepositStepIndex;
-};
+    /** Set once the approve step was resolved without approving, i.e. the allowance covered it. */
+    isApprovalStepSkipped?: boolean;
+    /** Set once the wrap step was resolved without wrapping anything. */
+    isWrapStepSkipped?: boolean;
+    networkSymbol: NetworkSymbol;
+    /** Handlers returning to an already finished step, keyed by the step it belongs to. */
+    onEditStep?: Partial<Record<YieldDepositStepId, () => void>>;
+} & (
+    | {
+          currentStepId: 'wrap';
+          hasWrapStep: true;
+      }
+    | {
+          currentStepId: Exclude<YieldDepositStepId, 'wrap'>;
+          hasWrapStep?: boolean;
+      }
+);
 
-export const YieldDepositStepCard = ({ currentStepIndex }: YieldDepositStepCardProps) => {
-    const { applyStyle } = useNativeStyles();
-    const { bottomSheetRef, openModal, closeModal } = useBottomSheetModal();
-    const currentStep = steps[currentStepIndex];
-
-    return (
-        <>
-            <PressableOpacity style={applyStyle(stepCardStyle)} onPress={openModal}>
-                <HStack spacing="sp16" alignItems="center">
-                    <VStack flex={1} spacing="sp2">
-                        <Text variant="body-sm">
-                            <Translation
-                                id="earn.yieldDepositFlowScreen.step"
-                                values={{
-                                    stepNumber: currentStepIndex + 1,
-                                    stepCount: steps.length,
-                                }}
-                            />
-                        </Text>
-                        <Text variant="body-md-strong">{currentStep.label}</Text>
-                    </VStack>
-                    <Icon name="caretUpDown" size="large" color="contentPrimary" />
-                </HStack>
-            </PressableOpacity>
-
-            <BottomSheetModal
-                ref={bottomSheetRef}
-                title={<Translation id="earn.yieldDepositFlowScreen.modalTitle" />}
-                footer={
-                    <Box style={applyStyle(bottomSheetFooterStyle)}>
-                        <Button onPress={closeModal}>
-                            <Translation id="generic.buttons.gotIt" />
-                        </Button>
-                    </Box>
-                }
-                onClose={closeModal}
-            >
-                <EarnModalStepIndicator currentStepIndex={currentStepIndex} steps={steps} />
-            </BottomSheetModal>
-        </>
-    );
-};
+export const YieldDepositStepCard = ({
+    currentStepId,
+    hasWrapStep = false,
+    isApprovalStepSkipped = false,
+    isWrapStepSkipped = false,
+    networkSymbol,
+    onEditStep,
+}: YieldDepositStepCardProps) => (
+    <YieldFlowStepCard
+        currentStepId={currentStepId}
+        modalTitle="earn.yieldDepositFlowScreen.modalTitle"
+        onEditStep={onEditStep}
+        steps={
+            hasWrapStep
+                ? [
+                      getWrapStep(networkSymbol, isWrapStepSkipped),
+                      ...getBaseSteps(isApprovalStepSkipped),
+                  ]
+                : getBaseSteps(isApprovalStepSkipped)
+        }
+    />
+);

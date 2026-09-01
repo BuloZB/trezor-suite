@@ -5,6 +5,8 @@ import { type DeviceModelInternal } from '@trezor/device-utils';
 
 export type { NetworkSymbol };
 
+export const asNetworkSymbol = (symbol: string): NetworkSymbol => symbol as NetworkSymbol;
+
 /**
  * Used for some edge cases where extension of NetworkSymbol is necessary.
  * Autocomplete is working as expected but can be passed any string.
@@ -12,16 +14,10 @@ export type { NetworkSymbol };
 export type NetworkSymbolExtended = NetworkSymbol | (string & {});
 
 export type NetworkType =
-    | 'bitcoin'
-    | 'ethereum'
-    | 'ripple'
-    | 'cardano'
-    | 'solana'
-    | 'stellar'
-    | 'tron';
+    'bitcoin' | 'ethereum' | 'ripple' | 'cardano' | 'solana' | 'stellar' | 'tron';
 
 type UtilityAccountType = 'normal' | 'imported' | 'placeholder'; // reserved accountTypes to stand in for a real accountType
-type RealAccountType = 'legacy' | 'segwit' | 'coinjoin' | 'taproot' | 'ledger';
+type RealAccountType = 'legacy' | 'segwit' | 'coinjoin' | 'taproot' | 'ledger' | 'root';
 export type AccountType = UtilityAccountType | RealAccountType;
 
 export const TREZOR_CONNECT_BACKENDS = [

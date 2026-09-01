@@ -21,7 +21,7 @@ import {
     type YieldPendingTransactionState,
     type YieldPositionFlowType,
 } from './stablecoinYieldTypes';
-import { getNextYieldFlowStep, getYieldFlowStepSequence } from './stablecoinYieldUtils';
+import { getNextYieldFlowStep, getYieldFlowStepSequence } from './utils/stablecoinYieldUtils';
 import { transactionsActions } from '../transactions/transactionsActions';
 
 // Message ids must exist in the desktop `suite/intl` messages — the desktop app renders
@@ -50,6 +50,11 @@ export type StablecoinYieldActionReviewState =
           type: 'claim';
           rewards: YieldFlowCompleteRewardItem[];
           unsignedTransaction: StablecoinYieldClaimUnsignedTransaction;
+      }
+    | {
+          type: WrappedNativeStepId;
+          amount: string;
+          unsignedTransaction: string;
       };
 
 type StablecoinYieldStoreActionReviewDataPayload =
@@ -81,12 +86,21 @@ export type StablecoinYieldTxReviewState = {
 export type StablecoinYieldSessionState = {
     step: YieldFlowStepId;
     isWrappedNativeVault: boolean;
+    /**
+     * Set once the session broadcasts a transaction and never cleared while the flow runs.
+     * `action.pendingTransaction` only marks a transaction still in flight — every resolution
+     * (`completeApproval`, `resolveWrappedNativeStep`, `completeAction`, …) clears it — so this is
+     * what tells a session that already moved on-chain apart from an untouched one.
+     */
+    hasBroadcastTransaction: boolean;
     error: StablecoinYieldTranslationKey | null;
     approval: {
         allowanceAmount: string | null;
         modalState: YieldApproveModalState | null;
         isSubmitting: boolean;
         allowanceStatus: YieldAllowanceStatus;
+        /** Set when the step was left without approving, i.e. the allowance already covered it. */
+        isSkipped: boolean;
         isModifyMode: boolean;
         isRevokeRequired: boolean;
     };
@@ -124,11 +138,13 @@ type StablecoinYieldSessionActionPayload = {
 export const initialStablecoinYieldSessionState: StablecoinYieldSessionState = {
     step: 'approve',
     isWrappedNativeVault: false,
+    hasBroadcastTransaction: false,
     error: null,
     approval: {
         allowanceAmount: null,
         modalState: null,
         isSubmitting: false,
+        isSkipped: false,
         allowanceStatus: 'idle',
         isModifyMode: false,
         isRevokeRequired: false,
@@ -185,6 +201,24 @@ const createInitialStablecoinYieldSessionState = (
 
 export const getStablecoinYieldSessionKey = (flowKey: string) => `yield-session:${flowKey}`;
 
+/**
+ * Whether re-entering the flow should pick this session up instead of starting it over.
+ *
+ * A session becomes resumable the moment it broadcasts a transaction and stays that way until the
+ * flow completes: leaving the page must not throw away on-chain progress the user cannot redo (a
+ * granted approval, a finished wrap, an amount already withdrawn and waiting to be unwrapped), and
+ * a transaction still in flight has to stay tracked — the pending panel, the duplicate-submit
+ * guard, the completion into the next step and `replaceTransaction` following an RBF all read it.
+ */
+export const isStablecoinYieldSessionResumable = (
+    session: StablecoinYieldSessionState | undefined,
+): boolean => {
+    if (!session) return false;
+    if (session.action.pendingTransaction) return true;
+
+    return session.hasBroadcastTransaction && session.step !== 'complete';
+};
+
 const withSession = (
     state: StablecoinYieldState,
     { flowType, flowKey }: StablecoinYieldSessionActionPayload,
@@ -228,6 +262,42 @@ const stablecoinYieldSlice = createSlice({
                 );
             }
         },
+        /** Opens the flow: resumes a session that is still mid-flow, otherwise starts a fresh one. */
+        enterSession(
+            state: StablecoinYieldState,
+            action: PayloadAction<
+                StablecoinYieldSessionActionPayload & {
+                    isWrappedNativeVault?: boolean;
+                    hasWrappedTokenBalance?: boolean;
+                }
+            >,
+        ) {
+            const { flowType, flowKey, isWrappedNativeVault, hasWrappedTokenBalance } =
+                action.payload;
+
+            if (!isSafeObjectKey(flowKey)) {
+                return;
+            }
+
+            const sessionKey = getStablecoinYieldSessionKey(flowKey);
+
+            if (isStablecoinYieldSessionResumable(state[flowType][sessionKey])) {
+                return;
+            }
+
+            const session = createInitialStablecoinYieldSessionState(
+                flowType,
+                isWrappedNativeVault,
+            );
+
+            // Only a wrapped-native deposit opens on the wrap step, and there is nothing to wrap
+            // when the wrapped token is already held — mirrors `resolveWrappedNativeStep`.
+            if (session.step === 'wrap' && hasWrappedTokenBalance) {
+                session.step = getNextYieldFlowStep(flowType, 'wrap', session.isWrappedNativeVault);
+            }
+
+            state[flowType][sessionKey] = session;
+        },
         disposeSession(
             state: StablecoinYieldState,
             action: PayloadAction<StablecoinYieldSessionActionPayload>,
@@ -238,7 +308,16 @@ const stablecoinYieldSlice = createSlice({
                 return;
             }
 
-            delete state[flowType][getStablecoinYieldSessionKey(flowKey)];
+            const sessionKey = getStablecoinYieldSessionKey(flowKey);
+
+            // A session that is mid-flow must survive its page unmounting so re-entering the flow
+            // resumes it (see `isStablecoinYieldSessionResumable`); it is dropped once the flow
+            // completes, or never stored beyond the page when nothing was broadcast.
+            if (isStablecoinYieldSessionResumable(state[flowType][sessionKey])) {
+                return;
+            }
+
+            delete state[flowType][sessionKey];
         },
         resetSession(
             state: StablecoinYieldState,
@@ -399,6 +478,7 @@ const stablecoinYieldSlice = createSlice({
                 session.approval.isModifyMode = false;
                 session.approval.modalState = null;
                 session.approval.isRevokeRequired = false;
+                session.approval.isSkipped = false;
                 session.action.amount = action.payload.amount;
                 session.action.pendingTransaction = null;
                 session.action.review = null;
@@ -432,6 +512,7 @@ const stablecoinYieldSlice = createSlice({
                 // with an amount above the current allowance would slip past it.
                 session.approval.isModifyMode = false;
                 session.approval.isRevokeRequired = false;
+                session.approval.isSkipped = true;
                 session.step = getNextYieldFlowStep(
                     action.payload.flowType,
                     'approve',
@@ -532,9 +613,6 @@ const stablecoinYieldSlice = createSlice({
                 session.action.isSubmitting = false;
             });
         },
-        // Unlike `startSubmittingAction`, a wrap/unwrap submit must not touch `action.amount` —
-        // that field holds the deposit/withdraw amount the later steps default to. The shared
-        // `finishSubmittingAction` closes both.
         startSubmittingWrappedNative(
             state: StablecoinYieldState,
             action: PayloadAction<StablecoinYieldSessionActionPayload>,
@@ -568,6 +646,24 @@ const stablecoinYieldSlice = createSlice({
                 };
             });
         },
+        storeWrappedNativeReviewData(
+            state: StablecoinYieldState,
+            action: PayloadAction<
+                StablecoinYieldSessionActionPayload & {
+                    step: WrappedNativeStepId;
+                    amount: string;
+                    unsignedTransaction: string;
+                }
+            >,
+        ) {
+            withSession(state, action.payload, session => {
+                session.action.review = {
+                    type: action.payload.step,
+                    amount: action.payload.amount,
+                    unsignedTransaction: action.payload.unsignedTransaction,
+                };
+            });
+        },
         setPendingTx(
             state: StablecoinYieldState,
             action: PayloadAction<
@@ -578,6 +674,7 @@ const stablecoinYieldSlice = createSlice({
             >,
         ) {
             withSession(state, action.payload, session => {
+                session.hasBroadcastTransaction = true;
                 session.action.pendingTransaction = action.payload.tx;
                 session.action.pendingReceiptAmount =
                     action.payload.receiptAmount ?? session.action.pendingReceiptAmount;

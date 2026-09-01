@@ -6,7 +6,10 @@ import { type TimerId } from '@trezor/type-utils';
 import { stakeDataActions } from './stakeDataSlice';
 import { type StakeRootState } from './stakeReducerTypes';
 import { selectStake } from './stakeSelectors';
-import { selectEnabledNetworks } from '../settings/walletSettingsReducer';
+import {
+    type WalletSettingsRootState,
+    selectEnabledNetworks,
+} from '../settings/walletSettingsReducer';
 
 const STAKE_MODULE = '@common/wallet-core/stake';
 
@@ -22,7 +25,9 @@ function stakingDataNeedsRefetch(data: StakeRootState['wallet']['stake']['data']
     return shouldRefetch;
 }
 
-export const initStakeDataThunk = createThunk(
+export type InitStakeDataThunkState = StakeRootState & WalletSettingsRootState;
+
+export const initStakeDataThunk = createThunk<void, void, { state: InitStakeDataThunkState }>(
     `${STAKE_MODULE}/initStakeDataThunk`,
     async (_, { getState, dispatch }) => {
         const enabledNetworks = selectEnabledNetworks(getState());
@@ -76,17 +81,20 @@ export const initStakeDataThunk = createThunk(
 
 let stakeDataTimeout: TimerId | null = null;
 
-export const periodicCheckStakeDataThunk = createThunk(
-    `${STAKE_MODULE}/periodicCheckStakeDataThunk`,
-    (_, { dispatch }) => {
-        if (stakeDataTimeout) {
-            clearTimeout(stakeDataTimeout);
-        }
+type PeriodicCheckStakeDataThunkState = InitStakeDataThunkState;
 
-        stakeDataTimeout = setTimeout(() => {
-            dispatch(periodicCheckStakeDataThunk());
-        }, 60_000);
+export const periodicCheckStakeDataThunk = createThunk<
+    unknown,
+    void,
+    { state: PeriodicCheckStakeDataThunkState }
+>(`${STAKE_MODULE}/periodicCheckStakeDataThunk`, (_, { dispatch }) => {
+    if (stakeDataTimeout) {
+        clearTimeout(stakeDataTimeout);
+    }
 
-        return dispatch(initStakeDataThunk());
-    },
-);
+    stakeDataTimeout = setTimeout(() => {
+        dispatch(periodicCheckStakeDataThunk());
+    }, 60_000);
+
+    return dispatch(initStakeDataThunk());
+});

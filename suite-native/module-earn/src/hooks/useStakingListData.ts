@@ -8,6 +8,7 @@ import {
     getAccountTotalStakingBalance,
     isCardanoStakedWithFiveBinaries,
     isStakingSymbol,
+    sortByCoin,
 } from '@suite-common/wallet-utils';
 import { selectAreTestnetsEnabled } from '@suite-native/settings';
 
@@ -16,6 +17,7 @@ import {
     type EarnStakingProvidersInfoListItem,
     type StakingEarnItem,
 } from '../types';
+import { hasAccountActiveStaking } from '../utils/hasAccountActiveStaking';
 
 export const STAKING_PROVIDERS_INFO_LIST_ITEM = {
     id: 'staking-providers-info',
@@ -33,7 +35,7 @@ export const useStakingListData = () => {
     const areTestnetsEnabled = useSelector(selectAreTestnetsEnabled);
 
     return useMemo<UseStakingListDataReturn>(() => {
-        const stakingAccounts = accounts.filter(acc => isStakingSymbol(acc.symbol));
+        const stakingAccounts = sortByCoin(accounts.filter(acc => isStakingSymbol(acc.symbol)));
         const stakingSymbols = areTestnetsEnabled ? STAKING_SYMBOLS : PROD_STAKING_SYMBOLS;
 
         const accountStakedWithFiveBinaries = stakingAccounts.find(
@@ -58,11 +60,11 @@ export const useStakingListData = () => {
                     return;
                 }
 
-                const stakedAmount = getAccountTotalStakingBalance(account);
-
-                if (stakedAmount === null || stakedAmount === '0') {
+                if (!hasAccountActiveStaking(account)) {
                     return;
                 }
+
+                const stakedAmount = getAccountTotalStakingBalance(account) ?? '0';
 
                 activeItems.push({
                     id: `${symbol}-${account.key}`,

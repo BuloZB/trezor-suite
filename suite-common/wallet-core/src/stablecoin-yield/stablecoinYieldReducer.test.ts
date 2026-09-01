@@ -1,3 +1,4 @@
+import { asNetworkSymbol } from '@suite-common/wallet-config';
 import type { FormState, PrecomposedTransactionFinal } from '@suite-common/wallet-types';
 import { mockAccountKey } from '@suite-common/wallet-types/mocks';
 
@@ -9,6 +10,8 @@ import {
     stablecoinYieldReducer,
 } from './stablecoinYieldReducer';
 import type { YieldFlowType, YieldPendingTransactionState } from './stablecoinYieldTypes';
+
+const ethSymbol = asNetworkSymbol('eth');
 
 const FLOW_KEY = 'account-key:yield-id:0xtoken';
 
@@ -22,6 +25,24 @@ const initSession = (flowType: YieldFlowType, isWrappedNativeVault?: boolean) =>
             flowType,
             flowKey: FLOW_KEY,
             isWrappedNativeVault,
+        }),
+    );
+
+/** A deposit session on the action step, its approve transaction broadcast and confirmed. */
+const approveConfirmed = () =>
+    stablecoinYieldReducer(
+        stablecoinYieldReducer(
+            initSession('deposit'),
+            stablecoinYieldActions.setPendingTx({
+                flowType: 'deposit',
+                flowKey: FLOW_KEY,
+                tx: { type: 'approve', txid: '0xapprovetxid', amount: '100' },
+            }),
+        ),
+        stablecoinYieldActions.completeApproval({
+            flowType: 'deposit',
+            flowKey: FLOW_KEY,
+            amount: '100',
         }),
     );
 
@@ -90,6 +111,58 @@ describe('stablecoinYieldReducer', () => {
             );
 
             expect(getSession(state, 'deposit')?.action.amount).toBeNull();
+        });
+
+        it('stores the wrap step review on the session', () => {
+            const state = stablecoinYieldReducer(
+                initSession('deposit', true),
+                stablecoinYieldActions.storeWrappedNativeReviewData({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                    step: 'wrap',
+                    amount: '0.2',
+                    unsignedTransaction: '{"to":"0xweth"}',
+                }),
+            );
+
+            expect(getSession(state, 'deposit')?.action.review).toEqual({
+                type: 'wrap',
+                amount: '0.2',
+                unsignedTransaction: '{"to":"0xweth"}',
+            });
+        });
+
+        it('marks the approve step as skipped when it is left without approving', () => {
+            const state = stablecoinYieldReducer(
+                initSession('deposit'),
+                stablecoinYieldActions.skipApprovalStep({ flowType: 'deposit', flowKey: FLOW_KEY }),
+            );
+
+            expect(getSession(state, 'deposit')?.approval.isSkipped).toBe(true);
+        });
+
+        it('clears the skipped approve step once an approval completes', () => {
+            const skipped = stablecoinYieldReducer(
+                initSession('deposit'),
+                stablecoinYieldActions.skipApprovalStep({ flowType: 'deposit', flowKey: FLOW_KEY }),
+            );
+            const returned = stablecoinYieldReducer(
+                skipped,
+                stablecoinYieldActions.enterModifyMode({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                }),
+            );
+            const approved = stablecoinYieldReducer(
+                returned,
+                stablecoinYieldActions.completeApproval({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                    amount: '10',
+                }),
+            );
+
+            expect(getSession(approved, 'deposit')?.approval.isSkipped).toBe(false);
         });
 
         it('does not regress once the wrap step has been left', () => {
@@ -377,15 +450,201 @@ describe('stablecoinYieldReducer', () => {
         });
     });
 
+    describe('session lifecycle', () => {
+        it('disposes a session with no pending transaction', () => {
+            const state = stablecoinYieldReducer(
+                initSession('deposit'),
+                stablecoinYieldActions.disposeSession({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                }),
+            );
+
+            expect(getSession(state, 'deposit')).toBeUndefined();
+        });
+
+        it('keeps a session whose transaction is still pending when disposed', () => {
+            const pendingTransaction: YieldPendingTransactionState = {
+                type: 'deposit',
+                txid: '0xpendingtxid',
+                amount: '100',
+            };
+            const state = stablecoinYieldReducer(
+                stablecoinYieldReducer(
+                    initSession('deposit'),
+                    stablecoinYieldActions.setPendingTx({
+                        flowType: 'deposit',
+                        flowKey: FLOW_KEY,
+                        tx: pendingTransaction,
+                    }),
+                ),
+                stablecoinYieldActions.disposeSession({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                }),
+            );
+
+            expect(getSession(state, 'deposit')?.action.pendingTransaction).toEqual(
+                pendingTransaction,
+            );
+        });
+
+        it('resets a session even while its transaction is still pending', () => {
+            const state = stablecoinYieldReducer(
+                stablecoinYieldReducer(
+                    initSession('deposit'),
+                    stablecoinYieldActions.setPendingTx({
+                        flowType: 'deposit',
+                        flowKey: FLOW_KEY,
+                        tx: { type: 'deposit', txid: '0xpendingtxid', amount: '100' },
+                    }),
+                ),
+                stablecoinYieldActions.resetSession({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                }),
+            );
+
+            expect(getSession(state, 'deposit')?.action.pendingTransaction).toBeNull();
+        });
+
+        it('keeps a session whose approval already confirmed when disposed', () => {
+            const approved = approveConfirmed();
+
+            expect(getSession(approved, 'deposit')?.action.pendingTransaction).toBeNull();
+
+            const state = stablecoinYieldReducer(
+                approved,
+                stablecoinYieldActions.disposeSession({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                }),
+            );
+
+            expect(getSession(state, 'deposit')?.step).toBe('action');
+            expect(getSession(state, 'deposit')?.action.amount).toBe('100');
+        });
+
+        it('disposes a session whose flow completed', () => {
+            const state = stablecoinYieldReducer(
+                stablecoinYieldReducer(
+                    stablecoinYieldReducer(
+                        approveConfirmed(),
+                        stablecoinYieldActions.setPendingTx({
+                            flowType: 'deposit',
+                            flowKey: FLOW_KEY,
+                            tx: { type: 'deposit', txid: '0xdeposittxid', amount: '100' },
+                        }),
+                    ),
+                    stablecoinYieldActions.completeAction({
+                        flowType: 'deposit',
+                        flowKey: FLOW_KEY,
+                        amount: '100',
+                    }),
+                ),
+                stablecoinYieldActions.disposeSession({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                }),
+            );
+
+            expect(getSession(state, 'deposit')).toBeUndefined();
+        });
+
+        it('resumes a mid-flow session when the flow is entered again', () => {
+            const state = stablecoinYieldReducer(
+                approveConfirmed(),
+                stablecoinYieldActions.enterSession({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                }),
+            );
+
+            expect(getSession(state, 'deposit')?.step).toBe('action');
+            expect(getSession(state, 'deposit')?.action.amount).toBe('100');
+        });
+
+        it('resumes a session whose transaction is still pending when the flow is entered again', () => {
+            const state = stablecoinYieldReducer(
+                stablecoinYieldReducer(
+                    initSession('deposit'),
+                    stablecoinYieldActions.setPendingTx({
+                        flowType: 'deposit',
+                        flowKey: FLOW_KEY,
+                        tx: { type: 'deposit', txid: '0xpendingtxid', amount: '100' },
+                    }),
+                ),
+                stablecoinYieldActions.enterSession({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                }),
+            );
+
+            expect(getSession(state, 'deposit')?.action.pendingTransaction).toEqual({
+                type: 'deposit',
+                txid: '0xpendingtxid',
+                amount: '100',
+            });
+        });
+
+        it('starts a session that never broadcast anything over when the flow is entered again', () => {
+            const state = stablecoinYieldReducer(
+                stablecoinYieldReducer(
+                    initSession('deposit'),
+                    stablecoinYieldActions.enterModifyMode({
+                        flowType: 'deposit',
+                        flowKey: FLOW_KEY,
+                        amount: '100',
+                    }),
+                ),
+                stablecoinYieldActions.enterSession({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                }),
+            );
+
+            expect(getSession(state, 'deposit')?.step).toBe('approve');
+            expect(getSession(state, 'deposit')?.action.amount).toBeNull();
+            expect(getSession(state, 'deposit')?.approval.isModifyMode).toBe(false);
+        });
+
+        it('opens a fresh wrapped-native deposit past the wrap step when the wrapped token is held', () => {
+            const state = stablecoinYieldReducer(
+                initialStablecoinYieldState,
+                stablecoinYieldActions.enterSession({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                    isWrappedNativeVault: true,
+                    hasWrappedTokenBalance: true,
+                }),
+            );
+
+            expect(getSession(state, 'deposit')?.step).toBe('approve');
+        });
+
+        it('opens a fresh wrapped-native deposit on the wrap step without a wrapped balance', () => {
+            const state = stablecoinYieldReducer(
+                initialStablecoinYieldState,
+                stablecoinYieldActions.enterSession({
+                    flowType: 'deposit',
+                    flowKey: FLOW_KEY,
+                    isWrappedNativeVault: true,
+                }),
+            );
+
+            expect(getSession(state, 'deposit')?.step).toBe('wrap');
+        });
+    });
+
     describe('txReview', () => {
         const ACCOUNT_KEY = mockAccountKey({
-            symbol: 'eth',
+            symbol: ethSymbol,
             descriptor: '0xfffffffffffffffffffffffffffffffffffffffe',
             deviceStaticSessionId: '1stTestnetAddress@device_id:0',
         });
         const precomposedForm = { selectedFee: 'custom' } as unknown as FormState;
         const precomposedTx = { type: 'final', fee: '1' } as unknown as PrecomposedTransactionFinal;
-        const serializedTx = { tx: '0xsignedtx', symbol: 'eth' } as const;
+        const serializedTx = { tx: '0xsignedtx', symbol: ethSymbol } as const;
 
         const storePrecomposed = (state: StablecoinYieldState) =>
             stablecoinYieldReducer(
@@ -429,6 +688,93 @@ describe('stablecoinYieldReducer', () => {
                 flowType: undefined,
                 createdTimestamp: undefined,
             });
+        });
+    });
+
+    describe('allowance lifecycle', () => {
+        const sessionPayload = { flowType: 'deposit', flowKey: FLOW_KEY } as const;
+
+        const loadAllowance = (state: StablecoinYieldState, amount: string) =>
+            stablecoinYieldReducer(
+                state,
+                stablecoinYieldActions.setInitializedAllowance({ ...sessionPayload, amount }),
+            );
+
+        it('stores the read allowance', () => {
+            const state = loadAllowance(initSession('deposit'), '100');
+
+            expect(getSession(state, 'deposit')?.approval.allowanceAmount).toBe('100');
+            expect(getSession(state, 'deposit')?.approval.allowanceStatus).toBe('loaded');
+        });
+
+        it('clears the amount when the read fails', () => {
+            const state = stablecoinYieldReducer(
+                loadAllowance(initSession('deposit'), '100'),
+                stablecoinYieldActions.setAllowanceError(sessionPayload),
+            );
+
+            expect(getSession(state, 'deposit')?.approval.allowanceAmount).toBeNull();
+            expect(getSession(state, 'deposit')?.approval.allowanceStatus).toBe('error');
+        });
+
+        it('keeps the last amount when the allowance is only invalidated', () => {
+            const state = stablecoinYieldReducer(
+                loadAllowance(initSession('deposit'), '100'),
+                stablecoinYieldActions.invalidateAllowance(sessionPayload),
+            );
+
+            expect(getSession(state, 'deposit')?.approval.allowanceAmount).toBe('100');
+            expect(getSession(state, 'deposit')?.approval.allowanceStatus).toBe('idle');
+        });
+
+        it('reports a zero allowance as loaded after a revoke', () => {
+            const state = stablecoinYieldReducer(
+                loadAllowance(initSession('deposit'), '100'),
+                stablecoinYieldActions.revokeSuccess(sessionPayload),
+            );
+
+            expect(getSession(state, 'deposit')?.approval.allowanceAmount).toBe('0');
+            expect(getSession(state, 'deposit')?.approval.allowanceStatus).toBe('loaded');
+        });
+
+        // A confirmed approval dispatches these two back to back — the state the read must catch.
+        it('leaves a wrapped-native deposit on the action step with an idle allowance', () => {
+            const state = stablecoinYieldReducer(
+                stablecoinYieldReducer(
+                    loadAllowance(initSession('deposit', true), '100'),
+                    stablecoinYieldActions.resolveWrappedNativeStep({
+                        ...sessionPayload,
+                        step: 'wrap',
+                    }),
+                ),
+                stablecoinYieldActions.completeApproval({ ...sessionPayload, amount: '0.2' }),
+            );
+            const invalidated = stablecoinYieldReducer(
+                state,
+                stablecoinYieldActions.invalidateAllowance(sessionPayload),
+            );
+
+            expect(getSession(invalidated, 'deposit')?.step).toBe('action');
+            expect(getSession(invalidated, 'deposit')?.approval.allowanceStatus).toBe('idle');
+        });
+
+        it('refuses to return to the wrap step while the allowance is being read', () => {
+            const state = stablecoinYieldReducer(
+                stablecoinYieldReducer(
+                    initSession('deposit', true),
+                    stablecoinYieldActions.resolveWrappedNativeStep({
+                        ...sessionPayload,
+                        step: 'wrap',
+                    }),
+                ),
+                stablecoinYieldActions.startInitializingAllowance(sessionPayload),
+            );
+            const returned = stablecoinYieldReducer(
+                state,
+                stablecoinYieldActions.returnToWrapStep(sessionPayload),
+            );
+
+            expect(getSession(returned, 'deposit')?.step).toBe('approve');
         });
     });
 });

@@ -283,7 +283,16 @@ export const networks = {
         decimals: 18,
         testnet: false,
         explorer: getExplorerUrls('https://robinscan.io', 'ethereum'),
-        features: ['rbf', 'sign-verify', 'tokens', 'nfts', 'coin-definitions', 'eip1559', 'graph'],
+        features: [
+            'rbf',
+            'sign-verify',
+            'tokens',
+            'nfts',
+            'coin-definitions',
+            'eip1559',
+            'mev-protection',
+            'graph',
+        ],
         backendOptions: [{ type: 'blockbook', isExternalBackend: true }, { type: 'evm-rpc' }],
         accountTypes: {
             ledger: {
@@ -392,6 +401,12 @@ export const networks = {
                 // bip44Change - Ledger Live
                 accountType: 'ledger',
                 bip43Path: "m/44'/501'/i'",
+                isDebugOnlyAccountType: true,
+            },
+            root: {
+                // root path - single account used by some wallets
+                accountType: 'root',
+                bip43Path: "m/44'/501'",
                 isDebugOnlyAccountType: true,
             },
         },
@@ -733,7 +748,14 @@ export const networks = {
             [DeviceModelInternal.T3W1]: '2.0.0',
         },
         backendOptions: [{ type: 'solana', isExternalBackend: true }],
-        accountTypes: {},
+        accountTypes: {
+            root: {
+                // root path - single account used by some wallets
+                accountType: 'root',
+                bip43Path: "m/44'/501'",
+                isDebugOnlyAccountType: true,
+            },
+        },
         coingeckoId: undefined,
         tradeCryptoId: undefined,
         caipId: 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1',
@@ -795,6 +817,9 @@ type NetworksConfigs = typeof networks;
 export type NetworkConfig = NetworksConfigs[keyof NetworksConfigs];
 
 export type NetworkConfigWithoutTestnets = Exclude<NetworkConfig, { testnet: true }>;
+
+export const toNetworkSymbolNonTestnet = (symbol: string): NetworkConfigWithoutTestnets['symbol'] =>
+    symbol as NetworkConfigWithoutTestnets['symbol'];
 
 export type NetworkDisplaySymbol = NetworkConfig['displaySymbol'];
 

@@ -12,6 +12,7 @@ import {
     getTimeFrameForHistoryHours,
 } from '@suite-common/graph';
 import { createThunk } from '@suite-common/redux-utils';
+import { type FetchTransactionsFromNowUntilTimestampThunkState } from '@suite-common/wallet-core';
 
 import { accountDetailGraphAtoms } from './accountDetailGraphAtoms';
 import { type GraphInstanceId, isPortfolioGraphInstanceId } from './graphInstances';
@@ -123,10 +124,12 @@ const fetchGraphDataToAtoms = async ({
     return { status: RefetchGraphThunkStatus.Fetched };
 };
 
+type RefetchGraphThunkState = FetchTransactionsFromNowUntilTimestampThunkState;
+
 export const refetchGraphThunk = createThunk<
     RefetchGraphThunkResult,
     RefetchGraphThunkParams,
-    { rejectValue: string }
+    { rejectValue: string; state: RefetchGraphThunkState }
 >(`${GRAPH_MODULE_PREFIX}/refetchGraph`, async (params, { dispatch, rejectWithValue }) => {
     const {
         instanceId,

@@ -1,4 +1,4 @@
-import { isAnyOf } from '@reduxjs/toolkit';
+import { type Dispatch, type UnknownAction, isAnyOf } from '@reduxjs/toolkit';
 import type { MiddlewareAPI } from 'redux';
 
 import { selectSelectedAccountKey } from '@suite/account';
@@ -7,26 +7,31 @@ import { deviceActions } from '@suite-common/device';
 import { getTxsPerPage } from '@suite-common/suite-utils';
 import { tradingActions } from '@suite-common/trading';
 import {
+    DEFAULT_VOTING_OPTION,
     WALLET_SETTINGS,
     accountsActions,
     blockchainActions,
     convertSendFormDraftsBtcAmountUnitsThunk,
+    selectAllNetworkSymbolsOfVisibleAccounts,
+    selectNetworksWithPendingTxs,
     sendFormActions,
     setCustomBackendThunk,
     stakeActions,
     subscribeBlockchainThunk,
+    syncAccountsWithBlockchainThunk,
     transactionsActions,
     unsubscribeBlockchainThunk,
 } from '@suite-common/wallet-core';
 
+import { updateWindowVisibility } from 'src/actions/suite/windowActions';
 import * as selectedAccountActions from 'src/actions/wallet/selectedAccountActions';
 import * as tradingCommonActions from 'src/actions/wallet/trading/tradingCommonActions';
-import type { Action, AppState, Dispatch } from 'src/types/suite';
+import type { AppState } from 'src/types/suite';
 
 const walletMiddleware =
-    (api: MiddlewareAPI<Dispatch, AppState>) =>
-    (next: Dispatch) =>
-    (action: Action): Action => {
+    (api: MiddlewareAPI<Dispatch<UnknownAction>, AppState>) =>
+    (next: Dispatch<UnknownAction>) =>
+    (action: UnknownAction): UnknownAction => {
         const prevState = api.getState();
 
         if (deviceActions.forgetDevice.match(action)) {
@@ -66,6 +71,27 @@ const walletMiddleware =
             api.dispatch(setCustomBackendThunk(action.payload.symbol));
         }
 
+        /**
+         * Make sure to update pending txs for visible accounts when the window is focused again.
+         * Else the tx hangs there even though it has already been confirmed in the blockchain.
+         * - Updating only specific account doesn't trigger update of receiver account balance / txs.
+         */
+        if (
+            updateWindowVisibility.match(action) &&
+            action.payload.isVisible &&
+            !prevState.window.isVisible
+        ) {
+            const state = api.getState();
+            const visibleNetworks = new Set(selectAllNetworkSymbolsOfVisibleAccounts(state));
+            const networksWithPendingTxs = selectNetworksWithPendingTxs(state);
+
+            Array.from(networksWithPendingTxs)
+                .filter(symbol => visibleNetworks.has(symbol))
+                .forEach(symbol => {
+                    api.dispatch(syncAccountsWithBlockchainThunk(symbol));
+                });
+        }
+
         const prevRouter = prevState.router;
         const nextRouter = api.getState().router;
         let resetReducers = action.type === deviceActions.selectDevice.type;
@@ -90,6 +116,7 @@ const walletMiddleware =
             api.dispatch(sendFormActions.dispose());
             api.dispatch(tradingActions.setVerifiedAddress(undefined));
             api.dispatch(stakeActions.dispose());
+            api.dispatch(stakeActions.setVotingDelegationOption(DEFAULT_VOTING_OPTION));
         }
 
         if (action.type === WALLET_SETTINGS.SET_BITCOIN_AMOUNT_UNITS) {

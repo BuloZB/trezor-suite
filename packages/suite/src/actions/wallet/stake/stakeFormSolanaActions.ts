@@ -1,9 +1,16 @@
-import { asTypedDesktopAnalytics, events } from '@suite/analytics';
-import { selectSelectedDevice } from '@suite-common/device';
-import { type ExtraDependencies } from '@suite-common/redux-utils';
+import { type Dispatch, type UnknownAction } from '@reduxjs/toolkit';
+
+import { type SelectedAccountRootState } from '@suite/account';
+import { type DesktopAnalyticsDep, events } from '@suite/analytics';
+import { type DeviceRootState, selectSelectedDevice } from '@suite-common/device';
+import { type WithServices } from '@suite-common/redux-utils';
 import { composeSolanaStakingTransaction, prepareSolanaStakeTxData } from '@suite-common/staking';
 import { notificationsActions } from '@suite-common/toast-notifications';
-import { selectAddressDisplayType } from '@suite-common/wallet-core';
+import {
+    type BlockchainRootState,
+    type WalletSettingsRootState,
+    selectAddressDisplayType,
+} from '@suite-common/wallet-core';
 import {
     AddressDisplayOptions,
     type ComposeActionContext,
@@ -15,13 +22,13 @@ import TrezorConnect from '@trezor/connect';
 import { getSuiteVersion } from '@trezor/env-utils';
 import solana from '@trezor/network-solana/runtime';
 
-import { type Dispatch, type GetState } from 'src/types/suite';
-
 const getSolanaUserAgent = () => `Trezor Suite ${getSuiteVersion()}`;
+
+type ComposeTransactionThunkState = BlockchainRootState & SelectedAccountRootState;
 
 export const composeTransaction =
     (formValues: StakeFormState, formState: ComposeActionContext) =>
-    async (_: Dispatch, getState: GetState) => {
+    async (_: Dispatch<UnknownAction>, getState: () => ComposeTransactionThunkState) => {
         const { selectedAccount, blockchain } = getState().wallet;
 
         if (selectedAccount.status !== 'loaded') return;
@@ -40,9 +47,20 @@ export const composeTransaction =
         });
     };
 
+type SignTransactionThunkState = BlockchainRootState &
+    DeviceRootState &
+    SelectedAccountRootState &
+    WalletSettingsRootState;
+
+type SignTransactionThunkDeps = WithServices<DesktopAnalyticsDep>;
+
 export const signTransaction =
     (formValues: StakeFormState, transactionInfo: PrecomposedTransactionFinal) =>
-    async (dispatch: Dispatch, getState: GetState, extra: ExtraDependencies) => {
+    async (
+        dispatch: Dispatch<UnknownAction>,
+        getState: () => SignTransactionThunkState,
+        extra: SignTransactionThunkDeps,
+    ) => {
         const { selectedAccount, blockchain } = getState().wallet;
 
         const device = selectSelectedDevice(getState());
@@ -121,7 +139,7 @@ export const signTransaction =
         });
 
         if (!signedTx.success) {
-            asTypedDesktopAnalytics(extra.services.analytics).report({
+            extra.services.analytics.report({
                 type: events.transactionCancelEvent.name,
                 payload: {
                     txType: 'stake',

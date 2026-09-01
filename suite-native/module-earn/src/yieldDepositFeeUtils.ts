@@ -1,4 +1,4 @@
-import { buildStablecoinYieldTransactionReview } from '@suite-common/earn-stablecoin/src/signing';
+import { buildStablecoinYieldTransactionReview } from '@suite-common/earn-stablecoin';
 import { parseUnsignedEvmTransactionForSigning } from '@suite-common/earn-stablecoin-api';
 import { type NetworkSymbol } from '@suite-common/wallet-config';
 import { buildEvmFeeFields, buildEvmSelectedFee } from '@suite-common/wallet-core';
@@ -15,7 +15,7 @@ type ParsedUnsignedEvmTransaction = NonNullable<
     ReturnType<typeof parseUnsignedEvmTransactionForSigning>
 >;
 
-type YieldDepositFeeToken = {
+export type YieldDepositFeeToken = {
     contractAddress?: string | null;
     decimals: number;
     symbol: string;

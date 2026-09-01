@@ -2,9 +2,11 @@ import '@suite-common/test-utils/globalOverrides';
 
 import { screen } from '@testing-library/react';
 
+import { mockDesktopAnalytics } from '@suite/analytics/mocks';
 import { mockSuiteDevice } from '@suite-common/suite-types/mocks';
 import { configureMockStore } from '@suite-common/test-utils';
 import { initialState as tradingInitialState } from '@suite-common/trading';
+import { asNetworkSymbol } from '@suite-common/wallet-config';
 import {
     type Account,
     type SelectedAccountStatus,
@@ -15,7 +17,6 @@ import {
 import { renderWithProviders } from 'src/support/test-utils/hooksHelper';
 
 import { TradingTransactionsList } from './TradingTransactionsList';
-import { extraDependenciesDesktopMock } from '../../../../../../mocks/extraDependenciesDesktopMock';
 import { mockInitialAppState } from '../../../../../../mocks/mockInitialAppState';
 
 jest.mock('@suite-common/tx-simulation', () => ({}));
@@ -46,6 +47,7 @@ jest.mock('src/views/wallet/trading/common/TradingTransactions/TradingTransactio
 }));
 
 const DEVICE_SSID = 'btcAddress@deviceId:0' as const;
+const btcSymbol = asNetworkSymbol('btc');
 const SELECTED_DEVICE = mockSuiteDevice({
     connected: true,
     available: true,
@@ -54,7 +56,7 @@ const SELECTED_DEVICE = mockSuiteDevice({
 
 const ACCOUNT_KEY = createAccountKey({
     accountDescriptor: asAccountDescriptor('btcDescriptor'),
-    networkSymbol: 'btc',
+    networkSymbol: btcSymbol,
     deviceStaticSessionId: DEVICE_SSID,
 });
 
@@ -127,6 +129,7 @@ const buildState = ({
 describe('TradingTransactionsList', () => {
     it('renders nothing when selectedAccount is not loaded', () => {
         const store = configureMockStore({
+            extra: undefined,
             preloadedState: buildState({
                 selectedAccountStatus: { status: 'loading', loader: 'account-loading' },
             }),
@@ -134,7 +137,7 @@ describe('TradingTransactionsList', () => {
 
         const { container } = renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            { analytics: mockDesktopAnalytics() },
             <TradingTransactionsList />,
         );
 
@@ -142,11 +145,14 @@ describe('TradingTransactionsList', () => {
     });
 
     it('renders empty state when there are no trades', () => {
-        const store = configureMockStore({ preloadedState: buildState({ trades: [] }) });
+        const store = configureMockStore({
+            extra: undefined,
+            preloadedState: buildState({ trades: [] }),
+        });
 
         renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            { analytics: mockDesktopAnalytics() },
             <TradingTransactionsList />,
         );
 
@@ -157,12 +163,13 @@ describe('TradingTransactionsList', () => {
 
     it('renders correct transaction counts and trade rows when there are trades', () => {
         const store = configureMockStore({
+            extra: undefined,
             preloadedState: buildState({ trades: [BUY_TRADE, SELL_TRADE, EXCHANGE_TRADE] }),
         });
 
         renderWithProviders(
             store,
-            extraDependenciesDesktopMock.services,
+            { analytics: mockDesktopAnalytics() },
             <TradingTransactionsList />,
         );
 

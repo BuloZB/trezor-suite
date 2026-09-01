@@ -263,8 +263,10 @@ import {
     StellarPathPaymentStrictSendOp,
     StellarPaymentOp,
     StellarSetOptionsOp,
+    StellarSignSorobanAuthorization,
     StellarSignTx,
     StellarSignedTx,
+    StellarSorobanAuthorizationSignature,
     StellarTxExt,
     StellarTxExtRequest,
     StellarTxOpRequest,
@@ -589,6 +591,8 @@ export const MessageType = Type.Object(
         StellarClaimClaimableBalanceOp,
         StellarSignedTx,
         StellarInvokeHostFunctionOp,
+        StellarSignSorobanAuthorization,
+        StellarSorobanAuthorizationSignature,
         StellarTxExtRequest,
         StellarTxExt,
         TelemetryGet,
@@ -785,6 +789,7 @@ export type WireInMessage =
     | 'StellarBumpSequenceOp'
     | 'StellarClaimClaimableBalanceOp'
     | 'StellarInvokeHostFunctionOp'
+    | 'StellarSignSorobanAuthorization'
     | 'StellarTxExt'
     | 'TelemetryGet'
     | 'TezosGetAddress'
@@ -895,6 +900,7 @@ export type WireOutMessage =
     | 'StellarAddress'
     | 'StellarTxOpRequest'
     | 'StellarSignedTx'
+    | 'StellarSorobanAuthorizationSignature'
     | 'StellarTxExtRequest'
     | 'Telemetry'
     | 'TezosAddress'

@@ -11,18 +11,20 @@ type HookProps = {
     sendAccount: Account | undefined;
     sendAsset: TradeableAsset | undefined;
     setBalance: (balance: string | undefined) => unknown;
-    setSendSymbol: (currency: string | undefined) => unknown;
+    setSendNetworkSymbol: (networkSymbol: Account['symbol'] | undefined) => unknown;
+    setSendAssetSymbol: (symbol: string | undefined) => unknown;
     setContractAddress: (contractAddress: TokenAddress | undefined) => unknown;
     setAccountKey: (accountKey: AccountKey | undefined) => void;
 };
 describe('useSendAccountAssetBalance', () => {
-    const renderUseSendAccountAssetBalance = (initialProps: HookProps) =>
-        renderHookWithStoreProvider(
+    const renderUseSendAccountAssetBalance = async (initialProps: HookProps) =>
+        await renderHookWithStoreProvider(
             ({
                 sendAccount,
                 sendAsset,
                 setBalance,
-                setSendSymbol,
+                setSendNetworkSymbol,
+                setSendAssetSymbol,
                 setContractAddress,
                 setAccountKey,
             }) => {
@@ -33,7 +35,8 @@ describe('useSendAccountAssetBalance', () => {
                 useSendAccountAssetBalance({
                     control: form.control,
                     setBalance,
-                    setSendSymbol,
+                    setSendNetworkSymbol,
+                    setSendAssetSymbol,
                     setContractAddress,
                     setAccountKey,
                 });
@@ -44,35 +47,40 @@ describe('useSendAccountAssetBalance', () => {
             },
         );
 
-    it('should watch for balance and asset symbol', () => {
+    it('should watch for balance and asset symbol', async () => {
         const setBalance = jest.fn();
-        const setSendSymbol = jest.fn();
+        const setSendNetworkSymbol = jest.fn();
+        const setSendAssetSymbol = jest.fn();
         const setContractAddress = jest.fn();
         const setAccountKey = jest.fn();
-        renderUseSendAccountAssetBalance({
+        await renderUseSendAccountAssetBalance({
             sendAccount: getBtcAccount(),
             sendAsset: btcAsset,
             setBalance,
-            setSendSymbol,
+            setSendNetworkSymbol,
+            setSendAssetSymbol,
             setContractAddress,
             setAccountKey,
         });
 
         expect(setBalance).toHaveBeenCalledWith('0.01');
-        expect(setSendSymbol).toHaveBeenCalledWith('btc');
+        expect(setSendNetworkSymbol).toHaveBeenCalledWith('btc');
+        expect(setSendAssetSymbol).toHaveBeenCalledWith('BTC');
     });
 
-    it('should set balance to undefined when account is undefined', () => {
+    it('should set balance to undefined when account is undefined', async () => {
         const setBalance = jest.fn();
-        const setSendSymbol = jest.fn();
+        const setSendNetworkSymbol = jest.fn();
+        const setSendAssetSymbol = jest.fn();
         const setContractAddress = jest.fn();
         const setAccountKey = jest.fn();
 
-        renderUseSendAccountAssetBalance({
+        await renderUseSendAccountAssetBalance({
             sendAccount: undefined,
             sendAsset: btcAsset,
             setBalance,
-            setSendSymbol,
+            setSendNetworkSymbol,
+            setSendAssetSymbol,
             setContractAddress,
             setAccountKey,
         });
@@ -80,17 +88,19 @@ describe('useSendAccountAssetBalance', () => {
         expect(setBalance).toHaveBeenCalledWith(undefined);
     });
 
-    it('should set balance to undefined when symbol is undefined', () => {
+    it('should set balance to undefined when symbol is undefined', async () => {
         const setBalance = jest.fn();
-        const setSendSymbol = jest.fn();
+        const setSendNetworkSymbol = jest.fn();
+        const setSendAssetSymbol = jest.fn();
         const setContractAddress = jest.fn();
         const setAccountKey = jest.fn();
 
-        renderUseSendAccountAssetBalance({
+        await renderUseSendAccountAssetBalance({
             sendAccount: getBtcAccount(),
             sendAsset: undefined,
             setBalance,
-            setSendSymbol,
+            setSendNetworkSymbol,
+            setSendAssetSymbol,
             setContractAddress,
             setAccountKey,
         });

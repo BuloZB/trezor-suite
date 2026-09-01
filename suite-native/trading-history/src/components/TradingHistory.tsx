@@ -10,8 +10,7 @@ import {
     type TradingTransaction,
     selectDeviceTradingTradesOrderedByDate,
 } from '@suite-common/trading';
-import { Box, EdgeFades } from '@suite-native/atoms';
-import { useBottomSheetControls } from '@suite-native/trading-atoms';
+import { Box, EdgeFades, useBottomSheetControls } from '@suite-native/atoms';
 import { Footer } from '@suite-native/trading-provider-utils';
 import { selectTradeToBeOpened, tradingActions } from '@suite-native/trading-state';
 import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
@@ -34,9 +33,14 @@ const listFooterStyle = prepareNativeStyle(({ spacings }) => ({
     paddingTop: spacings.sp32,
 }));
 
-const keyExtractor = (item: TradingTransaction) => `${item.key ?? ''}`;
+const keyExtractor = (item: TradingTransaction) =>
+    item.key ?? item.data.orderId ?? `${item.tradeType}-${item.date}`;
 
-export const TradingHistory = () => {
+export type TradingHistoryProps = {
+    onOpenTradeDetail?: (orderId: string) => void;
+};
+
+export const TradingHistory = ({ onOpenTradeDetail }: TradingHistoryProps) => {
     const navigation = useNavigation();
     const { applyStyle, utils } = useNativeStyles();
     const dispatch = useDispatch();
@@ -57,12 +61,22 @@ export const TradingHistory = () => {
         (trade: TradingTransaction) => {
             const { orderId } = trade.data;
 
+            if (!orderId) {
+                return;
+            }
+
+            if (onOpenTradeDetail) {
+                onOpenTradeDetail(orderId);
+
+                return;
+            }
+
             setDetailOrderId(orderId);
-            if (orderId && !isSheetVisible) {
+            if (!isSheetVisible) {
                 showSheet();
             }
         },
-        [isSheetVisible, showSheet],
+        [isSheetVisible, onOpenTradeDetail, showSheet],
     );
 
     useEffect(() => {
@@ -110,6 +124,7 @@ export const TradingHistory = () => {
                     }
                     ListFooterComponent={<Footer />}
                     ListFooterComponentStyle={applyStyle(listFooterStyle)}
+                    maintainVisibleContentPosition={{ disabled: true }}
                 />
                 <EdgeFades
                     direction="vertical"

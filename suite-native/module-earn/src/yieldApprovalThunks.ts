@@ -1,6 +1,8 @@
 import { createThunk } from '@suite-common/redux-utils';
 import {
+    type FormDraftRootState,
     REVOKE_ALLOWANCE_AMOUNT,
+    type StablecoinYieldRootState,
     type YieldFlowResolvedData,
     formDraftActions,
     selectDeepCopyOfFormDraft,
@@ -14,6 +16,7 @@ import {
 } from '@suite-common/wallet-types';
 import { buildApprovalTransactionData } from '@suite-common/wallet-utils';
 import {
+    type NativeSendRootState,
     type UpdateSelectedFeeLevelThunkParams,
     selectFeeLevels,
 } from '@suite-native/transaction-management';
@@ -92,25 +95,25 @@ const isExpectedAllowanceModalTxType = (
     return modalTxType === 'revoke';
 };
 
-export const prepareYieldAllowanceReviewTransactionThunk = createThunk(
+export type PrepareYieldAllowanceReviewTransactionThunkState = FormDraftRootState &
+    StablecoinYieldRootState &
+    NativeSendRootState;
+
+export const prepareYieldAllowanceReviewTransactionThunk = createThunk<
+    void,
+    PrepareYieldAllowanceReviewTransactionParams,
+    { rejectValue: string; state: PrepareYieldAllowanceReviewTransactionThunkState }
+>(
     `${EARN_MODULE_PREFIX}/prepareYieldAllowanceReviewTransactionThunk`,
     (
-        {
-            amount,
-            approvalLimitType,
-            flowData,
-            flowKey,
-            transactionType,
-            tokenContract,
-        }: PrepareYieldAllowanceReviewTransactionParams,
+        { amount, approvalLimitType, flowData, flowKey, transactionType, tokenContract },
         { dispatch, getState, rejectWithValue },
     ) => {
         dispatch(sendFormActions.discardTransaction());
 
         const formDraftKey = getYieldAllowanceFormDraftKey(flowKey, transactionType);
         const formDraft = selectDeepCopyOfFormDraft(getState(), formDraftKey) as
-            | FormState
-            | undefined;
+            FormState | undefined;
         const { approval } = selectStablecoinYieldSession(getState(), 'deposit', flowKey);
 
         const { modalState } = approval;
@@ -163,24 +166,22 @@ export const prepareYieldAllowanceReviewTransactionThunk = createThunk(
     },
 );
 
-export const updateYieldAllowanceSelectedFeeLevelThunk = createThunk(
+export type UpdateYieldAllowanceSelectedFeeLevelThunkState = FormDraftRootState;
+
+export const updateYieldAllowanceSelectedFeeLevelThunk = createThunk<
+    void,
+    UpdateSelectedFeeLevelThunkParams,
+    { state: UpdateYieldAllowanceSelectedFeeLevelThunkState }
+>(
     `${EARN_MODULE_PREFIX}/updateYieldAllowanceSelectedFeeLevelThunk`,
     (
-        {
-            feeLevelLabel,
-            feePerUnit,
-            feeLimit,
-            formDraftKey,
-            maxFeePerGas,
-            maxPriorityFeePerGas,
-        }: UpdateSelectedFeeLevelThunkParams,
+        { feeLevelLabel, feePerUnit, feeLimit, formDraftKey, maxFeePerGas, maxPriorityFeePerGas },
         { dispatch, getState },
     ) => {
         if (!formDraftKey) return;
 
         const formDraft = selectDeepCopyOfFormDraft(getState(), formDraftKey) as
-            | FormState
-            | undefined;
+            FormState | undefined;
 
         if (!formDraft) return;
 

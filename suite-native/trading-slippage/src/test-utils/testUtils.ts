@@ -3,7 +3,7 @@ import type { ReactElement } from 'react';
 import { combineReducers } from '@reduxjs/toolkit';
 import type { ExchangeTrade } from 'invity-api';
 
-import { extraDependenciesCommonMock } from '@suite-common/test-utils';
+import { mockActionType } from '@suite-common/redux-utils/mocks';
 import { initialWalletSettingsState } from '@suite-common/wallet-core';
 import { localeInitialState, localeReducer } from '@suite-native/intl';
 import {
@@ -26,7 +26,9 @@ const reducer = {
     locale: localeReducer,
     wallet: combineReducers({
         settings: createStaticReducer(initialWalletSettingsState),
-        trading: tradingSlice.prepareReducer(extraDependenciesCommonMock),
+        trading: tradingSlice.prepareReducer({
+            actionTypes: { storageLoad: mockActionType('storageLoad') },
+        }),
     }),
 } as const;
 
@@ -51,7 +53,7 @@ export const createSlippageTestStore = (quote: ExchangeTrade | undefined = mercu
 export const renderWithSlippageTestProvider = (
     element: ReactElement,
     { store, quote }: SlippageTestOptions = {},
-): RenderResult => {
+): Promise<RenderResult> => {
     const preloadedState = store ? undefined : getSlippageTestPreloadedState(quote);
 
     return renderWithStoreProvider(element, { preloadedState, store });
@@ -60,7 +62,7 @@ export const renderWithSlippageTestProvider = (
 export const renderHookWithSlippageTestProvider = <Result>(
     callback: () => Result,
     { store, quote }: SlippageTestOptions = {},
-): RenderHookResult<Result, unknown> => {
+): Promise<RenderHookResult<Result, unknown>> => {
     const preloadedState = store ? undefined : getSlippageTestPreloadedState(quote);
 
     return renderHookWithStoreProvider(callback, { preloadedState, store });

@@ -1,3 +1,4 @@
+import { asNetworkSymbol } from '@suite-common/wallet-config';
 import { type StakeDataState } from '@suite-common/wallet-core';
 import { type Account } from '@suite-common/wallet-types';
 import { mockAccountKey } from '@suite-common/wallet-types/mocks';
@@ -6,12 +7,18 @@ import {
     selectApy,
     selectCanClaimByAccountKey,
     selectClaimableAmountByAccountKey,
+    selectStakedBalanceByAccountKey,
+    selectTotalStakePendingByAccountKey,
 } from './selectors';
 
-const eth1Key = mockAccountKey({ symbol: 'eth', descriptor: 'eth1' });
-const sol1Key = mockAccountKey({ symbol: 'sol', descriptor: 'sol1' });
+const ethSymbol = asNetworkSymbol('eth');
+const solSymbol = asNetworkSymbol('sol');
+const adaSymbol = asNetworkSymbol('ada');
+
+const eth1Key = mockAccountKey({ symbol: ethSymbol, descriptor: 'eth1' });
+const sol1Key = mockAccountKey({ symbol: solSymbol, descriptor: 'sol1' });
 const etc1Key = mockAccountKey({ descriptor: 'etc1' });
-const ada1Key = mockAccountKey({ symbol: 'ada', descriptor: 'ada1' });
+const ada1Key = mockAccountKey({ symbol: adaSymbol, descriptor: 'ada1' });
 const nonExistentKey = mockAccountKey({ descriptor: 'nonExistent' });
 
 const ethAccountWithClaimableStake: Account = {
@@ -57,6 +64,24 @@ const solAccountWithStaking: Account = {
     },
 } as unknown as Account;
 
+const createAdaAccount = ({ isActive, rewards }: { isActive: boolean; rewards: string }) =>
+    ({
+        symbol: 'ada',
+        accountLabel: 'ADA Account #1',
+        deviceState: 'device@state:1',
+        key: ada1Key,
+        visible: true,
+        networkType: 'cardano',
+        formattedBalance: '100',
+        misc: {
+            staking: {
+                isActive,
+                rewards,
+                poolId: 'pool1sysgx87cwxnqy0pqn8g97gdhd0dmre9rw3jvpn2k7apuwa7cgkn',
+            },
+        },
+    }) as unknown as Account;
+
 const etcAccount: Account = {
     symbol: 'etc',
     accountLabel: 'ETC Account #1',
@@ -100,19 +125,19 @@ const getTestState = (accounts: Account[]) => ({
                     ada: {
                         pools: [
                             {
-                                apy: 2.43,
-                                saturation: 81.09,
-                                id: 'pool1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzqs6cy',
+                                apy: 2.4,
+                                saturation: 80.77,
+                                id: 'pool1sysgx87cwxnqy0pqn8g97gdhd0dmre9rw3jvpn2k7apuwa7cgkn',
                             },
                             {
-                                apy: 5.8,
-                                saturation: 1.92,
+                                apy: 2.06,
+                                saturation: 76.42,
+                                id: 'pool1n0uxgs5qfk5n9xl7qvq9jt8zuu02cntrsjnjayjlqtejyffnemj',
+                            },
+                            {
+                                apy: 1.96,
+                                saturation: 62.64,
                                 id: 'pool13rt3ngkek4l876980ect869cu978d36dcyh22ts4nwuf7ncq02u',
-                            },
-                            {
-                                apy: 2.43,
-                                saturation: 0.05,
-                                id: 'pool1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq2crtxv',
                             },
                         ],
                     },
@@ -204,7 +229,7 @@ describe('main staking selectors', () => {
         it('should return ETH APY by networkSymbol', () => {
             const testState = getTestState([]);
 
-            const result = selectApy(testState as any, { networkSymbol: 'eth' });
+            const result = selectApy(testState as any, { networkSymbol: ethSymbol });
 
             expect(result).toBe(3.08);
         });
@@ -220,7 +245,7 @@ describe('main staking selectors', () => {
         it('should return SOL APY by networkSymbol', () => {
             const testState = getTestState([]);
 
-            const result = selectApy(testState as any, { networkSymbol: 'sol' });
+            const result = selectApy(testState as any, { networkSymbol: solSymbol });
 
             expect(result).toBe(6.24);
         });
@@ -228,9 +253,9 @@ describe('main staking selectors', () => {
         it('should return best pool APY for ADA by networkSymbol', () => {
             const testState = getTestState([]);
 
-            const result = selectApy(testState as any, { networkSymbol: 'ada' });
+            const result = selectApy(testState as any, { networkSymbol: adaSymbol });
 
-            expect(result).toBe(5.8);
+            expect(result).toBe(1.96);
         });
 
         it('should return matched pool APY for ADA account with known poolId', () => {
@@ -243,7 +268,7 @@ describe('main staking selectors', () => {
                 networkType: 'cardano',
                 misc: {
                     staking: {
-                        poolId: 'pool1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzqs6cy',
+                        poolId: 'pool1sysgx87cwxnqy0pqn8g97gdhd0dmre9rw3jvpn2k7apuwa7cgkn',
                     },
                 },
             } as unknown as Account;
@@ -251,7 +276,7 @@ describe('main staking selectors', () => {
 
             const result = selectApy(testState as any, { accountKey: ada1Key });
 
-            expect(result).toBe(2.43);
+            expect(result).toBe(2.4);
         });
 
         it('should return null for ADA account staked outside known pools', () => {
@@ -299,6 +324,34 @@ describe('main staking selectors', () => {
             const result = selectApy(testState as any, { accountKey: etc1Key });
 
             expect(result).toBeNull();
+        });
+    });
+
+    describe('selectStakedBalanceByAccountKey', () => {
+        it('should return the whole balance for a delegated ADA account', () => {
+            const testState = getTestState([createAdaAccount({ isActive: true, rewards: '0' })]);
+
+            const result = selectStakedBalanceByAccountKey(testState as any, ada1Key);
+
+            expect(result).toBe('100');
+        });
+
+        it('should return "0" for an ADA account without a delegation', () => {
+            const testState = getTestState([createAdaAccount({ isActive: false, rewards: '0' })]);
+
+            const result = selectStakedBalanceByAccountKey(testState as any, ada1Key);
+
+            expect(result).toBe('0');
+        });
+    });
+
+    describe('selectTotalStakePendingByAccountKey', () => {
+        it('should return "0" for a delegated ADA account, which stakes the whole balance at once', () => {
+            const testState = getTestState([createAdaAccount({ isActive: true, rewards: '0' })]);
+
+            const result = selectTotalStakePendingByAccountKey(testState as any, ada1Key);
+
+            expect(result).toBe('0');
         });
     });
 

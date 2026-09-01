@@ -17,12 +17,10 @@ import {
     getYieldVaultContractAddress,
     isStablecoinYieldSupported,
 } from '@suite-common/wallet-core';
-import {
-    getContractAddressForNetworkSymbol,
-    isWrappedNativeToken,
-} from '@suite-common/wallet-utils';
+import { getContractAddressForNetworkSymbol } from '@suite-common/wallet-utils';
 import { Card, Column, Icon, Row, Table } from '@trezor/components';
 import { ArrowDownIcon, ArrowRightIcon } from '@trezor/icons';
+import { isWrappedNativeToken } from '@trezor/network-ethereum-suite-common';
 import { BigNumber } from '@trezor/utils';
 
 import { useDispatch, useSelector } from 'src/hooks/suite';
@@ -54,7 +52,12 @@ export const EarnYieldAccountOpportunity = ({
     const { translationString } = useTranslation();
     const { isBelowMobile } = useLayoutSize();
     const selectedDevice = useSelector(selectSelectedDevice);
-    const isFirmwareOutdated = !isStablecoinYieldSupported(selectedDevice);
+    const isFirmwareOutdated = !isStablecoinYieldSupported(selectedDevice, {
+        vaultToken: {
+            networkSymbol: opportunity.networkSymbol,
+            contractAddress: opportunity.vault.token.address,
+        },
+    });
     const { isFirmwareModalOpen, openFirmwareModal, closeFirmwareModal, updateFirmware } =
         useFirmwareUpgradeModal();
 
@@ -185,6 +188,7 @@ export const EarnYieldAccountOpportunity = ({
                 analyticsStep: 'earn-dashboard',
                 yieldContext: {
                     id: opportunity.vault.id,
+                    vaultAddress: vaultContractAddress ?? undefined,
                     tokenContractAddress: opportunity.vault.token.address ?? undefined,
                 },
             }),
@@ -192,7 +196,7 @@ export const EarnYieldAccountOpportunity = ({
     };
 
     const navigateToYieldDeposit = () => {
-        if (!opportunity.account) {
+        if (!opportunity.account || !vaultContractAddress) {
             return;
         }
 
@@ -227,15 +231,14 @@ export const EarnYieldAccountOpportunity = ({
                 routeName: 'earn-yield-deposit',
                 params: getEarnRouteParams({
                     account: opportunity.account,
-                    yieldId: opportunity.vault.id,
-                    contractAddress: opportunity.vault.token.address ?? undefined,
+                    vaultAddress: vaultContractAddress,
                 }),
             }),
         );
     };
 
     const navigateToYieldWithdraw = () => {
-        if (!opportunity.account) {
+        if (!opportunity.account || !vaultContractAddress) {
             return;
         }
 
@@ -270,8 +273,7 @@ export const EarnYieldAccountOpportunity = ({
                 routeName: 'earn-yield-withdraw',
                 params: getEarnRouteParams({
                     account: opportunity.account,
-                    yieldId: opportunity.vault.id,
-                    contractAddress: opportunity.vault.token.address ?? undefined,
+                    vaultAddress: vaultContractAddress,
                 }),
             }),
         );

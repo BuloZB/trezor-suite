@@ -23,6 +23,7 @@ import {
     isPending,
 } from '@suite-common/wallet-utils';
 import { type Analytics } from '@trezor/analytics-uploader';
+import { isWrappedNativeToken } from '@trezor/network-ethereum-suite-common';
 import { useCurrentRef } from '@trezor/react-utils';
 
 import { useDispatch, useSelector } from 'src/hooks/suite';
@@ -84,6 +85,7 @@ type ReportContext = {
     networkSymbol: string;
     vault?: YieldDtoV2 | null;
     durationMs?: number;
+    wrappedNative?: boolean;
 };
 
 const resolveReportedType = <T extends string>(
@@ -119,6 +121,7 @@ const reportResolution = (
                 networkSymbol: context.networkSymbol,
                 vaultId: context.vault?.id,
                 durationMs: context.durationMs,
+                ...(isDepositSuccess ? { wrappedNative: context.wrappedNative } : {}),
                 ...(apyBreakdown && { apyBreakdown }),
                 ...errorMessage,
             },
@@ -142,6 +145,7 @@ const reportResolution = (
                 networkSymbol: context.networkSymbol,
                 vaultId: context.vault?.id,
                 durationMs: context.durationMs,
+                ...(outcome === 'success' ? { wrappedNative: context.wrappedNative } : {}),
                 ...(apyBreakdown && { apyBreakdown }),
                 ...errorMessage,
             },
@@ -244,6 +248,7 @@ export const useYieldPendingTransactionTracking = ({
             networkSymbol: account.symbol,
             vault,
             durationMs,
+            wrappedNative: isWrappedNativeToken(account.symbol, vault?.token.address),
         };
 
         const wrappedNativeFlowType =

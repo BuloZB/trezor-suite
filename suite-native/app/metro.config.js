@@ -1,7 +1,6 @@
 /* eslint-disable require-await */
 
 const { withRozenite } = require('@rozenite/metro');
-const { withRozeniteReduxDevTools } = require('@rozenite/redux-devtools-plugin/metro');
 const { getSentryExpoConfig } = require('@sentry/react-native/metro');
 const { withStorybook } = require('@storybook/react-native/metro/withStorybook');
 const { mergeConfig } = require('metro-config');
@@ -11,7 +10,7 @@ const { metroSecureResolver } = require('@trezor/bundler-security/src/metroSecur
 // Learn more https://docs.expo.io/guides/customizing-metro
 
 const jsonExpoConfig = getSentryExpoConfig(__dirname);
-const defaultSourceExts = jsonExpoConfig.resolver.sourceExts;
+const defaultSourceExts = [...jsonExpoConfig.resolver.sourceExts, 'md'];
 const additionalSourceExts = process.env.RN_SRC_EXT ? process.env.RN_SRC_EXT.split(',') : [];
 const sourceExts = [...additionalSourceExts, ...defaultSourceExts];
 
@@ -72,6 +71,7 @@ const config = {
                 '@evolu/common/local-first': `${rootNodeModulesPath}/@evolu/common/dist/src/local-first/index.js`,
                 '@evolu/common/polyfills': `${rootNodeModulesPath}/@evolu/common/dist/src/Polyfills.js`,
                 '@evolu/react-native/polyfills': `${rootNodeModulesPath}/@evolu/react-native/dist/src/Polyfills.js`,
+                '@trezor/network-ethereum-suite-common/network-module': `${rootNodeModulesPath}/@trezor/network-ethereum-suite-common/src/EthereumNetworkSuiteCommonNetworkModule.ts`,
                 '@solana/kit/program-client-core': `${rootNodeModulesPath}/@solana/kit/dist/program-client-core.native.mjs`,
                 'crc/calculators/crc32': `${rootNodeModulesPath}/crc/cjs-default-unwrap/calculators/crc32.js`,
                 'crc/calculators/crc16xmodem': `${rootNodeModulesPath}/crc/cjs-default-unwrap/calculators/crc16xmodem.js`,
@@ -129,7 +129,6 @@ if (
 ) {
     // enable Rozenite plugins only in debug build
     exportedConfig = withRozenite(configWithStorybook, {
-        enhanceMetroConfig: originalConfig => withRozeniteReduxDevTools(originalConfig),
         enabled: true,
     });
 }

@@ -3,8 +3,9 @@ import {
     type YieldFlowResolvedData,
     type YieldWithdrawFlowType,
 } from '@suite-common/wallet-core';
+import { Button } from '@suite-native/atoms';
+import { Translation } from '@suite-native/intl';
 
-import { EarnReviewSubmittedCard } from './EarnReviewSubmittedCard';
 import { YieldReviewScreenLayout } from './YieldReviewScreenLayout';
 import { YieldTransactionReviewOutputList } from './YieldTransactionReviewOutputList';
 import { useYieldReviewActiveStep } from '../hooks/useYieldReviewActiveStep';
@@ -37,54 +38,51 @@ export const YieldWithdrawReviewContent = ({
         markReviewLeave,
         revealConfirmOnTrezorSheet,
     } = useYieldReviewScreenControls();
-    const {
-        withdrawStatus,
-        handleWithdrawSubmitted,
-        leaveReviewFromDeviceCancel,
-        startWithdrawReview,
-    } = useYieldWithdrawReview({
+
+    const review = useYieldWithdrawReview({
         flowData,
         flowKey,
         flowType,
         onReviewLeave: markReviewLeave,
         reviewToken,
     });
-    const isWithdrawSigned = withdrawStatus === 'signed' || withdrawStatus === 'sending';
-    const isSendingWithdraw = withdrawStatus === 'sending';
+
+    const isSigned = review.status === 'signed' || review.status === 'sending';
+    const isSending = review.status === 'sending';
     const activeStep = useYieldReviewActiveStep(flowData.account.symbol);
-    const submitButtonTranslationId =
-        flowType === 'redeem'
-            ? 'earn.yieldWithdrawReviewScreen.redeemSubmitButton'
-            : 'earn.yieldWithdrawReviewScreen.submitButton';
 
     useYieldReviewSheetAutoStart({
         closeSheet,
         hasLeftReview,
-        isSigned: isWithdrawSigned,
-        leaveReviewFromDeviceCancel,
+        isSigned,
+        leaveReviewFromDeviceCancel: review.leaveReviewFromDeviceCancel,
         revealConfirmOnTrezorSheet,
-        shouldAutoStartReview: withdrawStatus === 'idle',
-        startReview: startWithdrawReview,
+        shouldAutoStartReview: review.status === 'idle',
+        startReview: review.startReview,
     });
 
     return (
         <YieldReviewScreenLayout
             confirmOnTrezorRef={confirmOnTrezorRef}
             titleTranslationId="earn.yieldWithdrawReviewScreen.title"
-            submittedCard={
-                isWithdrawSigned ? (
-                    <EarnReviewSubmittedCard
-                        buttonTranslationId={submitButtonTranslationId}
-                        isButtonLoading={isSendingWithdraw}
-                        onButtonPress={handleWithdrawSubmitted}
-                    />
-                ) : undefined
+            submitButton={
+                isSigned && (
+                    <Button isLoading={isSending} onPress={review.submit}>
+                        <Translation
+                            id={
+                                flowType === 'redeem'
+                                    ? 'earn.yieldWithdrawReviewScreen.redeemSubmitButton'
+                                    : 'earn.yieldWithdrawReviewScreen.submitButton'
+                            }
+                        />
+                    </Button>
+                )
             }
         >
             <YieldTransactionReviewOutputList
                 accountKey={flowData.account.key}
                 activeStep={activeStep}
-                isSigned={isWithdrawSigned}
+                isSigned={isSigned}
                 preview={preview}
             />
         </YieldReviewScreenLayout>

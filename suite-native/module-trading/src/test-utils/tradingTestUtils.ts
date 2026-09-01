@@ -1,15 +1,18 @@
 import { type ReactElement } from 'react';
 
-import { combineReducers } from '@reduxjs/toolkit';
+import { type UnknownAction, combineReducers } from '@reduxjs/toolkit';
 
 import { deviceInitialState } from '@suite-common/device';
 import { geolocationInitialState } from '@suite-common/geolocation';
 import { messageSystemInitialState } from '@suite-common/message-system';
+import { mockActionType } from '@suite-common/redux-utils/mocks';
 import { initialSuiteSyncDataState, initialSuiteSyncState } from '@suite-common/suite-sync';
-import { configureMockStore, extraDependenciesCommonMock } from '@suite-common/test-utils';
+import { configureMockStore } from '@suite-common/test-utils';
+import { tokenDefinitionsInitialState } from '@suite-common/token-definitions';
 import {
     formDraftReducer,
     initialWalletSettingsState,
+    phishingInitialState,
     transactionsInitialState,
 } from '@suite-common/wallet-core';
 import { bluetoothInitialState } from '@suite-native/bluetooth';
@@ -48,10 +51,14 @@ const createBaseTradingPreloadedState = (tradeType: TradingTestTradeType) => ({
     messageSystem: messageSystemInitialState,
     suiteSync: initialSuiteSyncState,
     suiteSyncData: initialSuiteSyncDataState,
+    notifications: [],
+    tokenDefinitions: tokenDefinitionsInitialState,
     wallet: {
         ...getWalletState({ tradeType }),
         fees: {},
         formDrafts: {},
+        phishing: phishingInitialState,
+        transactions: transactionsInitialState,
     },
 });
 
@@ -64,7 +71,9 @@ type TradingLightStoreState = Omit<TradingTestPreloadedState, 'wallet'> & {
     };
 };
 
-type TradingLightStore = ReturnType<typeof configureMockStore<TradingLightStoreState>>;
+type TradingLightStore = ReturnType<
+    typeof configureMockStore<void, TradingLightStoreState, UnknownAction>
+>;
 
 export const createTradingFeatureFlags = (
     overrides: Partial<typeof featureFlagsInitialState> = {},
@@ -109,8 +118,10 @@ export const createTradingLightStore = (args?: {
         geolocation: createStaticReducer(preloadedState.geolocation),
         locale: createStaticReducer(preloadedState.locale),
         messageSystem: createStaticReducer(preloadedState.messageSystem),
+        notifications: createStaticReducer(preloadedState.notifications),
         suiteSync: createStaticReducer(preloadedState.suiteSync),
         suiteSyncData: createStaticReducer(preloadedState.suiteSyncData),
+        tokenDefinitions: createStaticReducer(preloadedState.tokenDefinitions),
         wallet: combineReducers({
             settings: createStaticReducer(
                 preloadedState.wallet.settings ?? initialWalletSettingsState,
@@ -119,13 +130,17 @@ export const createTradingLightStore = (args?: {
             fiat: createStaticReducer(preloadedState.wallet.fiat ?? {}),
             fees: createStaticReducer(preloadedState.wallet.fees ?? {}),
             formDrafts: formDraftReducer,
+            phishing: createStaticReducer(preloadedState.wallet.phishing),
             send: createStaticReducer(preloadedState.wallet.send ?? {}),
             transactions: createStaticReducer(transactionsInitialState),
-            trading: tradingSlice.prepareReducer(extraDependenciesCommonMock),
+            trading: tradingSlice.prepareReducer({
+                actionTypes: { storageLoad: mockActionType('storageLoad') },
+            }),
         }),
     } as const;
 
     return configureMockStore({
+        extra: undefined,
         reducer,
         preloadedState: {
             wallet: {
@@ -150,7 +165,7 @@ type RenderHookWithTradingProviderOptions<Props> = TradingProviderOptions &
 export const renderWithTradingProvider = (
     element: ReactElement,
     { overrides, tradeType, ...options }: RenderWithTradingProviderOptions = {},
-): RenderResult =>
+): Promise<RenderResult> =>
     renderWithStoreProvider(element, {
         preloadedState: createTradingPreloadedState({ overrides, tradeType }),
         ...options,
@@ -159,7 +174,7 @@ export const renderWithTradingProvider = (
 export const renderHookWithTradingProvider = <Result, Props>(
     callback: (props: Props) => Result,
     { overrides, tradeType, ...options }: RenderHookWithTradingProviderOptions<Props> = {},
-): RenderHookResult<Result, Props> =>
+): Promise<RenderHookResult<Result, Props>> =>
     renderHookWithStoreProvider<Result, Props>(callback, {
         preloadedState: createTradingPreloadedState({ overrides, tradeType }),
         ...options,

@@ -17,18 +17,21 @@ import {
 import { HowEarnWorksBenefitsSection } from '../components/HowEarnWorks/HowEarnWorksBenefitsSection';
 import { HowEarnWorksHeaderSection } from '../components/HowEarnWorks/HowEarnWorksHeaderSection';
 import { HowEarnWorksTimelineCard } from '../components/HowEarnWorks/HowEarnWorksTimelineCard';
+import { useHowYieldWorksPreset } from '../components/HowEarnWorks/yieldPresets';
 import { YieldDisabledAlert } from '../components/YieldDisabledAlert';
 import { useApyBreakdownAlert } from '../hooks/useApyBreakdownAlert';
 import { useMessageSystemYield } from '../hooks/useMessageSystemYield';
 import { useNavigateBackAnalytics } from '../hooks/useNavigateBackAnalytics';
-import { useResolvedYieldFlowData } from '../hooks/useResolvedYieldFlowData';
-import { createHowYieldWorksPreset } from '../presets/HowEarnWorks/yieldPresets';
+import { useYieldFlowData } from '../hooks/useYieldFlowData';
 
 type NavigationProps = StackNavigationProps<YieldStackParamList, YieldStackRoutes.HowYieldWorks>;
 
 export const HowYieldWorksScreen = () => {
     const navigation = useNavigation<NavigationProps>();
     const route = useRoute<RouteProp<YieldStackParamList, YieldStackRoutes.HowYieldWorks>>();
+
+    const yieldFlowData = useYieldFlowData(route.params);
+
     const {
         account,
         apy,
@@ -37,9 +40,10 @@ export const HowYieldWorksScreen = () => {
         vaultTokenSymbol,
         bonusRewardTokenSymbol,
         resolutionStatus,
-    } = useResolvedYieldFlowData(route.params);
+        wrappedNativeSymbol,
+    } = yieldFlowData;
 
-    const apyBreakdownAlert = useApyBreakdownAlert({ account, vault, apy });
+    const apyBreakdownAlert = useApyBreakdownAlert({ account, vault });
     const { analytics } = useServices(selectNativeAnalyticsDep);
     const registerNavigateBackAnalytics = useNavigateBackAnalytics({
         type: events.yieldNavigateEvent.name,
@@ -86,25 +90,44 @@ export const HowYieldWorksScreen = () => {
         });
     };
 
-    if (resolutionStatus !== 'resolved') {
-        return null;
-    }
-
-    const { benefitItems, timelineSections } = createHowYieldWorksPreset({
-        tokenSymbol,
-        vaultTokenSymbol,
+    const { benefitItems, timelineSections } = useHowYieldWorksPreset({
+        tokenSymbol: tokenSymbol ?? '',
+        vaultTokenSymbol: vaultTokenSymbol ?? '',
         apy,
         onApyPress: apyBreakdownAlert.onPress,
         bonusRewardTokenSymbol,
+        wrappedNativeSymbol,
     });
+
+    if (resolutionStatus !== 'resolved') {
+        return null;
+    }
 
     return (
         <Screen header={<ScreenHeader closeActionType="back" />}>
             <VStack flex={1} justifyContent="space-between">
                 <VStack alignItems="flex-start" spacing="sp32">
                     <HowEarnWorksHeaderSection
-                        title={<Translation id="earn.howYieldWorksScreen.defiYieldTitle" />}
-                        subtitle={<Translation id="earn.howYieldWorksScreen.defiYieldSubtitle" />}
+                        title={
+                            <Translation
+                                id={
+                                    wrappedNativeSymbol !== null
+                                        ? 'earn.howYieldWorksScreen.wrappedNativeVault.defiYieldTitle'
+                                        : 'earn.howYieldWorksScreen.defiYieldTitle'
+                                }
+                                values={{ nativeSymbol: wrappedNativeSymbol }}
+                            />
+                        }
+                        subtitle={
+                            <Translation
+                                id={
+                                    wrappedNativeSymbol !== null
+                                        ? 'earn.howYieldWorksScreen.wrappedNativeVault.defiYieldSubtitle'
+                                        : 'earn.howYieldWorksScreen.defiYieldSubtitle'
+                                }
+                                values={{ nativeSymbol: wrappedNativeSymbol }}
+                            />
+                        }
                     />
                     <HowEarnWorksBenefitsSection items={benefitItems} />
                     <HowEarnWorksTimelineCard

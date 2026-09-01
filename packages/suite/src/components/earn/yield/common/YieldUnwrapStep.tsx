@@ -6,13 +6,18 @@ import { Button, Column, Row } from '@trezor/components';
 
 import { FormattedCryptoAmount } from 'src/components/suite/FormattedCryptoAmount';
 
-import { YieldAmountCard } from './YieldAmountCard';
+import {
+    YieldAmountCard,
+    type YieldAmountCardFiatToggleProps,
+    type YieldApproxFiat,
+} from './YieldAmountCard';
 import { YieldPendingTransaction } from './YieldPendingTransaction';
 
 type YieldUnwrapStepProps = {
     tokenSymbol: string;
     tokenDecimals: number;
     tokenBalance: string;
+    approxFiat?: YieldApproxFiat;
     onMaxClick: () => void;
     onSubmit: () => void;
     onSkip?: () => void;
@@ -20,6 +25,7 @@ type YieldUnwrapStepProps = {
     isSubmitDisabled?: boolean;
     warning?: ReactNode;
     pendingTransaction?: YieldPendingTransactionState;
+    fiatToggle?: YieldAmountCardFiatToggleProps;
     onPendingTxClick?: (txid: string) => void;
 };
 
@@ -27,6 +33,7 @@ export const YieldUnwrapStep = ({
     tokenSymbol,
     tokenDecimals,
     tokenBalance,
+    approxFiat,
     onMaxClick,
     onSubmit,
     onSkip,
@@ -34,6 +41,7 @@ export const YieldUnwrapStep = ({
     isSubmitDisabled = false,
     warning,
     pendingTransaction,
+    fiatToggle,
     onPendingTxClick,
 }: YieldUnwrapStepProps) => (
     <Column gap={16}>
@@ -41,14 +49,18 @@ export const YieldUnwrapStep = ({
             tokenSymbol={tokenSymbol}
             decimals={tokenDecimals}
             isDisabled={!!pendingTransaction}
+            approxFiat={approxFiat}
             heading={{
                 amountLabelTranslationId: 'TR_EARN_YIELD_UNWRAP_AMOUNT',
             }}
             summary={{
                 labelTranslationId: 'TR_BALANCE',
-                value: <FormattedCryptoAmount value={tokenBalance} symbol={tokenSymbol} />,
+                value: (
+                    <FormattedCryptoAmount value={tokenBalance} symbol={tokenSymbol} isBalance />
+                ),
                 onMaxClick: pendingTransaction ? undefined : onMaxClick,
             }}
+            fiatToggle={pendingTransaction ? undefined : fiatToggle}
             warning={warning}
         />
 

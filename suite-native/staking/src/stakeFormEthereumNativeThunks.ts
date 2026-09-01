@@ -1,4 +1,4 @@
-import { selectSelectedDevice } from '@suite-common/device';
+import { type DeviceRootState, selectSelectedDevice } from '@suite-common/device';
 import { createThunk } from '@suite-common/redux-utils';
 import {
     getEthereumStakingLiveStateErrorMessage,
@@ -10,6 +10,8 @@ import {
 import { getNetwork } from '@suite-common/wallet-config';
 import { WALLET_SDK_SOURCE_MOBILE } from '@suite-common/wallet-constants';
 import {
+    type AccountsRootState,
+    type FormDraftRootState,
     ethereumGetCurrentNonceThunk,
     selectAccountByKey,
     selectFormDraft,
@@ -66,9 +68,11 @@ const buildEthereumStakingSignFormState = (
         : {}),
 });
 
+type ReadVariantFromComposeDraftState = FormDraftRootState;
+
 // Reads the variant the form already produced at compose time and converts it to the sign-time wei value. This avoids re-encoding the calldata in the thunk.
 const readVariantFromComposeDraft = (
-    state: Parameters<typeof selectFormDraft>[0],
+    state: ReadVariantFromComposeDraftState,
     stakeType: StakeNativeType,
     accountKey: AccountKey,
 ): EthereumStakingVariant | null => {
@@ -91,8 +95,10 @@ const readVariantFromComposeDraft = (
     };
 };
 
+type PrepareEthereumStakingContextState = AccountsRootState & FormDraftRootState;
+
 const prepareEthereumStakingContext = (
-    state: Parameters<typeof selectAccountByKey>[0] & Parameters<typeof selectFormDraft>[0],
+    state: PrepareEthereumStakingContextState,
     args: {
         accountKey: AccountKey;
         stakeType: StakeNativeType;
@@ -168,6 +174,9 @@ const prepareEthereumStakingContext = (
     };
 };
 
+export type SignEthereumStakingTransactionNativeThunkState = PrepareEthereumStakingContextState &
+    DeviceRootState;
+
 export const signEthereumStakingTransactionNativeThunk = createThunk<
     void,
     {
@@ -175,7 +184,10 @@ export const signEthereumStakingTransactionNativeThunk = createThunk<
         stakeType: StakeNativeType;
         precomposedTransaction: PrecomposedTransactionFinal;
     },
-    { rejectValue: SignStakeNativeRejectValue }
+    {
+        rejectValue: SignStakeNativeRejectValue;
+        state: SignEthereumStakingTransactionNativeThunkState;
+    }
 >(
     `${STAKE_NATIVE_MODULE_PREFIX}/${LOG_PREFIX}`,
     async ({ accountKey, stakeType, precomposedTransaction }, thunkApi) => {

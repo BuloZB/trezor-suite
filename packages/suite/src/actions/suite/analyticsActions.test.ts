@@ -1,31 +1,34 @@
-import { analyticsActions, prepareAnalyticsReducer } from '@suite-common/analytics-redux';
+import { type DesktopAnalyticsDep } from '@suite/analytics';
+import { mockDesktopAnalytics } from '@suite/analytics/mocks';
+import {
+    type AnalyticsRootState,
+    type AnalyticsState,
+    analyticsActions,
+    analyticsInitialState,
+} from '@suite-common/analytics-redux';
+import { type WithServices } from '@suite-common/redux-utils';
 import { configureMockStore } from '@suite-common/test-utils';
 
 import { init } from 'src/actions/suite/analyticsActions';
-import { extraDependencies } from 'src/support/extraDependencies';
 
-const analyticsReducer = prepareAnalyticsReducer(extraDependencies);
-
-type AnalyticsState = ReturnType<typeof analyticsReducer>;
+const extra: WithServices<DesktopAnalyticsDep> = {
+    services: { analytics: mockDesktopAnalytics() },
+};
 
 type InitialState = {
     analytics: Partial<AnalyticsState>;
 };
 
-const getInitialState = (state?: InitialState) => ({
+const getInitialState = ({ analytics }: InitialState): AnalyticsRootState => ({
     analytics: {
-        ...analyticsReducer(undefined, { type: 'foo' } as any),
-        ...state?.analytics,
+        ...analyticsInitialState,
+        ...analytics,
     },
 });
 
-type State = ReturnType<typeof getInitialState>;
-const mockStore = (preloadedState: State) =>
+const mockStore = (preloadedState: AnalyticsRootState) =>
     configureMockStore({
-        reducer: (state = preloadedState, action) => ({
-            ...state,
-            analytics: analyticsReducer(state.analytics, action),
-        }),
+        extra,
         preloadedState,
     });
 

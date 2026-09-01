@@ -1,47 +1,40 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useSelector, useStore } from 'react-redux';
 
 import { useNavigation } from '@react-navigation/native';
 
 import { events } from '@suite-common/analytics';
 import { useServices } from '@suite-common/dependency-injection';
+import { selectIsPortfolioTrackerDevice } from '@suite-common/device';
+import { type AccountsRootState, selectAccountByKey } from '@suite-common/wallet-core';
 import { type BaseCurrencyAmount } from '@suite-common/wallet-types';
 import { selectNativeAnalyticsDep } from '@suite-native/analytics';
-import {
-    Box,
-    Card,
-    HStack,
-    InlineAlertBox,
-    ListItemSkeleton,
-    Text,
-    VStack,
-    useBottomSheetModal,
-} from '@suite-native/atoms';
-import { BaseCurrencyAmountFormatter } from '@suite-native/formatters';
-import { Translation } from '@suite-native/intl';
+import { Card, Divider, ListItemSkeleton, VStack, useBottomSheetModal } from '@suite-native/atoms';
 import {
     type RootStackParamList,
     RootStackRoutes,
     type StackNavigationProps,
     YieldStackRoutes,
 } from '@suite-native/navigation';
-import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 
+import { EarnActiveItemsBottomSheet } from './EarnActiveItemsBottomSheet';
+import { EarnBalanceCard } from './EarnBalanceCard';
+import { EarnDepositsCardRow } from './EarnDepositsCardRow';
+import { StablecoinYieldClaimRewardsBottomSheet } from './StablecoinYieldClaimRewardsBottomSheet';
+import { StablecoinYieldClaimRewardsCardSection } from './StablecoinYieldClaimRewardsCardSection';
 import { useEarnDepositsCardData } from '../hooks/useEarnDepositsCardData';
 import { useStablecoinYieldFirmwareUpdateAlert } from '../hooks/useStablecoinYieldFirmwareUpdateAlert';
 import { useStakingDetailNavigation } from '../hooks/useStakingDetailNavigation';
+import { useStakingNavigateAnalytics } from '../hooks/useStakingNavigateAnalytics';
 import {
     type StablecoinYieldClaimSummary,
     type StablecoinYieldEarnItem,
     type StakingEarnItem,
 } from '../types';
-import { EarnActiveItemsBottomSheet } from './EarnActiveItemsBottomSheet';
-import { EarnDepositsCardRow } from './EarnDepositsCardRow';
-import { StablecoinYieldClaimRewardsBottomSheet } from './StablecoinYieldClaimRewardsBottomSheet';
-import { StablecoinYieldClaimRewardsCardSection } from './StablecoinYieldClaimRewardsCardSection';
-
-const cardHeaderStyle = prepareNativeStyle(utils => ({
-    padding: utils.spacings.sp16,
-}));
+import {
+    type StablecoinYieldClaimItem,
+    buildStablecoinYieldClaimItems,
+} from '../utils/stablecoinYieldClaimSummaryUtils';
 
 type NavigationProp = StackNavigationProps<RootStackParamList, RootStackRoutes.YieldNavigator>;
 
@@ -62,12 +55,14 @@ export const EarnDepositsCard = ({
     isStablecoinYieldLoading,
     isStablecoinYieldClaimSummariesLoading,
 }: EarnDepositsCardProps) => {
-    const { applyStyle } = useNativeStyles();
     const navigation = useNavigation<NavigationProp>();
+    const isPortfolioTrackerDevice = useSelector(selectIsPortfolioTrackerDevice);
     const {
         stakingRow,
         stablecoinYieldRow,
         totalDepositedFiatAmount,
+        stakingFiatAmount,
+        stablecoinYieldFiatAmount,
         isFiatRatesLoading,
         isFiatTotalIncomplete,
         isFiatTotalUnavailable,
@@ -76,6 +71,8 @@ export const EarnDepositsCard = ({
         stakingActiveItems,
         stablecoinYieldActiveItems,
     });
+    const reportStakingNavigate = useStakingNavigateAnalytics();
+    const store = useStore<AccountsRootState>();
     const { navigateToStakingDetail } = useStakingDetailNavigation();
     const { isFirmwareSupported, showFirmwareUpdateAlert } =
         useStablecoinYieldFirmwareUpdateAlert();
@@ -99,24 +96,65 @@ export const EarnDepositsCard = ({
 
     const { analytics } = useServices(selectNativeAnalyticsDep);
 
+    const shouldShowClaimRewardsSection =
+        !isPortfolioTrackerDevice &&
+        (stablecoinYieldClaimSummaries.length > 0 || isStablecoinYieldClaimSummariesLoading);
+    const shouldShowStablecoinYieldCard =
+        stablecoinYieldRow !== null || shouldShowClaimRewardsSection || isStablecoinYieldLoading;
+
+    const stablecoinYieldClaimItems = useMemo(
+        () =>
+            buildStablecoinYieldClaimItems({
+                stablecoinYieldClaimSummaries,
+                earnDepositsActiveItems: stablecoinYieldRow?.activeItems ?? [],
+            }),
+        [stablecoinYieldClaimSummaries, stablecoinYieldRow?.activeItems],
+    );
+
     const handleStablecoinYieldClaimRewardPress = useCallback(
-        ({ accountKey, networkSymbol }: StablecoinYieldClaimSummary) => {
+        ({ summary, vaults }: StablecoinYieldClaimItem) => {
             analytics.report({
                 type: events.yieldNavigateEvent.name,
                 payload: {
                     action: 'continue',
                     from: 'earn-dashboard',
                     to: 'claim-form',
-                    networkSymbol,
+                    networkSymbol: summary.networkSymbol,
                 },
             });
             navigation.navigate(RootStackRoutes.YieldNavigator, {
                 screen: YieldStackRoutes.YieldClaim,
-                params: { accountKey },
+                params: {
+                    accountKey: summary.accountKey,
+                    vault: vaults.length === 1 ? vaults[0] : undefined,
+                },
             });
         },
         [analytics, navigation],
     );
+
+    const handleStakingRowPress = useCallback(() => {
+        const activeItems = stakingRow?.activeItems ?? [];
+
+        if (activeItems.length === 1) {
+            const onlyItem = activeItems[0];
+
+            if (onlyItem?.type === 'staking') {
+                const account = selectAccountByKey(store.getState(), onlyItem.accountKey);
+                if (account) {
+                    reportStakingNavigate(account);
+                }
+                navigateToStakingDetail({
+                    accountKey: onlyItem.accountKey,
+                    symbol: onlyItem.symbol,
+                });
+            }
+
+            return;
+        }
+
+        openStakingSheet();
+    }, [navigateToStakingDetail, openStakingSheet, reportStakingNavigate, stakingRow, store]);
 
     const handleStablecoinYieldClaimRewardsPress = useCallback(() => {
         if (!isFirmwareSupported('claim')) {
@@ -125,11 +163,11 @@ export const EarnDepositsCard = ({
             return;
         }
 
-        if (stablecoinYieldClaimSummaries.length === 1) {
-            const claimReward = stablecoinYieldClaimSummaries[0];
+        if (stablecoinYieldClaimItems.length === 1) {
+            const claimItem = stablecoinYieldClaimItems[0];
 
-            if (claimReward) {
-                handleStablecoinYieldClaimRewardPress(claimReward);
+            if (claimItem) {
+                handleStablecoinYieldClaimRewardPress(claimItem);
             }
 
             return;
@@ -141,97 +179,73 @@ export const EarnDepositsCard = ({
         isFirmwareSupported,
         openStablecoinYieldClaimRewardsSheet,
         showFirmwareUpdateAlert,
-        stablecoinYieldClaimSummaries,
+        stablecoinYieldClaimItems,
     ]);
 
     return (
         <>
-            <Box marginBottom="sp32">
-                <Card borderColor="borderNeutral" noPadding testID="@earn/deposits-card">
-                    <Box style={applyStyle(cardHeaderStyle)}>
-                        <VStack spacing="sp24">
-                            <VStack spacing={2}>
-                                <Text variant="body-md" color="contentSecondary">
-                                    <Translation id="earn.earnScreen.depositsCard.title" />
-                                </Text>
-                                {isFiatTotalUnavailable ? (
-                                    <Text variant="headline-md">
-                                        <Translation id="earn.notAvailableShort" />
-                                    </Text>
-                                ) : (
-                                    <HStack spacing="sp4" alignItems="center">
-                                        {isFiatTotalIncomplete && (
-                                            <Text variant="headline-md">~</Text>
-                                        )}
-                                        <BaseCurrencyAmountFormatter
-                                            value={totalDepositedFiatAmount}
-                                            variant="headline-md"
-                                            isDiscreetText={false}
-                                            isLoading={isFiatRatesLoading}
-                                        />
-                                    </HStack>
-                                )}
-                            </VStack>
+            <VStack spacing="sp16" marginBottom="sp32">
+                <EarnBalanceCard
+                    totalFiatAmount={totalDepositedFiatAmount}
+                    stakingFiatAmount={stakingFiatAmount}
+                    stablecoinYieldFiatAmount={stablecoinYieldFiatAmount}
+                    isFiatRatesLoading={isFiatRatesLoading}
+                    isFiatTotalIncomplete={isFiatTotalIncomplete}
+                    isFiatTotalUnavailable={isFiatTotalUnavailable}
+                    shouldShowBreakdown={stakingRow !== null && stablecoinYieldRow !== null}
+                    onRetryMissingFiatRates={() => void retryMissingFiatRates()}
+                />
 
-                            {isFiatTotalIncomplete && (
-                                <InlineAlertBox
-                                    testID="@earn/deposits-card/incomplete-fiat-total"
-                                    intent="warning"
-                                    title={
-                                        <Translation id="earn.earnScreen.depositsCard.incompleteFiatTotal" />
-                                    }
-                                    buttonLabel={<Translation id="generic.buttons.retry" />}
-                                    buttonProps={{ priority: 'secondary' }}
-                                    onButtonPress={() => void retryMissingFiatRates()}
-                                />
-                            )}
+                {stakingRow && (
+                    <Card borderColor="borderNeutral" noPadding testID="@earn/staking-card">
+                        <EarnDepositsCardRow row={stakingRow} onPress={handleStakingRowPress} />
+                    </Card>
+                )}
 
-                            <StablecoinYieldClaimRewardsCardSection
-                                claimRewards={stablecoinYieldClaimSummaries}
-                                totalFiatClaimableAmount={stablecoinYieldTotalFiatClaimableAmount}
-                                isLoading={isStablecoinYieldClaimSummariesLoading}
-                                onPress={handleStablecoinYieldClaimRewardsPress}
+                {shouldShowStablecoinYieldCard && (
+                    <Card borderColor="borderNeutral" noPadding testID="@earn/defi-yield-card">
+                        {stablecoinYieldRow && (
+                            <EarnDepositsCardRow
+                                row={stablecoinYieldRow}
+                                onPress={openStablecoinYieldSheet}
                             />
-                        </VStack>
-                    </Box>
-
-                    {stakingRow && (
-                        <EarnDepositsCardRow
-                            key={stakingRow.type}
-                            row={stakingRow}
-                            onPress={openStakingSheet}
-                        />
-                    )}
-
-                    {stablecoinYieldRow && (
-                        <EarnDepositsCardRow
-                            key={stablecoinYieldRow.type}
-                            row={stablecoinYieldRow}
-                            onPress={openStablecoinYieldSheet}
-                        />
-                    )}
-                    {isStablecoinYieldLoading && <ListItemSkeleton />}
-                </Card>
-            </Box>
+                        )}
+                        {isStablecoinYieldLoading && !stablecoinYieldRow && <ListItemSkeleton />}
+                        {shouldShowClaimRewardsSection && (
+                            <>
+                                {(stablecoinYieldRow !== null || isStablecoinYieldLoading) && (
+                                    <Divider />
+                                )}
+                                <StablecoinYieldClaimRewardsCardSection
+                                    claimRewards={stablecoinYieldClaimSummaries}
+                                    totalFiatClaimableAmount={
+                                        stablecoinYieldTotalFiatClaimableAmount
+                                    }
+                                    isLoading={isStablecoinYieldClaimSummariesLoading}
+                                    onPress={handleStablecoinYieldClaimRewardsPress}
+                                />
+                            </>
+                        )}
+                    </Card>
+                )}
+            </VStack>
 
             <EarnActiveItemsBottomSheet
                 ref={stakingSheetRef}
                 type="staking"
                 items={stakingRow?.activeItems ?? []}
-                navigateToStakingDetail={navigateToStakingDetail}
                 onClose={closeStakingSheet}
             />
             <EarnActiveItemsBottomSheet
                 ref={stablecoinYieldSheetRef}
                 type="stablecoin-yield"
                 items={stablecoinYieldRow?.activeItems ?? []}
-                navigateToStakingDetail={navigateToStakingDetail}
                 onClose={closeStablecoinYieldSheet}
             />
 
             <StablecoinYieldClaimRewardsBottomSheet
                 ref={stablecoinYieldClaimRewardsSheetRef}
-                claimRewards={stablecoinYieldClaimSummaries}
+                claimItems={stablecoinYieldClaimItems}
                 onClaimRewardPress={handleStablecoinYieldClaimRewardPress}
                 onClose={closeStablecoinYieldClaimRewardsSheet}
             />

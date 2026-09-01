@@ -1,8 +1,9 @@
 import { combineReducers } from '@reduxjs/toolkit';
 import { type CryptoId, type SellFiatTrade } from 'invity-api';
 
-import { configureMockStore, extraDependenciesCommonMock } from '@suite-common/test-utils';
-import { getNetwork } from '@suite-common/wallet-config';
+import { mockActionType } from '@suite-common/redux-utils/mocks';
+import { configureMockStore } from '@suite-common/test-utils';
+import { getNetwork, toNetworkSymbolNonTestnet } from '@suite-common/wallet-config';
 import { mockAccountKey } from '@suite-common/wallet-types/mocks';
 import { convertAmountUnitsToSubunits } from '@suite-common/wallet-utils';
 
@@ -23,7 +24,10 @@ import { sellUtilsFixtures } from '../../utils/sell/__fixtures__/sellUtils';
 
 import { sellThunks } from './index';
 
-const tradingReducer = prepareTradingReducer(extraDependenciesCommonMock);
+const tradingReducer = prepareTradingReducer({
+    actionTypes: { storageLoad: mockActionType('storageLoad') },
+});
+const btcSymbol = toNetworkSymbolNonTestnet('btc');
 
 describe('handleSellRequestThunk', () => {
     afterEach(() => {
@@ -37,7 +41,7 @@ describe('handleSellRequestThunk', () => {
 
     const getMocks = (refetchQuotesOverride?: Partial<QuoteRefetchingState>) => {
         const store = configureMockStore({
-            extra: {},
+            extra: undefined,
             reducer: combineReducers({
                 wallet: combineReducers({
                     trading: tradingReducer,
@@ -99,11 +103,11 @@ describe('handleSellRequestThunk', () => {
                 name: 'Bitcoin',
                 coingeckoId: 'bitcoin',
                 contractAddress: null,
-                symbol: 'btc',
+                symbol: btcSymbol,
                 displaySymbol: 'BTC',
                 networkName: 'Bitcoin',
-                networkSymbol: 'btc',
-                accountKey: mockAccountKey({ descriptor: 'descriptor123', symbol: 'btc' }),
+                networkSymbol: btcSymbol,
+                accountKey: mockAccountKey({ descriptor: 'descriptor123', symbol: btcSymbol }),
             } satisfies TradingAssetSellOption,
             amountInCrypto: true,
             feePerUnit: '',
@@ -122,7 +126,7 @@ describe('handleSellRequestThunk', () => {
 
         const input: HandleSellRequestThunkProps = {
             formValues,
-            network: getNetwork('btc'),
+            network: getNetwork(btcSymbol),
             shouldSendInSats: false,
             composeRequestCallback: mockComposeRequestCallback,
         };

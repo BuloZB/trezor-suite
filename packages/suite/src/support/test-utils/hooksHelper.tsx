@@ -4,9 +4,11 @@ import { Provider } from 'react-redux';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+    type RenderHookOptions,
     type RenderResult,
     act,
     render,
+    renderHook,
     screen,
     waitForElementToBeRemoved,
 } from '@testing-library/react';
@@ -17,34 +19,62 @@ import { MockedFormatterProvider } from '@suite-common/formatters/mocks';
 
 import { ConnectedThemeProvider } from 'src/support/suite/ConnectedThemeProvider';
 
-import { type SuiteServices } from '../extraDependencies';
 import { ResponsiveContextProvider } from '../suite/ResponsiveContext';
 
 const testQueryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
 });
 
+const SuiteProviders = ({
+    store,
+    services,
+    children,
+}: {
+    store: any;
+    services: object;
+    children: ReactNode;
+}) => (
+    <QueryClientProvider client={testQueryClient}>
+        <Provider store={store}>
+            <ServicesProvider services={services}>
+                <ConnectedThemeProvider>
+                    <ResponsiveContextProvider>
+                        <IntlProvider locale="en">
+                            <MockedFormatterProvider>{children}</MockedFormatterProvider>
+                        </IntlProvider>
+                    </ResponsiveContextProvider>
+                </ConnectedThemeProvider>
+            </ServicesProvider>
+        </Provider>
+    </QueryClientProvider>
+);
+
 // used in hooks tests
 export const renderWithProviders = (
     store: any,
-    services: SuiteServices,
+    services: object,
     children: ReactNode,
 ): RenderResult =>
     render(
-        <QueryClientProvider client={testQueryClient}>
-            <Provider store={store}>
-                <ServicesProvider services={services}>
-                    <ConnectedThemeProvider>
-                        <ResponsiveContextProvider>
-                            <IntlProvider locale="en">
-                                <MockedFormatterProvider>{children}</MockedFormatterProvider>
-                            </IntlProvider>
-                        </ResponsiveContextProvider>
-                    </ConnectedThemeProvider>
-                </ServicesProvider>
-            </Provider>
-        </QueryClientProvider>,
+        <SuiteProviders store={store} services={services}>
+            {children}
+        </SuiteProviders>,
     );
+
+export const renderHookWithProviders = <Result, Props>(
+    store: any,
+    services: object,
+    callback: (props: Props) => Result,
+    options?: Omit<RenderHookOptions<Props>, 'wrapper'>,
+) =>
+    renderHook(callback, {
+        wrapper: ({ children }) => (
+            <SuiteProviders store={store} services={services}>
+                {children}
+            </SuiteProviders>
+        ),
+        ...options,
+    });
 
 export const waitForLoader = (text = /Loading/i) => {
     try {

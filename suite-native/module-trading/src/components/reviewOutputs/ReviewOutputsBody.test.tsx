@@ -14,33 +14,29 @@ const defaultProps: ReviewOutputsBodyProps = {
 };
 
 describe('ReviewOutputsBody', () => {
-    const renderReviewOutputsBody = (props: Partial<ReviewOutputsBodyProps> = {}) =>
-        renderWithTradingProvider(<ReviewOutputsBody {...defaultProps} {...props} />, {
+    const renderReviewOutputsBody = async (props: Partial<ReviewOutputsBodyProps> = {}) =>
+        await renderWithTradingProvider(<ReviewOutputsBody {...defaultProps} {...props} />, {
             tradeType: 'exchange',
         });
 
-    it('renders loading skeleton when shouldDisplayReviewList is false', () => {
-        const { getByTestId } = renderReviewOutputsBody({ shouldDisplayReviewList: false });
+    it('renders loading skeleton when shouldDisplayReviewList is false', async () => {
+        const { getByTestId } = await renderReviewOutputsBody({ shouldDisplayReviewList: false });
 
         expect(getByTestId('@trading/outputs-review/skeleton')).toBeOnTheScreen();
     });
 
-    it('renders output item list when shouldDisplayReviewList is true', () => {
-        const { getByText, queryByTestId } = renderReviewOutputsBody({});
+    it('renders output item list when shouldDisplayReviewList is true', async () => {
+        const { getByText, queryByTestId } = await renderReviewOutputsBody({});
 
         // invalid account id is provided, expect error
         expect(
-            getByText(
-                new RegExp(
-                    getTranslation('moduleTrading.accountScreen.accountEmpty.viewOnly.title'),
-                ),
-            ),
+            getByText(new RegExp(getTranslation('transactionManagement.review.outputs.noAccount'))),
         ).toBeOnTheScreen();
         expect(queryByTestId('@trading/outputs-review/skeleton')).not.toBeOnTheScreen();
     });
 
-    it('renders SignDataMessageReview when exchangeFlowType is sign-data', () => {
-        const { getByText, queryByText } = renderWithTradingProvider(
+    it('renders SignDataMessageReview when exchangeFlowType is sign-data', async () => {
+        const { getByText, queryByText } = await renderWithTradingProvider(
             <ReviewOutputsBody {...defaultProps} exchangeFlowType="sign-data" />,
             {
                 tradeType: 'exchange',
@@ -61,7 +57,7 @@ describe('ReviewOutputsBody', () => {
         ).toBeOnTheScreen();
         // ReviewOutputItemList renders "Account not found" for invalid keys; sign-data skips it
         expect(
-            queryByText(getTranslation('moduleTrading.accountScreen.accountEmpty.viewOnly.title')),
+            queryByText(getTranslation('transactionManagement.review.outputs.noAccount')),
         ).toBeNull();
     });
 });

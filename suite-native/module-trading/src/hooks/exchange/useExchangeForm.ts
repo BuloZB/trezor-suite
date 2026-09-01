@@ -52,11 +52,11 @@ const useExchangeQuotesChangeEffect = ({ getValues, setValue }: ExchangeFormType
             let candidateQuotes: ExchangeTrade[];
 
             if (isDex) {
-                candidateQuotes = quoteGroups.dex;
+                candidateQuotes = quoteGroups.float.filter(quote => quote.isDex);
             } else if (isFixedRate) {
                 candidateQuotes = quoteGroups.fixed;
             } else {
-                candidateQuotes = quoteGroups.float;
+                candidateQuotes = quoteGroups.float.filter(quote => !quote.isDex);
             }
 
             bestQuote = candidateQuotes.find(quote => quote.exchange === exchange);
@@ -77,8 +77,6 @@ const useExchangeQuotesChangeEffect = ({ getValues, setValue }: ExchangeFormType
                 bestQuote = quoteGroups.fixed[0];
             } else if (quoteGroups.float.length > 0) {
                 bestQuote = quoteGroups.float[0];
-            } else if (quoteGroups.dex.length > 0) {
-                bestQuote = quoteGroups.dex[0];
             }
         }
 
@@ -97,9 +95,11 @@ const useExchangeQuoteChangeEffect = ({ control, setValue }: ExchangeFormType) =
         selectIsAmountInSats(state, symbol),
     );
 
+    const isQuoteMatchingAsset = selectedQuote && selectedQuote.receive === receiveAsset?.cryptoId;
+    const amount = selectedQuote?.receiveStringAmount;
+
     useEffect(() => {
-        const amount = selectedQuote?.receiveStringAmount;
-        if (!amount) {
+        if (!isQuoteMatchingAsset || !amount) {
             setValue('receiveCryptoAmount', undefined, { shouldValidate: true });
 
             return;
@@ -110,7 +110,15 @@ const useExchangeQuoteChangeEffect = ({ control, setValue }: ExchangeFormType) =
                 ? convertAmountUnitsToSubunits(amount, getNetwork(symbol).decimals)
                 : amount;
         setValue('receiveCryptoAmount', value, { shouldValidate: true });
-    }, [selectedQuote, isAmountInSats, symbol, setValue]);
+    }, [
+        selectedQuote,
+        isQuoteMatchingAsset,
+        amount,
+        receiveAsset?.cryptoId,
+        isAmountInSats,
+        symbol,
+        setValue,
+    ]);
 };
 
 const useDexQuoteApprovalInfoChangeEffect = ({
@@ -201,8 +209,14 @@ const useValidations = (
 
 export const useExchangeForm = () => {
     const limits = useSelector(selectExchangeAmountLimits);
-    const { context, setBalance, setSendSymbol, setContractAddress, setAccountKey } =
-        useContextForTradingForm(limits);
+    const {
+        context,
+        setBalance,
+        setSendNetworkSymbol,
+        setSendAssetSymbol,
+        setContractAddress,
+        setAccountKey,
+    } = useContextForTradingForm(limits);
 
     const form = useForm<ExchangeFormValues>({
         validation: exchangeFormValidationSchema,
@@ -231,7 +245,8 @@ export const useExchangeForm = () => {
     useSendAccountAssetBalance({
         control,
         setBalance,
-        setSendSymbol,
+        setSendNetworkSymbol,
+        setSendAssetSymbol,
         setContractAddress,
         setAccountKey,
     });

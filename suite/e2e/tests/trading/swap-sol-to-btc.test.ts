@@ -1,9 +1,10 @@
 import { getCryptoId } from '@suite-common/trading';
+import { asNetworkSymbol } from '@suite-common/wallet-config';
 import { localizeNumber } from '@suite-common/wallet-utils';
 
 import { getCompanyNameFromList } from '../../fixtures/trading';
 import { swapStatusFlow } from '../../fixtures/trading/statusFlow';
-import { formatAddressWithNewlines } from '../../support/common';
+import { formatAddressWithNewlines, isWebProject } from '../../support/common';
 import { expect, test } from '../../support/fixtures';
 import { transformAddress } from '../../support/testExtends/customMatchers';
 
@@ -17,6 +18,7 @@ test.describe('Trading - Swap', { tag: ['@T3W1', '@T3T1'] }, () => {
     test.beforeEach(
         async ({ onboardingPage, dashboardPage, settingsPage, walletPage, tradingMockNew }) => {
             tradingMockNew.setTradeFlow('swap');
+            await tradingMockNew.mockProviderStatusPage();
             const solBackend = await tradingMockNew.startBackend('sol');
 
             await onboardingPage.completeOnboarding();
@@ -29,7 +31,14 @@ test.describe('Trading - Swap', { tag: ['@T3W1', '@T3T1'] }, () => {
         },
     );
 
-    test('Swap SOL to BTC', async ({ tradingPage, page, device, devicePrompt, tradingMockNew }) => {
+    test('Swap SOL to BTC', async ({
+        tradingPage,
+        page,
+        device,
+        devicePrompt,
+        tradingMockNew,
+        target,
+    }) => {
         await test.step('Fill in a Swap form', async () => {
             await tradingPage.fillSwapForm({
                 amount: sendAmount,
@@ -39,7 +48,7 @@ test.describe('Trading - Swap', { tag: ['@T3W1', '@T3T1'] }, () => {
                 },
                 buyAsset: {
                     searchFilter: 'Bitcoin',
-                    assetCryptoId: getCryptoId('btc'),
+                    assetCryptoId: getCryptoId(asNetworkSymbol('btc')),
                 },
                 selectReceiveAddress: async () => {
                     await tradingPage.receiveAccount.selectSuiteReceiveAccount(0, 'btc');
@@ -62,22 +71,19 @@ test.describe('Trading - Swap', { tag: ['@T3W1', '@T3T1'] }, () => {
 
         await test.step('Open modal and verify recipient on prompt and device', async () => {
             await tradingPage.confirmation.openConfirmAndSendModal();
-            const liveTrade = await liveTradePromise;
-            if (!liveTrade.exchange) {
-                throw new Error('Live trade response is missing the exchange property');
-            }
+            await liveTradePromise;
+            providerName = getCompanyNameFromList(tradingMockNew.liveTrade.exchange, 'swapList');
 
-            providerName = getCompanyNameFromList(liveTrade.exchange, 'swapList');
-            const sendAddress = tradingMockNew.liveTradeSendAddress;
-
-            await expect(devicePrompt.headerParagraph).toContainText(accountLabel);
+            await expect(devicePrompt.header.accountLabel).toHaveText(accountLabel);
             await expect(devicePrompt.outputValueOf('address')).toHaveText(
-                formatAddressWithNewlines(sendAddress),
+                formatAddressWithNewlines(tradingMockNew.liveTrade.sendAddress),
             );
             await expect(device).toShowOnDisplay({
                 T3W1: {
                     header: { title: 'Recipient' },
-                    body: [transformAddress(sendAddress, 'fourTetragrams')],
+                    body: [
+                        transformAddress(tradingMockNew.liveTrade.sendAddress, 'fourTetragrams'),
+                    ],
                     actions: { right_button: 'Continue' },
                 },
             });
@@ -93,7 +99,7 @@ test.describe('Trading - Swap', { tag: ['@T3W1', '@T3T1'] }, () => {
                 T3W1: {
                     header: { title: 'Send' },
                     body: [
-                        ['Amount:'],
+                        ['Amount'],
                         [formattedSendAmount],
                         ['Transaction fee'],
                         device.wrapText(`${solanaFee} SOL`, { wrapByWords: true }),
@@ -130,6 +136,20 @@ test.describe('Trading - Swap', { tag: ['@T3W1', '@T3T1'] }, () => {
                     { values },
                 );
             });
+
+            if (phase.status === 'CONVERTING' && isWebProject(target)) {
+                await test.step('Support banner link opens the mocked provider page', async () => {
+                    const statusLink = page.locator('a[href*="mocked.partner.site"]');
+                    // eslint-disable-next-line playwright/no-conditional-expect
+                    await expect(statusLink).toBeVisible({ timeout: 10_000 });
+                    const providerPagePromise = page.context().waitForEvent('page');
+                    await statusLink.click();
+                    const providerTab = await providerPagePromise;
+                    // eslint-disable-next-line playwright/no-conditional-expect
+                    await expect(providerTab).toHaveURL(/mocked\.partner\.site\/orders\//);
+                    await providerTab.close();
+                });
+            }
         }
 
         await test.step('Verify transaction detail values', async () => {

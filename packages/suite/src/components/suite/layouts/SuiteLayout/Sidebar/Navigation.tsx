@@ -10,13 +10,12 @@ import {
 import { type Route, selectRouteName } from '@suite/router';
 import { useServices } from '@suite-common/dependency-injection';
 import { selectHasBitcoinOnlyFirmware } from '@suite-common/device';
+import { selectHasUnseenTransactionNotifications } from '@suite-common/toast-notifications';
 import { Column } from '@trezor/components';
 import { BellIcon, GearSixIcon, HouseIcon, PiggyBankIcon, RepeatIcon } from '@trezor/icons';
 
 import { useDispatch, useSelector } from 'src/hooks/suite';
-import { type AppState } from 'src/reducers/store';
 import { useResponsiveContext } from 'src/support/suite/ResponsiveContext';
-import { isTransactionNotification } from 'src/utils/suite/notification';
 
 import { NavigationItem, type NavigationItemProps } from './NavigationItem';
 
@@ -34,11 +33,6 @@ type NavigationProps = {
 
 const newContentIndicatorIntro = { hasPlayed: false };
 
-const selectHasUnseenNotifications = (state: AppState) =>
-    state.notifications.some(
-        notification => !notification.seen && isTransactionNotification(notification),
-    );
-
 export const Navigation = ({ children }: NavigationProps) => {
     const { isSidebarCollapsed } = useResponsiveContext();
     const { analytics } = useServices(selectDesktopAnalyticsDep);
@@ -49,7 +43,7 @@ export const Navigation = ({ children }: NavigationProps) => {
 
     const isBtcOnly = useSelector(selectHasBitcoinOnlyFirmware);
 
-    const hasUnseenNotifications = useSelector(selectHasUnseenNotifications);
+    const hasUnseenNotifications = useSelector(selectHasUnseenTransactionNotifications);
     const isActivityNewContentIndicatorVisible = useSelector(
         selectIsNewContentIndicatorVisible(NewContentIndicatorId.Activity26_8),
     );

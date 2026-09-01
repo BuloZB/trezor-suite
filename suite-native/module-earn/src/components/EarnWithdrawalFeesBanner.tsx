@@ -4,7 +4,7 @@ import { type NetworkSymbol, getNetwork } from '@suite-common/wallet-config';
 import { type AccountsRootState, selectAccountByKey } from '@suite-common/wallet-core';
 import { type AccountKey } from '@suite-common/wallet-types';
 import { formatNetworkAmount, getStakingLimitsByNetworkSymbol } from '@suite-common/wallet-utils';
-import { InlineAlertBox } from '@suite-native/atoms';
+import { BannerInline } from '@suite-native/atoms';
 import { useField } from '@suite-native/forms';
 import { Translation } from '@suite-native/intl';
 import { BigNumber } from '@trezor/utils';
@@ -12,9 +12,14 @@ import { BigNumber } from '@trezor/utils';
 type EarnWithdrawalFeesBannerProps = {
     accountKey: AccountKey;
     symbol: NetworkSymbol;
+    isMaxSelected: boolean;
 };
 
-export const EarnWithdrawalFeesBanner = ({ accountKey, symbol }: EarnWithdrawalFeesBannerProps) => {
+export const EarnWithdrawalFeesBanner = ({
+    accountKey,
+    symbol,
+    isMaxSelected,
+}: EarnWithdrawalFeesBannerProps) => {
     const account = useSelector((state: AccountsRootState) =>
         selectAccountByKey(state, accountKey),
     );
@@ -22,24 +27,27 @@ export const EarnWithdrawalFeesBanner = ({ accountKey, symbol }: EarnWithdrawalF
 
     const limits = getStakingLimitsByNetworkSymbol(symbol);
 
-    if (!limits || !account) return null;
+    if (!limits || !account || hasError || !amountValue) return null;
 
     const { displaySymbol } = getNetwork(symbol);
     const formattedBalance = formatNetworkAmount(account.availableBalance, symbol);
 
-    const isVisible =
-        !hasError &&
-        !!amountValue &&
-        new BigNumber(formattedBalance).minus(amountValue).lt(limits.MIN_FOR_WITHDRAWALS);
+    const isBelowWithdrawalReserve = new BigNumber(formattedBalance)
+        .minus(amountValue)
+        .lt(limits.MIN_FOR_WITHDRAWALS);
 
-    if (!isVisible) return null;
+    if (!isBelowWithdrawalReserve && !isMaxSelected) return null;
 
     return (
-        <InlineAlertBox
-            intent="warning"
+        <BannerInline
+            intent={isBelowWithdrawalReserve ? 'warning' : 'info'}
             title={
                 <Translation
-                    id="earn.earnFormScreen.withdrawalFeesRecommendation"
+                    id={
+                        isBelowWithdrawalReserve
+                            ? 'earn.earnFormScreen.withdrawalFeesRecommendation'
+                            : 'earn.earnFormScreen.withdrawalFeesBanner'
+                    }
                     values={{
                         amount: limits.MIN_FOR_WITHDRAWALS.toString(),
                         displaySymbol,

@@ -1,4 +1,4 @@
-import { Box, Button, InlineAlertBox, ScreenFooterGradient, VStack } from '@suite-native/atoms';
+import { BannerInline, Box, Button, ScreenFooterGradient, VStack } from '@suite-native/atoms';
 import { Translation } from '@suite-native/intl';
 import { DynamicScreenHeader, Screen } from '@suite-native/navigation';
 import { FeeSelector } from '@suite-native/transaction-management';
@@ -78,7 +78,7 @@ export const YieldDepositRevokeScreen = () => {
             <Box pointerEvents={pendingModal ? 'none' : 'auto'}>
                 <VStack spacing="sp12">
                     {shouldShowLowLimitWarning && (
-                        <InlineAlertBox
+                        <BannerInline
                             intent="warning"
                             title={
                                 <Translation id="earn.yieldDepositRevokeScreen.lowLimitInfoAlert" />
@@ -113,6 +113,7 @@ export const YieldDepositRevokeScreen = () => {
                     isExploreDisabled={pendingModal.isExploreDisabled}
                     onExplorePress={pendingModal.onExplorePress}
                     submittedAt={pendingModal.submittedAt}
+                    txid={pendingModal.txid}
                     title={<Translation id="earn.yieldDepositRevokeScreen.pendingTitle" />}
                     vaultName={vaultTokenName}
                     vaultTokenContract={tokenContract}

@@ -3,13 +3,13 @@ import { useMemo } from 'react';
 import {
     type StablecoinYieldTxSimulationParams,
     composeStablecoinYieldTxSimulationAction,
-} from '@suite-common/earn-stablecoin/src/tx-simulation';
+} from '@suite-common/earn-stablecoin';
 import { type Account } from '@suite-common/wallet-types';
 import {
+    BannerFull,
     BottomSheetModal,
     type BottomSheetModalRef,
     Button,
-    FullAlertBox,
 } from '@suite-native/atoms';
 import { Translation } from '@suite-native/intl';
 import { EvmTxSimulationReviewContent } from '@suite-native/tx-simulation';
@@ -26,7 +26,7 @@ type YieldTxSimulationBottomSheetProps = {
     ref: BottomSheetModalRef;
 } & (
     | {
-          flow: 'deposit' | 'withdraw';
+          flow: 'deposit' | 'withdraw' | 'wrap' | 'unwrap';
           unsignedTx: string;
       }
     | {
@@ -80,7 +80,7 @@ export const YieldTxSimulationBottomSheet = ({
                     onConfirm={onConfirm}
                 />
             ) : (
-                <FullAlertBox
+                <BannerFull
                     intent="critical"
                     title={<Translation id="moduleConnectPopup.simulation.simulationStatusError" />}
                 />

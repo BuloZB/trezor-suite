@@ -12,6 +12,7 @@ import {
     TRADING_FORM_SEND_CRYPTO_CURRENCY_SELECT,
     type TradingBuyFormProps,
     getNetworkDecimalsWithFallback,
+    selectTradingComposedTransactionInfo,
 } from '@suite-common/trading';
 import { formInputsMaxLength } from '@suite-common/validators';
 import { selectCurrentFiatRates, selectIsNetworkReserveEnabled } from '@suite-common/wallet-core';
@@ -61,6 +62,7 @@ const TradingFormInputFiatContent = ({
     const locale = useSelector(selectLanguage);
     const isNetworkReserveEnabled = useSelector(selectIsNetworkReserveEnabled);
     const rates = useSelector(selectCurrentFiatRates);
+    const composedTransactionInfo = useSelector(selectTradingComposedTransactionInfo);
 
     const context = useTradingFormContext();
     const { amountLimits } = context;
@@ -89,8 +91,7 @@ const TradingFormInputFiatContent = ({
         : undefined;
 
     const tokenAddress = (sendCryptoSelect?.contractAddress ?? undefined) as
-        | TokenAddress
-        | undefined;
+        TokenAddress | undefined;
     const balance = tokenAddress
         ? findToken(asset.tokens, tokenAddress)?.balance
         : asset.formattedBalance;
@@ -103,7 +104,7 @@ const TradingFormInputFiatContent = ({
         ? getFeeInUnits({
               symbol: asset.symbol,
               composedLevels: context.composedLevels,
-              selectedFee: context.composedTransactionInfo?.selectedFee,
+              selectedFee: composedTransactionInfo?.selectedFee,
           })
         : undefined;
 

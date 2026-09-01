@@ -1,23 +1,25 @@
 import { type CryptoId } from 'invity-api';
 
 import { configureMockStore, renderHookWithStoreProvider } from '@suite-common/test-utils';
-import { getNetwork } from '@suite-common/wallet-config';
+import { asNetworkSymbol, getNetwork } from '@suite-common/wallet-config';
 import { type Account, asAccountDescriptor } from '@suite-common/wallet-types';
 import { mockWalletAccount } from '@suite-common/wallet-types/mocks';
 import type { StaticSessionId } from '@trezor/connect';
 
 import { useSelectedTradingAsset } from './useSelectedTradingAsset';
 
+const ethSymbol = asNetworkSymbol('eth');
+
 const DEVICE_STATE: StaticSessionId = '1stTestnetAddress@device_id:0';
 
 const ELIGIBLE_ACCOUNT: Account = mockWalletAccount({
-    symbol: 'eth',
+    symbol: ethSymbol,
     descriptor: asAccountDescriptor('0xEligible'),
     balance: '1000000000000000000',
     formattedBalance: '1',
 });
 const INELIGIBLE_ACCOUNT: Account = mockWalletAccount({
-    symbol: 'eth',
+    symbol: ethSymbol,
     descriptor: asAccountDescriptor('0xIneligible'),
     balance: '0',
     tokens: [],
@@ -46,6 +48,7 @@ const buildState = (
 describe('useSelectedTradingAsset', () => {
     it('returns undefined when no eligible account is selected', () => {
         const store = configureMockStore({
+            extra: undefined,
             preloadedState: buildState([INELIGIBLE_ACCOUNT]),
         });
         const { result } = renderHookWithStoreProvider(() => useSelectedTradingAsset('sell'), {
@@ -57,6 +60,7 @@ describe('useSelectedTradingAsset', () => {
 
     it('returns the native asset view-model when a native account is selected', () => {
         const store = configureMockStore({
+            extra: undefined,
             preloadedState: buildState([ELIGIBLE_ACCOUNT], ELIGIBLE_ACCOUNT.key),
         });
         const { result } = renderHookWithStoreProvider(() => useSelectedTradingAsset('sell'), {
@@ -65,17 +69,18 @@ describe('useSelectedTradingAsset', () => {
 
         expect(result.current).toEqual({
             symbol: 'eth',
-            decimals: getNetwork('eth').decimals,
+            decimals: getNetwork(ethSymbol).decimals,
             balance: ELIGIBLE_ACCOUNT.balance,
             formattedBalance: ELIGIBLE_ACCOUNT.formattedBalance,
             tokens: ELIGIBLE_ACCOUNT.tokens,
-            cryptoId: getNetwork('eth').tradeCryptoId,
+            cryptoId: getNetwork(ethSymbol).tradeCryptoId,
             isToken: false,
         });
     });
 
     it('flags a prefilled token as a token asset', () => {
         const store = configureMockStore({
+            extra: undefined,
             preloadedState: buildState([ELIGIBLE_ACCOUNT], ELIGIBLE_ACCOUNT.key, {
                 key: ELIGIBLE_ACCOUNT.key,
                 cryptoId: TOKEN_CRYPTO_ID,

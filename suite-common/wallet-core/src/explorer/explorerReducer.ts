@@ -1,4 +1,8 @@
-import { createReducerWithExtraDeps } from '@suite-common/redux-utils';
+import {
+    type ActionTypesDep,
+    type ReducersDep,
+    createReducerWithExtraDeps,
+} from '@suite-common/redux-utils';
 import {
     type Explorer,
     type NetworkSymbol,
@@ -38,9 +42,12 @@ const normalizeExplorer = (explorer: Explorer) => {
     return explorer;
 };
 
+export type ExplorerReducerDeps = ActionTypesDep<'storageLoad'> &
+    ReducersDep<'storageLoadExplorer'>;
+
 export const prepareExplorerReducer = createReducerWithExtraDeps(
     explorerInitialState,
-    (builder, extra) => {
+    (builder, extra: ExplorerReducerDeps) => {
         builder
             .addCase(explorerActions.setExplorer, (state, action) => {
                 const { symbol, explorer } = action.payload;

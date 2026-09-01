@@ -17,8 +17,8 @@ import { ReceiveBlockedDeviceCompromisedScreen } from './ReceiveBlockedDeviceCom
 import { ReceiveAddressActions } from '../components/ReceiveAddressActions';
 import { ReceiveAddressDetailHeader } from '../components/ReceiveAddressDetailHeader';
 import { ReceiveAddressDetails } from '../components/ReceiveAddressDetails';
+import { ReceiveAddressInteractionsProvider } from '../components/ReceiveAddressInteractionsProvider';
 import { ReceiveAddressReuseWarning } from '../components/ReceiveAddressReuseWarning';
-import { useReceiveAddressVerification } from '../hooks/useReceiveAddressVerification';
 import { type ReceiveAddressRootState, selectReceiveAccountAddressByPath } from '../selectors';
 
 export const ReceiveAddressDetailScreen = () => {
@@ -33,7 +33,6 @@ export const ReceiveAddressDetailScreen = () => {
     const hasFirmwareAuthenticityCheckHardFailed = useSelector(
         selectHasFirmwareAuthenticityCheckHardFailedForSelectedDevice,
     );
-    const { verifyAddressOnDevice } = useReceiveAddressVerification(accountKey, addressPath);
 
     if (hasFirmwareAuthenticityCheckHardFailed) {
         return <ReceiveBlockedDeviceCompromisedScreen />;
@@ -57,30 +56,33 @@ export const ReceiveAddressDetailScreen = () => {
     const isUsed = address.transfers > 0;
 
     return (
-        <Screen
-            header={<ReceiveAddressDetailHeader address={address} symbol={networkSymbol} />}
-            footer={
-                <>
-                    <ScreenFooterGradient />
-                    <VStack paddingHorizontal="sp16" paddingTop="sp8" paddingBottom="sp16">
-                        <ReceiveAddressActions
-                            address={address.address}
-                            onVerifyAddress={verifyAddressOnDevice}
-                        />
-                    </VStack>
-                </>
-            }
-            noBottomPadding
+        <ReceiveAddressInteractionsProvider
+            accountKey={accountKey}
+            address={address.address}
+            addressPath={addressPath}
         >
-            <VStack marginTop="sp8" spacing="sp16" flex={1}>
-                <ReceiveAddressDetails
-                    accountDescriptor={accountDescriptor}
-                    address={address.address}
-                    deviceStaticSessionId={deviceStaticSessionId}
-                    networkSymbol={networkSymbol}
-                />
-                {isUsed && <ReceiveAddressReuseWarning />}
-            </VStack>
-        </Screen>
+            <Screen
+                header={<ReceiveAddressDetailHeader address={address} symbol={networkSymbol} />}
+                footer={
+                    <>
+                        <ScreenFooterGradient />
+                        <VStack paddingHorizontal="sp16" paddingTop="sp8" paddingBottom="sp16">
+                            <ReceiveAddressActions address={address.address} />
+                        </VStack>
+                    </>
+                }
+                noBottomPadding
+            >
+                <VStack marginTop="sp8" spacing="sp16" flex={1}>
+                    <ReceiveAddressDetails
+                        accountDescriptor={accountDescriptor}
+                        address={address.address}
+                        deviceStaticSessionId={deviceStaticSessionId}
+                        networkSymbol={networkSymbol}
+                    />
+                    {isUsed && <ReceiveAddressReuseWarning />}
+                </VStack>
+            </Screen>
+        </ReceiveAddressInteractionsProvider>
     );
 };

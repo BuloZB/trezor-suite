@@ -15,8 +15,8 @@ import { prepareNativeStyle, useNativeStyles } from '@trezor/styles-native';
 
 import { YieldConsentsProviderCard } from '../components/YieldConsentsProviderCard';
 import { useNavigateBackAnalytics } from '../hooks/useNavigateBackAnalytics';
-import { useResolvedYieldFlowData } from '../hooks/useResolvedYieldFlowData';
 import { useStartYieldDepositFlow } from '../hooks/useStartYieldDepositFlow';
+import { useYieldFlowData } from '../hooks/useYieldFlowData';
 
 const titleStyle = prepareNativeStyle(utils => ({
     marginBottom: utils.spacings.sp32,
@@ -27,14 +27,27 @@ type RouteProps = RouteProp<YieldStackParamList, YieldStackRoutes.YieldConsents>
 export const YieldConsentsScreen = () => {
     const { applyStyle } = useNativeStyles();
     const route = useRoute<RouteProps>();
-    const { account, flowData, flowKey, providerName, tokenSymbol, vault, resolutionStatus } =
-        useResolvedYieldFlowData(route.params);
     const { analytics } = useServices(selectNativeAnalyticsDep);
+
+    const yieldFlowData = useYieldFlowData(route.params);
+
+    const {
+        account,
+        flowData,
+        flowKey,
+        providerName,
+        tokenSymbol,
+        vault,
+        resolutionStatus,
+        wrappedNativeSymbol,
+    } = yieldFlowData;
+
     const { handleStartYieldDepositFlow, isStartingDepositFlow } = useStartYieldDepositFlow({
         flowData,
         flowKey,
         routeParams: route.params,
     });
+
     const registerNavigateBackAnalytics = useNavigateBackAnalytics({
         type: events.yieldNavigateEvent.name,
         payload: {
@@ -78,7 +91,7 @@ export const YieldConsentsScreen = () => {
                 </Text>
                 <YieldConsentsProviderCard
                     providerName={providerName}
-                    tokenSymbol={tokenSymbol}
+                    tokenSymbol={wrappedNativeSymbol ?? tokenSymbol}
                     onConfirm={handleConfirmConsents}
                     isConfirmLoading={isStartingDepositFlow}
                 />

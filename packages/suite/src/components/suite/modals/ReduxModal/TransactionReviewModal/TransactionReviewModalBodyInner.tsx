@@ -21,8 +21,10 @@ import {
     type YieldClaimReward,
 } from '@suite-common/wallet-types';
 import {
+    getDecreaseOutputId,
     getStakeType,
     getTxValidityTimeoutInMs,
+    isDeviceReviewOnlyTransaction,
     isEvmApprovalTx,
     isRbfBumpFeeTransaction,
     isRbfCancelTransaction,
@@ -116,6 +118,10 @@ export const TransactionReviewModalBodyInner = ({
     const tradingToken = useSelector(selectTradingComposedTransactionInfo).composed?.token;
 
     const isApprovalTx = isEvmApprovalTx(precomposedForm.transactionData);
+    // A contract call's single "address" row is the contract, not a payment recipient, so the
+    // step-back heuristic below must not treat its ConfirmOutput as a re-confirmed output. A vault
+    // deposit otherwise matches every condition and walks the review backwards mid-signing.
+    const isContractCall = !!precomposedForm.transactionData;
 
     const totalRecipients = outputs.filter(({ type }) => type === 'address').length;
     const hasOpReturn = outputs.some(output => output.type === 'opreturn');
@@ -123,10 +129,7 @@ export const TransactionReviewModalBodyInner = ({
     const isBumpFeeRbfAction =
         precomposedTx !== undefined && isRbfBumpFeeTransaction(precomposedTx);
 
-    const decreaseOutputId =
-        isBumpFeeRbfAction && precomposedTx.useNativeRbf
-            ? precomposedForm?.setMaxOutputId
-            : undefined;
+    const decreaseOutputId = getDecreaseOutputId(precomposedTx, precomposedForm);
 
     const buttonRequestsCount = useSelector((state: DeviceRootState) =>
         selectSendFormReviewButtonRequestsCount(state, account?.symbol, decreaseOutputId),
@@ -151,7 +154,8 @@ export const TransactionReviewModalBodyInner = ({
                 totalRecipients === 1 && // Currently we only support going bak for =1
                 lastButtonRequestCode === 'ButtonRequest_ConfirmOutput' &&
                 !hasOpReturn &&
-                !isApprovalTx
+                !isApprovalTx &&
+                !isContractCall
             ) {
                 setReviewStep(prev => prev - 1);
             } else {
@@ -166,6 +170,7 @@ export const TransactionReviewModalBodyInner = ({
         totalRecipients,
         hasOpReturn,
         isApprovalTx,
+        isContractCall,
     ]);
 
     const isInternalTransfer = useSelector(state =>
@@ -184,6 +189,9 @@ export const TransactionReviewModalBodyInner = ({
         cancelSignTx();
         decision?.resolve(false);
     };
+
+    const isDeviceOnlyReview = isDeviceReviewOnlyTransaction(precomposedTx);
+    const isAwaitingDeviceReview = isDeviceOnlyReview && !serializedTx;
 
     const isCancelRbfAction = isRbfCancelTransaction(precomposedTx);
     const isTronStakeFreeze =
@@ -238,7 +246,9 @@ export const TransactionReviewModalBodyInner = ({
         <ConnectModalBackdrop canSwitchDevice>
             {!isRbfConfirmedError && (
                 <TransactionReviewModalConfirmOnDevice
-                    totalSteps={outputs.length + (showSummary ? 1 : 0)}
+                    totalSteps={
+                        isDeviceOnlyReview ? undefined : outputs.length + (showSummary ? 1 : 0)
+                    }
                     serializedTx={serializedTx}
                     isSending={isSending}
                     reviewStep={reviewStep}
@@ -278,7 +288,7 @@ export const TransactionReviewModalBodyInner = ({
                     )
                 }
                 bottomContent={
-                    areDetailsVisible ? null : (
+                    areDetailsVisible || isAwaitingDeviceReview ? null : (
                         <TransactionReviewModalBottomContent
                             decision={decision}
                             isSending={isSending}
@@ -296,7 +306,7 @@ export const TransactionReviewModalBodyInner = ({
                         />
                     )
                 }
-                width={600}
+                width={isDeviceOnlyReview ? 480 : 600}
             >
                 <TransactionReviewModalContent
                     account={account}

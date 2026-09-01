@@ -1,10 +1,22 @@
+import { combineReducers } from '@reduxjs/toolkit';
+
+import { mockActionType } from '@suite-common/redux-utils/mocks';
+import { configureMockStore } from '@suite-common/test-utils';
 import { tradingExchangeActions, tradingThunks } from '@suite-common/trading';
+import { mockGetSelectedAccount, mockGetTradingEnvironment } from '@suite-common/trading/mocks';
+import { initialWalletSettingsState } from '@suite-common/wallet-core';
 import { asAccountDescriptor } from '@suite-common/wallet-types';
-import { type TestStore, act, renderHookWithStoreProvider } from '@suite-native/test-utils-store';
+import { localeReducer } from '@suite-native/intl';
+import {
+    type TestStore,
+    act,
+    createStaticReducer,
+    renderHookWithStoreProvider,
+} from '@suite-native/test-utils-store';
 import { getBtcAccount, getInitializedTradingState } from '@suite-native/trading-fixtures';
+import { tradingSlice } from '@suite-native/trading-state';
 
 import { useExchangeData } from './useExchangeData';
-import { createTradingLightStore } from '../../test-utils/tradingTestUtils';
 
 jest.mock('@suite-common/trading', () => ({
     ...jest.requireActual('@suite-common/trading'),
@@ -16,20 +28,40 @@ const btc2Account = getBtcAccount({ descriptor: asAccountDescriptor('btcAccount2
 const btc3Account = getBtcAccount({ descriptor: asAccountDescriptor('btcAccount3') });
 
 describe('useExchangeData', () => {
+    const extra = {
+        services: {
+            getSelectedAccount: mockGetSelectedAccount(),
+            getTradingEnvironment: mockGetTradingEnvironment(),
+        },
+    };
+
+    const accounts = [
+        btc1Account,
+        btc2Account,
+        { ...btc3Account, descriptor: asAccountDescriptor('') },
+    ];
+
+    const reducer = {
+        locale: localeReducer,
+        wallet: combineReducers({
+            settings: createStaticReducer(initialWalletSettingsState),
+            accounts: createStaticReducer(accounts),
+            trading: tradingSlice.prepareReducer({
+                actionTypes: { storageLoad: mockActionType('storageLoad') },
+            }),
+        }),
+    } as const;
+
     const getInitializedStore = (tradingAccountKey: string | undefined) => {
         const tradingState = getInitializedTradingState('exchange');
         tradingState.exchange.tradingAccountKey = tradingAccountKey as any;
 
-        return createTradingLightStore({
-            tradeType: 'exchange',
-            overrides: {
+        return configureMockStore({
+            extra,
+            reducer,
+            preloadedState: {
                 wallet: {
                     trading: tradingState,
-                    accounts: [
-                        btc1Account,
-                        btc2Account,
-                        { ...btc3Account, descriptor: asAccountDescriptor('') },
-                    ],
                 },
             },
         });
@@ -39,9 +71,9 @@ describe('useExchangeData', () => {
         reloadRequestOrdinalInitialValue: number = 0,
         store?: TestStore,
     ) => {
-        const effectiveStore = store ?? createTradingLightStore({ tradeType: 'exchange' });
+        const effectiveStore = store ?? configureMockStore({ extra, reducer });
 
-        const ret = renderHookWithStoreProvider(
+        const ret = await renderHookWithStoreProvider(
             ({ reloadRequestOrdinal }) => useExchangeData(reloadRequestOrdinal),
             {
                 initialProps: { reloadRequestOrdinal: reloadRequestOrdinalInitialValue },
@@ -95,7 +127,7 @@ describe('useExchangeData', () => {
             .mockImplementation((() => ({ type: 'TEST_ACTION' })) as () => any);
 
         const { rerender } = await renderUseExchangeData();
-        rerender({ reloadRequestOrdinal: 0 });
+        await rerender({ reloadRequestOrdinal: 0 });
 
         expect(initialThunkLoadActionSpy).toHaveBeenCalledTimes(1);
     });
@@ -106,7 +138,7 @@ describe('useExchangeData', () => {
             .mockImplementation((() => ({ type: 'TEST_ACTION' })) as () => any);
 
         const { rerender } = await renderUseExchangeData();
-        rerender({ reloadRequestOrdinal: 1 });
+        await rerender({ reloadRequestOrdinal: 1 });
 
         expect(initialThunkLoadActionSpy).toHaveBeenCalledTimes(2);
     });
@@ -127,7 +159,7 @@ describe('useExchangeData', () => {
             // Clear the initial call
             initialThunkLoadActionSpy.mockClear();
 
-            act(() => {
+            await act(() => {
                 store.dispatch(tradingExchangeActions.setTradingAccountKey(btc2Account.key));
             });
 
@@ -149,7 +181,7 @@ describe('useExchangeData', () => {
             // Clear the initial call
             initialThunkLoadActionSpy.mockClear();
 
-            act(() => {
+            await act(() => {
                 store.dispatch(tradingExchangeActions.setTradingAccountKey(btc2Account.key));
             });
 
@@ -168,7 +200,7 @@ describe('useExchangeData', () => {
             // Clear the initial call
             initialThunkLoadActionSpy.mockClear();
 
-            act(() => {
+            await act(() => {
                 store.dispatch(tradingExchangeActions.setTradingAccountKey(btc3Account.key));
             });
 
@@ -191,7 +223,7 @@ describe('useExchangeData', () => {
             // Clear the initial call
             initialThunkLoadActionSpy.mockClear();
 
-            act(() => {
+            await act(() => {
                 store.dispatch(tradingExchangeActions.setTradingAccountKey(undefined));
             });
 

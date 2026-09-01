@@ -174,24 +174,17 @@ export const useTradingSellForm = (): TradingSellFormContextProps => {
         },
         ...methods,
         methods,
-        sellInfo,
-        quotesRequest,
         composedLevels,
-        composedTransactionInfo,
         feeInfo,
         isComposing,
         amountLimits,
         network,
         shouldSendInSats,
-        trade,
         isAmountEmpty,
         changeFeeLevel,
         composeRequest,
         setAmountLimits,
         showReserveBanner,
         setShowReserveBanner,
-        clearQuotesAndParams: () => {
-            dispatch(tradingSellActions.clearQuotesAndParams());
-        },
     };
 };

@@ -1,10 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useSelector } from 'react-redux';
 
-import { type YieldFlowToken } from '@suite-common/wallet-core';
+import {
+    type YieldFlowToken,
+    getYieldDepositAvailableBalance,
+    selectBaseCurrency,
+    selectIsBaseCurrencyInSats,
+} from '@suite-common/wallet-core';
 import { type TokenSymbol } from '@suite-common/wallet-types';
+import { getDecimalsForBaseCurrency } from '@suite-common/wallet-utils';
+import { useCryptoFiatConverters } from '@suite-native/formatters';
 import { useForm, useWatch } from '@suite-native/forms';
 import { useTranslate } from '@suite-native/intl';
 
+import { getFiatFormValue, getYieldTokenContract } from '../utils/yieldFiatAmountUtils';
 import {
     type YieldDepositFormValues,
     yieldDepositFormValidationSchema,
@@ -14,17 +23,39 @@ type UseYieldDepositFormParams = {
     defaultAmount?: string | null;
     token: YieldFlowToken | null;
     tokenSymbol: TokenSymbol | null;
+    wrappedAmount?: string | null;
 };
 
 export const useYieldDepositForm = ({
     defaultAmount,
     token,
     tokenSymbol,
+    wrappedAmount,
 }: UseYieldDepositFormParams) => {
     const { translate } = useTranslate();
-    const [isMaxSelected, setIsMaxSelected] = useState(false);
 
-    const availableBalance = token?.balance ?? '0';
+    const baseCurrencyCode = useSelector(selectBaseCurrency);
+    const isBaseCurrencyInSats = useSelector(selectIsBaseCurrencyInSats);
+    const baseCurrencyDecimals = getDecimalsForBaseCurrency({
+        code: baseCurrencyCode,
+        isInSats: isBaseCurrencyInSats,
+    });
+    const converters = useCryptoFiatConverters({
+        symbol: token?.networkSymbol ?? null,
+        tokenContract: getYieldTokenContract(token),
+    });
+
+    const availableBalance = getYieldDepositAvailableBalance({
+        tokenBalance: token?.balance,
+        wrappedAmount,
+    });
+
+    const getFiatValue = (cryptoAmount: string) =>
+        getFiatFormValue({
+            cryptoAmount,
+            convertCryptoToFiat: converters?.convertCryptoToFiat,
+            decimals: baseCurrencyDecimals,
+        });
 
     const form = useForm<YieldDepositFormValues>({
         validation: yieldDepositFormValidationSchema,
@@ -35,33 +66,30 @@ export const useYieldDepositForm = ({
             tokenSymbol,
             translate,
         },
-        defaultValues: { amount: defaultAmount ?? '' },
+        defaultValues: { amount: defaultAmount ?? '', fiat: getFiatValue(defaultAmount ?? '') },
     });
 
     const amountValue = useWatch({ control: form.control, name: 'amount' });
 
+    // The wrapped-token balance can land after the screen mounted, when the prefilled amount was
+    // already validated against the stale one — re-run validation so it clears.
     useEffect(() => {
-        if (defaultAmount) {
-            void form.trigger('amount');
+        if (!form.getValues('amount')) {
+            return;
         }
-    }, [defaultAmount, form]);
 
-    const handleMaxChange = (value: boolean) => {
-        setIsMaxSelected(value);
-        form.setValue('amount', value ? availableBalance : '', { shouldValidate: true });
-    };
+        void form.trigger('amount');
+    }, [availableBalance, defaultAmount, form]);
 
-    const handleAmountChange = () => {
-        if (isMaxSelected) {
-            setIsMaxSelected(false);
-        }
+    const handleMaxPress = () => {
+        form.setValue('amount', availableBalance, { shouldValidate: true });
+        form.setValue('fiat', getFiatValue(availableBalance));
     };
 
     return {
         amountValue,
+        availableBalance,
         form,
-        isMaxSelected,
-        handleAmountChange,
-        handleMaxChange,
+        handleMaxPress,
     };
 };

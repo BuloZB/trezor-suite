@@ -6,7 +6,7 @@ import { getNetworkDisplaySymbol } from '@suite-common/wallet-config';
 import { type AccountsRootState, selectAccountByKey } from '@suite-common/wallet-core';
 import { type AccountKey } from '@suite-common/wallet-types';
 import { getStakingLimitsByNetworkSymbol } from '@suite-common/wallet-utils';
-import { InlineAlertBox } from '@suite-native/atoms';
+import { BannerInline } from '@suite-native/atoms';
 import { Translation } from '@suite-native/intl';
 import {
     AppTabsRoutes,
@@ -15,6 +15,7 @@ import {
     type StackNavigationProps,
     TradingStackRoutes,
 } from '@suite-native/navigation';
+import { selectIsTradingEnabled } from '@suite-native/trading-state';
 
 import { isBalanceBelowStakingMinimum } from '../utils/isBalanceBelowStakingMinimum';
 
@@ -31,6 +32,7 @@ export const EarnInsufficientBalanceBanner = ({
     const account = useSelector((state: AccountsRootState) =>
         selectAccountByKey(state, accountKey),
     );
+    const isTradingEnabled = useSelector(selectIsTradingEnabled);
 
     const limits = account ? getStakingLimitsByNetworkSymbol(account.symbol) : null;
 
@@ -48,19 +50,25 @@ export const EarnInsufficientBalanceBanner = ({
         });
     };
 
+    const title = (
+        <Translation
+            id="earn.earnFormScreen.insufficientBalanceBanner"
+            values={{
+                minAmount: limits.MIN_AMOUNT_FOR_STAKING.toString(),
+                displaySymbol,
+            }}
+        />
+    );
+
+    if (!isTradingEnabled) {
+        return <BannerInline marginTop="sp16" intent="warning" title={title} />;
+    }
+
     return (
-        <InlineAlertBox
+        <BannerInline
             marginTop="sp16"
             intent="warning"
-            title={
-                <Translation
-                    id="earn.earnFormScreen.insufficientBalanceBanner"
-                    values={{
-                        minAmount: limits.MIN_AMOUNT_FOR_STAKING.toString(),
-                        displaySymbol,
-                    }}
-                />
-            }
+            title={title}
             buttonLabel={
                 <Translation
                     id="earn.earnFormScreen.insufficientBalanceBannerButton"

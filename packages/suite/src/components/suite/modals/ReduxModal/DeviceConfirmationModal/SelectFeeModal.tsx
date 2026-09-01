@@ -75,48 +75,39 @@ interface SelectAccountModalProps {
     data: UiRequestSelectFee['payload'];
 }
 
+const getSelectFeeData = ({ coinInfo, feeLevels }: UiRequestSelectFee['payload']) => {
+    const { shortcut, blockTime, minFeeSatoshiKb, maxFeeSatoshiKb } = coinInfo;
+    const minFee = minFeeSatoshiKb / 1000;
+    const maxFee = maxFeeSatoshiKb / 1000;
+    const symbol = shortcut.toLowerCase() as NetworkSymbol;
+
+    const levels = feeLevels.filter(({ label }) => label !== 'low').sort(sortLevels); // 'low' option is hidden in Suite
+    const defaultLevel = levels.find(l => l.label === 'normal') ?? levels[0]; // use preferably normal level as default, fall back to any other
+    const selectedFee = defaultLevel?.label ?? 'normal';
+    const feePerUnit = selectedFee === 'custom' ? defaultLevel?.feePerUnit : undefined;
+
+    return {
+        account: { networkType: 'bitcoin' as const, symbol, tokens: [] },
+        feeInfo: { levels, minFee, maxFee, minPriorityFee: -1, blockHeight: 0, blockTime },
+        defaultValues: { outputs: [], selectedFee, feePerUnit },
+    };
+};
+
 export const SelectFeeModal = ({ data }: SelectAccountModalProps) => {
     const dispatch = useDispatch();
     const popupCall = useSelector(selectConnectPopupCall);
 
-    const fees = useMemo(() => data?.feeLevels ?? [], [data]);
-    const minFee = data.coinInfo.minFeeSatoshiKb / 1000;
-    const maxFee = data.coinInfo.maxFeeSatoshiKb / 1000;
-    const account = {
-        networkType: 'bitcoin' as const,
-        symbol: data.coinInfo.shortcut.toLowerCase() as NetworkSymbol,
-        tokens: [],
-    };
-    const feeInfo = {
-        levels: fees
-            .filter(level => level.fee != '0')
-            .filter(level => level.name !== 'low') // this option is hidden in Suite
-            .map(level => ({
-                // level.name is just a string instead of enum
-                label: level.name as any,
-                feePerUnit: level.feePerByte!,
-                blocks: level.blocks!,
-            }))
-            .sort(sortLevels),
+    const { account, feeInfo, defaultValues } = useMemo(() => getSelectFeeData(data), [data]);
 
-        minFee,
-        maxFee,
-        minPriorityFee: -1,
-        blockHeight: 0,
-        blockTime: data.coinInfo.blockTime,
-    };
+    const methods = useForm<FormState>({ defaultValues });
 
-    const methods = useForm<FormState>({
-        defaultValues: {
-            outputs: [],
-        },
-    });
     const { changeFeeLevel } = useFees({
         ...methods,
-        defaultValue: 'normal',
+        defaultValue: defaultValues.selectedFee,
         feeInfo,
         composeRequest: () => {},
     });
+
     const {
         handleSubmit,
         formState: { errors },
@@ -125,26 +116,13 @@ export const SelectFeeModal = ({ data }: SelectAccountModalProps) => {
     const onSend = handleSubmit(data => {
         const { selectedFee, feePerUnit } = data;
         if (selectedFee === 'custom') {
-            dispatch(
-                onReceiveFee({
-                    type: 'compose-custom',
-                    value: feePerUnit,
-                }),
-            );
+            dispatch(onReceiveFee({ type: 'select-fee-custom', value: feePerUnit }));
+        } else {
+            dispatch(onReceiveFee({ type: 'select-fee', value: selectedFee ?? 'normal' }));
         }
-        dispatch(
-            onReceiveFee({
-                type: 'send',
-                value: selectedFee || 'normal',
-            }),
-        );
     });
     const onChangeAccount = () => {
-        dispatch(
-            onReceiveFee({
-                type: 'change-account',
-            }),
-        );
+        dispatch(onReceiveFee({ type: 'change-account' }));
     };
     const onClose = () => {
         dispatch(onReceiveFee(null));
